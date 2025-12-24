@@ -2,143 +2,97 @@
 
 import { useState } from 'react';
 
-type Role = 'tenant' | 'owner';
+type UserType = 'tenant' | 'owner' | null;
 
 export default function Page() {
-  const [role, setRole] = useState<Role | null>(null);
+  const [userType, setUserType] = useState<UserType>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  // mock global (después DB)
-  const [data, setData] = useState<any[]>([]);
-
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    const formData = Object.fromEntries(new FormData(e.currentTarget));
-    const payload = { role, ...formData };
-
-    setData((prev) => [...prev, payload]);
-    setSubmitted(true);
-
-    console.log('NUEVO REGISTRO:', payload);
-    console.log('DATA ACTUAL:', [...data, payload]);
+  if (submitted) {
+    return (
+      <main style={styles.main}>
+        <h1>Formulario enviado</h1>
+        <p>Cuando exista un match, el sistema notificará a ambas partes.</p>
+        <button onClick={() => {
+          setUserType(null);
+          setSubmitted(false);
+        }}>
+          Volver al inicio
+        </button>
+      </main>
+    );
   }
 
-  function reset() {
-    setRole(null);
-    setSubmitted(false);
+  if (!userType) {
+    return (
+      <main style={styles.main}>
+        <h1>VERLO</h1>
+        <p>Plataforma de matching inmobiliario</p>
+
+        <div style={styles.row}>
+          <button onClick={() => setUserType('tenant')}>
+            Soy Inquilino
+          </button>
+          <button onClick={() => setUserType('owner')}>
+            Soy Propietario
+          </button>
+        </div>
+      </main>
+    );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
-      <div className="w-full max-w-2xl space-y-10">
+    <main style={styles.main}>
+      <h1>{userType === 'tenant' ? 'Inquilino' : 'Propietario'}</h1>
 
-        {!role && (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSubmitted(true);
+        }}
+        style={styles.form}
+      >
+        <input placeholder="Nombre completo" required />
+        <input placeholder="Email" type="email" required />
+        <input placeholder="Teléfono" required />
+
+        {userType === 'tenant' && (
           <>
-            <h1 className="text-4xl font-bold text-center">
-              Plataforma de Alquiler Inteligente
-            </h1>
-
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setRole('tenant')}
-                className="p-6 border border-white/20 rounded-xl hover:bg-white hover:text-black transition"
-              >
-                Soy Inquilino
-              </button>
-
-              <button
-                onClick={() => setRole('owner')}
-                className="p-6 border border-white/20 rounded-xl hover:bg-white hover:text-black transition"
-              >
-                Soy Propietario
-              </button>
-            </div>
+            <input placeholder="Zona buscada" required />
+            <input placeholder="Presupuesto máximo" required />
           </>
         )}
 
-        {role && !submitted && (
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-6 border border-white/20 rounded-xl p-8"
-          >
-            <h2 className="text-2xl font-bold">
-              Registro {role === 'tenant' ? 'Inquilino' : 'Propietario'}
-            </h2>
-
-            <input
-              name="name"
-              required
-              placeholder="Nombre"
-              className="w-full p-3 bg-black border border-white/20 rounded"
-            />
-
-            <input
-              name="email"
-              type="email"
-              required
-              placeholder="Email"
-              className="w-full p-3 bg-black border border-white/20 rounded"
-            />
-
-            <input
-              name="zona"
-              required
-              placeholder="Zona"
-              className="w-full p-3 bg-black border border-white/20 rounded"
-            />
-
-            {role === 'tenant' && (
-              <input
-                name="precio_max"
-                placeholder="Precio máximo"
-                className="w-full p-3 bg-black border border-white/20 rounded"
-              />
-            )}
-
-            {role === 'owner' && (
-              <input
-                name="precio"
-                placeholder="Precio de la propiedad"
-                className="w-full p-3 bg-black border border-white/20 rounded"
-              />
-            )}
-
-            <button
-              type="submit"
-              className="w-full p-4 bg-white text-black font-bold rounded hover:opacity-90"
-            >
-              Enviar
-            </button>
-
-            <button
-              type="button"
-              onClick={reset}
-              className="w-full text-sm opacity-60 hover:opacity-100"
-            >
-              Volver
-            </button>
-          </form>
+        {userType === 'owner' && (
+          <>
+            <input placeholder="Dirección de la propiedad" required />
+            <input placeholder="Precio esperado" required />
+          </>
         )}
 
-        {submitted && (
-          <div className="text-center space-y-6 border border-white/20 rounded-xl p-10">
-            <h2 className="text-2xl font-bold">Registro recibido</h2>
-
-            <p className="opacity-70">
-              Cuando exista un match compatible, el sistema notificará a ambas partes.
-            </p>
-
-            <button
-              onClick={reset}
-              className="mt-4 px-6 py-3 border border-white/20 rounded hover:bg-white hover:text-black"
-            >
-              Volver al inicio
-            </button>
-          </div>
-        )}
-
-      </div>
+        <button type="submit">Enviar</button>
+      </form>
     </main>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  main: {
+    minHeight: '100vh',
+    padding: '40px',
+    fontFamily: 'system-ui',
+  },
+  row: {
+    display: 'flex',
+    gap: '20px',
+    marginTop: '30px',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    maxWidth: '400px',
+    marginTop: '30px',
+  },
+};
+
