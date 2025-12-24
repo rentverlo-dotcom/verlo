@@ -1,88 +1,69 @@
 'use client'
 
 import { useEffect } from 'react'
-import AOS from 'aos'
-import 'aos/dist/aos.css'
 
 export default function Page() {
   useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      once: true,
-      offset: 80,
-    })
-
     const handler = (e: MouseEvent) => {
-      const moveX = (e.clientX - window.innerWidth / 2) * 0.02
-      const moveY = (e.clientY - window.innerHeight / 2) * 0.02
+      const x = (e.clientX - window.innerWidth / 2) * 0.01
+      const y = (e.clientY - window.innerHeight / 2) * 0.01
       const bg = document.querySelector('.glow-bg') as HTMLElement
-      if (bg) bg.style.transform = `translate(${moveX}px, ${moveY}px)`
+      if (bg) bg.style.transform = `translate(${x}px, ${y}px)`
     }
-
     document.addEventListener('mousemove', handler)
     return () => document.removeEventListener('mousemove', handler)
   }, [])
 
   return (
-    <main className="relative min-h-screen overflow-hidden">
+    <>
       <div className="glow-bg" />
 
       {/* NAV */}
-      <nav className="flex items-center justify-between px-8 py-6">
-        <div className="text-xl font-bold">VERLO_</div>
-        <div className="flex gap-8 text-sm text-gray-300">
-          <a href="#">Experiencia</a>
-          <a href="#">El Viaje</a>
-          <a href="#">Seguridad</a>
+      <nav className="fixed w-full z-50 px-6 py-4">
+        <div className="max-w-7xl mx-auto glass px-6 py-3 rounded-2xl flex justify-between items-center">
+          <div className="text-2xl font-extrabold tracking-tighter">
+            VERLO<span className="text-cyan-400">_</span>
+          </div>
+
+          <div className="hidden md:flex gap-8 text-sm font-medium">
+            <a className="hover:text-cyan-400 transition">Experiencia</a>
+            <a className="hover:text-cyan-400 transition">El Viaje</a>
+            <a className="hover:text-cyan-400 transition">Seguridad</a>
+          </div>
+
+          <button className="bg-indigo-600 hover:bg-indigo-500 px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/30">
+            Lanzar App
+          </button>
         </div>
-        <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500">
-          Lanzar App
-        </button>
       </nav>
 
       {/* HERO */}
-      <section className="mx-auto mt-28 max-w-5xl px-6 text-center">
-        <div
-          data-aos="fade-down"
-          className="mx-auto mb-6 inline-block rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1 text-xs tracking-wide text-indigo-300"
-        >
+      <main className="min-h-screen pt-32 flex flex-col items-center justify-center text-center px-6">
+        <span className="mb-6 px-4 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-bold tracking-widest">
           BIENVENIDO A LA NUEVA ERA
-        </div>
+        </span>
 
-        <h1
-          data-aos="fade-up"
-          className="text-5xl font-extrabold leading-tight md:text-7xl"
-        >
-          Alquila con{' '}
-          <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-            libertad total
-          </span>
-          .
+        <h1 className="text-6xl md:text-9xl font-extrabold tracking-tighter leading-tight mb-8">
+          Alquila con <br />
+          <span className="text-gradient">libertad total.</span>
         </h1>
 
-        <p
-          data-aos="fade-up"
-          data-aos-delay="150"
-          className="mx-auto mt-6 max-w-2xl text-gray-300"
-        >
+        <p className="text-slate-400 text-xl md:text-2xl max-w-3xl mb-12 font-light">
           Adiós a la burocracia, los depósitos infinitos y los intermediarios.
-          Hemos reinventado el acceso a la vivienda para que sea rápido,
-          seguro e inspirador.
+          Hemos reinventado el acceso a la vivienda para que sea{' '}
+          <strong>rápido, seguro e inspirador.</strong>
         </p>
 
-        <div
-          data-aos="fade-up"
-          data-aos-delay="300"
-          className="mt-10 flex justify-center gap-4"
-        >
-          <button className="rounded-xl bg-white px-6 py-3 font-semibold text-black hover:bg-gray-200">
+        <div className="flex flex-col sm:flex-row gap-6">
+          <button className="btn-main btn-main-white">
             Empieza Ahora
           </button>
-          <button className="rounded-xl border border-white/20 px-6 py-3 text-white hover:bg-white/10">
-            Ver Demo
+
+          <button className="btn-main btn-main-glass">
+            ▶ Ver Demo
           </button>
         </div>
-      </section>
-    </main>
+      </main>
+    </>
   )
 }
