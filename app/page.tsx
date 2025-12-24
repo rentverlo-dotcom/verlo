@@ -1,156 +1,264 @@
-export default function HomePage() {
+'use client';
+
+import { useState } from 'react';
+import {
+  ChevronRight, ArrowLeft, CheckCircle,
+  Building2, User,
+  Check, FileText,
+  UserCircle, ShieldCheck,
+  FileSignature, Camera, Shield
+} from 'lucide-react';
+
+/* =======================
+   DATA
+======================= */
+
+const ARGENTINA_DATA = {
+  CABA: {
+    localidades: ['CABA'],
+    barrios: { CABA: ['Palermo', 'Recoleta', 'Belgrano'] },
+  },
+  'Buenos Aires': {
+    localidades: ['Zona Norte', 'Zona Sur'],
+    barrios: {
+      'Zona Norte': ['Olivos', 'San Isidro'],
+      'Zona Sur': ['Quilmes', 'Lanús'],
+    },
+  },
+};
+
+const PROVINCIAS = Object.keys(ARGENTINA_DATA);
+const PROPERTY_TYPES = ['Departamento', 'Casa', 'PH'];
+const AMBIENTES_OPTIONS = ['1 Ambiente', '2 Ambientes', '3 Ambientes'];
+const ORIENTACIONES = ['Norte', 'Sur', 'Este', 'Oeste'];
+
+const HIGH_VALUE_FILTERS = [
+  'Balcón Terraza',
+  'Cochera',
+  'Seguridad 24hs',
+  'Mascotas Permitidas',
+];
+
+/* =======================
+   PAGE
+======================= */
+
+export default function Page() {
+  const [view, setView] = useState<'landing' | 'form' | 'biometric' | 'success'>('landing');
+  const [userType, setUserType] = useState<'owner' | 'tenant' | null>(null);
+  const [biometricStatus, setBiometricStatus] = useState<'idle' | 'scanning' | 'success'>('idle');
+
+  const [form, setForm] = useState({
+    nombre: '',
+    email: '',
+    celular: '',
+    provincia: '',
+    localidad: '',
+    barrio: '',
+    tipoPropiedad: '',
+    ambientes: '',
+    orientacion: '',
+    precioMin: '',
+    precioMax: '',
+    tipoGarantia: '',
+    filtros: [] as string[],
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm((p) => ({ ...p, [name]: value }));
+  };
+
+  const toggleFilter = (f: string) => {
+    setForm((p) => ({
+      ...p,
+      filtros: p.filtros.includes(f)
+        ? p.filtros.filter((x) => x !== f)
+        : [...p.filtros, f],
+    }));
+  };
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#030712] text-white">
+    <main className="min-h-screen bg-[#050505] text-slate-300 px-6 py-32">
 
-      {/* BACKGROUND GLOWS */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-[10%] top-[10%] h-[400px] w-[400px] rounded-full bg-indigo-600/20 blur-[140px]" />
-        <div className="absolute right-[10%] bottom-[10%] h-[500px] w-[500px] rounded-full bg-purple-600/20 blur-[160px]" />
-      </div>
-
-      {/* ================= HERO ================= */}
-      <section className="relative flex min-h-screen items-center justify-center">
-        <div className="mx-auto max-w-7xl px-6 pt-32 text-center">
-          <span className="mb-6 inline-flex rounded-full border border-indigo-500/30 bg-indigo-500/10 px-5 py-2 text-xs font-bold tracking-widest text-indigo-300">
-            BIENVENIDO A LA NUEVA ERA
-          </span>
-
-          <h1 className="mb-8 max-w-5xl mx-auto text-5xl font-extrabold tracking-tight md:text-7xl xl:text-8xl">
-            Alquila con{" "}
-            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-              libertad total.
+      {/* LANDING */}
+      {view === 'landing' && (
+        <section className="max-w-6xl mx-auto text-center space-y-14">
+          <h1 className="text-6xl md:text-8xl font-black text-white">
+            GESTIÓN{' '}
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+              INTELIGENTE
             </span>
           </h1>
 
-          <p className="mb-12 max-w-3xl mx-auto text-lg leading-relaxed text-slate-400 md:text-xl">
-            Adiós a la burocracia, los depósitos infinitos y los intermediarios.
-            Hemos reinventado el acceso a la vivienda para que sea{" "}
-            <strong className="text-white">rápido, seguro e inspirador.</strong>
+          <p className="max-w-2xl mx-auto text-slate-500">
+            Conecta, valida y firma contratos inmobiliarios en una sola plataforma.
           </p>
 
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-center">
-            <button className="rounded-2xl bg-white px-10 py-5 text-lg font-extrabold text-slate-900 transition hover:scale-105">
-              Empieza Ahora
-            </button>
-
-            <button className="flex items-center gap-3 rounded-2xl border border-white/20 px-10 py-5 text-lg font-bold transition hover:bg-white/10">
-              ▶ Ver Demo
-            </button>
+          <div className="grid md:grid-cols-3 gap-6">
+            <ActionCard
+              title="Soy Propietario"
+              icon={<Building2 />}
+              onClick={() => {
+                setUserType('owner');
+                setView('form');
+              }}
+            />
+            <ActionCard
+              title="Soy Inquilino"
+              icon={<User />}
+              onClick={() => {
+                setUserType('tenant');
+                setView('form');
+              }}
+            />
+            <ActionCard
+              title="Contrato Digital"
+              icon={<FileSignature />}
+              onClick={() => setView('form')}
+            />
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* ================= MOCKUP ================= */}
-      <section className="relative py-32">
-        <div className="mx-auto max-w-5xl px-6">
-          <div className="rounded-[32px] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-            <div className="flex aspect-video items-center justify-center rounded-[24px] bg-slate-950">
-              <div className="text-center">
-                <div className="mb-6 flex justify-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-indigo-500/40 bg-indigo-500/20">
-                    🔑
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-500/20">
-                    🛡
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-purple-500/40 bg-purple-500/20">
-                    ⚡
-                  </div>
-                </div>
+      {/* FORM */}
+      {view === 'form' && (
+        <section className="max-w-5xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-12 space-y-12">
+          <button
+            onClick={() => setView('landing')}
+            className="flex items-center gap-2 text-xs uppercase text-slate-400 hover:text-white"
+          >
+            <ArrowLeft size={14} /> Volver
+          </button>
 
-                <h3 className="mb-2 text-2xl font-bold">
-                  Tu próximo hogar está a 3 clicks
-                </h3>
-                <p className="text-slate-500">
-                  Inteligencia Artificial validando tu contrato en tiempo real.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+          <h2 className="text-4xl font-black text-white">
+            Registro {userType === 'owner' ? 'Propietario' : 'Inquilino'}
+          </h2>
 
-      {/* ================= VIAJE ================= */}
-      <section className="py-32">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mb-20 flex flex-col gap-10 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="mb-4 text-4xl font-extrabold md:text-6xl">
-                El viaje de{" "}
-                <span className="text-indigo-400">Punta a Punta.</span>
-              </h2>
-              <p className="max-w-xl text-lg text-slate-500">
-                Desde la búsqueda hasta la entrega de llaves, Verlo es el único
-                compañero que necesitas. Sin saltos, sin miedos.
-              </p>
-            </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Input label="Nombre" name="nombre" value={form.nombre} onChange={handleChange} />
+            <Input label="Email" name="email" value={form.email} onChange={handleChange} />
+            <Input label="Celular" name="celular" value={form.celular} onChange={handleChange} />
 
-            <div className="text-right">
-              <div className="text-4xl font-bold text-cyan-400">100%</div>
-              <div className="text-xs uppercase tracking-widest text-slate-500">
-                Digital y Seguro
-              </div>
-            </div>
+            <Select label="Provincia" name="provincia" value={form.provincia} onChange={handleChange}>
+              <option value="">Seleccionar</option>
+              {PROVINCIAS.map((p) => (
+                <option key={p}>{p}</option>
+              ))}
+            </Select>
+
+            <Select label="Tipo Propiedad" name="tipoPropiedad" value={form.tipoPropiedad} onChange={handleChange}>
+              <option value="">Seleccionar</option>
+              {PROPERTY_TYPES.map((p) => (
+                <option key={p}>{p}</option>
+              ))}
+            </Select>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
-            {[
-              {
-                title: "01. Descubrimiento",
-                text:
-                  "Filtros que entienden tu estilo de vida. No buscamos casas, buscamos el lugar donde vas a crear recuerdos.",
-                icon: "🧭",
-              },
-              {
-                title: "02. Blindaje Legal",
-                text:
-                  "Contratos inteligentes que protegen a ambas partes por igual. Firma desde tu sofá con validez jurídica.",
-                icon: "📄",
-              },
-              {
-                title: "03. Evolución",
-                text:
-                  "Pagos automatizados, gestión de reparaciones y renovación con un click. El alquiler se vuelve invisible.",
-                icon: "✨",
-              },
-            ].map((c) => (
-              <div
-                key={c.title}
-                className="rounded-[36px] border border-white/10 bg-white/5 p-10 backdrop-blur-xl transition hover:-translate-y-2"
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {HIGH_VALUE_FILTERS.map((f) => (
+              <button
+                key={f}
+                onClick={() => toggleFilter(f)}
+                className={`p-3 rounded-xl text-xs border ${
+                  form.filtros.includes(f)
+                    ? 'border-cyan-500 text-cyan-400'
+                    : 'border-white/10 text-slate-400'
+                }`}
               >
-                <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-2xl">
-                  {c.icon}
-                </div>
-                <h3 className="mb-4 text-2xl font-bold italic">{c.title}</h3>
-                <p className="mb-6 text-slate-400">{c.text}</p>
-                <div className="h-1 w-12 rounded-full bg-indigo-400" />
-              </div>
+                {f}
+              </button>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* ================= CTA ================= */}
-      <section className="pb-32">
-        <div className="mx-auto max-w-5xl px-6">
-          <div className="relative rounded-[56px] border border-white/10 bg-white/5 p-16 text-center backdrop-blur-xl md:p-24">
-            <h2 className="mb-8 text-4xl font-extrabold md:text-6xl">
-              ¿Listo para tu{" "}
-              <span className="italic text-indigo-400">nuevo comienzo?</span>
-            </h2>
+          <button
+            onClick={() => setView('biometric')}
+            className="w-full py-5 bg-white text-black font-black rounded-xl"
+          >
+            Confirmar y Validar
+          </button>
+        </section>
+      )}
 
-            <p className="mx-auto mb-12 max-w-2xl text-lg text-slate-400">
-              Únete a miles de personas que ya dejaron atrás las complicaciones.
-              El hogar de tus sueños no debería ser una pesadilla legal.
-            </p>
+      {/* BIOMETRIC */}
+      {view === 'biometric' && (
+        <section className="max-w-xl mx-auto text-center space-y-10">
+          <h2 className="text-3xl font-black text-white">Validación Biométrica</h2>
 
-            <button className="rounded-3xl bg-indigo-600 px-14 py-6 text-2xl font-black transition hover:scale-110">
-              QUIERO EMPEZAR HOY
-            </button>
+          <div className="w-56 h-56 mx-auto rounded-full border border-cyan-500 flex items-center justify-center">
+            {biometricStatus === 'idle' && <UserCircle size={80} />}
+            {biometricStatus === 'scanning' && <Camera size={80} />}
+            {biometricStatus === 'success' && <Check size={80} className="text-emerald-400" />}
           </div>
-        </div>
-      </section>
 
+          <button
+            onClick={() => {
+              setBiometricStatus('scanning');
+              setTimeout(() => setBiometricStatus('success'), 2000);
+              setTimeout(() => setView('success'), 3000);
+            }}
+            className="w-full py-5 bg-white text-black rounded-xl font-black"
+          >
+            Iniciar Captura
+          </button>
+        </section>
+      )}
+
+      {/* SUCCESS */}
+      {view === 'success' && (
+        <section className="text-center space-y-6">
+          <CheckCircle size={80} className="mx-auto text-emerald-400" />
+          <h2 className="text-4xl font-black text-white">Registro Completado</h2>
+          <button
+            onClick={() => setView('landing')}
+            className="px-10 py-4 bg-white/10 border border-white/20 rounded-full"
+          >
+            Volver al inicio
+          </button>
+        </section>
+      )}
     </main>
+  );
+}
+
+/* =======================
+   COMPONENTS
+======================= */
+
+function ActionCard({ title, icon, onClick }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className="p-10 rounded-3xl bg-white/5 border border-white/10 hover:border-cyan-500 transition text-left"
+    >
+      <div className="mb-6">{icon}</div>
+      <h3 className="text-2xl font-black text-white">{title}</h3>
+    </button>
+  );
+}
+
+function Input({ label, ...props }: any) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs text-slate-400">{label}</label>
+      <input
+        {...props}
+        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
+      />
+    </div>
+  );
+}
+
+function Select({ label, children, ...props }: any) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs text-slate-400">{label}</label>
+      <select
+        {...props}
+        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
+      >
+        {children}
+      </select>
+    </div>
   );
 }
