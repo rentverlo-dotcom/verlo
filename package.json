@@ -11,5 +11,10 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "aos": "^2.3.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/react": "^18.2.45",
+    "@types/node": "^20.10.5"
   }
 }
