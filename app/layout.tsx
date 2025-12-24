@@ -1,5 +1,10 @@
 import './globals.css'
 
+export const metadata = {
+  title: 'Verlo | El Futuro del Alquiler',
+  description: 'Alquila con libertad total',
+}
+
 export default function RootLayout({
   children,
 }: {
