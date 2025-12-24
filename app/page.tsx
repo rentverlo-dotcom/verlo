@@ -1,43 +1,17 @@
 'use client';
 
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ChevronRight,
   ArrowLeft,
   CheckCircle,
   Building2,
   User,
-  Sparkles,
   Check,
   FileText,
-  Home,
-  DollarSign,
-  PenTool,
-  MapPin,
-  Mail,
-  Phone,
   UserCircle,
-  ShieldCheck,
   FileSignature,
   Camera,
-  Scan,
-  Fingerprint,
-  Search,
-  Filter,
-  CheckSquare,
-  X,
-  Upload,
-  Shield
-} from 'lucide-react';
-
-import { useState } from 'react';
-import {
-  ChevronRight, ArrowLeft, CheckCircle,
-  Building2, User,
-  Check, FileText,
-  UserCircle, ShieldCheck,
-  FileSignature, Camera, Shield
 } from 'lucide-react';
 
 /* =======================
@@ -60,8 +34,6 @@ const ARGENTINA_DATA = {
 
 const PROVINCIAS = Object.keys(ARGENTINA_DATA);
 const PROPERTY_TYPES = ['Departamento', 'Casa', 'PH'];
-const AMBIENTES_OPTIONS = ['1 Ambiente', '2 Ambientes', '3 Ambientes'];
-const ORIENTACIONES = ['Norte', 'Sur', 'Este', 'Oeste'];
 
 const HIGH_VALUE_FILTERS = [
   'Balcón Terraza',
@@ -77,21 +49,15 @@ const HIGH_VALUE_FILTERS = [
 export default function Page() {
   const [view, setView] = useState<'landing' | 'form' | 'biometric' | 'success'>('landing');
   const [userType, setUserType] = useState<'owner' | 'tenant' | null>(null);
-  const [biometricStatus, setBiometricStatus] = useState<'idle' | 'scanning' | 'success'>('idle');
+  const [biometricStatus, setBiometricStatus] =
+    useState<'idle' | 'scanning' | 'success'>('idle');
 
   const [form, setForm] = useState({
     nombre: '',
     email: '',
     celular: '',
     provincia: '',
-    localidad: '',
-    barrio: '',
     tipoPropiedad: '',
-    ambientes: '',
-    orientacion: '',
-    precioMin: '',
-    precioMax: '',
-    tipoGarantia: '',
     filtros: [] as string[],
   });
 
@@ -121,10 +87,6 @@ export default function Page() {
               INTELIGENTE
             </span>
           </h1>
-
-          <p className="max-w-2xl mx-auto text-slate-500">
-            Conecta, valida y firma contratos inmobiliarios en una sola plataforma.
-          </p>
 
           <div className="grid md:grid-cols-3 gap-6">
             <ActionCard
@@ -157,7 +119,7 @@ export default function Page() {
         <section className="max-w-5xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-12 space-y-12">
           <button
             onClick={() => setView('landing')}
-            className="flex items-center gap-2 text-xs uppercase text-slate-400 hover:text-white"
+            className="flex items-center gap-2 text-xs uppercase text-slate-400"
           >
             <ArrowLeft size={14} /> Volver
           </button>
@@ -169,16 +131,25 @@ export default function Page() {
           <div className="grid md:grid-cols-2 gap-6">
             <Input label="Nombre" name="nombre" value={form.nombre} onChange={handleChange} />
             <Input label="Email" name="email" value={form.email} onChange={handleChange} />
-            <Input label="Celular" name="celular" value={form.celular} onChange={handleChange} />
 
-            <Select label="Provincia" name="provincia" value={form.provincia} onChange={handleChange}>
+            <Select
+              label="Provincia"
+              name="provincia"
+              value={form.provincia}
+              onChange={handleChange}
+            >
               <option value="">Seleccionar</option>
               {PROVINCIAS.map((p) => (
                 <option key={p}>{p}</option>
               ))}
             </Select>
 
-            <Select label="Tipo Propiedad" name="tipoPropiedad" value={form.tipoPropiedad} onChange={handleChange}>
+            <Select
+              label="Tipo Propiedad"
+              name="tipoPropiedad"
+              value={form.tipoPropiedad}
+              onChange={handleChange}
+            >
               <option value="">Seleccionar</option>
               {PROPERTY_TYPES.map((p) => (
                 <option key={p}>{p}</option>
@@ -260,7 +231,7 @@ function ActionCard({ title, icon, onClick }: any) {
   return (
     <button
       onClick={onClick}
-      className="p-10 rounded-3xl bg-white/5 border border-white/10 hover:border-cyan-500 transition text-left"
+      className="p-10 rounded-3xl bg-white/5 border border-white/10 hover:border-cyan-500 text-left"
     >
       <div className="mb-6">{icon}</div>
       <h3 className="text-2xl font-black text-white">{title}</h3>
