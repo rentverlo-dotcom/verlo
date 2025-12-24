@@ -1,5 +1,36 @@
 'use client';
 
+
+import React, { useState, useEffect } from 'react';
+import {
+  ChevronRight,
+  ArrowLeft,
+  CheckCircle,
+  Building2,
+  User,
+  Sparkles,
+  Check,
+  FileText,
+  Home,
+  DollarSign,
+  PenTool,
+  MapPin,
+  Mail,
+  Phone,
+  UserCircle,
+  ShieldCheck,
+  FileSignature,
+  Camera,
+  Scan,
+  Fingerprint,
+  Search,
+  Filter,
+  CheckSquare,
+  X,
+  Upload,
+  Shield
+} from 'lucide-react';
+
 import { useState } from 'react';
 import {
   ChevronRight, ArrowLeft, CheckCircle,
