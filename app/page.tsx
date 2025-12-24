@@ -2,97 +2,136 @@
 
 import { useState } from 'react';
 
-type UserType = 'tenant' | 'owner' | null;
+type Role = 'inquilino' | 'propietario' | null;
 
 export default function Page() {
-  const [userType, setUserType] = useState<UserType>(null);
-  const [submitted, setSubmitted] = useState(false);
-
-  if (submitted) {
-    return (
-      <main style={styles.main}>
-        <h1>Formulario enviado</h1>
-        <p>Cuando exista un match, el sistema notificará a ambas partes.</p>
-        <button onClick={() => {
-          setUserType(null);
-          setSubmitted(false);
-        }}>
-          Volver al inicio
-        </button>
-      </main>
-    );
-  }
-
-  if (!userType) {
-    return (
-      <main style={styles.main}>
-        <h1>VERLO</h1>
-        <p>Plataforma de matching inmobiliario</p>
-
-        <div style={styles.row}>
-          <button onClick={() => setUserType('tenant')}>
-            Soy Inquilino
-          </button>
-          <button onClick={() => setUserType('owner')}>
-            Soy Propietario
-          </button>
-        </div>
-      </main>
-    );
-  }
+  const [role, setRole] = useState<Role>(null);
 
   return (
-    <main style={styles.main}>
-      <h1>{userType === 'tenant' ? 'Inquilino' : 'Propietario'}</h1>
+    <main style={styles.page}>
+      <header style={styles.header}>
+        <h1 style={styles.logo}>VERLO</h1>
+        <p style={styles.subtitle}>Plataforma de matching inmobiliario</p>
+      </header>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          setSubmitted(true);
-        }}
-        style={styles.form}
-      >
-        <input placeholder="Nombre completo" required />
-        <input placeholder="Email" type="email" required />
-        <input placeholder="Teléfono" required />
+      {!role && (
+        <section style={styles.selector}>
+          <button style={styles.primary} onClick={() => setRole('inquilino')}>
+            Soy Inquilino
+          </button>
+          <button style={styles.secondary} onClick={() => setRole('propietario')}>
+            Soy Propietario
+          </button>
+        </section>
+      )}
 
-        {userType === 'tenant' && (
-          <>
-            <input placeholder="Zona buscada" required />
-            <input placeholder="Presupuesto máximo" required />
-          </>
-        )}
+      {role && (
+        <section style={styles.form}>
+          <h2 style={styles.formTitle}>
+            Registro {role === 'inquilino' ? 'Inquilino' : 'Propietario'}
+          </h2>
 
-        {userType === 'owner' && (
-          <>
-            <input placeholder="Dirección de la propiedad" required />
-            <input placeholder="Precio esperado" required />
-          </>
-        )}
+          <input style={styles.input} placeholder="Nombre completo" />
+          <input style={styles.input} placeholder="Email" />
+          <input style={styles.input} placeholder="Teléfono" />
 
-        <button type="submit">Enviar</button>
-      </form>
+          {role === 'inquilino' && (
+            <>
+              <input style={styles.input} placeholder="Zona deseada" />
+              <input style={styles.input} placeholder="Presupuesto máximo" />
+            </>
+          )}
+
+          {role === 'propietario' && (
+            <>
+              <input style={styles.input} placeholder="Dirección del inmueble" />
+              <input style={styles.input} placeholder="Precio de alquiler" />
+            </>
+          )}
+
+          <button style={styles.primary}>
+            Enviar y entrar en matching
+          </button>
+
+          <button style={styles.link} onClick={() => setRole(null)}>
+            ← volver
+          </button>
+        </section>
+      )}
     </main>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  main: {
+  page: {
     minHeight: '100vh',
-    padding: '40px',
-    fontFamily: 'system-ui',
-  },
-  row: {
-    display: 'flex',
-    gap: '20px',
-    marginTop: '30px',
-  },
-  form: {
+    background: '#0b0b0f',
+    color: '#fff',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
-    maxWidth: '400px',
-    marginTop: '30px',
+    alignItems: 'center',
+    padding: '60px 20px',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  logo: {
+    fontSize: 42,
+    margin: 0,
+    letterSpacing: 2,
+  },
+  subtitle: {
+    opacity: 0.7,
+  },
+  selector: {
+    display: 'flex',
+    gap: 20,
+  },
+  form: {
+    width: '100%',
+    maxWidth: 420,
+    background: '#15151c',
+    padding: 30,
+    borderRadius: 12,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 14,
+  },
+  formTitle: {
+    marginBottom: 10,
+  },
+  input: {
+    padding: 12,
+    borderRadius: 8,
+    border: 'none',
+    outline: 'none',
+  },
+  primary: {
+    marginTop: 10,
+    padding: 14,
+    borderRadius: 8,
+    border: 'none',
+    background: '#ffffff',
+    color: '#000',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  secondary: {
+    padding: 14,
+    borderRadius: 8,
+    border: '1px solid #fff',
+    background: 'transparent',
+    color: '#fff',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  link: {
+    marginTop: 10,
+    background: 'none',
+    border: 'none',
+    color: '#aaa',
+    cursor: 'pointer',
   },
 };
 
