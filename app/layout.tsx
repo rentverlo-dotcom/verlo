@@ -1,16 +1,16 @@
 export const metadata = {
-  title: 'VERLO',
-  description: 'Alquiler directo, sin inmobiliaria',
-};
+  title: 'Verlo',
+  description: 'El futuro del alquiler',
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="es">
       <body>{children}</body>
     </html>
-  );
+  )
 }
