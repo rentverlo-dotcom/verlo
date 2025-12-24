@@ -1,186 +1,144 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 
-type View = 'home' | 'tenant' | 'owner' | 'done';
+type Role = 'tenant' | 'owner';
 
 export default function Page() {
-  const [view, setView] = useState<View>('home');
-  const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<Role | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
-  const [tenant, setTenant] = useState({
-    name: '',
-    email: '',
-    budget_min: 0,
-    budget_max: 0,
-  });
+  // mock global (después DB)
+  const [data, setData] = useState<any[]>([]);
 
-  const [owner, setOwner] = useState({
-    name: '',
-    email: '',
-    price: 0,
-  });
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
 
-  async function submitTenant() {
-    setLoading(true);
+    const formData = Object.fromEntries(new FormData(e.currentTarget));
+    const payload = { role, ...formData };
 
-    const { data: tenantRow, error } = await supabase
-      .from('tenants')
-      .insert(tenant)
-      .select()
-      .single();
+    setData((prev) => [...prev, payload]);
+    setSubmitted(true);
 
-    if (!error && tenantRow) {
-      const { data: owners } = await supabase
-        .from('owners')
-        .select('*')
-        .gte('price', tenant.budget_min)
-        .lte('price', tenant.budget_max);
-
-      if (owners && owners.length > 0) {
-        await supabase.from('matches').insert(
-          owners.map((o) => ({
-            tenant_id: tenantRow.id,
-            owner_id: o.id,
-            status: 'pending',
-          }))
-        );
-      }
-    }
-
-    setLoading(false);
-    setView('done');
+    console.log('NUEVO REGISTRO:', payload);
+    console.log('DATA ACTUAL:', [...data, payload]);
   }
 
-  async function submitOwner() {
-    setLoading(true);
-    await supabase.from('owners').insert(owner);
-    setLoading(false);
-    setView('done');
+  function reset() {
+    setRole(null);
+    setSubmitted(false);
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-10">
-      {view === 'home' && (
-        <div className="max-w-4xl mx-auto text-center space-y-10">
-          <h1 className="text-5xl font-bold">VERLO</h1>
-          <p>Matching automático entre inquilinos y propietarios</p>
+    <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+      <div className="w-full max-w-2xl space-y-10">
 
-          <div className="grid md:grid-cols-2 gap-6">
+        {!role && (
+          <>
+            <h1 className="text-4xl font-bold text-center">
+              Plataforma de Alquiler Inteligente
+            </h1>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => setRole('tenant')}
+                className="p-6 border border-white/20 rounded-xl hover:bg-white hover:text-black transition"
+              >
+                Soy Inquilino
+              </button>
+
+              <button
+                onClick={() => setRole('owner')}
+                className="p-6 border border-white/20 rounded-xl hover:bg-white hover:text-black transition"
+              >
+                Soy Propietario
+              </button>
+            </div>
+          </>
+        )}
+
+        {role && !submitted && (
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6 border border-white/20 rounded-xl p-8"
+          >
+            <h2 className="text-2xl font-bold">
+              Registro {role === 'tenant' ? 'Inquilino' : 'Propietario'}
+            </h2>
+
+            <input
+              name="name"
+              required
+              placeholder="Nombre"
+              className="w-full p-3 bg-black border border-white/20 rounded"
+            />
+
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="Email"
+              className="w-full p-3 bg-black border border-white/20 rounded"
+            />
+
+            <input
+              name="zona"
+              required
+              placeholder="Zona"
+              className="w-full p-3 bg-black border border-white/20 rounded"
+            />
+
+            {role === 'tenant' && (
+              <input
+                name="precio_max"
+                placeholder="Precio máximo"
+                className="w-full p-3 bg-black border border-white/20 rounded"
+              />
+            )}
+
+            {role === 'owner' && (
+              <input
+                name="precio"
+                placeholder="Precio de la propiedad"
+                className="w-full p-3 bg-black border border-white/20 rounded"
+              />
+            )}
+
             <button
-              className="border p-6"
-              onClick={() => setView('tenant')}
+              type="submit"
+              className="w-full p-4 bg-white text-black font-bold rounded hover:opacity-90"
             >
-              Soy Inquilino
+              Enviar
             </button>
 
             <button
-              className="border p-6"
-              onClick={() => setView('owner')}
+              type="button"
+              onClick={reset}
+              className="w-full text-sm opacity-60 hover:opacity-100"
             >
-              Soy Propietario
+              Volver
+            </button>
+          </form>
+        )}
+
+        {submitted && (
+          <div className="text-center space-y-6 border border-white/20 rounded-xl p-10">
+            <h2 className="text-2xl font-bold">Registro recibido</h2>
+
+            <p className="opacity-70">
+              Cuando exista un match compatible, el sistema notificará a ambas partes.
+            </p>
+
+            <button
+              onClick={reset}
+              className="mt-4 px-6 py-3 border border-white/20 rounded hover:bg-white hover:text-black"
+            >
+              Volver al inicio
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {view === 'tenant' && (
-        <div className="max-w-xl mx-auto space-y-6">
-          <h2 className="text-3xl font-bold">Formulario Inquilino</h2>
-
-          <input
-            className="w-full p-3 bg-black border"
-            placeholder="Nombre"
-            onChange={(e) => setTenant({ ...tenant, name: e.target.value })}
-          />
-          <input
-            className="w-full p-3 bg-black border"
-            placeholder="Email"
-            onChange={(e) => setTenant({ ...tenant, email: e.target.value })}
-          />
-          <input
-            className="w-full p-3 bg-black border"
-            type="number"
-            placeholder="Presupuesto mínimo"
-            onChange={(e) =>
-              setTenant({ ...tenant, budget_min: Number(e.target.value) })
-            }
-          />
-          <input
-            className="w-full p-3 bg-black border"
-            type="number"
-            placeholder="Presupuesto máximo"
-            onChange={(e) =>
-              setTenant({ ...tenant, budget_max: Number(e.target.value) })
-            }
-          />
-
-          <button
-            disabled={loading}
-            onClick={submitTenant}
-            className="w-full border p-4"
-          >
-            {loading ? 'Procesando...' : 'Enviar'}
-          </button>
-
-          <button onClick={() => setView('home')} className="underline">
-            Volver
-          </button>
-        </div>
-      )}
-
-      {view === 'owner' && (
-        <div className="max-w-xl mx-auto space-y-6">
-          <h2 className="text-3xl font-bold">Formulario Propietario</h2>
-
-          <input
-            className="w-full p-3 bg-black border"
-            placeholder="Nombre"
-            onChange={(e) => setOwner({ ...owner, name: e.target.value })}
-          />
-          <input
-            className="w-full p-3 bg-black border"
-            placeholder="Email"
-            onChange={(e) => setOwner({ ...owner, email: e.target.value })}
-          />
-          <input
-            className="w-full p-3 bg-black border"
-            type="number"
-            placeholder="Precio del alquiler"
-            onChange={(e) =>
-              setOwner({ ...owner, price: Number(e.target.value) })
-            }
-          />
-
-          <button
-            disabled={loading}
-            onClick={submitOwner}
-            className="w-full border p-4"
-          >
-            {loading ? 'Procesando...' : 'Publicar'}
-          </button>
-
-          <button onClick={() => setView('home')} className="underline">
-            Volver
-          </button>
-        </div>
-      )}
-
-      {view === 'done' && (
-        <div className="max-w-xl mx-auto text-center space-y-6">
-          <h2 className="text-3xl font-bold">Listo</h2>
-          <p>
-            Si hay match, el sistema registra la relación y notifica.
-          </p>
-          <button
-            className="border px-6 py-3"
-            onClick={() => setView('home')}
-          >
-            Volver al inicio
-          </button>
-        </div>
-      )}
+      </div>
     </main>
   );
 }
