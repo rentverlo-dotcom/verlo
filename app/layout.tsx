@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Verlo | El Futuro del Alquiler",
+  title: "Verlo",
   description: "Alquila con libertad total",
 };
 
@@ -12,26 +12,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <head>
-        <link
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-          rel="stylesheet"
-        />
-        <link
-          href="https://unpkg.com/aos@2.3.1/dist/aos.css"
-          rel="stylesheet"
-        />
-        <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-      </head>
-      <body>
-        {children}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              AOS.init({ duration: 1000, once: true, offset: 100 });
-            `,
-          }}
-        />
+      <body className="bg-[#030712] text-white antialiased">
+        {/* HEADER SPACE */}
+        <div className="fixed top-0 left-0 right-0 z-50 h-24 backdrop-blur-xl bg-[#030712]/60 border-b border-white/5" />
+
+        {/* PAGE WRAPPER */}
+        <div className="relative">
+          {/* GLOBAL BACKGROUND GLOWS */}
+          <div className="pointer-events-none fixed inset-0 -z-10">
+            <div className="absolute left-[5%] top-[10%] h-[500px] w-[500px] rounded-full bg-indigo-600/20 blur-[180px]" />
+            <div className="absolute right-[5%] bottom-[10%] h-[600px] w-[600px] rounded-full bg-purple-600/20 blur-[200px]" />
+          </div>
+
+          {/* CONTENT CONTAINER */}
+          <main className="mx-auto max-w-[1200px] px-6 pt-40">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );
