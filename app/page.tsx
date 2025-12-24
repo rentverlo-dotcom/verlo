@@ -1,266 +1,186 @@
 'use client';
 
-import React, { useState } from 'react';
-import {
-  ChevronRight,
-  ArrowLeft,
-  CheckCircle,
-  Building2,
-  User,
-  Check,
-  FileText,
-  UserCircle,
-  FileSignature,
-  Camera,
-} from 'lucide-react';
+import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
-/* =======================
-   DATA
-======================= */
-
-const ARGENTINA_DATA = {
-  CABA: {
-    localidades: ['CABA'],
-    barrios: { CABA: ['Palermo', 'Recoleta', 'Belgrano'] },
-  },
-  'Buenos Aires': {
-    localidades: ['Zona Norte', 'Zona Sur'],
-    barrios: {
-      'Zona Norte': ['Olivos', 'San Isidro'],
-      'Zona Sur': ['Quilmes', 'Lanús'],
-    },
-  },
-};
-
-const PROVINCIAS = Object.keys(ARGENTINA_DATA);
-const PROPERTY_TYPES = ['Departamento', 'Casa', 'PH'];
-
-const HIGH_VALUE_FILTERS = [
-  'Balcón Terraza',
-  'Cochera',
-  'Seguridad 24hs',
-  'Mascotas Permitidas',
-];
-
-/* =======================
-   PAGE
-======================= */
+type View = 'home' | 'tenant' | 'owner' | 'done';
 
 export default function Page() {
-  const [view, setView] = useState<'landing' | 'form' | 'biometric' | 'success'>('landing');
-  const [userType, setUserType] = useState<'owner' | 'tenant' | null>(null);
-  const [biometricStatus, setBiometricStatus] =
-    useState<'idle' | 'scanning' | 'success'>('idle');
+  const [view, setView] = useState<View>('home');
+  const [loading, setLoading] = useState(false);
 
-  const [form, setForm] = useState({
-    nombre: '',
+  const [tenant, setTenant] = useState({
+    name: '',
     email: '',
-    celular: '',
-    provincia: '',
-    tipoPropiedad: '',
-    filtros: [] as string[],
+    budget_min: 0,
+    budget_max: 0,
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
-  };
+  const [owner, setOwner] = useState({
+    name: '',
+    email: '',
+    price: 0,
+  });
 
-  const toggleFilter = (f: string) => {
-    setForm((p) => ({
-      ...p,
-      filtros: p.filtros.includes(f)
-        ? p.filtros.filter((x) => x !== f)
-        : [...p.filtros, f],
-    }));
-  };
+  async function submitTenant() {
+    setLoading(true);
+
+    const { data: tenantRow, error } = await supabase
+      .from('tenants')
+      .insert(tenant)
+      .select()
+      .single();
+
+    if (!error && tenantRow) {
+      const { data: owners } = await supabase
+        .from('owners')
+        .select('*')
+        .gte('price', tenant.budget_min)
+        .lte('price', tenant.budget_max);
+
+      if (owners && owners.length > 0) {
+        await supabase.from('matches').insert(
+          owners.map((o) => ({
+            tenant_id: tenantRow.id,
+            owner_id: o.id,
+            status: 'pending',
+          }))
+        );
+      }
+    }
+
+    setLoading(false);
+    setView('done');
+  }
+
+  async function submitOwner() {
+    setLoading(true);
+    await supabase.from('owners').insert(owner);
+    setLoading(false);
+    setView('done');
+  }
 
   return (
-    <main className="min-h-screen bg-[#050505] text-slate-300 px-6 py-32">
-
-      {/* LANDING */}
-      {view === 'landing' && (
-        <section className="max-w-6xl mx-auto text-center space-y-14">
-          <h1 className="text-6xl md:text-8xl font-black text-white">
-            GESTIÓN{' '}
-            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-              INTELIGENTE
-            </span>
-          </h1>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <ActionCard
-              title="Soy Propietario"
-              icon={<Building2 />}
-              onClick={() => {
-                setUserType('owner');
-                setView('form');
-              }}
-            />
-            <ActionCard
-              title="Soy Inquilino"
-              icon={<User />}
-              onClick={() => {
-                setUserType('tenant');
-                setView('form');
-              }}
-            />
-            <ActionCard
-              title="Contrato Digital"
-              icon={<FileSignature />}
-              onClick={() => setView('form')}
-            />
-          </div>
-        </section>
-      )}
-
-      {/* FORM */}
-      {view === 'form' && (
-        <section className="max-w-5xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-12 space-y-12">
-          <button
-            onClick={() => setView('landing')}
-            className="flex items-center gap-2 text-xs uppercase text-slate-400"
-          >
-            <ArrowLeft size={14} /> Volver
-          </button>
-
-          <h2 className="text-4xl font-black text-white">
-            Registro {userType === 'owner' ? 'Propietario' : 'Inquilino'}
-          </h2>
+    <main className="min-h-screen bg-black text-white p-10">
+      {view === 'home' && (
+        <div className="max-w-4xl mx-auto text-center space-y-10">
+          <h1 className="text-5xl font-bold">VERLO</h1>
+          <p>Matching automático entre inquilinos y propietarios</p>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <Input label="Nombre" name="nombre" value={form.nombre} onChange={handleChange} />
-            <Input label="Email" name="email" value={form.email} onChange={handleChange} />
-
-            <Select
-              label="Provincia"
-              name="provincia"
-              value={form.provincia}
-              onChange={handleChange}
+            <button
+              className="border p-6"
+              onClick={() => setView('tenant')}
             >
-              <option value="">Seleccionar</option>
-              {PROVINCIAS.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-            </Select>
+              Soy Inquilino
+            </button>
 
-            <Select
-              label="Tipo Propiedad"
-              name="tipoPropiedad"
-              value={form.tipoPropiedad}
-              onChange={handleChange}
+            <button
+              className="border p-6"
+              onClick={() => setView('owner')}
             >
-              <option value="">Seleccionar</option>
-              {PROPERTY_TYPES.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-            </Select>
+              Soy Propietario
+            </button>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {HIGH_VALUE_FILTERS.map((f) => (
-              <button
-                key={f}
-                onClick={() => toggleFilter(f)}
-                className={`p-3 rounded-xl text-xs border ${
-                  form.filtros.includes(f)
-                    ? 'border-cyan-500 text-cyan-400'
-                    : 'border-white/10 text-slate-400'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setView('biometric')}
-            className="w-full py-5 bg-white text-black font-black rounded-xl"
-          >
-            Confirmar y Validar
-          </button>
-        </section>
+        </div>
       )}
 
-      {/* BIOMETRIC */}
-      {view === 'biometric' && (
-        <section className="max-w-xl mx-auto text-center space-y-10">
-          <h2 className="text-3xl font-black text-white">Validación Biométrica</h2>
+      {view === 'tenant' && (
+        <div className="max-w-xl mx-auto space-y-6">
+          <h2 className="text-3xl font-bold">Formulario Inquilino</h2>
 
-          <div className="w-56 h-56 mx-auto rounded-full border border-cyan-500 flex items-center justify-center">
-            {biometricStatus === 'idle' && <UserCircle size={80} />}
-            {biometricStatus === 'scanning' && <Camera size={80} />}
-            {biometricStatus === 'success' && <Check size={80} className="text-emerald-400" />}
-          </div>
+          <input
+            className="w-full p-3 bg-black border"
+            placeholder="Nombre"
+            onChange={(e) => setTenant({ ...tenant, name: e.target.value })}
+          />
+          <input
+            className="w-full p-3 bg-black border"
+            placeholder="Email"
+            onChange={(e) => setTenant({ ...tenant, email: e.target.value })}
+          />
+          <input
+            className="w-full p-3 bg-black border"
+            type="number"
+            placeholder="Presupuesto mínimo"
+            onChange={(e) =>
+              setTenant({ ...tenant, budget_min: Number(e.target.value) })
+            }
+          />
+          <input
+            className="w-full p-3 bg-black border"
+            type="number"
+            placeholder="Presupuesto máximo"
+            onChange={(e) =>
+              setTenant({ ...tenant, budget_max: Number(e.target.value) })
+            }
+          />
 
           <button
-            onClick={() => {
-              setBiometricStatus('scanning');
-              setTimeout(() => setBiometricStatus('success'), 2000);
-              setTimeout(() => setView('success'), 3000);
-            }}
-            className="w-full py-5 bg-white text-black rounded-xl font-black"
+            disabled={loading}
+            onClick={submitTenant}
+            className="w-full border p-4"
           >
-            Iniciar Captura
+            {loading ? 'Procesando...' : 'Enviar'}
           </button>
-        </section>
+
+          <button onClick={() => setView('home')} className="underline">
+            Volver
+          </button>
+        </div>
       )}
 
-      {/* SUCCESS */}
-      {view === 'success' && (
-        <section className="text-center space-y-6">
-          <CheckCircle size={80} className="mx-auto text-emerald-400" />
-          <h2 className="text-4xl font-black text-white">Registro Completado</h2>
+      {view === 'owner' && (
+        <div className="max-w-xl mx-auto space-y-6">
+          <h2 className="text-3xl font-bold">Formulario Propietario</h2>
+
+          <input
+            className="w-full p-3 bg-black border"
+            placeholder="Nombre"
+            onChange={(e) => setOwner({ ...owner, name: e.target.value })}
+          />
+          <input
+            className="w-full p-3 bg-black border"
+            placeholder="Email"
+            onChange={(e) => setOwner({ ...owner, email: e.target.value })}
+          />
+          <input
+            className="w-full p-3 bg-black border"
+            type="number"
+            placeholder="Precio del alquiler"
+            onChange={(e) =>
+              setOwner({ ...owner, price: Number(e.target.value) })
+            }
+          />
+
           <button
-            onClick={() => setView('landing')}
-            className="px-10 py-4 bg-white/10 border border-white/20 rounded-full"
+            disabled={loading}
+            onClick={submitOwner}
+            className="w-full border p-4"
+          >
+            {loading ? 'Procesando...' : 'Publicar'}
+          </button>
+
+          <button onClick={() => setView('home')} className="underline">
+            Volver
+          </button>
+        </div>
+      )}
+
+      {view === 'done' && (
+        <div className="max-w-xl mx-auto text-center space-y-6">
+          <h2 className="text-3xl font-bold">Listo</h2>
+          <p>
+            Si hay match, el sistema registra la relación y notifica.
+          </p>
+          <button
+            className="border px-6 py-3"
+            onClick={() => setView('home')}
           >
             Volver al inicio
           </button>
-        </section>
+        </div>
       )}
     </main>
-  );
-}
-
-/* =======================
-   COMPONENTS
-======================= */
-
-function ActionCard({ title, icon, onClick }: any) {
-  return (
-    <button
-      onClick={onClick}
-      className="p-10 rounded-3xl bg-white/5 border border-white/10 hover:border-cyan-500 text-left"
-    >
-      <div className="mb-6">{icon}</div>
-      <h3 className="text-2xl font-black text-white">{title}</h3>
-    </button>
-  );
-}
-
-function Input({ label, ...props }: any) {
-  return (
-    <div className="space-y-1">
-      <label className="text-xs text-slate-400">{label}</label>
-      <input
-        {...props}
-        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-      />
-    </div>
-  );
-}
-
-function Select({ label, children, ...props }: any) {
-  return (
-    <div className="space-y-1">
-      <label className="text-xs text-slate-400">{label}</label>
-      <select
-        {...props}
-        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-      >
-        {children}
-      </select>
-    </div>
   );
 }
