@@ -1,18 +1,16 @@
 'use client'
 
 import { useEffect } from 'react'
+import Head from 'next/head'
 
-export default function Page() {
+export default function Home() {
   useEffect(() => {
-    // @ts-ignore
-    if (window.AOS) {
-      // @ts-ignore
-      window.AOS.init({
-        duration: 1000,
-        once: true,
-        offset: 100,
-      })
-    }
+    const AOS = require('aos')
+    AOS.init({
+      duration: 1000,
+      once: true,
+      offset: 100,
+    })
 
     const handler = (e: MouseEvent) => {
       const moveX = (e.clientX - window.innerWidth / 2) * 0.01
@@ -27,90 +25,42 @@ export default function Page() {
 
   return (
     <>
-      {/* HEAD */}
-      <script src="https://cdn.tailwindcss.com"></script>
-      <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      />
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/aos@2.3.1/dist/aos.css"
-      />
-      <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+      <Head>
+        <title>Verlo | El Futuro del Alquiler</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          rel="stylesheet"
+        />
+        <link
+          href="https://unpkg.com/aos@2.3.1/dist/aos.css"
+          rel="stylesheet"
+        />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;700;800&display=swap');
+          body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #030712;
+            color: white;
+          }
+        `}</style>
+      </Head>
 
-      {/* STYLES */}
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;700;800&display=swap');
-
-        :root {
-          --primary: #6366f1;
-          --secondary: #a855f7;
-          --accent: #22d3ee;
-          --bg: #030712;
-        }
-
-        body {
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          background-color: var(--bg);
-          color: #ffffff;
-          overflow-x: hidden;
-        }
-
-        .glow-bg {
-          position: fixed;
-          inset: 0;
-          z-index: -1;
-          background:
-            radial-gradient(circle at 20% 30%, rgba(99,102,241,.15), transparent 40%),
-            radial-gradient(circle at 80% 70%, rgba(168,85,247,.15), transparent 40%);
-        }
-
-        .glass {
-          background: rgba(255,255,255,.03);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(255,255,255,.1);
-          transition: all .4s cubic-bezier(.175,.885,.32,1.275);
-        }
-
-        .glass:hover {
-          background: rgba(255,255,255,.07);
-          border-color: rgba(255,255,255,.2);
-          transform: translateY(-5px);
-          box-shadow: 0 20px 40px rgba(0,0,0,.4);
-        }
-
-        .text-gradient {
-          background: linear-gradient(to right,#6366f1,#a855f7,#22d3ee);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .floating {
-          animation: floating 3s ease-in-out infinite;
-        }
-
-        @keyframes floating {
-          0%,100% { transform: translateY(0) }
-          50% { transform: translateY(-15px) }
-        }
-
-        .step-card {
-          border-left: 2px solid transparent;
-          background: linear-gradient(90deg, rgba(99,102,241,.05), transparent);
-        }
-
-        .step-card:hover {
-          border-left-color: var(--accent);
-        }
-      `}</style>
-
-      <div className="glow-bg" />
+      <div className="glow-bg fixed inset-0 -z-10"></div>
 
       {/* NAV */}
       <nav className="fixed w-full z-50 px-6 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center glass px-6 py-3 rounded-2xl">
-          <div className="text-2xl font-extrabold">VERLO<span className="text-cyan-400">_</span></div>
+          <div className="text-2xl font-extrabold tracking-tighter">
+            VERLO<span className="text-cyan-400">_</span>
+          </div>
+          <div className="hidden md:flex space-x-8 text-sm font-medium">
+            <a href="#experiencia">Experiencia</a>
+            <a href="#proceso">El Viaje</a>
+            <a href="#">Seguridad</a>
+          </div>
           <button className="bg-indigo-600 px-5 py-2 rounded-xl font-bold">
             Lanzar App
           </button>
@@ -118,16 +68,34 @@ export default function Page() {
       </nav>
 
       {/* HERO */}
-      <main className="pt-32 min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <h1 className="text-6xl md:text-9xl font-extrabold mb-8">
-          Alquila con <span className="text-gradient">libertad total.</span>
-        </h1>
-        <p className="text-slate-400 text-xl max-w-3xl mb-12">
-          Rápido, seguro y sin intermediarios.
-        </p>
-        <button className="bg-white text-black px-10 py-5 rounded-2xl font-extrabold text-xl">
-          Empezar ahora
-        </button>
+      <main className="pt-32 min-h-screen flex flex-col items-center justify-center px-6">
+        <div className="text-center" data-aos="fade-up">
+          <span className="inline-block px-4 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-bold mb-6">
+            Bienvenido a la Nueva Era
+          </span>
+
+          <h1 className="text-6xl md:text-9xl font-extrabold mb-8">
+            Alquila con <br />
+            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              libertad total.
+            </span>
+          </h1>
+
+          <p className="text-slate-400 text-xl max-w-3xl mx-auto mb-12">
+            Adiós a la burocracia, los depósitos infinitos y los intermediarios.
+            Hemos reinventado el acceso a la vivienda para que sea rápido,
+            seguro e inspirador.
+          </p>
+
+          <div className="flex gap-6 justify-center">
+            <button className="px-10 py-5 bg-white text-black rounded-2xl font-extrabold text-xl">
+              Empieza Ahora
+            </button>
+            <button className="px-10 py-5 border border-white/20 rounded-2xl font-bold text-xl">
+              <i className="fas fa-play mr-2" /> Ver Demo
+            </button>
+          </div>
+        </div>
       </main>
     </>
   )
