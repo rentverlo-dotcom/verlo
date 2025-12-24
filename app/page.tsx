@@ -1,17 +1,63 @@
 'use client';
 
-import { useState } from 'react';
-
 export default function Page() {
-  const [role, setRole] = useState<null | 'tenant' | 'owner'>(null);
-
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif' }}>
+    <>
+      {/* HEADER */}
+      <header className="fixed top-0 z-50 w-full border-b border-neutral-800 bg-black/80 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+          
+          {/* LOGO (placeholder) */}
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold tracking-wide text-white">
+              VERLO
+            </span>
+          </div>
 
-      {/* ================= HEADER ================= */}
-      <header style={{ padding: '24px 40px', borderBottom: '1px solid #eee' }}>
-        <strong>VERLO</strong>
+          {/* NAV */}
+          <nav className="hidden md:flex items-center gap-8 text-sm text-neutral-300">
+            <a href="#como-funciona" className="hover:text-white transition">
+              Cómo funciona
+            </a>
+            <a href="#inquilinos" className="hover:text-white transition">
+              Inquilinos
+            </a>
+            <a href="#propietarios" className="hover:text-white transition">
+              Propietarios
+            </a>
+            <a href="#contrato" className="hover:text-white transition">
+              Contrato digital
+            </a>
+          </nav>
+
+          {/* ACTIONS */}
+          <div className="flex items-center gap-3">
+            <button className="text-sm text-neutral-300 hover:text-white transition">
+              Ingresar
+            </button>
+            <button className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 transition">
+              Comenzar
+            </button>
+          </div>
+        </div>
       </header>
+
+      {/* PAGE OFFSET */}
+      <main className="pt-24">
+        {/* HERO PLACEHOLDER */}
+        <section className="mx-auto max-w-7xl px-6 py-24">
+          <h1 className="max-w-3xl text-5xl font-semibold leading-tight text-white">
+            Plataforma de matching inmobiliario
+          </h1>
+          <p className="mt-6 max-w-2xl text-neutral-400">
+            Inquilinos y propietarios se registran, matchean y firman contratos
+            digitales en un solo flujo.
+          </p>
+        </section>
+      </main>
+    </>
+  );
+}
 
       {/* ================= HERO ================= */}
       <section style={{ padding: '80px 40px', maxWidth: 900, margin: '0 auto' }}>
