@@ -21,7 +21,9 @@ export default function HomePage() {
         }}
       >
         <div className="container">
-          <h1>Encontrá tu match inmobiliario</h1>
+          <h1 className="hero-title">
+  Encontrá tu match inmobiliario
+</h1>
           <p>
             Alquiler directo, sin inmobiliarias ni comisiones, con un proceso
             simple y transparente.
