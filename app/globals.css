@@ -182,3 +182,36 @@ textarea::placeholder {
   -webkit-text-fill-color: transparent;
 }
 
+/* =========================
+   RESPONSIVE / MOBILE
+   ========================= */
+@media (max-width: 768px) {
+  /* Tipografía */
+  h1 {
+    font-size: 44px;
+    line-height: 1.1;
+  }
+
+  h2 {
+    font-size: 28px;
+  }
+
+  p {
+    font-size: 16px;
+  }
+
+  /* Contenedor */
+  .container {
+    padding: 0 8px;
+  }
+
+  /* Hero */
+  section {
+    padding: 80px 16px 60px;
+  }
+
+  /* Cards */
+  .card {
+    padding: 24px;
+  }
+}
