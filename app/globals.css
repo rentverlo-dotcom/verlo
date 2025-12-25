@@ -57,8 +57,10 @@ h3 {
 }
 
 h1 {
-  font-size: 52px;
-  margin-bottom: 16px;
+  font-size: 76px;
+  line-height: 1.05;
+  font-weight: 800;
+  margin-bottom: 24px;
 }
 
 h2 {
@@ -168,3 +170,14 @@ textarea::placeholder {
   border-color: rgba(124, 255, 178, 0.5);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
+
+.hero-title {
+  background: linear-gradient(
+    90deg,
+    #ffffff 0%,
+    var(--accent) 60%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
