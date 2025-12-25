@@ -24,7 +24,7 @@ export default function HomePage() {
 >
   <div className="container">
     <h1 className="hero-title">
-      Alquilá libremente
+      Alquilá con libertad total.
     </h1>
 
     <p
