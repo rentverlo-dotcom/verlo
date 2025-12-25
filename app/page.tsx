@@ -73,7 +73,7 @@ export default function HomePage() {
   }}
 >
   <div className="container">
-    <h2>¿Qué es VERLO?</h2>
+    <h2 className="section-title">¿Qué es VERLO?</h2>
 
     <p style={{ maxWidth: "720px", fontSize: "18px", lineHeight: 1.6 }}>
       VERLO es una plataforma de alquiler directo que conecta inquilinos y
@@ -108,7 +108,7 @@ export default function HomePage() {
         }}
       >
         <div className="container">
-          <h2>Cómo funciona VERLO</h2>
+          <h2 className="section-title">Cómo funciona VERLO</h2>
 
           <div
             style={{
@@ -163,7 +163,7 @@ export default function HomePage() {
   }}
 >
   <div className="container">
-    <h2>¿Por qué usar VERLO?</h2>
+    <h2 className="section-title">¿Por qué usar VERLO?</h2>
 
     <div
       style={{
@@ -223,7 +223,7 @@ export default function HomePage() {
         margin: "0 auto",
       }}
     >
-      <h2>Transparencia ante todo</h2>
+      <h2 className="section-title">Transparencia ante todo</h2>
 
       <p style={{ fontSize: "18px", lineHeight: 1.6 }}>
         VERLO no promete resultados mágicos ni publica miles de avisos sin
@@ -267,7 +267,7 @@ export default function HomePage() {
   }}
 >
   <div className="container">
-    <h2>¿Qué pasa después de completar el formulario?</h2>
+    <h2 className="section-title">¿Qué pasa después de completar el formulario?</h2>
 
     <div
       style={{
@@ -314,7 +314,7 @@ export default function HomePage() {
         }}
       >
         <div className="container">
-          <h2>Empezá ahora</h2>
+          <h2 className="section-title">Empezá ahora</h2>
 
           <div
             style={{
