@@ -220,6 +220,53 @@ export default function HomePage() {
   </div>
 </section>
 
+      {/* QUE PASA DESPUES */}
+<section
+  style={{
+    padding: "80px 24px",
+    background: "rgba(255,255,255,0.02)",
+    borderTop: "1px solid rgba(255,255,255,0.06)",
+    borderBottom: "1px solid rgba(255,255,255,0.06)",
+  }}
+>
+  <div className="container">
+    <h2>¿Qué pasa después de completar el formulario?</h2>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "32px",
+        marginTop: "40px",
+        maxWidth: "900px",
+      }}
+    >
+      <div className="card">
+        <h3>Revisamos la información</h3>
+        <p>
+          VERLO analiza automáticamente los datos para encontrar coincidencias
+          reales.
+        </p>
+      </div>
+
+      <div className="card">
+        <h3>Te avisamos si hay match</h3>
+        <p>
+          Solo te contactamos cuando existe compatibilidad entre ambas partes.
+        </p>
+      </div>
+
+      <div className="card">
+        <h3>Avanzás con seguridad</h3>
+        <p>
+          Si hay acuerdo, podés generar el contrato digital y seguir el proceso
+          de forma clara.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
 
       {/* FORMS */}
       <section
