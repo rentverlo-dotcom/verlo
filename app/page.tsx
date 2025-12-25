@@ -116,6 +116,63 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* POR QUE VERLO */}
+<section
+  style={{
+    padding: "100px 24px",
+    background: "rgba(255,255,255,0.03)",
+    borderTop: "1px solid rgba(255,255,255,0.08)",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+  }}
+>
+  <div className="container">
+    <h2>¿Por qué usar VERLO?</h2>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: "32px",
+        marginTop: "48px",
+        maxWidth: "900px",
+      }}
+    >
+      <div className="card">
+        <h3>Sin comisiones</h3>
+        <p>
+          Alquilá sin pagar honorarios de inmobiliaria ni costos ocultos.
+          VERLO elimina intermediarios innecesarios.
+        </p>
+      </div>
+
+      <div className="card">
+        <h3>Menos tiempo perdido</h3>
+        <p>
+          Nada de llamadas eternas ni visitas que no encajan. El sistema busca
+          compatibilidad real antes del contacto.
+        </p>
+      </div>
+
+      <div className="card">
+        <h3>Transparencia para ambos</h3>
+        <p>
+          Inquilinos y propietarios avanzan con la misma información desde el
+          primer momento.
+        </p>
+      </div>
+
+      <div className="card">
+        <h3>Contrato digital</h3>
+        <p>
+          Cuando hay acuerdo, el contrato se genera de forma simple y clara,
+          reduciendo errores y malentendidos.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
       {/* FORMS */}
       <section
         id="forms"
