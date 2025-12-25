@@ -172,6 +172,54 @@ export default function HomePage() {
   </div>
 </section>
 
+      {/* TRANSPARENCIA */}
+<section
+  style={{
+    padding: "80px 24px",
+  }}
+>
+  <div className="container">
+    <div
+      className="card"
+      style={{
+        maxWidth: "900px",
+        margin: "0 auto",
+      }}
+    >
+      <h2>Transparencia ante todo</h2>
+
+      <p style={{ fontSize: "18px", lineHeight: 1.6 }}>
+        VERLO no promete resultados mágicos ni publica miles de avisos sin
+        sentido.
+      </p>
+
+      <p
+        style={{
+          fontSize: "18px",
+          lineHeight: 1.6,
+          marginTop: "16px",
+          opacity: 0.85,
+        }}
+      >
+        Nuestro objetivo es simple: generar coincidencias reales entre
+        inquilinos y propietarios que buscan lo mismo, reduciendo vueltas,
+        conflictos y costos innecesarios.
+      </p>
+
+      <p
+        style={{
+          fontSize: "18px",
+          lineHeight: 1.6,
+          marginTop: "16px",
+          opacity: 0.85,
+        }}
+      >
+        Si no hay compatibilidad, no hay match. Así de claro.
+      </p>
+    </div>
+  </div>
+</section>
+
 
       {/* FORMS */}
       <section
