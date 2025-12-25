@@ -21,7 +21,7 @@ export default function HomePage() {
         }}
       >
         <div className="container">
-          <h1>Encontrá tu match inmobiliario</h1>
+          <h1>Alquieler directo, sin gastos ni ineficiencias</h1>
           <p>
             VERLO te ahorra los gastos de inmobiliaria, ofreciéndote seguridad
             jurídica 100%.
