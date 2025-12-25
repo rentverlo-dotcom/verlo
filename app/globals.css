@@ -89,3 +89,12 @@ input, textarea {
   border-radius: 16px;
   padding: 32px;
 }
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: "Inter", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
