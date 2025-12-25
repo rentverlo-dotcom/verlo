@@ -212,6 +212,18 @@ export default function HomePage() {
     </div>
   </div>
 </section>
+      <button
+  className="button"
+  style={{
+    marginTop: "40px",
+    background: "transparent",
+    color: "var(--accent)",
+    border: "1px solid var(--accent)",
+  }}
+>
+  Ver cómo empezar
+</button>
+
 
       {/* TRANSPARENCIA */}
 <section
