@@ -273,3 +273,62 @@ export default function HomePage() {
     </>
   );
 }
+{/* FOOTER */}
+<footer
+  style={{
+    padding: "60px 24px",
+    borderTop: "1px solid rgba(255,255,255,0.08)",
+    background: "#0b0b0e",
+  }}
+>
+  <div
+    className="container"
+    style={{
+      display: "grid",
+      gridTemplateColumns: "1fr auto",
+      gap: "24px",
+      alignItems: "center",
+    }}
+  >
+    {/* LEFT */}
+    <div>
+      <strong style={{ fontSize: "18px" }}>VERLO</strong>
+      <p
+        style={{
+          marginTop: "8px",
+          opacity: 0.7,
+          maxWidth: "420px",
+        }}
+      >
+        Alquiler directo entre inquilinos y propietarios, sin intermediarios
+        ni comisiones innecesarias.
+      </p>
+    </div>
+
+    {/* RIGHT */}
+    <div
+      style={{
+        display: "flex",
+        gap: "24px",
+        fontSize: "14px",
+        opacity: 0.8,
+      }}
+    >
+      <a href="#">Términos</a>
+      <a href="#">Privacidad</a>
+      <a href="mailto:hola@verlo.lat">Contacto</a>
+    </div>
+  </div>
+
+  {/* BOTTOM */}
+  <div
+    style={{
+      marginTop: "32px",
+      textAlign: "center",
+      fontSize: "13px",
+      opacity: 0.5,
+    }}
+  >
+    © {new Date().getFullYear()} VERLO. Todos los derechos reservados.
+  </div>
+</footer>
