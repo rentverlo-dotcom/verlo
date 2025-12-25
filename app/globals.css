@@ -101,3 +101,60 @@ h1, h2, h3 {
 
 --accent: #7CFFB2;
 
+:root {
+  --bg: #0b0b0e;
+  --surface: rgba(255,255,255,0.05);
+  --border: rgba(255,255,255,0.1);
+  --text: #ffffff;
+  --muted: rgba(255,255,255,0.7);
+  --accent: #7CFFB2;
+}
+
+.button {
+  background: var(--accent);
+  color: #0b0b0e;
+  font-weight: 700;
+}
+
+.button:hover {
+  opacity: 0.9;
+}
+
+.nav-links a {
+  opacity: 0.8;
+}
+
+.nav-links a:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+
+h1 {
+  font-size: 52px;
+}
+
+h2 {
+  font-size: 36px;
+}
+
+h3 {
+  font-size: 22px;
+}
+
+p {
+  color: var(--muted);
+}
