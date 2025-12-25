@@ -29,6 +29,38 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* QUE ES VERLO */}
+<section
+  style={{
+    padding: "80px 24px",
+  }}
+>
+  <div className="container">
+    <h2>¿Qué es VERLO?</h2>
+
+    <p style={{ maxWidth: "720px", fontSize: "18px", lineHeight: 1.6 }}>
+      VERLO es una plataforma de alquiler directo que conecta inquilinos y
+      propietarios compatibles, sin intermediarios y sin comisiones
+      innecesarias.
+    </p>
+
+    <p
+      style={{
+        maxWidth: "720px",
+        fontSize: "18px",
+        lineHeight: 1.6,
+        marginTop: "16px",
+        opacity: 0.85,
+      }}
+    >
+      En lugar de buscar entre cientos de avisos o depender de una inmobiliaria,
+      VERLO analiza perfiles y propiedades para generar coincidencias reales y
+      facilitar acuerdos claros y seguros.
+    </p>
+  </div>
+</section>
+
+
       {/* COMO FUNCIONA */}
       <section
         style={{
