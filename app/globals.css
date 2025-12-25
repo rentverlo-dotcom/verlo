@@ -215,3 +215,18 @@ textarea::placeholder {
     padding: 24px;
   }
 }
+
+.hero-bridge {
+  margin-top: 56px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* Mobile: stack */
+@media (max-width: 768px) {
+  .hero-bridge {
+    grid-template-columns: 1fr;
+    margin-top: 40px;
+  }
+}
