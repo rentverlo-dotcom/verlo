@@ -317,9 +317,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-    </>
-  );
-}
+
 {/* FOOTER */}
 <footer
   style={{
@@ -379,3 +377,6 @@ export default function HomePage() {
     © {new Date().getFullYear()} VERLO. Todos los derechos reservados.
   </div>
 </footer>
+    </>
+  );
+}
