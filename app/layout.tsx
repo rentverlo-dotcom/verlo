@@ -1,7 +1,8 @@
-// app/layout.tsx
+import "./globals.css";
+
 export const metadata = {
-  title: 'VERLO',
-  description: 'Plataforma de matching inmobiliario',
+  title: "VERLO",
+  description: "Matching inmobiliario inteligente",
 };
 
 export default function RootLayout({
@@ -11,9 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body style={{ margin: 0, fontFamily: 'system-ui, Arial, sans-serif' }}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
