@@ -17,8 +17,7 @@ export default function HomePage() {
         <div className="container">
           <h1>Encontrá tu match inmobiliario</h1>
           <p>
-            VERLO conecta inquilinos y propietarios de forma inteligente,
-            rápida y transparente.
+            VERLO te ahorra los gastos de inmobiliaria, ofreciéndote seguridad jurídica 100%.     
           </p>
         </div>
       </section>
