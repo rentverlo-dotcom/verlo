@@ -13,17 +13,30 @@ export default function HomePage() {
       </header>
 
       {/* HERO */}
-      <section>
+      <section
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
         <div className="container">
           <h1>Encontrá tu match inmobiliario</h1>
           <p>
-            VERLO te ahorra los gastos de inmobiliaria, ofreciéndote seguridad jurídica 100%.     
+            VERLO te ahorra los gastos de inmobiliaria, ofreciéndote seguridad
+            jurídica 100%.
           </p>
         </div>
       </section>
 
-      {/* FORMS SIDE BY SIDE */}
-      <section id="forms">
+      {/* FORMS (SIN 100vh) */}
+      <section
+        id="forms"
+        style={{
+          paddingTop: "80px",
+          paddingBottom: "120px",
+        }}
+      >
         <div className="container">
           <h2>Empezá ahora</h2>
 
