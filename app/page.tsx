@@ -6,8 +6,8 @@ export default function HomePage() {
         <div className="nav">
           <strong>VERLO</strong>
           <nav className="nav-links">
-            <a href="#inquilino">Soy inquilino</a>
-            <a href="#propietario">Soy propietario</a>
+            <a href="#forms">Soy inquilino</a>
+            <a href="#forms">Soy propietario</a>
           </nav>
         </div>
       </header>
@@ -23,38 +23,46 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* INQUILINO */}
-      <section id="inquilino">
+      {/* FORMS SIDE BY SIDE */}
+      <section id="forms">
         <div className="container">
-          <h2>Soy inquilino</h2>
-          <div className="card">
-            <form className="form">
-              <input placeholder="Zona deseada" />
-              <input placeholder="Presupuesto máximo" type="number" />
-              <input placeholder="Tipo de garantía" />
-              <textarea placeholder="Requisitos adicionales" />
-              <button className="button" type="submit">
-                Buscar propiedades
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
+          <h2>Empezá ahora</h2>
 
-      {/* PROPIETARIO */}
-      <section id="propietario">
-        <div className="container">
-          <h2>Soy propietario</h2>
-          <div className="card">
-            <form className="form">
-              <input placeholder="Dirección de la propiedad" />
-              <input placeholder="Zona" />
-              <input placeholder="Precio mensual" type="number" />
-              <textarea placeholder="Requisitos para inquilino" />
-              <button className="button" type="submit">
-                Publicar propiedad
-              </button>
-            </form>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "32px",
+              marginTop: "40px",
+            }}
+          >
+            {/* INQUILINO */}
+            <div className="card">
+              <h3 style={{ marginTop: 0 }}>Soy inquilino</h3>
+              <form className="form">
+                <input placeholder="Zona deseada" />
+                <input placeholder="Presupuesto máximo" type="number" />
+                <input placeholder="Tipo de garantía" />
+                <textarea placeholder="Requisitos adicionales" />
+                <button className="button" type="submit">
+                  Buscar propiedades
+                </button>
+              </form>
+            </div>
+
+            {/* PROPIETARIO */}
+            <div className="card">
+              <h3 style={{ marginTop: 0 }}>Soy propietario</h3>
+              <form className="form">
+                <input placeholder="Dirección de la propiedad" />
+                <input placeholder="Zona" />
+                <input placeholder="Precio mensual" type="number" />
+                <textarea placeholder="Requisitos para inquilino" />
+                <button className="button" type="submit">
+                  Publicar propiedad
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </section>
