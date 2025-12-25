@@ -1,23 +1,46 @@
+/* RESET & BASE */
 * {
   box-sizing: border-box;
   scroll-behavior: smooth;
 }
 
+:root {
+  --bg: #0b0b0e;
+
+  /* niveles visuales */
+  --section: rgba(255, 255, 255, 0.02);
+  --surface: rgba(255, 255, 255, 0.08);
+
+  --border: rgba(255, 255, 255, 0.14);
+  --text: #ffffff;
+  --muted: rgba(255, 255, 255, 0.7);
+
+  /* acento */
+  --accent: #7cffb2;
+}
+
+/* BODY */
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #0b0b0e;
-  color: white;
+  background: var(--bg);
+  color: var(--text);
 }
 
+/* LINKS */
 a {
   color: inherit;
   text-decoration: none;
 }
 
+/* LAYOUT */
 section {
-  min-height: 100vh;
   padding: 120px 24px 80px;
+}
+
+/* secciones con fondo suave */
+.section-muted {
+  background: var(--section);
 }
 
 .container {
@@ -25,8 +48,16 @@ section {
   margin: 0 auto;
 }
 
+/* TIPOGRAFÍA */
+h1,
+h2,
+h3 {
+  font-family: "Inter", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
 h1 {
-  font-size: 48px;
+  font-size: 52px;
   margin-bottom: 16px;
 }
 
@@ -35,17 +66,24 @@ h2 {
   margin-bottom: 24px;
 }
 
-p {
-  opacity: 0.8;
+h3 {
+  font-size: 22px;
+  margin-bottom: 12px;
 }
 
+p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* HEADER */
 header {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(10, 10, 15, 0.8);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
 }
 
 .nav {
@@ -60,68 +98,9 @@ header {
   gap: 24px;
 }
 
-.button {
-  background: white;
-  color: black;
-  padding: 14px 18px;
-  border-radius: 10px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.form {
-  display: grid;
-  gap: 16px;
-  max-width: 420px;
-}
-
-input, textarea {
-  padding: 14px;
-  border-radius: 10px;
-  border: none;
-  font-size: 16px;
-}
-
-.card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
-  padding: 32px;
-}
-
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-h1, h2, h3 {
-  font-family: "Inter", system-ui, sans-serif;
-  letter-spacing: -0.02em;
-}
-
---accent: #7CFFB2;
-
-:root {
-  --bg: #0b0b0e;
-  --surface: rgba(255,255,255,0.05);
-  --border: rgba(255,255,255,0.1);
-  --text: #ffffff;
-  --muted: rgba(255,255,255,0.7);
-  --accent: #7CFFB2;
-}
-
-.button {
-  background: var(--accent);
-  color: #0b0b0e;
-  font-weight: 700;
-}
-
-.button:hover {
-  opacity: 0.9;
-}
-
 .nav-links a {
   opacity: 0.8;
+  transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .nav-links a:hover {
@@ -129,32 +108,63 @@ h1, h2, h3 {
   color: var(--accent);
 }
 
-.card {
-  background: var(--surface);
+/* BOTONES */
+.button {
+  background: var(--accent);
+  color: #0b0b0e;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 255, 178, 0.25);
+  opacity: 0.95;
+}
+
+/* FORMS */
+.form {
+  display: grid;
+  gap: 16px;
+  max-width: 420px;
+}
+
+input,
+textarea {
+  padding: 14px 16px;
+  border-radius: 10px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 16px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* CARDS */
+.card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1),
+    var(--surface)
+  );
+  border: 1px solid var(--border);
+  border-radius: 18px;
   padding: 32px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-}
-
-
-h1 {
-  font-size: 52px;
-}
-
-h2 {
-  font-size: 36px;
-}
-
-h3 {
-  font-size: 22px;
-}
-
-p {
-  color: var(--muted);
+  border-color: rgba(124, 255, 178, 0.5);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
