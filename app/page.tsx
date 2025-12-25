@@ -39,14 +39,8 @@ export default function HomePage() {
     </p>
 
     {/* HERO BRIDGE */}
-    <div
-      style={{
-        marginTop: "56px",
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
-        gap: "24px",
-      }}
-    >
+    <div className="hero-bridge">
+
       <div className="card">
         <strong>Sin inmobiliarias</strong>
         <p>
