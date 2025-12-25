@@ -37,6 +37,10 @@ export default function HomePage() {
       Alquiler directo, sin inmobiliarias ni comisiones, con un proceso simple
       y transparente.
     </p>
+    <button className="button">
+  Empezar ahora
+</button>
+
 
     {/* HERO BRIDGE */}
     <div className="hero-bridge">
