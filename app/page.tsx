@@ -12,24 +12,65 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* HERO */}
-      <section
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <div className="container">
-          <h1 className="hero-title">
-  Encontrá tu match inmobiliario
-</h1>
-          <p>
-            Alquiler directo, sin inmobiliarias ni comisiones, con un proceso
-            simple y transparente.
-          </p>
-        </div>
-      </section>
+  {/* HERO */}
+<section
+  style={{
+    minHeight: "85vh",
+    display: "flex",
+    alignItems: "center",
+    paddingTop: "120px",
+    paddingBottom: "80px",
+  }}
+>
+  <div className="container">
+    <h1 className="hero-title">
+      Encontrá tu match inmobiliario
+    </h1>
+
+    <p
+      style={{
+        fontSize: "20px",
+        maxWidth: "680px",
+        marginTop: "16px",
+      }}
+    >
+      Alquiler directo, sin inmobiliarias ni comisiones, con un proceso simple
+      y transparente.
+    </p>
+
+    {/* HERO BRIDGE */}
+    <div
+      style={{
+        marginTop: "56px",
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "24px",
+      }}
+    >
+      <div className="card">
+        <strong>Sin inmobiliarias</strong>
+        <p>
+          Alquilá de forma directa, sin intermediarios ni costos ocultos.
+        </p>
+      </div>
+
+      <div className="card">
+        <strong>Matching inteligente</strong>
+        <p>
+          Menos vueltas: conectamos perfiles realmente compatibles.
+        </p>
+      </div>
+
+      <div className="card">
+        <strong>Contrato digital</strong>
+        <p>
+          Cerrá el acuerdo con un proceso claro y seguro desde el inicio.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
 
       {/* QUE ES VERLO */}
 <section
