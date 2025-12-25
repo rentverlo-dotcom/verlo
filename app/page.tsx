@@ -21,20 +21,75 @@ export default function HomePage() {
         }}
       >
         <div className="container">
-          <h1>Alquieler directo, sin gastos ni ineficiencias</h1>
+          <h1>Encontrá tu match inmobiliario</h1>
           <p>
-            VERLO te ahorra los gastos de inmobiliaria, ofreciéndote seguridad
-            jurídica 100%.
+            Alquiler directo, sin inmobiliarias ni comisiones, con un proceso
+            simple y transparente.
           </p>
         </div>
       </section>
 
-      {/* FORMS (SIN 100vh) */}
+      {/* COMO FUNCIONA */}
+      <section
+        style={{
+          padding: "100px 24px",
+          background: "rgba(255,255,255,0.02)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <div className="container">
+          <h2>Cómo funciona VERLO</h2>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: "32px",
+              marginTop: "48px",
+            }}
+          >
+            <div className="card">
+              <h3>1. Cargás tu info</h3>
+              <p>
+                Inquilinos cuentan qué buscan. Propietarios publican su
+                propiedad y requisitos.
+              </p>
+            </div>
+
+            <div className="card">
+              <h3>2. Analizamos compatibilidad</h3>
+              <p>
+                VERLO cruza perfiles y propiedades para encontrar coincidencias
+                reales.
+              </p>
+            </div>
+
+            <div className="card">
+              <h3>3. Te avisamos</h3>
+              <p>
+                Cuando hay un match, ambas partes reciben la notificación para
+                avanzar.
+              </p>
+            </div>
+
+            <div className="card">
+              <h3>4. Cerrás con contrato</h3>
+              <p>
+                Si hay acuerdo, se genera el contrato digital de forma simple y
+                segura.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FORMS */}
       <section
         id="forms"
         style={{
-          paddingTop: "80px",
-          paddingBottom: "120px",
+          paddingTop: "100px",
+          paddingBottom: "140px",
         }}
       >
         <div className="container">
