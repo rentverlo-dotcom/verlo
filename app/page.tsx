@@ -221,8 +221,9 @@ export default function HomePage() {
 </section>
 
 
-      {/* TRANSPARENCIA */}
+     {/* TRANSPARENCIA */}
 <section
+  id="transparencia"
   style={{
     padding: "80px 24px",
   }}
@@ -268,6 +269,7 @@ export default function HomePage() {
     </div>
   </div>
 </section>
+
 
       {/* QUE PASA DESPUES */}
 <section
