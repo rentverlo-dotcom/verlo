@@ -211,17 +211,20 @@ export default function HomePage() {
       </div>
     </div>
   </div>
+ {/* CTA 2 */}
+<div style={{ marginTop: "40px" }}>
   <button
-  className="button"
-  style={{
-    marginTop: "40px",
-    background: "transparent",
-    color: "var(--accent)",
-    border: "1px solid var(--accent)",
-  }}
->
-  Ver cómo empezar
-</button>
+    className="button"
+    style={{
+      background: "transparent",
+      color: "var(--accent)",
+      border: "1px solid var(--accent)",
+    }}
+  >
+    Ver cómo empezar
+  </button>
+</div>
+
 
 </section>
     
@@ -320,14 +323,19 @@ export default function HomePage() {
       </div>
     </div>
   </div>
-  <button
-  className="button"
+ {/* CTA 3 */}
+<div
   style={{
-    marginTop: "40px",
+    marginTop: "48px",
+    display: "flex",
+    justifyContent: "center",
   }}
 >
-  Completá tu perfil
-</button>
+  <button className="button">
+    Completá tu perfil
+  </button>
+</div>
+
 
 </section>
 
