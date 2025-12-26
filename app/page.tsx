@@ -320,6 +320,15 @@ export default function HomePage() {
       </div>
     </div>
   </div>
+  <button
+  className="button"
+  style={{
+    marginTop: "40px",
+  }}
+>
+  Completá tu perfil
+</button>
+
 </section>
 
 
