@@ -250,3 +250,15 @@ textarea::placeholder {
   border-radius: 2px;
 }
 
+/* SECTIONS – RITMO VISUAL */
+.section-base {
+  background: var(--bg);
+}
+
+.section-soft {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.section-elevated {
+  background: rgba(255, 255, 255, 0.06);
+}
