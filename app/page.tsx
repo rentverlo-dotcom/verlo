@@ -211,8 +211,7 @@ export default function HomePage() {
       </div>
     </div>
   </div>
-</section>
-      <button
+  <button
   className="button"
   style={{
     marginTop: "40px",
@@ -223,6 +222,9 @@ export default function HomePage() {
 >
   Ver cómo empezar
 </button>
+
+</section>
+    
 
 
       {/* TRANSPARENCIA */}
