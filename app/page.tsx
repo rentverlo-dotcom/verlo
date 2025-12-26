@@ -6,6 +6,9 @@ export default function HomePage() {
         <div className="nav">
           <strong>VERLO</strong>
           <nav className="nav-links">
+            <a href="#transparencia">
+  Transparencia
+</a>
             <a href="#forms">Soy inquilino</a>
             <a href="#forms">Soy propietario</a>
           </nav>
