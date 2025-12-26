@@ -157,7 +157,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* POR QUE VERLO */}
+  {/* POR QUE VERLO */}
 <section
   style={{
     padding: "100px 24px",
@@ -189,16 +189,16 @@ export default function HomePage() {
       <div className="card">
         <h3>Menos tiempo perdido</h3>
         <p>
-          Nada de llamadas eternas ni visitas que no encajan. El sistema busca
-          compatibilidad real antes del contacto.
+          Nada de llamadas eternas ni visitas que no encajan.
+          El sistema busca compatibilidad real antes del contacto.
         </p>
       </div>
 
       <div className="card">
         <h3>Transparencia para ambos</h3>
         <p>
-          Inquilinos y propietarios avanzan con la misma información desde el
-          primer momento.
+          Inquilinos y propietarios avanzan con la misma información
+          desde el primer momento.
         </p>
       </div>
 
@@ -210,24 +210,15 @@ export default function HomePage() {
         </p>
       </div>
     </div>
+
+    {/* CTA 2 — CIERRE DE SECCIÓN */}
+    <div style={{ marginTop: "48px" }}>
+      <button className="button">
+        Ver cómo empezar
+      </button>
+    </div>
   </div>
- {/* CTA 2 */}
-<div style={{ marginTop: "40px" }}>
-  <button
-    className="button"
-    style={{
-      background: "transparent",
-      color: "var(--accent)",
-      border: "1px solid var(--accent)",
-    }}
-  >
-    Ver cómo empezar
-  </button>
-</div>
-
-
 </section>
-    
 
 
       {/* TRANSPARENCIA */}
