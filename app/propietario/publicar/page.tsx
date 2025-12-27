@@ -1,9 +1,12 @@
-import PropertyForm from '../../../components/properties/PropertyForm'
-
-export default function PublicarPage() {
-  return (
-    <main className="max-w-3xl mx-auto py-10">
-      <PropertyForm />
-    </main>
-  )
-}
+useEffect(() => {
+  const saved = localStorage.getItem('pending_property_form')
+  if (saved) {
+    const data = JSON.parse(saved)
+    Object.entries(data).forEach(([key, value]) => {
+      const input = document.querySelector(`[name="${key}"]`)
+      if (input && 'value' in input) {
+        input.value = value as string
+      }
+    })
+  }
+}, [])
