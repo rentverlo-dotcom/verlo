@@ -1,6 +1,6 @@
+// app/auth/callback/route.ts
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -11,7 +11,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/', origin))
   }
 
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   await supabase.auth.exchangeCodeForSession(code)
 
