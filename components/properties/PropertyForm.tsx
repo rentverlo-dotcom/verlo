@@ -22,24 +22,23 @@ form?.requestSubmit()
 
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (loading) return
-    setLoading(true)
+  e.preventDefault()
 
-    const formData = new FormData(e.currentTarget)
+  const formData = new FormData(e.currentTarget)
 
-    // 🔐 CHECK SESSION
-    const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    if (!user) {
-      localStorage.setItem(
-        'pending_property_form',
-        JSON.stringify(Object.fromEntries(formData))
-      )
-      localStorage.setItem('retry_property_submit', 'true')
-      window.location.href = '/login'
-      return
-    }
+  if (!user) {
+    localStorage.setItem(
+      'pending_property_form',
+      JSON.stringify(Object.fromEntries(formData))
+    )
+
+    window.location.href = '/login?next=publish'
+    return
+  }
 
     // 🏠 INSERT PROPERTY
     const { data: property, error } = await supabase
