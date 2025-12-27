@@ -10,13 +10,13 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+const { error } = await supabase.auth.signInWithOtp({
+  email,
+  options: {
+    emailRedirectTo: 'https://verlo.lat/auth/callback?next=/propietario/publicar',
+  },
+})
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: 'https://verlo.lat',
-      },
-    })
 
     if (error) {
       alert('Error enviando link')
