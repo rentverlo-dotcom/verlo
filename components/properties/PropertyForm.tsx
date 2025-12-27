@@ -11,10 +11,7 @@ export default function PropertyForm() {
     e.preventDefault()
     setLoading(true)
 
-    console.log('SUBMIT FORM')
-
     const formData = new FormData(e.currentTarget)
-    console.log('FORM DATA', Object.fromEntries(formData.entries()))
 
     const {
       data: { user },
@@ -23,12 +20,12 @@ export default function PropertyForm() {
 
     if (authError || !user) {
       console.error('AUTH ERROR', authError)
-      alert('No autenticado')
+      alert('Tenés que iniciar sesión para publicar una propiedad')
       setLoading(false)
       return
     }
 
-    // 1️⃣ Crear propiedad (draft)
+    // 1️⃣ Crear propiedad
     const { data: property, error } = await supabase
       .from('properties')
       .insert({
@@ -49,12 +46,10 @@ export default function PropertyForm() {
 
     if (error || !property) {
       console.error('INSERT ERROR', error)
-      alert('Error creando propiedad')
+      alert('Error creando la propiedad')
       setLoading(false)
       return
     }
-
-    console.log('PROPERTY CREATED', property.id)
 
     // 2️⃣ Subir fotos
     for (let i = 0; i < photos.length; i++) {
@@ -90,7 +85,6 @@ export default function PropertyForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* DATOS BÁSICOS */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Datos de la propiedad</h2>
 
@@ -107,7 +101,6 @@ export default function PropertyForm() {
         </select>
       </section>
 
-      {/* CONDICIONES */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Condiciones</h2>
 
@@ -128,7 +121,6 @@ export default function PropertyForm() {
         </label>
       </section>
 
-      {/* FOTOS */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Fotos</h2>
 
@@ -142,7 +134,7 @@ export default function PropertyForm() {
       </section>
 
       <button disabled={loading}>
-        {loading ? 'Publicando...' : 'Publicar propiedad'}
+        {loading ? 'Publicando…' : 'Publicar propiedad'}
       </button>
     </form>
   )
