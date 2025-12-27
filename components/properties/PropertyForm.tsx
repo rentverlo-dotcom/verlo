@@ -36,7 +36,7 @@ form?.requestSubmit()
       JSON.stringify(Object.fromEntries(formData))
     )
 
-    window.location.href = '/login?next=publish'
+    window.location.href = '/login'
     return
   }
 
