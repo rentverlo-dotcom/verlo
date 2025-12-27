@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
+  const next = url.searchParams.get('next') ?? '/'
 
   if (code) {
     const supabase = createClient(
@@ -14,8 +15,5 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // 🔁 si venía de publicar propiedad, volver ahí
-  return NextResponse.redirect(
-    new URL('/propietario/publicar', request.url)
-  )
+  return NextResponse.redirect(new URL(next, url.origin))
 }
