@@ -11,7 +11,10 @@ export default function PropertyForm() {
     e.preventDefault()
     setLoading(true)
 
+    console.log('SUBMIT FORM')
+
     const formData = new FormData(e.currentTarget)
+    console.log('FORM DATA', Object.fromEntries(formData.entries()))
 
     const {
       data: { user },
@@ -19,12 +22,13 @@ export default function PropertyForm() {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      console.error('AUTH ERROR', authError)
       alert('No autenticado')
       setLoading(false)
       return
     }
 
-    // 1️⃣ Crear propiedad
+    // 1️⃣ Crear propiedad (draft)
     const { data: property, error } = await supabase
       .from('properties')
       .insert({
@@ -43,21 +47,28 @@ export default function PropertyForm() {
       .select()
       .single()
 
-    if (error) {
-      console.error(error)
+    if (error || !property) {
+      console.error('INSERT ERROR', error)
       alert('Error creando propiedad')
       setLoading(false)
       return
     }
+
+    console.log('PROPERTY CREATED', property.id)
 
     // 2️⃣ Subir fotos
     for (let i = 0; i < photos.length; i++) {
       const file = photos[i]
       const path = `${property.id}/${crypto.randomUUID()}`
 
-      await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('property-media')
         .upload(path, file)
+
+      if (uploadError) {
+        console.error('UPLOAD ERROR', uploadError)
+        continue
+      }
 
       await supabase.from('property_media').insert({
         property_id: property.id,
@@ -79,7 +90,7 @@ export default function PropertyForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* BLOQUE: Datos básicos */}
+      {/* DATOS BÁSICOS */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Datos de la propiedad</h2>
 
@@ -96,7 +107,7 @@ export default function PropertyForm() {
         </select>
       </section>
 
-      {/* BLOQUE: Condiciones */}
+      {/* CONDICIONES */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Condiciones</h2>
 
@@ -117,7 +128,7 @@ export default function PropertyForm() {
         </label>
       </section>
 
-      {/* BLOQUE: Fotos */}
+      {/* FOTOS */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Fotos</h2>
 
