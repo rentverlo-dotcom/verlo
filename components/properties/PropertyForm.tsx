@@ -13,17 +13,18 @@ export default function PropertyForm() {
 
     const formData = new FormData(e.currentTarget)
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+   const {
+  data: { user },
+  error: authError,
+} = await supabase.auth.getUser()
 
-    if (authError || !user) {
-      console.error('AUTH ERROR', authError)
-      alert('Tenés que iniciar sesión para publicar una propiedad')
-      setLoading(false)
-      return
-    }
+if (authError || !user) {
+  console.error('AUTH ERROR', authError)
+  setLoading(false)
+  window.location.href = '/login'
+  return
+}
+
 
     // 1️⃣ Crear propiedad
     const { data: property, error } = await supabase
