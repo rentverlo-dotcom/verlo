@@ -26,19 +26,21 @@ export default function PropertyForm() {
 
     const formData = new FormData(e.currentTarget)
 
-    // 🔐 CHECK SESSION
+  //CHECKIN SESION
     const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  data: { user },
+} = await supabase.auth.getUser()
 
-    // 🚨 NO SESSION → LOGIN FLOW
-    if (!user) {
-      localStorage.setItem('pending_property_form', JSON.stringify(Object.fromEntries(formData)))
-      localStorage.setItem('retry_property_submit', 'true')
-      router.push('/login')
-      return
-    }
+if (!user) {
+  // guardar draft local
+  localStorage.setItem(
+    'pending_property_form',
+    JSON.stringify(Object.fromEntries(formData))
+  )
 
+  window.location.href = '/login'
+  return
+}
     // 🏠 CREATE PROPERTY
     const { data: property, error } = await supabase
       .from('properties')
