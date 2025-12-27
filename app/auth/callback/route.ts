@@ -14,8 +14,9 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // 🔥 VOLVER AL FORM DEL PROPIETARIO
-  return NextResponse.redirect(
-    new URL('/propietario/publicar', request.url)
-  )
+  // 🔁 SI HABÍA FORM PENDIENTE → VOLVEMOS A PUBLICAR
+  const redirectTo =
+    url.searchParams.get('redirect') ?? '/propietario/publicar'
+
+  return NextResponse.redirect(new URL(redirectTo, request.url))
 }
