@@ -10,14 +10,14 @@ export default function PropertyForm() {
   const [photos, setPhotos] = useState<File[]>([])
 
   // 🔁 Reintento automático post-login
-  useEffect(() => {
-    const retry = localStorage.getItem('retry_property_submit')
-    if (retry === 'true') {
-      localStorage.removeItem('retry_property_submit')
-      const form = document.getElementById('property-form') as HTMLFormElement | null
-      form?.requestSubmit()
-    }
-  }, [])
+ useEffect(() => {
+  const retry = localStorage.getItem('retry_property_submit')
+  if (retry === 'true') {
+    localStorage.removeItem('retry_property_submit')
+    document.getElementById('property-form')?.requestSubmit()
+  }
+}, [])
+
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
