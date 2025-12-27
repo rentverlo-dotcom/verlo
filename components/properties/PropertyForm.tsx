@@ -14,7 +14,9 @@ export default function PropertyForm() {
   const retry = localStorage.getItem('retry_property_submit')
   if (retry === 'true') {
     localStorage.removeItem('retry_property_submit')
-    document.getElementById('property-form')?.requestSubmit()
+    const form = document.getElementById('property-form') as HTMLFormElement | null
+form?.requestSubmit()
+
   }
 }, [])
 
