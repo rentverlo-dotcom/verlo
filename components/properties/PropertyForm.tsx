@@ -9,12 +9,12 @@ export default function PropertyForm() {
   const [loading, setLoading] = useState(false)
   const [photos, setPhotos] = useState<File[]>([])
 
-  // 🔁 Reintento automático post login
+  // 🔁 Reintento automático post-login
   useEffect(() => {
     const retry = localStorage.getItem('retry_property_submit')
     if (retry === 'true') {
       localStorage.removeItem('retry_property_submit')
-      const form = document.getElementById('property-form') as HTMLFormElement
+      const form = document.getElementById('property-form') as HTMLFormElement | null
       form?.requestSubmit()
     }
   }, [])
@@ -26,10 +26,8 @@ export default function PropertyForm() {
 
     const formData = new FormData(e.currentTarget)
 
-    // 🔐 CHECK SESIÓN
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    // 🔐 CHECK SESSION
+    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       localStorage.setItem(
@@ -41,7 +39,7 @@ export default function PropertyForm() {
       return
     }
 
-    // 🏠 INSERT PROPIEDAD
+    // 🏠 INSERT PROPERTY
     const { data: property, error } = await supabase
       .from('properties')
       .insert({
@@ -67,15 +65,11 @@ export default function PropertyForm() {
       return
     }
 
-    // 📸 SUBIR FOTOS
+    // 📸 UPLOAD PHOTOS
     for (let i = 0; i < photos.length; i++) {
       const file = photos[i]
       const path = `${property.id}/${crypto.randomUUID()}`
-
-      await supabase.storage
-        .from('property-media')
-        .upload(path, file)
-
+      await supabase.storage.from('property-media').upload(path, file)
       await supabase.from('property_media').insert({
         property_id: property.id,
         type: 'photo',
@@ -85,23 +79,18 @@ export default function PropertyForm() {
     }
 
     localStorage.removeItem('pending_property_form')
-    setLoading(false)
+    localStorage.removeItem('retry_property_submit')
 
-    // ✅ FIN DEL FLUJO
     router.push(`/propiedades/${property.id}`)
   }
 
   return (
-    <form
-      id="property-form"
-      onSubmit={handleSubmit}
-      className="space-y-4"
-    >
-      <input name="title" placeholder="Título" required />
-      <textarea name="description" placeholder="Descripción" required />
-      <input name="city" placeholder="Ciudad" required />
-      <input name="zone" placeholder="Zona" required />
-      <input name="price" type="number" placeholder="Precio" required />
+    <form id="property-form" onSubmit={handleSubmit} className="space-y-6">
+      <input name="title" required />
+      <textarea name="description" required />
+      <input name="city" required />
+      <input name="zone" required />
+      <input name="price" type="number" required />
 
       <select name="property_type" required>
         <option value="apartment">Departamento</option>
@@ -130,7 +119,7 @@ export default function PropertyForm() {
       />
 
       <button disabled={loading}>
-        {loading ? 'Publicando...' : 'Publicar propiedad'}
+        {loading ? 'Publicando…' : 'Publicar propiedad'}
       </button>
     </form>
   )
