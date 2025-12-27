@@ -1,47 +1,32 @@
+// components/properties/PropertyForm.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 
 export default function PropertyForm() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
   const [photos, setPhotos] = useState<File[]>([])
 
-  // 🔁 Reintento automático post-login
- useEffect(() => {
-  const retry = localStorage.getItem('retry_property_submit')
-  if (retry === 'true') {
-    localStorage.removeItem('retry_property_submit')
-    const form = document.getElementById('property-form') as HTMLFormElement | null
-form?.requestSubmit()
-
-  }
-}, [])
-
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault()
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
 
-  const formData = new FormData(e.currentTarget)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    if (!user) {
+      localStorage.setItem(
+        'pending_property_form',
+        JSON.stringify(Object.fromEntries(formData))
+      )
+      window.location.href = '/login'
+      return
+    }
 
-  if (!user) {
-    localStorage.setItem(
-      'pending_property_form',
-      JSON.stringify(Object.fromEntries(formData))
-    )
-
-    window.location.href = '/login'
-    return
-  }
-
-    // 🏠 INSERT PROPERTY
-    const { data: property, error } = await supabase
+    const { data: property } = await supabase
       .from('properties')
       .insert({
         owner_id: user.id,
@@ -59,14 +44,6 @@ form?.requestSubmit()
       .select()
       .single()
 
-    if (error || !property) {
-      console.error(error)
-      alert('Error creando propiedad')
-      setLoading(false)
-      return
-    }
-
-    // 📸 UPLOAD PHOTOS
     for (let i = 0; i < photos.length; i++) {
       const file = photos[i]
       const path = `${property.id}/${crypto.randomUUID()}`
@@ -80,48 +57,39 @@ form?.requestSubmit()
     }
 
     localStorage.removeItem('pending_property_form')
-    localStorage.removeItem('retry_property_submit')
-
     router.push(`/propiedades/${property.id}`)
   }
 
   return (
-    <form id="property-form" onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit}>
       <input name="title" required />
       <textarea name="description" required />
       <input name="city" required />
       <input name="zone" required />
       <input name="price" type="number" required />
-
       <select name="property_type" required>
         <option value="apartment">Departamento</option>
         <option value="house">Casa</option>
       </select>
-
       <label>
         <input type="checkbox" name="allowed_durations" value="short" /> Corto
       </label>
       <label>
         <input type="checkbox" name="allowed_durations" value="long" /> Largo
       </label>
-
       <label>
         <input type="checkbox" name="furnished" /> Amoblado
       </label>
       <label>
         <input type="checkbox" name="pets_allowed" /> Mascotas
       </label>
-
       <input
         type="file"
         multiple
         accept="image/*"
         onChange={(e) => setPhotos(Array.from(e.target.files || []))}
       />
-
-      <button disabled={loading}>
-        {loading ? 'Publicando…' : 'Publicar propiedad'}
-      </button>
+      <button>Publicar</button>
     </form>
   )
 }
