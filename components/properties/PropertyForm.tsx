@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 
 export default function PropertyForm() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [photos, setPhotos] = useState<File[]>([])
 
-  // 🔁 RETRY POST LOGIN
+  // 🔁 Reintento automático post login
   useEffect(() => {
     const retry = localStorage.getItem('retry_property_submit')
     if (retry === 'true') {
@@ -26,22 +26,22 @@ export default function PropertyForm() {
 
     const formData = new FormData(e.currentTarget)
 
-  //CHECKIN SESION
+    // 🔐 CHECK SESIÓN
     const {
-  data: { user },
-} = await supabase.auth.getUser()
+      data: { user },
+    } = await supabase.auth.getUser()
 
-if (!user) {
-  // guardar draft local
-  localStorage.setItem(
-    'pending_property_form',
-    JSON.stringify(Object.fromEntries(formData))
-  )
+    if (!user) {
+      localStorage.setItem(
+        'pending_property_form',
+        JSON.stringify(Object.fromEntries(formData))
+      )
+      localStorage.setItem('retry_property_submit', 'true')
+      window.location.href = '/login'
+      return
+    }
 
-  window.location.href = '/login'
-  return
-}
-    // 🏠 CREATE PROPERTY
+    // 🏠 INSERT PROPIEDAD
     const { data: property, error } = await supabase
       .from('properties')
       .insert({
@@ -60,19 +60,21 @@ if (!user) {
       .select()
       .single()
 
-    if (error) {
+    if (error || !property) {
       console.error(error)
       alert('Error creando propiedad')
       setLoading(false)
       return
     }
 
-    // 📸 UPLOAD PHOTOS
+    // 📸 SUBIR FOTOS
     for (let i = 0; i < photos.length; i++) {
       const file = photos[i]
       const path = `${property.id}/${crypto.randomUUID()}`
 
-      await supabase.storage.from('property-media').upload(path, file)
+      await supabase.storage
+        .from('property-media')
+        .upload(path, file)
 
       await supabase.from('property_media').insert({
         property_id: property.id,
@@ -93,13 +95,13 @@ if (!user) {
     <form
       id="property-form"
       onSubmit={handleSubmit}
-      className="space-y-8"
+      className="space-y-4"
     >
-      <input name="title" required />
-      <textarea name="description" required />
-      <input name="city" required />
-      <input name="zone" required />
-      <input name="price" type="number" required />
+      <input name="title" placeholder="Título" required />
+      <textarea name="description" placeholder="Descripción" required />
+      <input name="city" placeholder="Ciudad" required />
+      <input name="zone" placeholder="Zona" required />
+      <input name="price" type="number" placeholder="Precio" required />
 
       <select name="property_type" required>
         <option value="apartment">Departamento</option>
