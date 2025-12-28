@@ -9,14 +9,31 @@ type Draft = {
   neighborhood_id?: string
   price?: number
   type?: string
+  requirements?: string[]
   duration?: string[]
   furnished?: boolean
   pets?: boolean
-  requirements?: string
   media?: File[]
   address?: string
   phone?: string
 }
+
+const PROPERTY_TYPES = [
+  'Casa',
+  'Departamento',
+  'PH',
+  'Habitación',
+  'Local',
+]
+
+const REQUIREMENTS = [
+  'Garantía propietaria',
+  'Seguro de caución',
+  'Recibo de sueldo',
+  'Monotributo',
+  'Sin mascotas',
+]
+
 
 export default function PublicarPropiedad() {
   const [step, setStep] = useState(1)
