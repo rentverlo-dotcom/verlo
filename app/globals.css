@@ -262,3 +262,36 @@ textarea::placeholder {
 .section-elevated {
   background: rgba(255, 255, 255, 0.06);
 }
+
+.input {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  background: #262626;
+  color: white;
+  border: none;
+  outline: none;
+}
+
+.input::placeholder {
+  color: #737373;
+}
+
+.input:focus {
+  box-shadow: 0 0 0 2px #34f5a1;
+}
+
+.button-primary {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  background: #34f5a1;
+  color: black;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.button-primary:hover {
+  background: #2ee59d;
+}
+
