@@ -34,6 +34,7 @@ export default function PublicarPropiedad() {
     localStorage.setItem('property_draft', JSON.stringify(draft))
   }, [draft])
 
+  // === ORIGINAL SUPABASE LOAD (SE MANTIENE) ===
   useEffect(() => {
     supabase
       .from('provinces')
@@ -68,6 +69,47 @@ export default function PublicarPropiedad() {
         setDraft(d => ({ ...d, neighborhood_id: undefined }))
       })
   }, [draft.municipality_id])
+
+  // === GEOREF FALLBACK (AGREGADO, NO BORRA NADA) ===
+  useEffect(() => {
+    if (provinces.length === 0) {
+      fetch('https://apis.datos.gob.ar/georef/api/provincias')
+        .then(r => r.json())
+        .then(d =>
+          setProvinces(
+            (d.provincias || []).map((p: any) => ({ id: p.id, name: p.nombre }))
+          )
+        )
+    }
+  }, [provinces.length])
+
+  useEffect(() => {
+    if (draft.province_id && municipalities.length === 0) {
+      fetch(
+        `https://apis.datos.gob.ar/georef/api/municipios?provincia=${draft.province_id}&max=500`
+      )
+        .then(r => r.json())
+        .then(d =>
+          setMunicipalities(
+            (d.municipios || []).map((m: any) => ({ id: m.id, name: m.nombre }))
+          )
+        )
+    }
+  }, [draft.province_id, municipalities.length])
+
+  useEffect(() => {
+    if (draft.municipality_id && neighborhoods.length === 0) {
+      fetch(
+        `https://apis.datos.gob.ar/georef/api/localidades?municipio=${draft.municipality_id}&max=500`
+      )
+        .then(r => r.json())
+        .then(d =>
+          setNeighborhoods(
+            (d.localidades || []).map((n: any) => ({ id: n.id, name: n.nombre }))
+          )
+        )
+    }
+  }, [draft.municipality_id, neighborhoods.length])
 
   async function requireAuth() {
     const { data } = await supabase.auth.getUser()
@@ -258,4 +300,3 @@ export default function PublicarPropiedad() {
     </div>
   )
 }
-
