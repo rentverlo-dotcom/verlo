@@ -1,3 +1,4 @@
+// app/propietario/publicar/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -34,7 +35,6 @@ const REQUIREMENTS = [
   'Sin mascotas',
 ]
 
-
 export default function PublicarPropiedad() {
   const [step, setStep] = useState(1)
 
@@ -51,7 +51,6 @@ export default function PublicarPropiedad() {
     localStorage.setItem('property_draft', JSON.stringify(draft))
   }, [draft])
 
-  // === ORIGINAL SUPABASE LOAD (SE MANTIENE) ===
   useEffect(() => {
     supabase
       .from('provinces')
@@ -70,7 +69,11 @@ export default function PublicarPropiedad() {
       .then(({ data }) => {
         setMunicipalities(data || [])
         setNeighborhoods([])
-        setDraft(d => ({ ...d, municipality_id: undefined, neighborhood_id: undefined }))
+        setDraft(d => ({
+          ...d,
+          municipality_id: undefined,
+          neighborhood_id: undefined,
+        }))
       })
   }, [draft.province_id])
 
@@ -86,47 +89,6 @@ export default function PublicarPropiedad() {
         setDraft(d => ({ ...d, neighborhood_id: undefined }))
       })
   }, [draft.municipality_id])
-
-  // === GEOREF FALLBACK (AGREGADO, NO BORRA NADA) ===
-  useEffect(() => {
-    if (provinces.length === 0) {
-      fetch('https://apis.datos.gob.ar/georef/api/provincias')
-        .then(r => r.json())
-        .then(d =>
-          setProvinces(
-            (d.provincias || []).map((p: any) => ({ id: p.id, name: p.nombre }))
-          )
-        )
-    }
-  }, [provinces.length])
-
-  useEffect(() => {
-    if (draft.province_id && municipalities.length === 0) {
-      fetch(
-        `https://apis.datos.gob.ar/georef/api/municipios?provincia=${draft.province_id}&max=500`
-      )
-        .then(r => r.json())
-        .then(d =>
-          setMunicipalities(
-            (d.municipios || []).map((m: any) => ({ id: m.id, name: m.nombre }))
-          )
-        )
-    }
-  }, [draft.province_id, municipalities.length])
-
-  useEffect(() => {
-    if (draft.municipality_id && neighborhoods.length === 0) {
-      fetch(
-        `https://apis.datos.gob.ar/georef/api/localidades?municipio=${draft.municipality_id}&max=500`
-      )
-        .then(r => r.json())
-        .then(d =>
-          setNeighborhoods(
-            (d.localidades || []).map((n: any) => ({ id: n.id, name: n.nombre }))
-          )
-        )
-    }
-  }, [draft.municipality_id, neighborhoods.length])
 
   async function requireAuth() {
     const { data } = await supabase.auth.getUser()
@@ -184,7 +146,6 @@ export default function PublicarPropiedad() {
           Paso {step} de 4
         </p>
 
-        {/* PASO 1 */}
         {step === 1 && (
           <div className="mt-8 space-y-4">
             <select
@@ -248,34 +209,54 @@ export default function PublicarPropiedad() {
           </div>
         )}
 
-        {/* PASO 2 */}
         {step === 2 && (
           <div className="mt-8 space-y-4">
-            <input
+            <select
               className="input"
-              placeholder="Tipo de propiedad"
               value={draft.type || ''}
               onChange={e => setDraft({ ...draft, type: e.target.value })}
-            />
-            <textarea
-              className="input h-28 resize-none"
-              placeholder="Requisitos para el inquilino"
-              value={draft.requirements || ''}
-              onChange={e => setDraft({ ...draft, requirements: e.target.value })}
-            />
-            <button className="button-primary" onClick={() => setStep(3)}>
+            >
+              <option value="">Tipo de propiedad</option>
+              {PROPERTY_TYPES.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+
+            <div className="space-y-2">
+              {REQUIREMENTS.map(r => (
+                <label key={r} className="flex items-center gap-2 text-sm text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={draft.requirements?.includes(r) || false}
+                    onChange={e => {
+                      const current = draft.requirements || []
+                      setDraft({
+                        ...draft,
+                        requirements: e.target.checked
+                          ? [...current, r]
+                          : current.filter(x => x !== r),
+                      })
+                    }}
+                  />
+                  {r}
+                </label>
+              ))}
+            </div>
+
+            <button
+              className="button-primary"
+              disabled={!draft.type}
+              onClick={() => setStep(3)}
+            >
               Continuar
             </button>
           </div>
         )}
 
-        {/* PASO 3 */}
         {step === 3 && (
           <div className="mt-8 space-y-4">
             <div className="p-4 border border-dashed border-neutral-700 rounded-xl text-neutral-400 text-sm text-center">
-              Subí fotos o videos de la propiedad  
-              <br />
-              (no incluyas dirección ni datos privados)
+              Subí fotos o videos de la propiedad
             </div>
             <input
               type="file"
@@ -293,7 +274,6 @@ export default function PublicarPropiedad() {
           </div>
         )}
 
-        {/* PASO 4 */}
         {step === 4 && (
           <div className="mt-8 space-y-4">
             <input
