@@ -335,56 +335,46 @@ export default function HomePage() {
 
 </section>
 
+{/* FORMS */}
+<section
+  id="forms"
+  style={{
+    paddingTop: "100px",
+    paddingBottom: "140px",
+  }}
+>
+  <div className="container">
+    <h2 className="section-title">Empezá ahora</h2>
 
-      {/* FORMS */}
-      <section
-        id="forms"
-        style={{
-          paddingTop: "100px",
-          paddingBottom: "140px",
-        }}
-      >
-        <div className="container">
-          <h2 className="section-title">Empezá ahora</h2>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "32px",
+        marginTop: "40px",
+      }}
+    >
+      {/* INQUILINO */}
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Soy inquilino</h3>
+        <p>Encontrá propiedades compatibles con tu perfil.</p>
+        <a href="/inquilino/registro">
+          <button className="button">Buscar propiedades</button>
+        </a>
+      </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "32px",
-              marginTop: "40px",
-            }}
-          >
-            {/* INQUILINO */}
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Soy inquilino</h3>
-              <form className="form">
-                <input placeholder="Zona deseada" />
-                <input placeholder="Presupuesto máximo" type="number" />
-                <input placeholder="Tipo de garantía" />
-                <textarea placeholder="Requisitos adicionales" />
-                <button className="button" type="submit">
-                  Buscar propiedades
-                </button>
-              </form>
-            </div>
+      {/* PROPIETARIO */}
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Soy propietario</h3>
+        <p>Publicá tu propiedad y recibí inquilinos compatibles.</p>
+        <a href="/propietario/publicar">
+          <button className="button">Publicar propiedad</button>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
 
-            {/* PROPIETARIO */}
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Soy propietario</h3>
-              <form className="form">
-                <input placeholder="Dirección de la propiedad" />
-                <input placeholder="Zona" />
-                <input placeholder="Precio mensual" type="number" />
-                <textarea placeholder="Requisitos para inquilino" />
-                <button className="button" type="submit">
-                  Publicar propiedad
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
 
 {/* FOOTER */}
 <footer
