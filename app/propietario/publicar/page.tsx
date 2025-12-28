@@ -81,6 +81,7 @@ export default function PublicarPropiedad() {
   useEffect(() => {
     if (!draft.province_id) return
 
+    // ID CABA (GeoRef): '02'  (ajustá si tu tabla usa otro)
     if (draft.province_id === '02') {
       setMunicipalities([CABA_MUNICIPALITY])
       setNeighborhoods(CABA_BARRIOS)
