@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
 type Draft = {
-  zone?: string
+  province_id?: string
+  municipality_id?: string
+  neighborhood_id?: string
   price?: number
   type?: string
   duration?: string[]
@@ -18,14 +20,54 @@ type Draft = {
 
 export default function PublicarPropiedad() {
   const [step, setStep] = useState(1)
+
   const [draft, setDraft] = useState<Draft>(() => {
     if (typeof window === 'undefined') return {}
     return JSON.parse(localStorage.getItem('property_draft') || '{}')
   })
 
+  const [provinces, setProvinces] = useState<any[]>([])
+  const [municipalities, setMunicipalities] = useState<any[]>([])
+  const [neighborhoods, setNeighborhoods] = useState<any[]>([])
+
   useEffect(() => {
     localStorage.setItem('property_draft', JSON.stringify(draft))
   }, [draft])
+
+  useEffect(() => {
+    supabase
+      .from('provinces')
+      .select('id,name')
+      .order('name')
+      .then(({ data }) => setProvinces(data || []))
+  }, [])
+
+  useEffect(() => {
+    if (!draft.province_id) return
+    supabase
+      .from('municipalities')
+      .select('id,name')
+      .eq('province_id', draft.province_id)
+      .order('name')
+      .then(({ data }) => {
+        setMunicipalities(data || [])
+        setNeighborhoods([])
+        setDraft(d => ({ ...d, municipality_id: undefined, neighborhood_id: undefined }))
+      })
+  }, [draft.province_id])
+
+  useEffect(() => {
+    if (!draft.municipality_id) return
+    supabase
+      .from('neighborhoods')
+      .select('id,name')
+      .eq('municipality_id', draft.municipality_id)
+      .order('name')
+      .then(({ data }) => {
+        setNeighborhoods(data || [])
+        setDraft(d => ({ ...d, neighborhood_id: undefined }))
+      })
+  }, [draft.municipality_id])
 
   async function requireAuth() {
     const { data } = await supabase.auth.getUser()
@@ -44,7 +86,7 @@ export default function PublicarPropiedad() {
       .from('properties')
       .insert({
         owner_id: data.user.id,
-        zone: draft.zone,
+        neighborhood_id: draft.neighborhood_id,
         price: draft.price,
         property_type: draft.type,
         allowed_durations: draft.duration,
@@ -86,20 +128,62 @@ export default function PublicarPropiedad() {
         {/* PASO 1 */}
         {step === 1 && (
           <div className="mt-8 space-y-4">
-            <input
+            <select
               className="input"
-              placeholder="Zona"
-              value={draft.zone || ''}
-              onChange={e => setDraft({ ...draft, zone: e.target.value })}
-            />
+              value={draft.province_id || ''}
+              onChange={e =>
+                setDraft({ ...draft, province_id: e.target.value })
+              }
+            >
+              <option value="">Provincia</option>
+              {provinces.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="input"
+              value={draft.municipality_id || ''}
+              disabled={!draft.province_id}
+              onChange={e =>
+                setDraft({ ...draft, municipality_id: e.target.value })
+              }
+            >
+              <option value="">Municipio</option>
+              {municipalities.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="input"
+              value={draft.neighborhood_id || ''}
+              disabled={!draft.municipality_id}
+              onChange={e =>
+                setDraft({ ...draft, neighborhood_id: e.target.value })
+              }
+            >
+              <option value="">Barrio</option>
+              {neighborhoods.map(n => (
+                <option key={n.id} value={n.id}>{n.name}</option>
+              ))}
+            </select>
+
             <input
               className="input"
               type="number"
               placeholder="Precio mensual"
               value={draft.price || ''}
-              onChange={e => setDraft({ ...draft, price: Number(e.target.value) })}
+              onChange={e =>
+                setDraft({ ...draft, price: Number(e.target.value) })
+              }
             />
-            <button className="button-primary" onClick={() => setStep(2)}>
+
+            <button
+              className="button-primary"
+              disabled={!draft.neighborhood_id || !draft.price}
+              onClick={() => setStep(2)}
+            >
               Continuar
             </button>
           </div>
@@ -174,3 +258,4 @@ export default function PublicarPropiedad() {
     </div>
   )
 }
+
