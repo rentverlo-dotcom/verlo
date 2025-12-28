@@ -1,4 +1,3 @@
-// app/propietario/publicar/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -74,44 +73,104 @@ export default function PublicarPropiedad() {
     window.location.href = `/propiedades/${property.id}`
   }
 
-  if (step === 1)
-    return (
-      <div>
-        <h2>Paso 1</h2>
-        <input placeholder="Zona" onChange={e => setDraft({ ...draft, zone: e.target.value })} />
-        <input type="number" placeholder="Precio" onChange={e => setDraft({ ...draft, price: Number(e.target.value) })} />
-        <button onClick={() => setStep(2)}>Continuar</button>
-      </div>
-    )
+  return (
+    <div className="min-h-screen bg-black flex justify-center pt-24 px-4">
+      <div className="w-full max-w-xl bg-neutral-900 rounded-2xl p-8 shadow-xl">
+        <h1 className="text-2xl font-semibold text-white">
+          Publicá tu propiedad
+        </h1>
+        <p className="text-sm text-neutral-400 mt-1">
+          Paso {step} de 4
+        </p>
 
-  if (step === 2)
-    return (
-      <div>
-        <h2>Paso 2</h2>
-        <input placeholder="Tipo" onChange={e => setDraft({ ...draft, type: e.target.value })} />
-        <textarea placeholder="Requisitos" onChange={e => setDraft({ ...draft, requirements: e.target.value })} />
-        <button onClick={() => setStep(3)}>Continuar</button>
-      </div>
-    )
+        {/* PASO 1 */}
+        {step === 1 && (
+          <div className="mt-8 space-y-4">
+            <input
+              className="input"
+              placeholder="Zona"
+              value={draft.zone || ''}
+              onChange={e => setDraft({ ...draft, zone: e.target.value })}
+            />
+            <input
+              className="input"
+              type="number"
+              placeholder="Precio mensual"
+              value={draft.price || ''}
+              onChange={e => setDraft({ ...draft, price: Number(e.target.value) })}
+            />
+            <button className="button-primary" onClick={() => setStep(2)}>
+              Continuar
+            </button>
+          </div>
+        )}
 
-  if (step === 3)
-    return (
-      <div>
-        <h2>Paso 3</h2>
-        <input type="file" multiple onChange={e => setDraft({ ...draft, media: Array.from(e.target.files || []) })} />
-        <button onClick={async () => (await requireAuth()) && setStep(4)}>Continuar</button>
-      </div>
-    )
+        {/* PASO 2 */}
+        {step === 2 && (
+          <div className="mt-8 space-y-4">
+            <input
+              className="input"
+              placeholder="Tipo de propiedad"
+              value={draft.type || ''}
+              onChange={e => setDraft({ ...draft, type: e.target.value })}
+            />
+            <textarea
+              className="input h-28 resize-none"
+              placeholder="Requisitos para el inquilino"
+              value={draft.requirements || ''}
+              onChange={e => setDraft({ ...draft, requirements: e.target.value })}
+            />
+            <button className="button-primary" onClick={() => setStep(3)}>
+              Continuar
+            </button>
+          </div>
+        )}
 
-  if (step === 4)
-    return (
-      <div>
-        <h2>Paso 4 (Privado)</h2>
-        <input placeholder="Dirección" onChange={e => setDraft({ ...draft, address: e.target.value })} />
-        <input placeholder="Teléfono" onChange={e => setDraft({ ...draft, phone: e.target.value })} />
-        <button onClick={publish}>Publicar</button>
-      </div>
-    )
+        {/* PASO 3 */}
+        {step === 3 && (
+          <div className="mt-8 space-y-4">
+            <div className="p-4 border border-dashed border-neutral-700 rounded-xl text-neutral-400 text-sm text-center">
+              Subí fotos o videos de la propiedad  
+              <br />
+              (no incluyas dirección ni datos privados)
+            </div>
+            <input
+              type="file"
+              multiple
+              onChange={e =>
+                setDraft({ ...draft, media: Array.from(e.target.files || []) })
+              }
+            />
+            <button
+              className="button-primary"
+              onClick={async () => (await requireAuth()) && setStep(4)}
+            >
+              Continuar
+            </button>
+          </div>
+        )}
 
-  return null
+        {/* PASO 4 */}
+        {step === 4 && (
+          <div className="mt-8 space-y-4">
+            <input
+              className="input"
+              placeholder="Dirección (privada)"
+              value={draft.address || ''}
+              onChange={e => setDraft({ ...draft, address: e.target.value })}
+            />
+            <input
+              className="input"
+              placeholder="Teléfono de contacto"
+              value={draft.phone || ''}
+              onChange={e => setDraft({ ...draft, phone: e.target.value })}
+            />
+            <button className="button-primary" onClick={publish}>
+              Publicar propiedad
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
