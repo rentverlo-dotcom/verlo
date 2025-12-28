@@ -1,4 +1,3 @@
-// app/propietario/publicar/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -35,6 +34,26 @@ const REQUIREMENTS = [
   'Sin mascotas',
 ]
 
+const CABA_MUNICIPALITY = {
+  id: 'caba',
+  name: 'Ciudad Autónoma de Buenos Aires',
+}
+
+const CABA_BARRIOS = [
+  'Agronomía','Almagro','Balvanera','Barracas','Belgrano','Boedo',
+  'Caballito','Chacarita','Coghlan','Colegiales','Constitución',
+  'Flores','Floresta','La Boca','La Paternal','Liniers','Mataderos',
+  'Monte Castro','Monserrat','Nueva Pompeya','Nuñez','Palermo',
+  'Parque Avellaneda','Parque Chacabuco','Parque Chas',
+  'Parque Patricios','Puerto Madero','Recoleta','Retiro',
+  'Saavedra','San Cristóbal','San Nicolás','San Telmo',
+  'Vélez Sarsfield','Versalles','Villa Crespo','Villa del Parque',
+  'Villa Devoto','Villa General Mitre','Villa Lugano',
+  'Villa Luro','Villa Ortúzar','Villa Pueyrredón',
+  'Villa Real','Villa Riachuelo','Villa Santa Rita',
+  'Villa Soldati','Villa Urquiza'
+].map(b => ({ id: b, name: b }))
+
 export default function PublicarPropiedad() {
   const [step, setStep] = useState(1)
 
@@ -61,6 +80,18 @@ export default function PublicarPropiedad() {
 
   useEffect(() => {
     if (!draft.province_id) return
+
+    if (draft.province_id === '02') {
+      setMunicipalities([CABA_MUNICIPALITY])
+      setNeighborhoods(CABA_BARRIOS)
+      setDraft(d => ({
+        ...d,
+        municipality_id: 'caba',
+        neighborhood_id: undefined,
+      }))
+      return
+    }
+
     supabase
       .from('municipalities')
       .select('id,name')
@@ -79,6 +110,8 @@ export default function PublicarPropiedad() {
 
   useEffect(() => {
     if (!draft.municipality_id) return
+    if (draft.municipality_id === 'caba') return
+
     supabase
       .from('neighborhoods')
       .select('id,name')
@@ -214,7 +247,9 @@ export default function PublicarPropiedad() {
             <select
               className="input"
               value={draft.type || ''}
-              onChange={e => setDraft({ ...draft, type: e.target.value })}
+              onChange={e =>
+                setDraft({ ...draft, type: e.target.value })
+              }
             >
               <option value="">Tipo de propiedad</option>
               {PROPERTY_TYPES.map(t => (
@@ -243,11 +278,7 @@ export default function PublicarPropiedad() {
               ))}
             </div>
 
-            <button
-              className="button-primary"
-              disabled={!draft.type}
-              onClick={() => setStep(3)}
-            >
+            <button className="button-primary" onClick={() => setStep(3)}>
               Continuar
             </button>
           </div>
@@ -280,13 +311,17 @@ export default function PublicarPropiedad() {
               className="input"
               placeholder="Dirección (privada)"
               value={draft.address || ''}
-              onChange={e => setDraft({ ...draft, address: e.target.value })}
+              onChange={e =>
+                setDraft({ ...draft, address: e.target.value })
+              }
             />
             <input
               className="input"
               placeholder="Teléfono de contacto"
               value={draft.phone || ''}
-              onChange={e => setDraft({ ...draft, phone: e.target.value })}
+              onChange={e =>
+                setDraft({ ...draft, phone: e.target.value })
+              }
             />
             <button className="button-primary" onClick={publish}>
               Publicar propiedad
