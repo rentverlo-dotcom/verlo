@@ -7,9 +7,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -24,97 +23,71 @@ export default function LoginPage() {
     setLoading(false)
 
     if (error) {
-      setError('Email o contraseña incorrectos')
+      setError('Credenciales inválidas')
       return
     }
 
-    window.location.href = '/propietario/publicar'
+    window.location.href = '/'
   }
 
   async function sendMagicLink() {
-    setError(null)
-    setMessage(null)
-    setLoading(true)
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: 'https://verlo.lat/propietario/publicar',
-      },
-    })
-
-    setLoading(false)
-
-    if (error) {
-      setError('No se pudo enviar el link')
+    if (!email) {
+      setError('Ingresá tu email primero')
       return
     }
 
-    setMessage('Te enviamos un link a tu email para ingresar')
+    await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: 'https://verlo.lat',
+      },
+    })
+
+    alert('Te enviamos un link a tu email')
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
-      <form
-        onSubmit={handleLogin}
-        className="w-full max-w-md bg-neutral-900 p-8 rounded-2xl space-y-6"
-      >
-        <h1 className="text-2xl font-semibold text-white">Ingresar</h1>
+    <form onSubmit={handleLogin} className="login-form">
+      <h1>Ingresar</h1>
 
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        required
+      />
+
+      <div className="password-field">
         <input
-          type="email"
-          placeholder="Email"
-          className="input"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
+          type={showPassword ? 'text' : 'password'}
+          placeholder="Contraseña"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
         />
-
-        <div className="relative">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Contraseña"
-            className="input pr-12"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400"
-          >
-            {showPassword ? 'Ocultar' : 'Ver'}
-          </button>
-        </div>
-
-        {error && <p className="text-red-400 text-sm">{error}</p>}
-        {message && <p className="text-green-400 text-sm">{message}</p>}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="button-primary w-full"
-        >
-          Ingresar
-        </button>
-
         <button
           type="button"
-          onClick={sendMagicLink}
-          disabled={!email || loading}
-          className="w-full text-sm text-neutral-400 underline"
+          onClick={() => setShowPassword(v => !v)}
         >
-          ¿No tenés contraseña? Te mandamos un link por mail
+          {showPassword ? 'Ocultar' : 'Ver'}
         </button>
+      </div>
 
-        <p className="text-sm text-neutral-400 text-center">
-          ¿No tenés cuenta?{' '}
-          <a href="/signup" className="underline">
-            Crear cuenta
-          </a>
-        </p>
-      </form>
-    </div>
+      {error && <p className="error">{error}</p>}
+
+      <button disabled={loading}>Ingresar</button>
+
+      <p className="alt">
+        ¿No tenés contraseña?{' '}
+        <button type="button" onClick={sendMagicLink}>
+          Enviame un link
+        </button>
+      </p>
+
+      <p className="alt">
+        ¿No tenés cuenta?{' '}
+        <a href="/login">Creala con tu email</a>
+      </p>
+    </form>
   )
 }
