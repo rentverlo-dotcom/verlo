@@ -9,94 +9,112 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError(null)
+    setLoading(true)
 
-    try {
-      // LOGIN CLÁSICO (email + password)
-      if (password) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-        if (error) throw error
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-        window.location.href = '/propietario/publicar'
-        return
-      }
+    setLoading(false)
 
-      // MAGIC LINK (solo email)
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: 'https://verlo.lat/propietario/publicar',
-        },
-      })
-      if (error) throw error
-
-      alert('Te enviamos un link a tu mail')
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión')
-    } finally {
-      setLoading(false)
+    if (error) {
+      setError('Email o contraseña incorrectos')
+      return
     }
+
+    window.location.href = '/propietario/publicar'
+  }
+
+  async function sendMagicLink() {
+    setError(null)
+    setMessage(null)
+    setLoading(true)
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: 'https://verlo.lat/propietario/publicar',
+      },
+    })
+
+    setLoading(false)
+
+    if (error) {
+      setError('No se pudo enviar el link')
+      return
+    }
+
+    setMessage('Te enviamos un link a tu email para ingresar')
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black px-4">
+    <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 bg-neutral-900 p-6 rounded-xl"
+        onSubmit={handleLogin}
+        className="w-full max-w-md bg-neutral-900 p-8 rounded-2xl space-y-6"
       >
-        <h1 className="text-xl font-semibold text-white text-center">
-          Ingresar
-        </h1>
+        <h1 className="text-2xl font-semibold text-white">Ingresar</h1>
 
         <input
           type="email"
-          placeholder="Tu email"
+          placeholder="Email"
+          className="input"
           value={email}
           onChange={e => setEmail(e.target.value)}
           required
-          className="input w-full"
         />
 
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
-            placeholder="Contraseña (opcional)"
+            placeholder="Contraseña"
+            className="input pr-12"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            className="input w-full pr-10"
+            required
           />
           <button
             type="button"
-            onClick={() => setShowPassword(v => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400"
           >
-            {showPassword ? '🙈' : '👁️'}
+            {showPassword ? 'Ocultar' : 'Ver'}
           </button>
         </div>
 
-        {error && (
-          <p className="text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {message && <p className="text-green-400 text-sm">{message}</p>}
 
         <button
+          type="submit"
           disabled={loading}
           className="button-primary w-full"
         >
-          {password ? 'Ingresar' : 'Enviar link'}
+          Ingresar
         </button>
 
-        <p className="text-xs text-neutral-400 text-center">
-          Si no tenés contraseña, te mandamos un link por mail
+        <button
+          type="button"
+          onClick={sendMagicLink}
+          disabled={!email || loading}
+          className="w-full text-sm text-neutral-400 underline"
+        >
+          ¿No tenés contraseña? Te mandamos un link por mail
+        </button>
+
+        <p className="text-sm text-neutral-400 text-center">
+          ¿No tenés cuenta?{' '}
+          <a href="/signup" className="underline">
+            Crear cuenta
+          </a>
         </p>
       </form>
     </div>
   )
 }
-
