@@ -82,123 +82,114 @@ const CABA_BARRIOS = [
 ].map(b => ({ id: b, name: b }))
 
 export default function PublicarPropiedad() {
-  const [step, setStep] = useState<number>(() => {
-  if (typeof window === 'undefined') return 1
-  const savedStep = localStorage.getItem('property_step')
-  return savedStep ? Number(savedStep) : 1
-})
 
+  const [step, setStep] = useState<number>(() => {
+    if (typeof window === 'undefined') return 1
+    const savedStep = localStorage.getItem('property_step')
+    return savedStep ? Number(savedStep) : 1
+  })
 
   const [draft, setDraft] = useState<Draft>(() => {
     if (typeof window === 'undefined') return {}
     return JSON.parse(localStorage.getItem('property_draft') || '{}')
   })
 
- const [provinces, setProvinces] = useState<any[]>([])
-const [municipalities, setMunicipalities] = useState<any[]>([])
-const [neighborhoods, setNeighborhoods] = useState<any[]>([])
+  const [provinces, setProvinces] = useState<any[]>([])
+  const [municipalities, setMunicipalities] = useState<any[]>([])
+  const [neighborhoods, setNeighborhoods] = useState<any[]>([])
 
-useEffect(() => {
-  localStorage.setItem('property_draft', JSON.stringify(draft))
-}, [draft])
-  
-useEffect(() => {
-  localStorage.setItem('property_step', String(step))
-}, [step])
-
-useEffect(() => {
-  setProvinces(ARG_PROVINCES)
-}, [])
   useEffect(() => {
-  supabase.auth.getUser().then(({ data }) => {
-    if (!data.user) return
+    localStorage.setItem('property_draft', JSON.stringify(draft))
+  }, [draft])
 
-    // Si el usuario NO tiene contraseña
-    if (!data.user.user_metadata?.has_password) {
-      window.location.href = '/set-password'
-    }
-  })
-}, [])
+  useEffect(() => {
+    localStorage.setItem('property_step', String(step))
+  }, [step])
 
-// ===============================
-// PROVINCIAS → MUNICIPIOS
-// ===============================
-useEffect(() => {
-  if (!draft.province_id) {
-    setMunicipalities([])
-    setNeighborhoods([])
-    return
-  }
+  useEffect(() => {
+    setProvinces(ARG_PROVINCES)
+  }, [])
 
-  // CABA
-  if (draft.province_id === '02') {
-    setMunicipalities([CABA_MUNICIPALITY])
-    setNeighborhoods(CABA_BARRIOS)
-    setDraft(prev => ({
-      ...prev,
-      municipality_id: CABA_MUNICIPALITY.id,
-      neighborhood_id: undefined,
-    }))
-    return
-  }
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return
+      if (!data.user.user_metadata?.has_password) {
+        window.location.href = '/set-password'
+      }
+    })
+  }, [])
 
-  const province = ARG_PROVINCES.find(
-    p => String(p.id) === String(draft.province_id)
-  )
-
-  if (!province?.name) return
-
-  fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
-    .then(r => r.json())
-    .then(d => {
-      setMunicipalities(
-        (d.municipios || []).map((m: any) => ({
-          id: m.id,
-          name: m.nombre,
-        }))
-      )
+  // ===============================
+  // PROVINCIAS → MUNICIPIOS
+  // ===============================
+  useEffect(() => {
+    if (!draft.province_id) {
+      setMunicipalities([])
       setNeighborhoods([])
+      return
+    }
+
+    if (draft.province_id === '02') {
+      setMunicipalities([CABA_MUNICIPALITY])
+      setNeighborhoods(CABA_BARRIOS)
       setDraft(prev => ({
         ...prev,
-        municipality_id: undefined,
+        municipality_id: CABA_MUNICIPALITY.id,
         neighborhood_id: undefined,
       }))
-    })
-}, [draft.province_id])
+      return
+    }
 
-// ===============================
-// MUNICIPIOS → BARRIOS / LOCALIDADES
-// ===============================
-useEffect(() => {
-  if (!draft.municipality_id) {
-    setNeighborhoods([])
-    return
-  }
+    const province = ARG_PROVINCES.find(
+      p => String(p.id) === String(draft.province_id)
+    )
 
-  // CABA ya cargado
-  if (draft.municipality_id === CABA_MUNICIPALITY.id) return
+    if (!province?.name) return
 
-  fetch(
-    `/api/georef/localidades?municipio=${encodeURIComponent(
-      draft.municipality_id
-    )}`
-  )
-    .then(r => r.json())
-    .then(d => {
-      setNeighborhoods(
-        (d.localidades || []).map((n: any) => ({
-          id: n.id,
-          name: n.nombre,
+    fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
+      .then(r => r.json())
+      .then(d => {
+        setMunicipalities(
+          (d.municipios || []).map((m: any) => ({
+            id: m.id,
+            name: m.nombre,
+          }))
+        )
+        setNeighborhoods([])
+        setDraft(prev => ({
+          ...prev,
+          municipality_id: undefined,
+          neighborhood_id: undefined,
         }))
-      )
-      setDraft(prev => ({
-        ...prev,
-        neighborhood_id: undefined,
-      }))
-    })
-}, [draft.municipality_id])
+      })
+  }, [draft.province_id])
 
+  // ===============================
+  // MUNICIPIOS → BARRIOS
+  // ===============================
+  useEffect(() => {
+    if (!draft.municipality_id) {
+      setNeighborhoods([])
+      return
+    }
 
+    if (draft.municipality_id === CABA_MUNICIPALITY.id) return
+
+    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(draft.municipality_id)}`)
+      .then(r => r.json())
+      .then(d => {
+        setNeighborhoods(
+          (d.localidades || []).map((n: any) => ({
+            id: n.id,
+            name: n.nombre,
+          }))
+        )
+        setDraft(prev => ({
+          ...prev,
+          neighborhood_id: undefined,
+        }))
+      })
+  }, [draft.municipality_id])
 
   async function requireAuth() {
     const { data } = await supabase.auth.getUser()
@@ -243,6 +234,8 @@ useEffect(() => {
     })
 
     localStorage.removeItem('property_draft')
+    localStorage.removeItem('property_step')
+
     window.location.href = `/propiedades/${property.id}`
   }
 
@@ -255,95 +248,81 @@ useEffect(() => {
         <p className="text-sm text-neutral-400 mt-1">
           Paso {step} de 4
         </p>
-        
-{step === 1 && (
-  <div className="mt-8 space-y-4">
-    {/* PROVINCIA */}
-    <select
-      className="input"
-      value={draft.province_id || ''}
-      onChange={e =>
-        setDraft(d => ({
-          ...d,
-          province_id: e.target.value,
-          municipality_id: undefined,
-          neighborhood_id: undefined,
-        }))
-      }
-    >
-      <option value="">Provincia</option>
-      {provinces.map(p => (
-        <option key={p.id} value={p.id}>
-          {p.name}
-        </option>
-      ))}
-    </select>
 
-    {/* MUNICIPIO */}
-    <select
-      className="input"
-      value={draft.municipality_id || ''}
-      disabled={!draft.province_id}
-      onChange={e =>
-        setDraft(d => ({
-          ...d,
-          municipality_id: e.target.value,
-          neighborhood_id: undefined,
-        }))
-      }
-    >
-      <option value="">Municipio</option>
-      {municipalities.map(m => (
-        <option key={m.id} value={m.id}>
-          {m.name}
-        </option>
-      ))}
-    </select>
+        {step === 1 && (
+          <div className="mt-8 space-y-4">
+            <select
+              className="input"
+              value={draft.province_id || ''}
+              onChange={e =>
+                setDraft(d => ({
+                  ...d,
+                  province_id: e.target.value,
+                  municipality_id: undefined,
+                  neighborhood_id: undefined,
+                }))
+              }
+            >
+              <option value="">Provincia</option>
+              {provinces.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
 
-    {/* BARRIO */}
-    <select
-      className="input"
-      value={draft.neighborhood_id || ''}
-      disabled={!draft.municipality_id}
-      onChange={e =>
-        setDraft(d => ({
-          ...d,
-          neighborhood_id: e.target.value,
-        }))
-      }
-    >
-      <option value="">Barrio</option>
-      {neighborhoods.map(n => (
-        <option key={n.id} value={n.id}>
-          {n.name}
-        </option>
-      ))}
-    </select>
+            <select
+              className="input"
+              value={draft.municipality_id || ''}
+              disabled={!draft.province_id}
+              onChange={e =>
+                setDraft(d => ({
+                  ...d,
+                  municipality_id: e.target.value,
+                  neighborhood_id: undefined,
+                }))
+              }
+            >
+              <option value="">Municipio</option>
+              {municipalities.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
 
-    {/* PRECIO */}
-    <input
-      className="input"
-      type="number"
-      placeholder="Precio mensual"
-      value={draft.price || ''}
-      onChange={e =>
-        setDraft(d => ({
-          ...d,
-          price: Number(e.target.value),
-        }))
-      }
-    />
+            <select
+              className="input"
+              value={draft.neighborhood_id || ''}
+              disabled={!draft.municipality_id}
+              onChange={e =>
+                setDraft(d => ({
+                  ...d,
+                  neighborhood_id: e.target.value,
+                }))
+              }
+            >
+              <option value="">Barrio</option>
+              {neighborhoods.map(n => (
+                <option key={n.id} value={n.id}>{n.name}</option>
+              ))}
+            </select>
 
-    <button
-      className="button-primary"
-      disabled={!draft.neighborhood_id || !draft.price}
-      onClick={() => setStep(2)}
-    >
-      Continuar
-    </button>
-  </div>
-)}
+            <input
+              className="input"
+              type="number"
+              placeholder="Precio mensual"
+              value={draft.price || ''}
+              onChange={e =>
+                setDraft(d => ({ ...d, price: Number(e.target.value) }))
+              }
+            />
 
+            <button
+              className="button-primary"
+              disabled={!draft.neighborhood_id || !draft.price}
+              onClick={() => setStep(2)}
+            >
+              Continuar
+            </button>
+          </div>
+        )}
 
         {step === 2 && (
           <div className="mt-8 space-y-4">
@@ -389,9 +368,6 @@ useEffect(() => {
 
         {step === 3 && (
           <div className="mt-8 space-y-4">
-            <div className="p-4 border border-dashed border-neutral-700 rounded-xl text-neutral-400 text-sm text-center">
-              Subí fotos o videos de la propiedad
-            </div>
             <input
               type="file"
               multiple
