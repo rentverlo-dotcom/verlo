@@ -34,19 +34,16 @@ export default function Header() {
         <strong>VERLO</strong>
 
         <nav className="nav-links">
-          <a href="#transparencia">Transparencia</a>
-          <a href="#forms">Soy inquilino</a>
-          <a href="#forms">Soy propietario</a>
+        <a href="/#transparencia">Transparencia</a>
+        <a href="/#forms">Soy inquilino</a>
+        <a href="/#forms">Soy propietario</a>
 
-          {!user ? (
-            <Link href="/login">Ingresar</Link>
-          ) : (
-            <button onClick={logout} style={{ cursor: 'pointer' }}>
-              Salir
-            </button>
-          )}
-        </nav>
-      </div>
+        {user ? (
+          <a href="/logout">Cerrar sesión</a>
+        ) : (
+          <a href="/login">Ingresar</a>
+        )}
+      </nav>
     </header>
   )
 }
