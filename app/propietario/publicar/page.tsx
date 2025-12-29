@@ -97,13 +97,9 @@ export default function PublicarPropiedad() {
     localStorage.setItem('property_draft', JSON.stringify(draft))
   }, [draft])
 
-  useEffect(() => {
-    supabase
-      .from('provinces')
-      .select('id,name')
-      .order('name')
-      .then(({ data }) => setProvinces(data || []))
-  }, [])
+useEffect(() => {
+  setProvinces(ARG_PROVINCES)
+}, [])
 
   useEffect(() => {
     if (!draft.province_id) return
