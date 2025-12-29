@@ -5,7 +5,10 @@ export async function GET(req: Request) {
   const municipio = searchParams.get('municipio')
 
   if (!municipio) {
-    return NextResponse.json({ localidades: [] })
+    return NextResponse.json(
+      { error: 'municipio requerido' },
+      { status: 400 }
+    )
   }
 
   const res = await fetch(
