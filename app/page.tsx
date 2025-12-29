@@ -1,20 +1,7 @@
 export default function HomePage() {
   return (
     <>
-      {/* HEADER */}
-      <header>
-        <div className="nav">
-          <strong>VERLO</strong>
-          <nav className="nav-links">
-            <a href="#transparencia">
-  Transparencia
-</a>
-            <a href="#forms">Soy inquilino</a>
-            <a href="#forms">Soy propietario</a>
-          </nav>
-        </div>
-      </header>
-
+  
   {/* HERO */}
 <section
   style={{
