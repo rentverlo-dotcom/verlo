@@ -120,21 +120,8 @@ useEffect(() => {
   })
 }, [])
 
-
-// PROVINCIAS → MUNICIPIOS
 useEffect(() => {
-  if (!draft.province_id) {
-    setMunicipalities([])
-    setNeighborhoods([])
-    return
-  }
-
-  // 🔥 RESET CLAVE
-  setDraft(d => ({
-    ...d,
-    municipality_id: undefined,
-    neighborhood_id: undefined,
-  }))
+  if (!draft?.province_id) return
 
   // CABA
   if (draft.province_id === '02') {
@@ -143,49 +130,41 @@ useEffect(() => {
     setDraft(d => ({
       ...d,
       municipality_id: CABA_MUNICIPALITY.id,
+      neighborhood_id: undefined,
     }))
     return
   }
 
-  // RESTO DEL PAÍS
-  const provinceName = ARG_PROVINCES.find(
-    p => p.id === draft.province_id
-  )?.name
+  if (!Array.isArray(ARG_PROVINCES)) {
+    console.error('ARG_PROVINCES no existe')
+    return
+  }
 
-  if (!provinceName) return
+  const province = ARG_PROVINCES.find(
+    p => String(p.id) === String(draft.province_id)
+  )
 
-  fetch(`/api/georef/municipios?provincia=${encodeURIComponent(provinceName)}`)
+  if (!province?.name) return
+
+  fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
     .then(r => r.json())
-    .then(data => {
-      setMunicipalities(data)
+    .then(d => {
+      setMunicipalities(
+        (d.municipios || []).map((m: any) => ({
+          id: m.id,
+          name: m.nombre,
+        }))
+      )
       setNeighborhoods([])
+      setDraft(prev => ({
+        ...prev,
+        municipality_id: undefined,
+        neighborhood_id: undefined,
+      }))
     })
+    .catch(err => console.error(err))
 }, [draft.province_id])
 
-
-// MUNICIPIOS → BARRIOS / LOCALIDADES
-useEffect(() => {
-  if (!draft.municipality_id) return
-
-  // CABA ya cargado
-  if (draft.municipality_id === 'caba') return
-
-fetch(
-  `/api/georef/localidades?municipio=${encodeURIComponent(
-    draft.municipality_id
-  )}`
-)
-  .then(r => r.json())
-  .then(d => {
-    setNeighborhoods(
-      (d.localidades || []).map((n: any) => ({
-        id: n.id,
-        name: n.nombre,
-      }))
-    )
-    setDraft(d => ({ ...d, neighborhood_id: undefined }))
-  })
-}, [draft.municipality_id])
 
 
   async function requireAuth() {
