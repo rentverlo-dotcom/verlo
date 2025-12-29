@@ -226,16 +226,42 @@ fetch(
         <p className="text-sm text-neutral-400 mt-1">
           Paso {step} de 4
         </p>
+<select
+  className="input"
+  value={draft.province_id || ''}
+  onChange={e =>
+    setDraft(d => ({
+      ...d,
+      province_id: e.target.value,
+      municipality_id: undefined,
+      neighborhood_id: undefined,
+    }))
+  }
+>
+<select
+  className="input"
+  value={draft.municipality_id || ''}
+  disabled={!draft.province_id}
+  onChange={e =>
+    setDraft(d => ({
+      ...d,
+      municipality_id: e.target.value,
+      neighborhood_id: undefined,
+    }))
+  }
+>
+<select
+  className="input"
+  value={draft.neighborhood_id || ''}
+  disabled={!draft.municipality_id}
+  onChange={e =>
+    setDraft(d => ({
+      ...d,
+      neighborhood_id: e.target.value,
+    }))
+  }
+>
 
-        {step === 1 && (
-          <div className="mt-8 space-y-4">
-            <select
-              className="input"
-              value={draft.province_id || ''}
-              onChange={e =>
-                setDraft({ ...draft, province_id: e.target.value })
-              }
-            >
               <option value="">Provincia</option>
               {provinces.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
