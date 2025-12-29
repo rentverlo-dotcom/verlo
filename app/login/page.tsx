@@ -16,23 +16,27 @@ export default function LoginPage() {
       email,
       options: {
         emailRedirectTo:
-          'https://verlo.lat/auth/callback?next=/propietario/publicar',
+          'https://verlo.lat/propietario/publicar',
       },
     })
 
     setLoading(false)
-    alert('Te enviamos un link')
+    alert('Te enviamos un link a tu mail')
   }
 
   return (
-    <form onSubmit={handleLogin}>
+    <form onSubmit={handleLogin} className="space-y-4">
       <input
         type="email"
+        placeholder="Tu email"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={e => setEmail(e.target.value)}
         required
+        className="input"
       />
-      <button disabled={loading}>Enviar link</button>
+      <button disabled={loading} className="button-primary">
+        Enviar link
+      </button>
     </form>
   )
 }
