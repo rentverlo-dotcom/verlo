@@ -124,9 +124,7 @@ useEffect(() => {
 if (!provinceName) return
 
 fetch(
-  `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(
-    provinceName
-  )}&max=500`
+  `/api/georef/municipios?provincia=${encodeURIComponent(provinceName)}`
 )
   .then(r => r.json())
   .then(d => {
@@ -143,6 +141,7 @@ fetch(
       neighborhood_id: undefined,
     }))
   })
+
 }, [draft.province_id])
 
 // MUNICIPIOS → BARRIOS / LOCALIDADES
