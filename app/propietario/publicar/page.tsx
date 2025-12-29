@@ -226,95 +226,95 @@ fetch(
         <p className="text-sm text-neutral-400 mt-1">
           Paso {step} de 4
         </p>
-<select
-  className="input"
-  value={draft.province_id || ''}
-  onChange={e =>
-    setDraft(d => ({
-      ...d,
-      province_id: e.target.value,
-      municipality_id: undefined,
-      neighborhood_id: undefined,
-    }))
-  }
->
-<select
-  className="input"
-  value={draft.municipality_id || ''}
-  disabled={!draft.province_id}
-  onChange={e =>
-    setDraft(d => ({
-      ...d,
-      municipality_id: e.target.value,
-      neighborhood_id: undefined,
-    }))
-  }
->
-<select
-  className="input"
-  value={draft.neighborhood_id || ''}
-  disabled={!draft.municipality_id}
-  onChange={e =>
-    setDraft(d => ({
-      ...d,
-      neighborhood_id: e.target.value,
-    }))
-  }
->
+        
+{step === 1 && (
+  <div className="mt-8 space-y-4">
+    {/* PROVINCIA */}
+    <select
+      className="input"
+      value={draft.province_id || ''}
+      onChange={e =>
+        setDraft(d => ({
+          ...d,
+          province_id: e.target.value,
+          municipality_id: undefined,
+          neighborhood_id: undefined,
+        }))
+      }
+    >
+      <option value="">Provincia</option>
+      {provinces.map(p => (
+        <option key={p.id} value={p.id}>
+          {p.name}
+        </option>
+      ))}
+    </select>
 
-              <option value="">Provincia</option>
-              {provinces.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+    {/* MUNICIPIO */}
+    <select
+      className="input"
+      value={draft.municipality_id || ''}
+      disabled={!draft.province_id}
+      onChange={e =>
+        setDraft(d => ({
+          ...d,
+          municipality_id: e.target.value,
+          neighborhood_id: undefined,
+        }))
+      }
+    >
+      <option value="">Municipio</option>
+      {municipalities.map(m => (
+        <option key={m.id} value={m.id}>
+          {m.name}
+        </option>
+      ))}
+    </select>
 
-            <select
-              className="input"
-              value={draft.municipality_id || ''}
-              disabled={!draft.province_id}
-              onChange={e =>
-                setDraft({ ...draft, municipality_id: e.target.value })
-              }
-            >
-              <option value="">Municipio</option>
-              {municipalities.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
+    {/* BARRIO */}
+    <select
+      className="input"
+      value={draft.neighborhood_id || ''}
+      disabled={!draft.municipality_id}
+      onChange={e =>
+        setDraft(d => ({
+          ...d,
+          neighborhood_id: e.target.value,
+        }))
+      }
+    >
+      <option value="">Barrio</option>
+      {neighborhoods.map(n => (
+        <option key={n.id} value={n.id}>
+          {n.name}
+        </option>
+      ))}
+    </select>
 
-            <select
-              className="input"
-              value={draft.neighborhood_id || ''}
-              disabled={!draft.municipality_id}
-              onChange={e =>
-                setDraft({ ...draft, neighborhood_id: e.target.value })
-              }
-            >
-              <option value="">Barrio</option>
-              {neighborhoods.map(n => (
-                <option key={n.id} value={n.id}>{n.name}</option>
-              ))}
-            </select>
+    {/* PRECIO */}
+    <input
+      className="input"
+      type="number"
+      placeholder="Precio mensual"
+      value={draft.price || ''}
+      onChange={e =>
+        setDraft(d => ({
+          ...d,
+          price: Number(e.target.value),
+        }))
+      }
+    />
 
-            <input
-              className="input"
-              type="number"
-              placeholder="Precio mensual"
-              value={draft.price || ''}
-              onChange={e =>
-                setDraft({ ...draft, price: Number(e.target.value) })
-              }
-            />
+    <button
+      className="button-primary"
+      disabled={!draft.neighborhood_id || !draft.price}
+      onClick={() => setStep(2)}
+    >
+      Continuar
+    </button>
+  </div>
+)}
 
-            <button
-              className="button-primary"
-              disabled={!draft.neighborhood_id || !draft.price}
-              onClick={() => setStep(2)}
-            >
-              Continuar
-            </button>
-          </div>
-        )}
 
         {step === 2 && (
           <div className="mt-8 space-y-4">
