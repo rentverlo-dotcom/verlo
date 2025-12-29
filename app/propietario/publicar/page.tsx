@@ -82,7 +82,12 @@ const CABA_BARRIOS = [
 ].map(b => ({ id: b, name: b }))
 
 export default function PublicarPropiedad() {
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState<number>(() => {
+  if (typeof window === 'undefined') return 1
+  const savedStep = localStorage.getItem('property_step')
+  return savedStep ? Number(savedStep) : 1
+})
+
 
   const [draft, setDraft] = useState<Draft>(() => {
     if (typeof window === 'undefined') return {}
@@ -96,6 +101,10 @@ const [neighborhoods, setNeighborhoods] = useState<any[]>([])
 useEffect(() => {
   localStorage.setItem('property_draft', JSON.stringify(draft))
 }, [draft])
+  
+useEffect(() => {
+  localStorage.setItem('property_step', String(step))
+}, [step])
 
 useEffect(() => {
   setProvinces(ARG_PROVINCES)
