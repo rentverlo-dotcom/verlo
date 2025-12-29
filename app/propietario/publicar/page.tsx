@@ -120,10 +120,9 @@ useEffect(() => {
   })
 }, [])
 
-useEffect(() => {
-  if (!draft?.province_id) return
-
+// ===============================
 // PROVINCIAS → MUNICIPIOS
+// ===============================
 useEffect(() => {
   if (!draft.province_id) {
     setMunicipalities([])
@@ -143,17 +142,13 @@ useEffect(() => {
     return
   }
 
-  if (!Array.isArray(ARG_PROVINCES)) return
-
   const province = ARG_PROVINCES.find(
     p => String(p.id) === String(draft.province_id)
   )
 
   if (!province?.name) return
 
-  fetch(
-    `/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`
-  )
+  fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
     .then(r => r.json())
     .then(d => {
       setMunicipalities(
@@ -169,17 +164,18 @@ useEffect(() => {
         neighborhood_id: undefined,
       }))
     })
-    .catch(() => {})
 }, [draft.province_id])
 
-  // MUNICIPIOS → BARRIOS / LOCALIDADES
+// ===============================
+// MUNICIPIOS → BARRIOS / LOCALIDADES
+// ===============================
 useEffect(() => {
   if (!draft.municipality_id) {
     setNeighborhoods([])
     return
   }
 
-  // CABA ya tiene barrios
+  // CABA ya cargado
   if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
   fetch(
@@ -200,9 +196,7 @@ useEffect(() => {
         neighborhood_id: undefined,
       }))
     })
-    .catch(() => {})
 }, [draft.municipality_id])
-
 
 
 
