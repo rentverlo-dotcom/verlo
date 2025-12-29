@@ -103,7 +103,9 @@ useEffect(() => {
 
 // PROVINCIAS → MUNICIPIOS
 useEffect(() => {
+    console.log('province_id', draft.province_id)
   if (!draft.province_id) return
+
 
   // CABA
   if (draft.province_id === '02') {
