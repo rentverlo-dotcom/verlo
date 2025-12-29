@@ -1,18 +1,22 @@
-import "./globals.css";
+import './globals.css'
+import Header from '@/components/Header'
 
 export const metadata = {
-  title: "VERLO",
-  description: "Matching inmobiliario inteligente",
-};
+  title: 'VERLO',
+  description: 'Matching inmobiliario inteligente',
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <Header />
+        {children}
+      </body>
     </html>
-  );
+  )
 }
