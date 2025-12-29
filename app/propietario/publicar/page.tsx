@@ -152,20 +152,23 @@ useEffect(() => {
   // CABA ya cargado
   if (draft.municipality_id === 'caba') return
 
-  fetch(
-    `https://apis.datos.gob.ar/georef/api/localidades?municipio=${draft.municipality_id}&max=500`
-  )
-    .then(r => r.json())
-    .then(d => {
-      setNeighborhoods(
-        (d.localidades || []).map((n: any) => ({
-          id: n.id,
-          name: n.nombre,
-        }))
-      )
-      setDraft(d => ({ ...d, neighborhood_id: undefined }))
-    })
+fetch(
+  `/api/georef/localidades?municipio=${encodeURIComponent(
+    draft.municipality_id
+  )}`
+)
+  .then(r => r.json())
+  .then(d => {
+    setNeighborhoods(
+      (d.localidades || []).map((n: any) => ({
+        id: n.id,
+        name: n.nombre,
+      }))
+    )
+    setDraft(d => ({ ...d, neighborhood_id: undefined }))
+  })
 }, [draft.municipality_id])
+
 
   async function requireAuth() {
     const { data } = await supabase.auth.getUser()
