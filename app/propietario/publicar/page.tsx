@@ -118,24 +118,31 @@ useEffect(() => {
   }
 
   // RESTO DEL PAÍS → GeoRef
-  fetch(
-    `https://apis.datos.gob.ar/georef/api/municipios?provincia=${draft.province_id}&max=500`
-  )
-    .then(r => r.json())
-    .then(d => {
-      setMunicipalities(
-        (d.municipios || []).map((m: any) => ({
-          id: m.id,
-          name: m.nombre,
-        }))
-      )
-      setNeighborhoods([])
-      setDraft(d => ({
-        ...d,
-        municipality_id: undefined,
-        neighborhood_id: undefined,
+ const provinceName =
+  ARG_PROVINCES.find(p => p.id === draft.province_id)?.name
+
+if (!provinceName) return
+
+fetch(
+  `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(
+    provinceName
+  )}&max=500`
+)
+  .then(r => r.json())
+  .then(d => {
+    setMunicipalities(
+      (d.municipios || []).map((m: any) => ({
+        id: m.id,
+        name: m.nombre,
       }))
-    })
+    )
+    setNeighborhoods([])
+    setDraft(d => ({
+      ...d,
+      municipality_id: undefined,
+      neighborhood_id: undefined,
+    }))
+  })
 }, [draft.province_id])
 
 // MUNICIPIOS → BARRIOS / LOCALIDADES
