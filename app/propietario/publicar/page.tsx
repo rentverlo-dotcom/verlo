@@ -89,63 +89,76 @@ export default function PublicarPropiedad() {
     return JSON.parse(localStorage.getItem('property_draft') || '{}')
   })
 
-  const [provinces, setProvinces] = useState<any[]>([])
-  const [municipalities, setMunicipalities] = useState<any[]>([])
-  const [neighborhoods, setNeighborhoods] = useState<any[]>([])
+ const [provinces, setProvinces] = useState<any[]>([])
+const [municipalities, setMunicipalities] = useState<any[]>([])
+const [neighborhoods, setNeighborhoods] = useState<any[]>([])
 
-  useEffect(() => {
-    localStorage.setItem('property_draft', JSON.stringify(draft))
-  }, [draft])
+useEffect(() => {
+  localStorage.setItem('property_draft', JSON.stringify(draft))
+}, [draft])
 
 useEffect(() => {
   setProvinces(ARG_PROVINCES)
 }, [])
 
-  useEffect(() => {
-    if (!draft.province_id) return
+// PROVINCIAS → MUNICIPIOS
+useEffect(() => {
+  if (!draft.province_id) return
 
-    // ID CABA (GeoRef): '02'  (ajustá si tu tabla usa otro)
-    if (draft.province_id === '02') {
-      setMunicipalities([CABA_MUNICIPALITY])
-      setNeighborhoods(CABA_BARRIOS)
+  // CABA
+  if (draft.province_id === '02') {
+    setMunicipalities([CABA_MUNICIPALITY])
+    setNeighborhoods(CABA_BARRIOS)
+    setDraft(d => ({
+      ...d,
+      municipality_id: CABA_MUNICIPALITY.id,
+      neighborhood_id: undefined,
+    }))
+    return
+  }
+
+  // RESTO DEL PAÍS → GeoRef
+  fetch(
+    `https://apis.datos.gob.ar/georef/api/municipios?provincia=${draft.province_id}&max=500`
+  )
+    .then(r => r.json())
+    .then(d => {
+      setMunicipalities(
+        (d.municipios || []).map((m: any) => ({
+          id: m.id,
+          name: m.nombre,
+        }))
+      )
+      setNeighborhoods([])
       setDraft(d => ({
         ...d,
-        municipality_id: 'caba',
+        municipality_id: undefined,
         neighborhood_id: undefined,
       }))
-      return
-    }
+    })
+}, [draft.province_id])
 
-    supabase
-      .from('municipalities')
-      .select('id,name')
-      .eq('province_id', draft.province_id)
-      .order('name')
-      .then(({ data }) => {
-        setMunicipalities(data || [])
-        setNeighborhoods([])
-        setDraft(d => ({
-          ...d,
-          municipality_id: undefined,
-          neighborhood_id: undefined,
+// MUNICIPIOS → BARRIOS / LOCALIDADES
+useEffect(() => {
+  if (!draft.municipality_id) return
+
+  // CABA ya cargado
+  if (draft.municipality_id === 'caba') return
+
+  fetch(
+    `https://apis.datos.gob.ar/georef/api/localidades?municipio=${draft.municipality_id}&max=500`
+  )
+    .then(r => r.json())
+    .then(d => {
+      setNeighborhoods(
+        (d.localidades || []).map((n: any) => ({
+          id: n.id,
+          name: n.nombre,
         }))
-      })
-  }, [draft.province_id])
-
-  useEffect(() => {
-    if (!draft.municipality_id) return
-    if (draft.municipality_id === 'caba') return
-
-    supabase
-      .from('neighborhoods')
-      .select('id,name')
-      .eq('municipality_id', draft.municipality_id)
-      .order('name')
-      .then(({ data }) => {
-        setNeighborhoods(data || [])
-        setDraft(d => ({ ...d, neighborhood_id: undefined }))
-      })
-  }, [draft.municipality_id])
+      )
+      setDraft(d => ({ ...d, neighborhood_id: undefined }))
+    })
+}, [draft.municipality_id])
 
   async function requireAuth() {
     const { data } = await supabase.auth.getUser()
