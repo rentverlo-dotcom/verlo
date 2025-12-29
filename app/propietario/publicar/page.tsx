@@ -100,6 +100,17 @@ useEffect(() => {
 useEffect(() => {
   setProvinces(ARG_PROVINCES)
 }, [])
+  useEffect(() => {
+  supabase.auth.getUser().then(({ data }) => {
+    if (!data.user) return
+
+    // Si el usuario NO tiene contraseña
+    if (!data.user.user_metadata?.has_password) {
+      window.location.href = '/set-password'
+    }
+  })
+}, [])
+
 
 // PROVINCIAS → MUNICIPIOS
 useEffect(() => {
