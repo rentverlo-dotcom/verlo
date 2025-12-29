@@ -1,8 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import Link from 'next/link'
 
 export default function Header() {
   const [user, setUser] = useState<any>(null)
@@ -12,30 +12,42 @@ export default function Header() {
       setUser(data.user)
     })
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null)
+      }
+    )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
-  return (
-    <header className="w-full px-6 py-4 flex justify-between items-center border-b border-neutral-800">
-      <Link href="/" className="text-white font-semibold">
-        Verlo
-      </Link>
+  async function logout() {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
 
-      {user ? (
-        <Link href="/logout" className="text-sm text-red-400">
-          Cerrar sesión
-        </Link>
-      ) : (
-        <Link href="/login" className="text-sm text-white">
-          Ingresar
-        </Link>
-      )}
+  return (
+    <header>
+      <div className="nav">
+        <strong>VERLO</strong>
+
+        <nav className="nav-links">
+          <a href="#transparencia">Transparencia</a>
+          <a href="#forms">Soy inquilino</a>
+          <a href="#forms">Soy propietario</a>
+
+          {!user ? (
+            <Link href="/login">Ingresar</Link>
+          ) : (
+            <button onClick={logout} style={{ cursor: 'pointer' }}>
+              Salir
+            </button>
+          )}
+        </nav>
+      </div>
     </header>
   )
 }
+
