@@ -5,7 +5,10 @@ export async function GET(req: Request) {
   const provincia = searchParams.get('provincia')
 
   if (!provincia) {
-    return NextResponse.json({ municipios: [] })
+    return NextResponse.json(
+      { error: 'provincia requerida' },
+      { status: 400 }
+    )
   }
 
   const res = await fetch(
