@@ -385,20 +385,24 @@ async function publish() {
           </div>
         )}
 
-        {step === 2 && (
-          <div className="mt-8 space-y-4">
-            <select
-              className="input"
-              value={draft.type || ''}
-              onChange={e =>
-                setDraft({ ...draft, type: e.target.value })
-              }
-            >
-              <option value="">Tipo de propiedad</option>
-              {PROPERTY_TYPES.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+       {step === 2 && (
+  <div className="mt-8 space-y-4">
+    <select
+      className="input"
+      value={draft.type || ''}
+      onChange={e =>
+        setDraft({ ...draft, type: e.target.value })
+      }
+    >
+      <option value="">Tipo de propiedad</option>
+      <option value="apartment">Departamento</option>
+      <option value="house">Casa</option>
+      <option value="apartment">PH</option>
+      <option value="room">Habitación</option>
+      <option value="apartment">Local</option>
+    </select>
+  </div>
+)}
 
             <div className="space-y-2">
               {REQUIREMENTS.map(r => (
