@@ -209,44 +209,97 @@ export default function PublicarPropiedad() {
     return true
   }
 
-  async function publish() {
+async function publish() {
   const { data } = await supabase.auth.getUser()
   if (!data.user) return
 
-  const { data: property } = await supabase
+  // Resolver nombres para guardar en DB (tu schema guarda strings en city/zone)
+  const municipalityName =
+    municipalities.find(m => m.id === draft.municipality_id)?.name ?? null
+
+  const neighborhoodName =
+    neighborhoods.find(n => n.id === draft.neighborhood_id)?.name ?? null
+
+  // Mapear tipo UI (ES) -> enum DB (EN)
+  const dbPropertyType = PROPERTY_TYPE_MAP[draft.type || '']
+  if (!dbPropertyType) {
+    console.error('Tipo de propiedad inválido para DB:', draft.type)
+    return
+  }
+
+  // 1) INSERT en properties (OJO: NO existen neighborhood_id ni requirements en tu tabla)
+  const { data: property, error: propertyError } = await supabase
     .from('properties')
     .insert({
       owner_id: data.user.id,
-      neighborhood_id: draft.neighborhood_id,
-      price: draft.price,
-      property_type: draft.type,
-      allowed_durations: draft.duration,
-      furnished: draft.furnished,
-      pets_allowed: draft.pets,
-      requirements: draft.requirements,
-      publish_status: 'published',
+      city: municipalityName,
+      zone: neighborhoodName,
+      price: draft.price ?? null,
+      property_type: dbPropertyType,
+      allowed_durations: draft.duration ?? [],
+      furnished: draft.furnished ?? false,
+      pets_allowed: draft.pets ?? false,
+      publish_status: 'draft', // importante: no lo publiques todavía
+      available: true,
+      currency: 'ARS',
     })
     .select()
     .single()
 
-    if (draft.media) {
-      for (const file of draft.media) {
-        const path = `${property.id}/${crypto.randomUUID()}`
-        await supabase.storage.from('property-media').upload(path, file)
+  if (propertyError || !property) {
+    console.error(propertyError)
+    return
+  }
+
+  // 2) MEDIA: subís a storage Y registrás en property_media (antes te faltaba esto)
+  if (draft.media) {
+    for (let i = 0; i < draft.media.length; i++) {
+      const file = draft.media[i]
+      const path = `${property.id}/${crypto.randomUUID()}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('property-media')
+        .upload(path, file)
+
+      if (uploadError) {
+        console.error(uploadError)
+        continue
+      }
+
+      const { error: mediaError } = await supabase
+        .from('property_media')
+        .insert({
+          property_id: property.id,
+          type: file.type.startsWith('image') ? 'image' : 'other',
+          url: path,
+          position: i,
+        })
+
+      if (mediaError) {
+        console.error(mediaError)
       }
     }
-
-    await supabase.from('property_private').insert({
-      property_id: property.id,
-      address: draft.address,
-      phone: draft.phone,
-    })
-
-    localStorage.removeItem('property_draft')
-    localStorage.removeItem('property_step')
-
-    window.location.href = `/propiedades/${property.id}`
   }
+
+  // 3) PRIVATE: address + phone
+  const { error: privateError } = await supabase.from('property_private').insert({
+    property_id: property.id,
+    address: draft.address ?? null,
+    phone: draft.phone ?? null,
+  })
+
+  if (privateError) {
+    console.error(privateError)
+    return
+  }
+
+  // 4) Cleanup
+  localStorage.removeItem('property_draft')
+  localStorage.removeItem('property_step')
+
+  // 5) Redirect
+  window.location.href = `/propiedades/${property.id}`
+}
 
   return (
     <div className="min-h-screen bg-black flex justify-center pt-24 px-4">
