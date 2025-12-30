@@ -219,13 +219,6 @@ async function publish() {
   const neighborhoodName =
     neighborhoods.find(n => n.id === draft.neighborhood_id)?.name ?? null
 
-  // Mapear tipo UI (ES) -> enum DB (EN)
-  const dbPropertyType = PROPERTY_TYPE_MAP[draft.type || '']
-  if (!dbPropertyType) {
-    console.error('Tipo de propiedad inválido para DB:', draft.type)
-    return
-  }
-
   // 1) INSERT en properties (OJO: NO existen neighborhood_id ni requirements en tu tabla)
   const { data: property, error: propertyError } = await supabase
     .from('properties')
@@ -234,7 +227,7 @@ async function publish() {
       city: municipalityName,
       zone: neighborhoodName,
       price: draft.price ?? null,
-      property_type: dbPropertyType,
+      property_type: draft.type,
       allowed_durations: draft.duration ?? [],
       furnished: draft.furnished ?? false,
       pets_allowed: draft.pets ?? false,
