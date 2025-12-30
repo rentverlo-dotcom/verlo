@@ -402,7 +402,7 @@ async function publish() {
       <option value="apartment">Local</option>
     </select>
   </div>
-)}
+))}
 
             <div className="space-y-2">
               {REQUIREMENTS.map(r => (
