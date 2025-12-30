@@ -385,7 +385,7 @@ async function publish() {
           </div>
         )}
 
-       {step === 2 && (
+      {step === 2 && (
   <div className="mt-8 space-y-4">
     <select
       className="input"
@@ -401,8 +401,17 @@ async function publish() {
       <option value="room">Habitación</option>
       <option value="apartment">Local</option>
     </select>
+
+    <button
+      className="button-primary"
+      onClick={() => setStep(3)}
+      disabled={!draft.type}
+    >
+      Continuar
+    </button>
   </div>
 )}
+
 
             <div className="space-y-2">
               {REQUIREMENTS.map(r => (
