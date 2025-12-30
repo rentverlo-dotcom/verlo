@@ -473,9 +473,13 @@ async function publish() {
                 setDraft({ ...draft, phone: e.target.value })
               }
             />
-            <button className="button-primary" onClick={publish}>
-              Publicar propiedad
-            </button>
+            <button
+  type="button"
+  className="button-primary"
+  onClick={publish}
+>
+  Publicar propiedad
+</button> 
           </div>
         )}
       </div>
