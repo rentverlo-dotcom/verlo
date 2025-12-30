@@ -33,13 +33,6 @@ const PROPERTY_TYPE_MAP: Record<string, 'apartment' | 'house' | 'room' | 'hotel_
   'PH': 'house',
   'Local': 'house',
 }
-const PROPERTY_TYPE_MAP: Record<string, string> = {
-  'Casa': 'house',
-  'Departamento': 'apartment',
-  'PH': 'apartment',
-  'Habitación': 'room',
-  'Local': 'apartment', // temporal
-}
 
 const REQUIREMENTS = [
   'Garantía propietaria',
