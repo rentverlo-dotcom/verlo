@@ -437,33 +437,6 @@ async function publish() {
   </div>
 )}
 
-            <div className="space-y-2">
-              {REQUIREMENTS.map(r => (
-                <label key={r} className="flex items-center gap-2 text-sm text-neutral-300">
-                  <input
-                    type="checkbox"
-                    checked={draft.requirements?.includes(r) || false}
-                    onChange={e => {
-                      const current = draft.requirements || []
-                      setDraft({
-                        ...draft,
-                        requirements: e.target.checked
-                          ? [...current, r]
-                          : current.filter(x => x !== r),
-                      })
-                    }}
-                  />
-                  {r}
-                </label>
-              ))}
-            </div>
-
-            <button className="button-primary" onClick={() => setStep(3)}>
-              Continuar
-            </button>
-          </div>
-        )}
-
         {step === 3 && (
           <div className="mt-8 space-y-4">
             <input
