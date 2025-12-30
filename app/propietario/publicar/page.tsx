@@ -210,24 +210,24 @@ export default function PublicarPropiedad() {
   }
 
   async function publish() {
-    const { data } = await supabase.auth.getUser()
-    if (!data.user) return
+  const { data } = await supabase.auth.getUser()
+  if (!data.user) return
 
-    const { data: property } = await supabase
-      .from('properties')
-      .insert({
-        owner_id: data.user.id,
-        neighborhood_id: draft.neighborhood_id,
-        price: draft.price,
-        property_type: draft.type,
-        allowed_durations: draft.duration,
-        furnished: draft.furnished,
-        pets_allowed: draft.pets,
-        requirements: draft.requirements,
-        publish_status: 'published',
-      })
-      .select()
-      .single()
+  const { data: property } = await supabase
+    .from('properties')
+    .insert({
+      owner_id: data.user.id,
+      neighborhood_id: draft.neighborhood_id,
+      price: draft.price,
+      property_type: draft.type,
+      allowed_durations: draft.duration,
+      furnished: draft.furnished,
+      pets_allowed: draft.pets,
+      requirements: draft.requirements,
+      publish_status: 'published',
+    })
+    .select()
+    .single()
 
     if (draft.media) {
       for (const file of draft.media) {
