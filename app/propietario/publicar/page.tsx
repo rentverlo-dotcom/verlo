@@ -384,9 +384,9 @@ async function publish() {
             </button>
           </div>
         )}
-
-      {step === 2 && (
+{step === 2 && (
   <div className="mt-8 space-y-4">
+
     <select
       className="input"
       value={draft.type || ''}
@@ -402,6 +402,30 @@ async function publish() {
       <option value="apartment">Local</option>
     </select>
 
+    <div className="space-y-2">
+      {REQUIREMENTS.map(r => (
+        <label
+          key={r}
+          className="flex items-center gap-2 text-sm text-neutral-300"
+        >
+          <input
+            type="checkbox"
+            checked={draft.requirements?.includes(r) || false}
+            onChange={e => {
+              const current = draft.requirements || []
+              setDraft({
+                ...draft,
+                requirements: e.target.checked
+                  ? [...current, r]
+                  : current.filter(x => x !== r),
+              })
+            }}
+          />
+          {r}
+        </label>
+      ))}
+    </div>
+
     <button
       className="button-primary"
       onClick={() => setStep(3)}
@@ -409,9 +433,9 @@ async function publish() {
     >
       Continuar
     </button>
+
   </div>
 )}
-
 
             <div className="space-y-2">
               {REQUIREMENTS.map(r => (
