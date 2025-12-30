@@ -25,6 +25,15 @@ const PROPERTY_TYPES = [
   'Habitación',
   'Local',
 ]
+// Mapea los labels del select (ES) al enum real de la DB (EN)
+const PROPERTY_TYPE_MAP: Record<string, 'apartment' | 'house' | 'room' | 'hotel_room'> = {
+  'Departamento': 'apartment',
+  'Casa': 'house',
+  'Habitación': 'room',
+  'PH': 'house',
+  'Local': 'house',
+}
+
 
 const REQUIREMENTS = [
   'Garantía propietaria',
