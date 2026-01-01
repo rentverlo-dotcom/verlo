@@ -16,6 +16,9 @@ type Draft = {
   media?: File[]
   address?: string
   phone?: string
+  first_name?: string
+  last_name?: string
+  email?: string
 }
 
 const PROPERTY_TYPES = [
