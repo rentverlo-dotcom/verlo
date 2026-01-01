@@ -273,12 +273,18 @@ async function publish() {
     }
   }
 
-  // 3) PRIVATE: address + phone
-  const { error: privateError } = await supabase.from('property_private').insert({
+ // 3) PRIVATE: address + phone + name + lastname + email
+const { error: privateError } = await supabase
+  .from('property_private')
+  .insert({
     property_id: property.id,
     address: draft.address ?? null,
     phone: draft.phone ?? null,
+    first_name: draft.first_name ?? null,
+    last_name: draft.last_name ?? null,
+    email: draft.email ?? null,
   })
+
 
   if (privateError) {
     console.error(privateError)
