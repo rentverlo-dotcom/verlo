@@ -475,6 +475,34 @@ const { error: privateError } = await supabase
                 setDraft({ ...draft, phone: e.target.value })
               }
             />
+            <input
+  className="input"
+  placeholder="Nombre"
+  value={draft.first_name || ''}
+  onChange={e =>
+    setDraft(d => ({ ...d, first_name: e.target.value }))
+  }
+/>
+
+<input
+  className="input"
+  placeholder="Apellido"
+  value={draft.last_name || ''}
+  onChange={e =>
+    setDraft(d => ({ ...d, last_name: e.target.value }))
+  }
+/>
+
+<input
+  className="input"
+  type="email"
+  placeholder="Email de contacto"
+  value={draft.email || ''}
+  onChange={e =>
+    setDraft(d => ({ ...d, email: e.target.value }))
+  }
+/>
+
             <button
   type="button"
   className="button-primary"
