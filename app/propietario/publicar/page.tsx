@@ -250,7 +250,7 @@ async function publish() {
       const path = `${property.id}/${crypto.randomUUID()}`
 
       const { error: uploadError } = await supabase.storage
-        .from('property-media')
+        .from('media')
         .upload(path, file)
 
       if (uploadError) {
