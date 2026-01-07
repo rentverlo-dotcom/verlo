@@ -440,22 +440,64 @@ const { error: privateError } = await supabase
 )}
 
         {step === 3 && (
-          <div className="mt-8 space-y-4">
-            <input
-              type="file"
-              multiple
-              onChange={e =>
-                setDraft({ ...draft, media: Array.from(e.target.files || []) })
-              }
-            />
+  <div className="mt-8 space-y-4">
+    {/* Fotos */}
+    <input
+      type="file"
+      accept="image/*"
+      multiple
+      capture="environment"
+      onChange={e => {
+        const files = Array.from(e.target.files || [])
+        if (!files.length) return
+        setMediaFiles(prev => [...prev, ...files])
+        e.currentTarget.value = '' // clave: permite volver a elegir el mismo archivo
+      }}
+    />
+
+    {/* Videos */}
+    <input
+      type="file"
+      accept="video/*"
+      multiple
+      capture="environment"
+      onChange={e => {
+        const files = Array.from(e.target.files || [])
+        if (!files.length) return
+        setMediaFiles(prev => [...prev, ...files])
+        e.currentTarget.value = ''
+      }}
+    />
+
+    {/* Preview + remove */}
+    {mediaFiles.length > 0 && (
+      <div className="space-y-2">
+        {mediaFiles.map((f, idx) => (
+          <div key={`${f.name}-${idx}`} className="flex items-center justify-between">
+            <span className="text-sm opacity-80">
+              {idx + 1}. {f.name}
+            </span>
             <button
-              className="button-primary"
-              onClick={async () => (await requireAuth()) && setStep(4)}
+              type="button"
+              className="text-sm underline"
+              onClick={() => setMediaFiles(prev => prev.filter((_, i) => i !== idx))}
             >
-              Continuar
+              Quitar
             </button>
           </div>
-        )}
+        ))}
+      </div>
+    )}
+
+    <button
+      className="button-primary"
+      onClick={async () => (await requireAuth()) && setStep(4)}
+    >
+      Continuar
+    </button>
+  </div>
+)}
+
 
         {step === 4 && (
           <div className="mt-8 space-y-4">
