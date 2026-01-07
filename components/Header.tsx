@@ -14,20 +14,23 @@ export default function Header() {
 
   return (
     <header className="nav">
-      <strong>VERLO</strong>
+  <strong>VERLO</strong>
 
-      <nav className="nav-links">
-        <a href="/#transparencia">Transparencia</a>
-        <a href="/#forms">Soy inquilino</a>
-        <a href="/#forms">Soy propietario</a>
+  <nav className="nav-links">
+    <a href="/#transparencia">Transparencia</a>
 
-        {user ? (
-          <a href="/logout">Cerrar sesión</a>
-        ) : (
-          <a href="/login">Ingresar</a>
-        )}
-      </nav>
-    </header>
+    {/* Ambos van a login */}
+    <a href="/login">Soy inquilino</a>
+    <a href="/login">Soy propietario</a>
+
+    {user ? (
+      <a href="/logout">Cerrar sesión</a>
+    ) : (
+      <a href="/login">Ingresar</a>
+    )}
+  </nav>
+</header>
+
   )
 }
 
