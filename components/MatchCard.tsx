@@ -8,47 +8,26 @@ type Match = {
   cover_url: string;
 };
 
-export default function MatchCard({
-  match,
-  onLike,
-  onSkip,
-}: {
-  match: Match;
-  onLike: (id: string) => void;
-  onSkip: (id: string) => void;
-}) {
+export default function MatchCard({ match }: { match: Match }) {
   return (
-    <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div className="w-[320px] h-[420px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
       <img
         src={match.cover_url}
         alt={match.title}
-        className="w-full h-56 object-cover"
+        className="h-56 w-full object-cover"
       />
 
-      <div className="p-4">
-        <h2 className="text-xl font-semibold">{match.title}</h2>
-        <p className="text-gray-500">{match.address}</p>
+      <div className="p-4 flex-1 flex flex-col justify-between">
+        <div>
+          <h2 className="text-lg font-bold">{match.title}</h2>
+          <p className="text-sm text-gray-500">{match.address}</p>
+        </div>
 
-        <p className="text-lg font-bold mt-2">
-          ${match.price.toLocaleString()} / mes
-        </p>
-
-        <div className="flex justify-between gap-4 mt-6">
-          <button
-            onClick={() => onSkip(match.id)}
-            className="w-full py-3 rounded-xl border border-gray-300 text-gray-600"
-          >
-            ❌ No me interesa
-          </button>
-
-          <button
-            onClick={() => onLike(match.id)}
-            className="w-full py-3 rounded-xl bg-blue-600 text-white"
-          >
-            ❤️ Me interesa
-          </button>
+        <div className="text-xl font-semibold">
+          ${match.price.toLocaleString()}
         </div>
       </div>
     </div>
   );
 }
+
