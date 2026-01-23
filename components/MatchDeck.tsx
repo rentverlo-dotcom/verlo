@@ -27,6 +27,15 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
       property_id: match.id,
     }),
   });
+    fetch("/api/matches/create", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    tenant_id: "00000000-0000-0000-0000-000000000001", // mock
+    property_id: match.id,
+  }),
+});
+
 }
 
   };
