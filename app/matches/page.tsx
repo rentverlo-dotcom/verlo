@@ -1,51 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import MatchDeck from "@/components/MatchDeck";
 
-export const dynamic = "force-dynamic"; // 🔴 CLAVE
+const matches = [
+  {
+    id: "1",
+    title: "Depto 2 amb Palermo",
+    address: "Palermo, CABA",
+    price: 450000,
+    cover_url:
+      "https://images.unsplash.com/photo-1502673530728-f79b4cab31b1",
+  },
+  {
+    id: "2",
+    title: "Monoambiente Recoleta",
+    address: "Recoleta, CABA",
+    price: 380000,
+    cover_url:
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+  },
+];
 
 export default function MatchesPage() {
-  const [matches, setMatches] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch("/api/properties/feed", {
-          credentials: "include",
-        });
-
-        const data = await res.json();
-
-        // 🔴 blindaje total
-        if (Array.isArray(data)) {
-          setMatches(data);
-        } else if (Array.isArray(data?.data)) {
-          setMatches(data.data);
-        } else {
-          console.error("Feed inválido:", data);
-          setMatches([]);
-        }
-      } catch (e) {
-        console.error("Error cargando feed", e);
-        setMatches([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, []);
-
-  if (loading) {
-    return <div className="p-6 text-white">Cargando propiedades…</div>;
-  }
-
   return (
-    <main className="bg-gray-100 min-h-screen">
+    <main className="min-h-screen bg-gray-100 flex items-center justify-center">
       <MatchDeck matches={matches} />
     </main>
   );
 }
-
