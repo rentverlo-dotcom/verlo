@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, X } from "lucide-react";
 
 type Match = {
   id: string;
@@ -18,25 +17,22 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
 
   const current = matches[index];
 
-  const next = () => setIndex((i) => i + 1);
-
   if (!current) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-black text-white text-center px-6">
-        <h2 className="text-2xl font-semibold mb-2">
-          🎉 Ya viste todas las propiedades
-        </h2>
-        <p className="text-white/70">
-          Estamos cargando nuevas oportunidades para vos.
+      <div className="h-screen flex flex-col items-center justify-center bg-black text-white text-center">
+        <h2 className="text-2xl font-semibold mb-2">Eso es todo… por ahora 👀</h2>
+        <p className="text-white/60">
+          Estamos buscando nuevas propiedades para vos.
         </p>
       </div>
     );
   }
 
+  const next = () => setIndex((i) => i + 1);
+
   return (
-    <div className="h-screen bg-black flex items-center justify-center">
-      {/* CARD */}
-      <div className="w-[380px] h-[640px] rounded-3xl overflow-hidden relative shadow-2xl">
+    <div className="h-screen w-full bg-black flex items-center justify-center">
+      <div className="relative w-[360px] h-[640px] rounded-3xl overflow-hidden shadow-2xl">
         {/* IMAGE */}
         <img
           src={current.cover_url}
@@ -45,13 +41,13 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
         />
 
         {/* GRADIENT */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
 
         {/* INFO */}
-        <div className="absolute bottom-24 left-4 right-4">
-          <h2 className="text-2xl font-bold">{current.title}</h2>
-          <p className="text-sm text-white/80">{current.address}</p>
-          <p className="text-xl font-semibold mt-1">
+        <div className="absolute bottom-24 left-4 right-4 text-white">
+          <h2 className="text-xl font-bold">{current.title}</h2>
+          <p className="text-sm opacity-80">{current.address}</p>
+          <p className="text-lg font-semibold mt-1">
             ${current.price.toLocaleString("es-AR")}
           </p>
         </div>
@@ -60,23 +56,23 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
         <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8">
           <button
             onClick={next}
-            className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center hover:scale-105 transition"
+            className="w-14 h-14 rounded-full bg-white/90 text-black text-2xl flex items-center justify-center shadow-lg active:scale-95"
           >
-            <X className="text-black" size={28} />
+            ✕
           </button>
 
           <button
             onClick={() => {
-              // acá después guardamos el like en DB
+              // like futuro
               next();
             }}
-            className="w-16 h-16 rounded-full bg-rose-500 flex items-center justify-center hover:scale-110 transition"
+            className="w-16 h-16 rounded-full bg-rose-500 text-white text-2xl flex items-center justify-center shadow-xl active:scale-95"
           >
-            <Heart className="text-white fill-white" size={30} />
+            ♥
           </button>
         </div>
 
-        {/* CLICK OVERLAY */}
+        {/* CLICK TO OPEN */}
         <button
           onClick={() => router.push(`/properties/${current.id}`)}
           className="absolute inset-0"
