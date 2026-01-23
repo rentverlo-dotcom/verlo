@@ -1,14 +1,16 @@
-import PayButton from "@/components/PayButton";
+"use client";
 
-export default function Page({
+import { PayButton } from "@/components/PayButton";
+
+export default function ContractPage({
   params,
 }: {
   params: { id: string };
 }) {
   return (
-    <main>
+    <div>
       <h1>Contrato {params.id}</h1>
       <PayButton contractId={params.id} />
-    </main>
+    </div>
   );
 }
