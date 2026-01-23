@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { X, Heart } from "lucide-react";
 
 type Match = {
   id: string;
@@ -20,76 +20,68 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
 
   const next = () => setIndex((i) => i + 1);
 
-  // EMPTY STATE LINDO
   if (!current) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-black text-center text-gray-300 px-6">
-        <h2 className="text-3xl font-semibold mb-3">
-          Eso es todo por ahora ✨
+      <div className="h-[80vh] flex flex-col items-center justify-center text-center text-white px-6">
+        <h2 className="text-2xl font-semibold mb-2">
+          🎉 Ya viste todas las propiedades
         </h2>
-        <p className="text-gray-400 max-w-md mb-6">
-          Estamos buscando nuevas propiedades que encajen con vos.
-          Volvé más tarde o ajustá tus preferencias.
+        <p className="text-sm opacity-70 max-w-sm">
+          Estamos cargando nuevas oportunidades para vos.  
+          Volvé en un rato y seguí encontrando tu próximo hogar.
         </p>
-
-        <Link
-          href="/"
-          className="px-6 py-3 rounded-full bg-white text-black font-medium hover:bg-gray-200 transition"
-        >
-          Volver al inicio
-        </Link>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-black text-white">
+    <div className="h-[calc(100vh-64px)] flex flex-col items-center justify-center bg-black text-white">
       {/* CARD */}
       <div
-        className="relative w-full max-w-md h-[70vh] max-h-[640px] rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
         onClick={() => router.push(`/properties/${current.id}`)}
+        className="relative w-[360px] h-[520px] rounded-2xl overflow-hidden shadow-2xl cursor-pointer select-none"
       >
-        {/* IMAGE */}
+        {/* Imagen */}
         <img
           src={current.cover_url}
           alt={current.title}
           className="absolute inset-0 w-full h-full object-cover"
         />
 
-        {/* OVERLAY */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
-        {/* INFO */}
-        <div className="absolute bottom-6 left-5 right-5">
-          <h2 className="text-2xl font-semibold leading-tight">
+        {/* Info */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <h2 className="text-xl font-semibold leading-tight">
             {current.title}
           </h2>
-          <p className="text-sm text-gray-300 mt-1">{current.address}</p>
-          <p className="text-xl font-bold mt-2">
+          <p className="text-sm opacity-80">{current.address}</p>
+          <p className="text-lg font-bold mt-1">
             ${current.price.toLocaleString("es-AR")}
           </p>
         </div>
       </div>
 
       {/* ACTIONS */}
-      <div className="mt-6 flex gap-8">
+      <div className="mt-6 flex items-center gap-10">
         <button
           onClick={next}
-          className="w-14 h-14 rounded-full bg-gray-800 text-white text-xl flex items-center justify-center hover:bg-gray-700 transition"
+          className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center transition"
           aria-label="No me interesa"
         >
-          ✕
+          <X size={26} className="text-red-400" />
         </button>
 
         <button
           onClick={() => {
-            // acá después guardamos el like
+            // TODO: guardar like en Supabase
             next();
           }}
-          className="w-16 h-16 rounded-full bg-rose-600 text-white text-2xl flex items-center justify-center hover:bg-rose-500 transition"
+          className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center transition"
           aria-label="Me interesa"
         >
-          ❤
+          <Heart size={28} className="text-white fill-white" />
         </button>
       </div>
     </div>
