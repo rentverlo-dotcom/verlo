@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-export default function PayButton({ contractId }: { contractId: string }) {
+export function PayButton({ contractId }: { contractId: string }) {
   const [loading, setLoading] = useState(false);
 
   const pay = async () => {
@@ -11,6 +11,7 @@ export default function PayButton({ contractId }: { contractId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contract_id: contractId }),
     });
+
     const data = await res.json();
     window.location.href = data.init_point;
   };
