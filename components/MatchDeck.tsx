@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import TinderCard from "react-tinder-card";
-import MatchCard from "./MatchCard";
+import { useRouter } from "next/navigation";
 
 type Match = {
   id: string;
@@ -13,60 +12,66 @@ type Match = {
 };
 
 export default function MatchDeck({ matches }: { matches: Match[] }) {
-  const [selected, setSelected] = useState<Match | null>(null);
+  const [index, setIndex] = useState(0);
+  const router = useRouter();
 
-  const onSwipe = (dir: string, match: Match) => {
-  if (dir === "right") {
-  setSelected(match);
+  const current = matches[index];
 
-  fetch("/api/likes/create", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      tenant_id: "00000000-0000-0000-0000-000000000001", // mock
-      property_id: match.id,
-    }),
-  });
-    fetch("/api/matches/create", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    tenant_id: "00000000-0000-0000-0000-000000000001", // mock
-    property_id: match.id,
-  }),
-});
+  if (!current) {
+    return (
+      <div className="h-screen flex items-center justify-center text-white">
+        No hay más propiedades 🎉
+      </div>
+    );
+  }
 
-}
-
-  };
+  const next = () => setIndex((i) => i + 1);
 
   return (
-    <div className="relative flex justify-center items-center h-[80vh]">
-      {matches.map((match) => (
-        <TinderCard
-          key={match.id}
-          preventSwipe={["up", "down"]}
-          onSwipe={(dir) => onSwipe(dir, match)}
-        >
-          <div className="absolute">
-            <MatchCard match={match} />
-          </div>
-        </TinderCard>
-      ))}
+    <div className="h-screen flex flex-col items-center justify-center bg-black text-white">
+      {/* CARD */}
+      <div
+        className="relative w-full max-w-md h-[85vh] rounded-2xl overflow-hidden shadow-xl cursor-pointer"
+        onClick={() => router.push(`/properties/${current.id}`)}
+      >
+        <img
+          src={current.cover_url}
+          alt={current.title}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
 
-      {selected && (
-        <div className="absolute bottom-10 bg-white p-4 rounded-xl shadow-lg">
-          <a
-            href={`https://wa.me/5491111111111?text=${encodeURIComponent(
-              `Hola! Me interesa esta propiedad:\n\n${selected.title}\n${selected.address}\nPrecio: $${selected.price}`
-            )}`}
-            target="_blank"
-            className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold"
-          >
-            Quiero visitar
-          </a>
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+        {/* Info */}
+        <div className="absolute bottom-20 left-4 right-4">
+          <h2 className="text-xl font-bold">{current.title}</h2>
+          <p className="text-sm opacity-80">{current.address}</p>
+          <p className="text-lg font-semibold mt-1">
+            ${current.price.toLocaleString("es-AR")}
+          </p>
         </div>
-      )}
+      </div>
+
+      {/* ACTIONS */}
+      <div className="mt-6 flex gap-6">
+        <button
+          onClick={next}
+          className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center text-xl"
+        >
+          ❌
+        </button>
+
+        <button
+          onClick={() => {
+            // acá después guardamos el like
+            next();
+          }}
+          className="w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center text-2xl"
+        >
+          ❤️
+        </button>
+      </div>
     </div>
   );
 }
