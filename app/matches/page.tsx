@@ -1,28 +1,39 @@
-"use client";
+import Link from "next/link";
 
-import { useEffect, useState } from "react";
-import MatchDeck from "@/components/MatchDeck";
+async function getFeed() {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/properties/feed`,
+    { cache: "no-store" }
+  );
+  return res.json();
+}
 
-export default function MatchesPage() {
-  const [matches, setMatches] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/properties/feed")
-      .then((res) => res.json())
-      .then((data) => {
-        setMatches(data);
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) {
-    return <p className="p-8">Cargando propiedades…</p>;
-  }
+export default async function MatchesPage() {
+  const properties = await getFeed();
 
   return (
-    <main className="bg-gray-100 min-h-screen">
-      <MatchDeck matches={matches} />
+    <main className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      {properties.map((p: any) => (
+        <Link
+          key={p.id}
+          href={`/properties/${p.id}`}
+          className="border rounded overflow-hidden bg-white hover:shadow"
+        >
+          {p.cover_url && (
+            <img
+              src={p.cover_url}
+              className="h-48 w-full object-cover"
+            />
+          )}
+          <div className="p-3">
+            <h2 className="font-semibold">{p.title}</h2>
+            <p className="text-sm text-gray-500">{p.address}</p>
+            <p className="mt-1 font-bold">
+              ${p.price?.toLocaleString("es-AR")}
+            </p>
+          </div>
+        </Link>
+      ))}
     </main>
   );
 }
