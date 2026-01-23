@@ -1,71 +1,54 @@
 "use client";
 
-import TinderCard from "react-tinder-card";
-
 type Match = {
   id: string;
+  title: string;
+  address: string;
   price: number;
-  zone: string;
-  cover: string;
-  highlights: string[];
+  cover_url: string;
 };
 
 export default function MatchCard({
   match,
   onLike,
-  onReject,
+  onSkip,
 }: {
   match: Match;
   onLike: (id: string) => void;
-  onReject: (id: string) => void;
+  onSkip: (id: string) => void;
 }) {
   return (
-    <TinderCard
-      key={match.id}
-      onSwipe={(dir) => {
-        if (dir === "right") onLike(match.id);
-        if (dir === "left") onReject(match.id);
-      }}
-      preventSwipe={["up", "down"]}
-    >
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden w-[90vw] max-w-md mx-auto">
-        <img
-          src={match.cover}
-          alt="Property"
-          className="h-64 w-full object-cover"
-        />
+    <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+      <img
+        src={match.cover_url}
+        alt={match.title}
+        className="w-full h-56 object-cover"
+      />
 
-        <div className="p-4">
-          <h2 className="text-2xl font-bold">${match.price}</h2>
-          <p className="text-gray-600">{match.zone}</p>
+      <div className="p-4">
+        <h2 className="text-xl font-semibold">{match.title}</h2>
+        <p className="text-gray-500">{match.address}</p>
 
-          <div className="flex flex-wrap gap-2 mt-3">
-            {match.highlights.map((h) => (
-              <span
-                key={h}
-                className="bg-gray-100 text-sm px-3 py-1 rounded-full"
-              >
-                {h}
-              </span>
-            ))}
-          </div>
+        <p className="text-lg font-bold mt-2">
+          ${match.price.toLocaleString()} / mes
+        </p>
 
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={() => onReject(match.id)}
-              className="text-red-500 text-lg"
-            >
-              ❌ Paso
-            </button>
-            <button
-              onClick={() => onLike(match.id)}
-              className="text-green-600 text-lg"
-            >
-              ❤️ Me interesa
-            </button>
-          </div>
+        <div className="flex justify-between gap-4 mt-6">
+          <button
+            onClick={() => onSkip(match.id)}
+            className="w-full py-3 rounded-xl border border-gray-300 text-gray-600"
+          >
+            ❌ No me interesa
+          </button>
+
+          <button
+            onClick={() => onLike(match.id)}
+            className="w-full py-3 rounded-xl bg-blue-600 text-white"
+          >
+            ❤️ Me interesa
+          </button>
         </div>
       </div>
-    </TinderCard>
+    </div>
   );
 }
