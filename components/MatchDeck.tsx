@@ -16,9 +16,19 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
   const [selected, setSelected] = useState<Match | null>(null);
 
   const onSwipe = (dir: string, match: Match) => {
-    if (dir === "right") {
-      setSelected(match);
-    }
+  if (dir === "right") {
+  setSelected(match);
+
+  fetch("/api/likes/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tenant_id: "00000000-0000-0000-0000-000000000001", // mock
+      property_id: match.id,
+    }),
+  });
+}
+
   };
 
   return (
