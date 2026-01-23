@@ -1,5 +1,3 @@
-"use client";
-
 import MatchDeck from "@/components/MatchDeck";
 
 const matches = [
@@ -22,9 +20,5 @@ const matches = [
 ];
 
 export default function MatchesPage() {
-  return (
-    <main className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <MatchDeck matches={matches} />
-    </main>
-  );
+  return <MatchDeck matches={matches} />;
 }
