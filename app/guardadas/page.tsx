@@ -71,3 +71,74 @@ export default function GuardadasPage() {
     </div>
   );
 }
+const container: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "#000",
+  color: "#fff",
+  padding: "24px",
+};
+
+const title: React.CSSProperties = {
+  fontSize: "22px",
+  marginBottom: "24px",
+  textAlign: "center",
+};
+
+const list: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+  maxWidth: "420px",
+  margin: "0 auto",
+};
+
+const card: React.CSSProperties = {
+  borderRadius: "20px",
+  overflow: "hidden",
+  background: "#111",
+};
+
+const imageWrap: React.CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: "220px",
+};
+
+const overlay: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background:
+    "linear-gradient(to top, rgba(0,0,0,0.6), transparent)",
+};
+
+const info: React.CSSProperties = {
+  padding: "16px",
+};
+
+const desc: React.CSSProperties = {
+  fontSize: "14px",
+  opacity: 0.9,
+  marginBottom: "6px",
+};
+
+const address: React.CSSProperties = {
+  fontSize: "13px",
+  opacity: 0.7,
+  marginBottom: "8px",
+};
+
+const actions: React.CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  marginTop: "12px",
+};
+
+const btn: React.CSSProperties = {
+  flex: 1,
+  border: "none",
+  borderRadius: "12px",
+  color: "#fff",
+  padding: "10px",
+  fontSize: "14px",
+  cursor: "pointer",
+};
