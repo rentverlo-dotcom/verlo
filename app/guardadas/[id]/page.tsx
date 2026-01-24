@@ -1,7 +1,9 @@
+// app/guardadas/[id]/page.tsx
 'use client'
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import FlowHeader from '@/components/FlowHeader'
 
 const OWNER_PHONE = '5491112345678' // después viene de la DB
 
@@ -54,13 +56,16 @@ export default function GuardadaDetallePage() {
   const [index, setIndex] = useState(0)
   const current = property.media[index]
 
-  // ✅ WHATSAPP URL — ACÁ ES DONDE VA
+  // ✅ WHATSAPP URL
   const whatsappUrl = `https://wa.me/${OWNER_PHONE}?text=${encodeURIComponent(
     `Hola! Vi la propiedad "${property.title}" en VERLO y me interesa. ¿Podemos coordinar una visita?`
   )}`
 
   return (
     <div style={page}>
+      {/* HEADER DE FLOW */}
+      <FlowHeader title="Detalle de la propiedad" />
+
       {/* GALERÍA */}
       <div style={gallery}>
         {current.type === 'image' ? (
@@ -95,22 +100,22 @@ export default function GuardadaDetallePage() {
         {/* CTA */}
         <div style={actions}>
           <button
-  style={primaryBtn}
-  onClick={async () => {
-    await fetch('/api/visit-request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        property_id: property.id,
-        tenant_id: 'FAKE_TENANT_ID', // después auth real
-      }),
-    })
+            style={primaryBtn}
+            onClick={async () => {
+              await fetch('/api/visit-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  property_id: property.id,
+                  tenant_id: 'FAKE_TENANT_ID', // después auth real
+                }),
+              })
 
-    alert('Solicitud enviada. Te contactamos para coordinar la visita.')
-  }}
->
-  Agendar visita
-</button>
+              alert('Solicitud enviada. Te contactamos para coordinar la visita.')
+            }}
+          >
+            Agendar visita
+          </button>
 
           <button
             style={secondaryBtn}
