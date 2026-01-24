@@ -1,6 +1,8 @@
-//app/guardadas/page.tsx
+// app/guardadas/page.tsx
 'use client'
 export const dynamic = "force-dynamic";
+
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Match = {
@@ -12,29 +14,17 @@ type Match = {
   cover_url: string;
 };
 
-const savedMatches: Match[] = [
-  {
-    id: "1",
-    title: "Depto 2 amb Palermo",
-    short_description: "Luminoso, balcón y ubicación top para entrar ya.",
-    address: "Palermo, CABA",
-    price: 450000,
-    cover_url:
-      "https://images.unsplash.com/photo-1502673530728-f79b4cab31b1",
-  },
-  {
-    id: "2",
-    title: "Monoambiente Recoleta",
-    short_description: "Compacto, moderno y a pasos de todo.",
-    address: "Recoleta, CABA",
-    price: 380000,
-    cover_url:
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
-  },
-];
-
 export default function GuardadasPage() {
   const router = useRouter();
+  const [savedMatches, setSavedMatches] = useState<Match[]>([]);
+
+  useEffect(() => {
+    fetch("/api/guardadas")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setSavedMatches(data);
+      });
+  }, []);
 
   return (
     <div style={container}>
@@ -77,6 +67,12 @@ export default function GuardadasPage() {
             </div>
           </div>
         ))}
+
+        {savedMatches.length === 0 && (
+          <p style={{ textAlign: "center", opacity: 0.7 }}>
+            Todavía no guardaste propiedades
+          </p>
+        )}
       </div>
     </div>
   );
