@@ -1,7 +1,7 @@
 // app/guardadas/page.tsx
-export const dynamic = 'force-dynamic'
+import Link from 'next/link'
 
-type SavedProperty = {
+type Property = {
   id: string
   title: string
   short_description: string
@@ -9,11 +9,11 @@ type SavedProperty = {
   cover_url: string
 }
 
-const saved: SavedProperty[] = [
+const savedProperties: Property[] = [
   {
     id: '1',
     title: 'Depto 2 amb Palermo',
-    short_description: 'Luminoso, moderno y cerca de todo.',
+    short_description: 'Luz natural todo el día, balcón y ubicación premium.',
     price: 450000,
     cover_url:
       'https://images.unsplash.com/photo-1502673530728-f79b4cab31b1',
@@ -21,7 +21,7 @@ const saved: SavedProperty[] = [
   {
     id: '2',
     title: 'Monoambiente Recoleta',
-    short_description: 'Ideal estudiantes o primera vivienda.',
+    short_description: 'Ideal para vivir solo, moderno y bien conectado.',
     price: 380000,
     cover_url:
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
@@ -34,34 +34,20 @@ export default function GuardadasPage() {
       <h1 style={title}>Propiedades guardadas</h1>
 
       <div style={grid}>
-        {saved.map((p) => (
-          <a key={p.id} href={`/guardadas/${p.id}`} style={card}>
+        {savedProperties.map((p) => (
+          <Link key={p.id} href={`/guardadas/${p.id}`} style={card}>
             <div
               style={{
                 ...image,
                 backgroundImage: `url(${p.cover_url})`,
               }}
             />
-
             <div style={info}>
-              <h3 style={{ marginBottom: '6px' }}>{p.title}</h3>
-              <p style={{ fontSize: '14px', opacity: 0.85 }}>
-                {p.short_description}
-              </p>
-              <strong style={{ marginTop: '8px', display: 'block' }}>
-                ${p.price}
-              </strong>
-
-              <div style={actions}>
-                <button style={{ ...btn, background: '#22c55e' }}>
-                  Agendar visita
-                </button>
-                <button style={{ ...btn, background: '#2563eb' }}>
-                  WhatsApp
-                </button>
-              </div>
+              <h2>{p.title}</h2>
+              <p style={desc}>{p.short_description}</p>
+              <strong>${p.price}</strong>
             </div>
-          </a>
+          </Link>
         ))}
       </div>
     </div>
@@ -70,21 +56,20 @@ export default function GuardadasPage() {
 
 const container: React.CSSProperties = {
   minHeight: '100vh',
-  padding: '40px 20px',
   background: '#000',
   color: '#fff',
+  padding: '40px 20px',
 }
 
 const title: React.CSSProperties = {
-  fontSize: '28px',
-  marginBottom: '32px',
   textAlign: 'center',
+  marginBottom: '32px',
 }
 
 const grid: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: '24px',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+  gap: '20px',
 }
 
 const card: React.CSSProperties = {
@@ -93,8 +78,6 @@ const card: React.CSSProperties = {
   overflow: 'hidden',
   textDecoration: 'none',
   color: '#fff',
-  display: 'flex',
-  flexDirection: 'column',
 }
 
 const image: React.CSSProperties = {
@@ -104,23 +87,11 @@ const image: React.CSSProperties = {
 }
 
 const info: React.CSSProperties = {
-  padding: '16px',
-  display: 'flex',
-  flexDirection: 'column',
+  padding: '14px',
 }
 
-const actions: React.CSSProperties = {
-  display: 'flex',
-  gap: '8px',
-  marginTop: '12px',
-}
-
-const btn: React.CSSProperties = {
-  flex: 1,
-  border: 'none',
-  borderRadius: '8px',
-  padding: '8px',
-  color: '#fff',
-  cursor: 'pointer',
-  fontSize: '13px',
+const desc: React.CSSProperties = {
+  fontSize: '14px',
+  opacity: 0.85,
+  marginBottom: '8px',
 }
