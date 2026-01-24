@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import FlowHeader from '@/components/FlowHeader'
 
 type Match = {
   id: string;
@@ -13,7 +14,10 @@ type Match = {
   price: number;
   cover_url: string;
 };
-
+export default function GuardadasPage() {
+  return (
+    <>
+      <FlowHeader title="Guardadas" />
 export default function GuardadasPage() {
   const router = useRouter();
   const [savedMatches, setSavedMatches] = useState<Match[]>([]);
