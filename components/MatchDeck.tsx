@@ -107,17 +107,18 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
         onPointerCancel={onPointerUp}
       >
         <div style={overlay} />
-        <div style={info}>
-          <h2>{match.title}</h2>
+       <div style={info}>
+  <h2>{match.title}</h2>
 
-          {/* 👉 DESCRIPCIÓN BREVE (COPY PARA SWIPE) */}
-          <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: '6px' }}>
-            {match.short_description}
-          </p>
+  {/* 👉 DESCRIPCIÓN BREVE (COPY PARA SWIPE) */}
+  <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: '6px' }}>
+    {match.short_description}
+  </p>
 
-          <p style={{ fontSize: '13px', opacity: 0.75 }}>{match.address}</p>
-          <strong>${match.price}</strong>
-        </div>
+  <p style={{ fontSize: '13px', opacity: 0.75 }}>{match.address}</p>
+  <strong>${match.price}</strong>
+</div>
+
       </div>
 
       <div style={actions}>
