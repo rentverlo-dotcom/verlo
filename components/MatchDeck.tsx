@@ -19,10 +19,10 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
 
   if (!current) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-black text-white text-center">
-        <h2 className="text-2xl font-semibold mb-2">Eso es todo… por ahora 👀</h2>
-        <p className="text-white/60">
-          Estamos buscando nuevas propiedades para vos.
+      <div className="h-screen flex flex-col items-center justify-center bg-black text-white text-center px-6">
+        <h2 className="text-2xl font-semibold mb-2">No hay más propiedades</h2>
+        <p className="text-gray-400">
+          Volvé más tarde, estamos cargando nuevas oportunidades para vos ✨
         </p>
       </div>
     );
@@ -31,8 +31,9 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
   const next = () => setIndex((i) => i + 1);
 
   return (
-    <div className="h-screen w-full bg-black flex items-center justify-center">
-      <div className="relative w-[360px] h-[640px] rounded-3xl overflow-hidden shadow-2xl">
+    <div className="h-screen w-full flex items-center justify-center bg-black">
+      {/* PHONE FRAME */}
+      <div className="relative w-[360px] h-[640px] rounded-[32px] overflow-hidden bg-black shadow-2xl">
         {/* IMAGE */}
         <img
           src={current.cover_url}
@@ -45,9 +46,11 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
 
         {/* INFO */}
         <div className="absolute bottom-24 left-4 right-4 text-white">
-          <h2 className="text-xl font-bold">{current.title}</h2>
-          <p className="text-sm opacity-80">{current.address}</p>
-          <p className="text-lg font-semibold mt-1">
+          <h2 className="text-xl font-semibold leading-tight">
+            {current.title}
+          </h2>
+          <p className="text-sm text-gray-300">{current.address}</p>
+          <p className="text-lg font-bold mt-1">
             ${current.price.toLocaleString("es-AR")}
           </p>
         </div>
@@ -63,7 +66,7 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
 
           <button
             onClick={() => {
-              // like futuro
+              // acá después guardamos el like
               next();
             }}
             className="w-16 h-16 rounded-full bg-rose-500 text-white text-2xl flex items-center justify-center shadow-xl active:scale-95"
@@ -72,12 +75,14 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
           </button>
         </div>
 
-        {/* CLICK TO OPEN */}
+        {/* CLICK AREA */}
         <button
           onClick={() => router.push(`/properties/${current.id}`)}
           className="absolute inset-0"
+          aria-label="Ver detalle"
         />
       </div>
     </div>
   );
 }
+
