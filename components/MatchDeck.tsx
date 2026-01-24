@@ -1,69 +1,149 @@
 // components/MatchDeck.tsx
-"use client";
+'use client'
 
-import { useState } from "react";
+import { useRef, useState } from 'react'
 
 type Match = {
-  id: string;
-  title: string;
-  address: string;
-  price: number;
-  cover_url: string;
-};
+  id: string
+  title: string
+  address: string
+  price: number
+  cover_url: string
+}
 
-export default function MatchDeck({ matches }: { matches: Match[] }) {
-  const [index, setIndex] = useState(0);
+type MatchDeckProps = {
+  matches: Match[]
+}
 
-  const handleAction = (dir: "left" | "right" | "super") => {
-    setIndex((i) => Math.min(i + 1, matches.length - 1));
-  };
+export default function MatchDeck({ matches }: MatchDeckProps) {
+  const [index, setIndex] = useState(0)
+  const startX = useRef(0)
+  const currentX = useRef(0)
+  const cardRef = useRef<HTMLDivElement | null>(null)
 
-  const m = matches[index];
-  if (!m) return null;
+  if (!matches || matches.length === 0) return null
+  const match = matches[index]
+
+  function swipe(dir: 'left' | 'right') {
+    if (!cardRef.current) return
+    const x = dir === 'right' ? 1000 : -1000
+    cardRef.current.style.transition = 'transform 0.3s ease'
+    cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
+    setTimeout(() => {
+      setIndex((i) => i + 1)
+      if (cardRef.current) {
+        cardRef.current.style.transition = ''
+        cardRef.current.style.transform = ''
+      }
+    }, 300)
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    startX.current = e.clientX
+    cardRef.current?.setPointerCapture(e.pointerId)
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    currentX.current = e.clientX - startX.current
+    if (cardRef.current) {
+      cardRef.current.style.transform = `translateX(${currentX.current}px) rotate(${currentX.current / 20}deg)`
+    }
+  }
+
+  function onPointerUp() {
+    if (!cardRef.current) return
+
+    if (Math.abs(currentX.current) > 120) {
+      swipe(currentX.current > 0 ? 'right' : 'left')
+    } else {
+      cardRef.current.style.transition = 'transform 0.2s ease'
+      cardRef.current.style.transform = 'translateX(0)'
+    }
+
+    currentX.current = 0
+  }
 
   return (
-    <div className="relative flex flex-col items-center justify-center h-[calc(100vh-64px)]">
-      {/* CARD */}
+    <div style={container}>
       <div
-        className="relative w-[360px] h-[560px] rounded-2xl overflow-hidden shadow-2xl select-none"
-        draggable={false}
+        ref={cardRef}
+        style={{
+          ...card,
+          backgroundImage: `url(${match.cover_url})`,
+        }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
-        <img
-          src={m.cover_url}
-          className="absolute inset-0 w-full h-full object-cover"
-          draggable={false}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        <div className="absolute bottom-6 left-6 right-6 text-white">
-          <h2 className="text-3xl font-bold leading-tight">{m.title}</h2>
-          <p className="text-sm opacity-80">{m.address}</p>
-          <p className="mt-2 text-lg font-semibold">${m.price}</p>
+        <div style={overlay} />
+        <div style={info}>
+          <h2>{match.title}</h2>
+          <p>{match.address}</p>
+          <strong>${match.price}</strong>
         </div>
       </div>
 
-      {/* BUTTONS */}
-      <div className="mt-8 flex gap-6">
-        <button
-          onClick={() => handleAction("left")}
-          className="w-14 h-14 rounded-full bg-white text-red-500 text-2xl shadow-lg active:scale-95"
-        >
+      <div style={actions}>
+        <button style={{ ...btn, background: '#ff4d4f' }} onClick={() => swipe('left')}>
           ✕
         </button>
-
-        <button
-          onClick={() => handleAction("super")}
-          className="w-14 h-14 rounded-full bg-white text-blue-500 text-xl shadow-lg active:scale-95"
-        >
-          ★
-        </button>
-
-        <button
-          onClick={() => handleAction("right")}
-          className="w-16 h-16 rounded-full bg-white text-green-500 text-3xl shadow-xl active:scale-95"
-        >
+        <button style={{ ...btn, background: '#22c55e' }} onClick={() => swipe('right')}>
           ♥
         </button>
       </div>
     </div>
-  );
+  )
+}
+
+const container: React.CSSProperties = {
+  width: '100%',
+  height: '100vh',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  background: '#000',
+}
+
+const card: React.CSSProperties = {
+  width: '360px',
+  height: '640px',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  borderRadius: '20px',
+  position: 'relative',
+  touchAction: 'none',
+  cursor: 'grab',
+}
+
+const overlay: React.CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  borderRadius: '20px',
+  background:
+    'linear-gradient(to top, rgba(0,0,0,0.8) 20%, rgba(0,0,0,0.2) 60%, transparent)',
+}
+
+const info: React.CSSProperties = {
+  position: 'absolute',
+  bottom: '20px',
+  left: '20px',
+  color: '#fff',
+}
+
+const actions: React.CSSProperties = {
+  marginTop: '20px',
+  display: 'flex',
+  gap: '24px',
+}
+
+const btn: React.CSSProperties = {
+  width: '64px',
+  height: '64px',
+  borderRadius: '50%',
+  border: 'none',
+  color: '#fff',
+  fontSize: '28px',
+  cursor: 'pointer',
 }
