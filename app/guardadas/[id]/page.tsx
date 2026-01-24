@@ -1,142 +1,167 @@
-// app/guardadas/[id]/page.tsx
-export const dynamic = 'force-dynamic'
+'use client'
+
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
+
+type Media = {
+  id: string
+  type: 'image' | 'video'
+  url: string
+}
 
 type Property = {
   id: string
   title: string
-  short_description: string
-  description: string
+  full_description: string
+  address: string
   price: number
-  cover_url: string
+  media: Media[]
 }
 
-const DATA: Property[] = [
-  {
-    id: '1',
-    title: 'Depto 2 amb Palermo',
-    short_description: 'Luminoso, moderno y cerca de todo.',
-    description:
-      'Departamento de dos ambientes ubicado en el corazón de Palermo. Cuenta con excelente iluminación natural, balcón, cocina integrada y dormitorio con placard. Ideal para quienes buscan comodidad, ubicación y estilo.',
-    price: 450000,
-    cover_url:
-      'https://images.unsplash.com/photo-1502673530728-f79b4cab31b1',
-  },
-  {
-    id: '2',
-    title: 'Monoambiente Recoleta',
-    short_description: 'Ideal estudiantes o primera vivienda.',
-    description:
-      'Monoambiente funcional en Recoleta, a metros de universidades y medios de transporte. Ambiente amplio, cocina separada y baño completo. Perfecto para una vida urbana práctica.',
-    price: 380000,
-    cover_url:
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
-  },
-]
+// 👉 MOCK TEMPORAL (después viene Supabase)
+const MOCK_PROPERTY: Property = {
+  id: '1',
+  title: 'Depto 2 amb Palermo',
+  full_description:
+    'Departamento luminoso, moderno y silencioso. Ideal para vivir cómodo en una de las mejores zonas de la ciudad. Listo para entrar.',
+  address: 'Palermo, CABA',
+  price: 450000,
+  media: [
+    {
+      id: 'm1',
+      type: 'image',
+      url: 'https://images.unsplash.com/photo-1502673530728-f79b4cab31b1',
+    },
+    {
+      id: 'm2',
+      type: 'image',
+      url: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
+    },
+    {
+      id: 'm3',
+      type: 'video',
+      url: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    },
+  ],
+}
 
-export default function GuardadaDetalle({
-  params,
-}: {
-  params: { id: string }
-}) {
-  const property = DATA.find((p) => p.id === params.id)
+export default function GuardadaDetallePage() {
+  const params = useParams()
+  const property = MOCK_PROPERTY
 
-  if (!property) {
-    return (
-      <div style={container}>
-        <p style={{ color: '#fff' }}>Propiedad no encontrada</p>
-      </div>
-    )
-  }
+  const [index, setIndex] = useState(0)
+  const current = property.media[index]
 
   return (
-    <div style={container}>
-      <div
-        style={{
-          ...hero,
-          backgroundImage: `url(${property.cover_url})`,
-        }}
-      />
+    <div style={page}>
+      {/* GALERÍA */}
+      <div style={gallery}>
+        {current.type === 'image' ? (
+          <img src={current.url} style={media} />
+        ) : (
+          <video src={current.url} style={media} controls />
+        )}
 
-      <div style={content}>
-        <h1 style={title}>{property.title}</h1>
+        <div style={dots}>
+          {property.media.map((_, i) => (
+            <span
+              key={i}
+              onClick={() => setIndex(i)}
+              style={{
+                ...dot,
+                opacity: i === index ? 1 : 0.4,
+              }}
+            />
+          ))}
+        </div>
+      </div>
 
-        <p style={short}>{property.short_description}</p>
+      {/* INFO */}
+      <div style={info}>
+        <h1>{property.title}</h1>
+        <p style={{ opacity: 0.8 }}>{property.address}</p>
+        <strong style={{ fontSize: '20px' }}>
+          ${property.price.toLocaleString('es-AR')}
+        </strong>
 
-        <p style={description}>{property.description}</p>
+        <p style={{ marginTop: '16px', lineHeight: 1.5 }}>
+          {property.full_description}
+        </p>
 
-        <strong style={price}>${property.price}</strong>
-
+        {/* CTA */}
         <div style={actions}>
-          <button style={{ ...btn, background: '#22c55e' }}>
-            Agendar visita
-          </button>
-
-          <button style={{ ...btn, background: '#2563eb' }}>
-            WhatsApp
-          </button>
-
-          <button style={{ ...btn, background: '#9333ea' }}>
-            Videollamada
-          </button>
+          <button style={primaryBtn}>Agendar visita</button>
+          <button style={secondaryBtn}>Hablar por WhatsApp</button>
         </div>
       </div>
     </div>
   )
 }
 
-const container: React.CSSProperties = {
+/* ================== STYLES ================== */
+
+const page: React.CSSProperties = {
   minHeight: '100vh',
   background: '#000',
   color: '#fff',
 }
 
-const hero: React.CSSProperties = {
-  height: '320px',
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
+const gallery: React.CSSProperties = {
+  position: 'relative',
+  width: '100%',
+  height: '60vh',
+  overflow: 'hidden',
 }
 
-const content: React.CSSProperties = {
-  padding: '24px',
-  maxWidth: '720px',
-  margin: '0 auto',
+const media: React.CSSProperties = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
 }
 
-const title: React.CSSProperties = {
-  fontSize: '28px',
-  marginBottom: '8px',
+const dots: React.CSSProperties = {
+  position: 'absolute',
+  bottom: '12px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  display: 'flex',
+  gap: '8px',
 }
 
-const short: React.CSSProperties = {
-  fontSize: '16px',
-  opacity: 0.85,
-  marginBottom: '16px',
+const dot: React.CSSProperties = {
+  width: '8px',
+  height: '8px',
+  borderRadius: '50%',
+  background: '#fff',
+  cursor: 'pointer',
 }
 
-const description: React.CSSProperties = {
-  fontSize: '15px',
-  lineHeight: 1.6,
-  opacity: 0.9,
-  marginBottom: '24px',
-}
-
-const price: React.CSSProperties = {
-  fontSize: '22px',
-  display: 'block',
-  marginBottom: '24px',
+const info: React.CSSProperties = {
+  padding: '20px',
 }
 
 const actions: React.CSSProperties = {
+  marginTop: '24px',
   display: 'flex',
   gap: '12px',
-  flexWrap: 'wrap',
 }
 
-const btn: React.CSSProperties = {
+const primaryBtn: React.CSSProperties = {
+  flex: 1,
+  padding: '14px',
+  borderRadius: '12px',
+  background: '#22c55e',
   border: 'none',
-  borderRadius: '10px',
-  padding: '12px 16px',
-  color: '#fff',
+  fontSize: '16px',
   cursor: 'pointer',
-  fontSize: '14px',
+}
+
+const secondaryBtn: React.CSSProperties = {
+  flex: 1,
+  padding: '14px',
+  borderRadius: '12px',
+  background: '#2563eb',
+  border: 'none',
+  fontSize: '16px',
+  cursor: 'pointer',
 }
