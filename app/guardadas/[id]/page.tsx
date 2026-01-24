@@ -94,7 +94,24 @@ export default function GuardadaDetallePage() {
 
         {/* CTA */}
         <div style={actions}>
-          <button style={primaryBtn}>Agendar visita</button>
+          <button
+  style={primaryBtn}
+  onClick={async () => {
+    await fetch('/api/visit-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        property_id: property.id,
+        tenant_id: 'FAKE_TENANT_ID', // después auth real
+      }),
+    })
+
+    alert('Solicitud enviada. Te contactamos para coordinar la visita.')
+  }}
+>
+  Agendar visita
+</button>
+
           <button
             style={secondaryBtn}
             onClick={() => window.open(whatsappUrl, '_blank')}
