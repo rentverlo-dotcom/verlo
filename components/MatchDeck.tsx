@@ -23,6 +23,14 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
 
   if (!matches || matches.length === 0) return null
   const match = matches[index] ?? null
+  if (!match) {
+  return (
+    <div style={container}>
+      <p style={{ color: '#fff' }}>No hay más propiedades</p>
+    </div>
+  )
+}
+
 
   function swipe(dir: 'left' | 'right') {
     if (!cardRef.current) return
