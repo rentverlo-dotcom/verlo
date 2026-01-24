@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import MatchDeck from "@/components/MatchDeck";
 
 const matches = [
