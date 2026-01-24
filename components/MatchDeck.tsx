@@ -9,6 +9,7 @@ type Match = {
   address: string
   price: number
   cover_url: string
+  short_description: string
 }
 
 type MatchDeckProps = {
@@ -24,51 +25,48 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
   if (!matches || matches.length === 0) return null
 
   const match = matches[index] ?? null
- if (!match) {
-  return (
-    <div style={container}>
-      <p style={{ color: '#fff', marginBottom: '20px', textAlign: 'center' }}>
-        Terminaste por ahora.
-        <br />
-        Mirá las propiedades guardadas 👀
-      </p>
+  if (!match) {
+    return (
+      <div style={container}>
+        <p style={{ color: '#fff', marginBottom: '20px', textAlign: 'center' }}>
+          Terminaste por ahora.
+          <br />
+          Mirá las propiedades guardadas 👀
+        </p>
 
-      <button
-        style={{ ...btn, background: '#2563eb' }}
-        onClick={() => {
-          // placeholder: ir a /guardadas
-          console.log('ver guardadas')
-        }}
-      >
-        👁️
-      </button>
-    </div>
-  )
-}
+        <button
+          style={{ ...btn, background: '#2563eb' }}
+          onClick={() => {
+            // placeholder: ir a /guardadas
+            console.log('ver guardadas')
+          }}
+        >
+          👁️
+        </button>
+      </div>
+    )
+  }
 
   function swipe(dir: 'left' | 'right') {
-  if (!cardRef.current) return
+    if (!cardRef.current) return
 
-  const x = dir === 'right' ? 1000 : -1000
+    const x = dir === 'right' ? 1000 : -1000
 
-  // 👉 HOOK LOGICO (ACA DESPUES VA SUPABASE)
-  // dir === 'right' → like
-  // dir === 'left'  → dislike
-  console.log('action:', dir, 'property:', match.id)
+    // 👉 HOOK LOGICO (ACA DESPUES VA SUPABASE)
+    console.log('action:', dir, 'property:', match.id)
 
-  cardRef.current.style.transition = 'transform 0.3s ease'
-  cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
+    cardRef.current.style.transition = 'transform 0.3s ease'
+    cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
 
-  setTimeout(() => {
-    setIndex((i) => i + 1)
+    setTimeout(() => {
+      setIndex((i) => i + 1)
 
-    if (cardRef.current) {
-      cardRef.current.style.transition = ''
-      cardRef.current.style.transform = ''
-    }
-  }, 300)
-}
-
+      if (cardRef.current) {
+        cardRef.current.style.transition = ''
+        cardRef.current.style.transform = ''
+      }
+    }, 300)
+  }
 
   function onPointerDown(e: React.PointerEvent) {
     startX.current = e.clientX
@@ -111,7 +109,13 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
         <div style={overlay} />
         <div style={info}>
           <h2>{match.title}</h2>
-          <p>{match.address}</p>
+
+          {/* 👉 DESCRIPCIÓN BREVE (COPY PARA SWIPE) */}
+          <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: '6px' }}>
+            {match.short_description}
+          </p>
+
+          <p style={{ fontSize: '13px', opacity: 0.75 }}>{match.address}</p>
           <strong>${match.price}</strong>
         </div>
       </div>
@@ -178,6 +182,7 @@ const info: React.CSSProperties = {
   position: 'absolute',
   bottom: '20px',
   left: '20px',
+  right: '20px',
   color: '#fff',
 }
 
@@ -196,5 +201,3 @@ const btn: React.CSSProperties = {
   fontSize: '28px',
   cursor: 'pointer',
 }
-
-
