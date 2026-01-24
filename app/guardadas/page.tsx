@@ -1,7 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import Image from "next/image";
-
 type Match = {
   id: string;
   title: string;
@@ -41,12 +39,15 @@ export default function GuardadasPage() {
         {savedMatches.map((match) => (
           <div key={match.id} style={card}>
             <div style={imageWrap}>
-              <Image
-                src={match.cover_url}
-                alt={match.title}
-                fill
-                style={{ objectFit: "cover" }}
-              />
+             <img
+  src={match.cover_url}
+  alt={match.title}
+  style={{
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  }}
+/>
               <div style={overlay} />
             </div>
 
