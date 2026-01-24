@@ -14,10 +14,7 @@ type Match = {
   price: number;
   cover_url: string;
 };
-export default function GuardadasPage() {
-  return (
-    <>
-      <FlowHeader title="Guardadas" />
+
 export default function GuardadasPage() {
   const router = useRouter();
   const [savedMatches, setSavedMatches] = useState<Match[]>([]);
@@ -30,6 +27,10 @@ export default function GuardadasPage() {
       });
   }, []);
 
+  return (
+    <>
+      <FlowHeader title="Guardadas" />
+      
   return (
     <div style={container}>
       <h1 style={title}>Propiedades guardadas</h1>
