@@ -3,6 +3,11 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 
+const OWNER_PHONE = '5491112345678' // después viene de la DB
+const whatsappUrl = `https://wa.me/${OWNER_PHONE}?text=${encodeURIComponent(
+  `Hola! Vi la propiedad "${property.title}" en VERLO y me interesa. ¿Podemos coordinar una visita?`
+)}`
+
 type Media = {
   id: string
   type: 'image' | 'video'
