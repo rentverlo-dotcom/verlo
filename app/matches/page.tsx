@@ -1,3 +1,4 @@
+// app/matches/page.tsx
 export const dynamic = "force-dynamic";
 import MatchDeck from "@/components/MatchDeck";
 
@@ -5,6 +6,7 @@ const matches = [
   {
     id: "1",
     title: "Depto 2 amb Palermo",
+    short_description: "Luminoso, balcón y ubicación top para entrar ya.",
     address: "Palermo, CABA",
     price: 450000,
     cover_url:
@@ -13,6 +15,7 @@ const matches = [
   {
     id: "2",
     title: "Monoambiente Recoleta",
+    short_description: "Compacto, moderno y a pasos de todo.",
     address: "Recoleta, CABA",
     price: 380000,
     cover_url:
