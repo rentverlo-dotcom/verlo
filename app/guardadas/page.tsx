@@ -28,12 +28,8 @@ export default function GuardadasPage() {
   }, []);
 
   return (
-    <>
-      <FlowHeader title="Guardadas" />
-      
-  return (
     <div style={container}>
-      <h1 style={title}>Propiedades guardadas</h1>
+      <FlowHeader title="Guardadas" />
 
       <div style={list}>
         {savedMatches.map((match) => (
@@ -60,24 +56,9 @@ export default function GuardadasPage() {
               <p style={desc}>{match.short_description}</p>
               <p style={address}>{match.address}</p>
               <strong>${match.price}</strong>
-
-              <div style={actions}>
-                <button style={{ ...btn, background: "#22c55e" }}>
-                  Agendar visita
-                </button>
-                <button style={{ ...btn, background: "#2563eb" }}>
-                  Contactar
-                </button>
-              </div>
             </div>
           </div>
         ))}
-
-        {savedMatches.length === 0 && (
-          <p style={{ textAlign: "center", opacity: 0.7 }}>
-            Todavía no guardaste propiedades
-          </p>
-        )}
       </div>
     </div>
   );
