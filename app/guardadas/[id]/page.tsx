@@ -96,7 +96,13 @@ export default function GuardadaDetallePage() {
         {/* CTA */}
         <div style={actions}>
           <button style={primaryBtn}>Agendar visita</button>
-          <button style={secondaryBtn}>Hablar por WhatsApp</button>
+          <button
+  style={secondaryBtn}
+  onClick={() => window.open(whatsappUrl, '_blank')}
+>
+  Hablar por WhatsApp
+</button>
+
         </div>
       </div>
     </div>
