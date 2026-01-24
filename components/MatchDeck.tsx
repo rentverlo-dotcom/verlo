@@ -51,10 +51,19 @@ function swipe(dir: 'left' | 'right') {
   if (!cardRef.current) return
 
   const x = dir === 'right' ? 1000 : -1000
-  const action = dir === 'right' ? 'like' : 'dislike'
 
-  // 👉 HOOK LOGICO (FAKE POR AHORA)
-  console.log('action:', action, 'property:', match.id)
+  // 👉 LIKE REAL (solo derecha)
+  if (dir === 'right') {
+    fetch('/api/property-like', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenant_id: 'FAKE_TENANT_ID', // después auth real
+        property_id: match.id,
+        match_id: null,
+      }),
+    }).catch(() => {})
+  }
 
   cardRef.current.style.transition = 'transform 0.3s ease'
   cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
@@ -68,7 +77,6 @@ function swipe(dir: 'left' | 'right') {
     }
   }, 300)
 }
-
 
   function onPointerDown(e: React.PointerEvent) {
     startX.current = e.clientX
