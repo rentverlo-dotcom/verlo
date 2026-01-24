@@ -54,7 +54,7 @@ function swipe(dir: 'left' | 'right') {
 
   // 👉 LIKE REAL (solo derecha)
   if (dir === 'right') {
-    fetch('/api/property-like', {
+    fetch('/api/property-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
