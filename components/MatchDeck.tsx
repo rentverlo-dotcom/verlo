@@ -22,15 +22,19 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
   const cardRef = useRef<HTMLDivElement | null>(null)
 
   if (!matches || matches.length === 0) return null
+
   const match = matches[index] ?? null
   if (!match) {
-  return (
-    <div style={container}>
-      <p style={{ color: '#fff' }}>No hay más propiedades</p>
-    </div>
-  )
-}
-
+    return (
+      <div style={container}>
+        <p style={{ color: '#fff' }}>
+          Terminaste por ahora.  
+          <br />
+          Mirá las propiedades guardadas 👀
+        </p>
+      </div>
+    )
+  }
 
   function swipe(dir: 'left' | 'right') {
     if (!cardRef.current) return
@@ -93,10 +97,27 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
       </div>
 
       <div style={actions}>
-        <button style={{ ...btn, background: '#ff4d4f' }} onClick={() => swipe('left')}>
+        <button
+          style={{ ...btn, background: '#ff4d4f' }}
+          onClick={() => swipe('left')}
+        >
           ✕
         </button>
-        <button style={{ ...btn, background: '#22c55e' }} onClick={() => swipe('right')}>
+
+        <button
+          style={{ ...btn, background: '#2563eb' }}
+          onClick={() => {
+            // placeholder: ir a /guardadas
+            console.log('ver guardadas')
+          }}
+        >
+          👁️
+        </button>
+
+        <button
+          style={{ ...btn, background: '#22c55e' }}
+          onClick={() => swipe('right')}
+        >
           ♥
         </button>
       </div>
