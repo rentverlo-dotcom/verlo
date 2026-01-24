@@ -24,17 +24,27 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
   if (!matches || matches.length === 0) return null
 
   const match = matches[index] ?? null
-  if (!match) {
-    return (
-      <div style={container}>
-        <p style={{ color: '#fff' }}>
-          Terminaste por ahora.  
-          <br />
-          Mirá las propiedades guardadas 👀
-        </p>
-      </div>
-    )
-  }
+ if (!match) {
+  return (
+    <div style={container}>
+      <p style={{ color: '#fff', marginBottom: '20px', textAlign: 'center' }}>
+        Terminaste por ahora.
+        <br />
+        Mirá las propiedades guardadas 👀
+      </p>
+
+      <button
+        style={{ ...btn, background: '#2563eb' }}
+        onClick={() => {
+          // placeholder: ir a /guardadas
+          console.log('ver guardadas')
+        }}
+      >
+        👁️
+      </button>
+    </div>
+  )
+}
 
   function swipe(dir: 'left' | 'right') {
     if (!cardRef.current) return
