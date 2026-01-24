@@ -1,101 +1,116 @@
-"use client";
+'use client'
 
-import { useRef, useState } from "react";
+import { useRef, useState } from 'react'
 
-type Card = {
-  id: number;
-  name: string;
-  age: number;
-  image: string;
-};
+type Match = {
+  id: string
+  title: string
+  address: string
+  price: number
+  cover_url: string
+}
 
-const cards: Card[] = [
-  {
-    id: 1,
-    name: "Nancy",
-    age: 22,
-    image:
-      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e",
-  },
-  {
-    id: 2,
-    name: "Allen",
-    age: 18,
-    image:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d",
-  },
-];
+type MatchDeckProps = {
+  matches: Match[]
+}
 
-export default function MatchDeck() {
-  const [index, setIndex] = useState(0);
-  const [dx, setDx] = useState(0);
-  const dragging = useRef(false);
-  const startX = useRef(0);
+export default function MatchDeck({ matches }: MatchDeckProps) {
+  const [index, setIndex] = useState(0)
+  const startX = useRef(0)
+  const currentX = useRef(0)
+  const cardRef = useRef<HTMLDivElement | null>(null)
 
-  const card = cards[index];
-  if (!card) return null;
+  if (!matches || matches.length === 0) return null
+  const match = matches[index]
 
   function onPointerDown(e: React.PointerEvent) {
-    dragging.current = true;
-    startX.current = e.clientX;
+    startX.current = e.clientX
+    cardRef.current?.setPointerCapture(e.pointerId)
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!dragging.current) return;
-    setDx(e.clientX - startX.current);
+    currentX.current = e.clientX - startX.current
+    if (cardRef.current) {
+      cardRef.current.style.transform = `translateX(${currentX.current}px) rotate(${currentX.current / 20}deg)`
+    }
   }
 
   function onPointerUp() {
-    dragging.current = false;
+    if (!cardRef.current) return
 
-    if (Math.abs(dx) > 120) {
-      setIndex((i) => i + 1);
+    if (Math.abs(currentX.current) > 120) {
+      cardRef.current.style.transition = 'transform 0.3s ease'
+      cardRef.current.style.transform = `translateX(${currentX.current > 0 ? 1000 : -1000}px)`
+      setTimeout(() => {
+        setIndex((i) => i + 1)
+        if (cardRef.current) {
+          cardRef.current.style.transition = ''
+          cardRef.current.style.transform = ''
+        }
+      }, 300)
+    } else {
+      cardRef.current.style.transition = 'transform 0.2s ease'
+      cardRef.current.style.transform = 'translateX(0)'
     }
-    setDx(0);
+
+    currentX.current = 0
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-black">
+    <div style={container}>
       <div
-        className="relative w-[360px] h-[560px] rounded-2xl overflow-hidden select-none"
+        ref={cardRef}
         style={{
-          transform: `translateX(${dx}px) rotate(${dx * 0.05}deg)`,
-          transition: dragging.current ? "none" : "transform 0.3s ease",
-          touchAction: "pan-y",
+          ...card,
+          backgroundImage: `url(${match.cover_url})`,
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
-        {/* IMAGE */}
-        <img
-          src={card.image}
-          alt={card.name}
-          draggable={false}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-
-        {/* GRADIENT */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-        {/* INFO */}
-        <div className="absolute bottom-20 left-4 text-white">
-          <div className="text-2xl font-bold">
-            {card.name} <span className="font-normal">{card.age}</span>
-          </div>
-        </div>
-
-        {/* ACTIONS */}
-        <div className="absolute bottom-4 w-full flex justify-center gap-6">
-          <button className="w-14 h-14 rounded-full bg-white/90 text-red-500 text-xl">
-            ✕
-          </button>
-          <button className="w-16 h-16 rounded-full bg-white text-green-500 text-2xl">
-            ♥
-          </button>
+        <div style={overlay} />
+        <div style={info}>
+          <h2>{match.title}</h2>
+          <p>{match.address}</p>
+          <strong>${match.price}</strong>
         </div>
       </div>
     </div>
-  );
+  )
+}
+
+const container: React.CSSProperties = {
+  width: '100%',
+  height: '100vh',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  background: '#000',
+}
+
+const card: React.CSSProperties = {
+  width: '360px',
+  height: '640px',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  borderRadius: '20px',
+  position: 'relative',
+  touchAction: 'none',
+  cursor: 'grab',
+}
+
+const overlay: React.CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  borderRadius: '20px',
+  background:
+    'linear-gradient(to top, rgba(0,0,0,0.8) 20%, rgba(0,0,0,0.2) 60%, transparent)',
+}
+
+const info: React.CSSProperties = {
+  position: 'absolute',
+  bottom: '20px',
+  left: '20px',
+  color: '#fff',
 }
