@@ -1,6 +1,10 @@
 // app/matches/page.tsx
+'use client'
+
 export const dynamic = "force-dynamic";
+
 import MatchDeck from "@/components/MatchDeck";
+import FlowHeader from "@/components/FlowHeader";
 
 const matches = [
   {
@@ -24,5 +28,10 @@ const matches = [
 ];
 
 export default function MatchesPage() {
-  return <MatchDeck matches={matches} />;
+  return (
+    <>
+      <FlowHeader showSaved />
+      <MatchDeck matches={matches} />
+    </>
+  );
 }
