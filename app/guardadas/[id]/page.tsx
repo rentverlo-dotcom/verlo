@@ -117,12 +117,30 @@ export default function GuardadaDetallePage() {
             Agendar visita
           </button>
 
-          <button
-            style={secondaryBtn}
-            onClick={() => window.open(whatsappUrl, '_blank')}
-          >
-            Hablar por WhatsApp
-          </button>
+         <button
+  style={secondaryBtn}
+  onClick={async () => {
+    const res = await fetch('/api/identity-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: 'FAKE_TENANT_ID', // después auth real
+      }),
+    })
+
+    const data = await res.json()
+
+    if (!data.verified) {
+      alert('Para contactar al propietario necesitás validar tu identidad.')
+      return
+    }
+
+    window.open(whatsappUrl, '_blank')
+  }}
+>
+  Hablar por WhatsApp
+</button>
+
         </div>
       </div>
     </div>
