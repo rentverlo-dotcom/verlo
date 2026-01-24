@@ -47,17 +47,28 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
     )
   }
 
-  // 👉 HOOK LOGICO (SUPABASE)
-fetch('/api/property-action', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    property_id: match.id,
-    tenant_id: 'FAKE_TENANT_ID', // después auth real
-    match_id: null,
-    action: dir === 'right' ? 'like' : 'dislike',
-  }),
-})
+function swipe(dir: 'left' | 'right') {
+  if (!cardRef.current) return
+
+  const x = dir === 'right' ? 1000 : -1000
+  const action = dir === 'right' ? 'like' : 'dislike'
+
+  // 👉 HOOK LOGICO (FAKE POR AHORA)
+  console.log('action:', action, 'property:', match.id)
+
+  cardRef.current.style.transition = 'transform 0.3s ease'
+  cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
+
+  setTimeout(() => {
+    setIndex((i) => i + 1)
+
+    if (cardRef.current) {
+      cardRef.current.style.transition = ''
+      cardRef.current.style.transform = ''
+    }
+  }, 300)
+}
+
 
   function onPointerDown(e: React.PointerEvent) {
     startX.current = e.clientX
