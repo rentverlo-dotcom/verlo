@@ -19,11 +19,16 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
 
   if (!current) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-black text-white text-center px-6">
-        <h2 className="text-2xl font-semibold mb-2">No hay más propiedades</h2>
-        <p className="text-gray-400">
-          Volvé más tarde, estamos cargando nuevas oportunidades para vos ✨
-        </p>
+      <div className="min-h-screen flex items-center justify-center bg-black px-6">
+        <div className="text-center text-white max-w-sm">
+          <h2 className="text-2xl font-semibold mb-2">
+            Estamos buscando más opciones para vos
+          </h2>
+          <p className="text-gray-400">
+            Volvé en un rato, seguimos cargando propiedades que te pueden
+            encantar ✨
+          </p>
+        </div>
       </div>
     );
   }
@@ -31,18 +36,18 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
   const next = () => setIndex((i) => i + 1);
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-black">
-      {/* PHONE FRAME */}
-      <div className="relative w-[360px] h-[640px] rounded-[32px] overflow-hidden bg-black shadow-2xl">
-        {/* IMAGE */}
+    <div className="min-h-screen w-full flex items-center justify-center bg-black">
+      {/* CONTENEDOR TIPO TELÉFONO */}
+      <div className="relative w-[360px] h-[600px] rounded-[28px] overflow-hidden bg-zinc-900 shadow-2xl">
+        {/* IMAGEN */}
         <img
           src={current.cover_url}
           alt={current.title}
           className="absolute inset-0 w-full h-full object-cover"
         />
 
-        {/* GRADIENT */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+        {/* GRADIENTE */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
 
         {/* INFO */}
         <div className="absolute bottom-24 left-4 right-4 text-white">
@@ -55,11 +60,12 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
           </p>
         </div>
 
-        {/* ACTIONS */}
-        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8">
+        {/* BOTONES */}
+        <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-10">
           <button
             onClick={next}
-            className="w-14 h-14 rounded-full bg-white/90 text-black text-2xl flex items-center justify-center shadow-lg active:scale-95"
+            className="w-14 h-14 rounded-full bg-white text-black text-2xl flex items-center justify-center shadow-lg active:scale-95"
+            aria-label="No me interesa"
           >
             ✕
           </button>
@@ -70,12 +76,13 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
               next();
             }}
             className="w-16 h-16 rounded-full bg-rose-500 text-white text-2xl flex items-center justify-center shadow-xl active:scale-95"
+            aria-label="Me interesa"
           >
             ♥
           </button>
         </div>
 
-        {/* CLICK AREA */}
+        {/* CLICK PARA DETALLE */}
         <button
           onClick={() => router.push(`/properties/${current.id}`)}
           className="absolute inset-0"
@@ -85,4 +92,3 @@ export default function MatchDeck({ matches }: { matches: Match[] }) {
     </div>
   );
 }
-
