@@ -1,23 +1,16 @@
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
-  const supabase = createClient()
-  const { property_id, action } = await req.json()
+  const body = await req.json()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { error } = await supabaseAdmin
+    .from('property_actions')
+    .insert(body)
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 })
   }
-
-  await supabase.from('property_actions').upsert({
-    user_id: user.id,
-    property_id,
-    action,
-  })
 
   return NextResponse.json({ ok: true })
 }
