@@ -1,70 +1,101 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 
-type Match = {
-  id: string;
-  title: string;
-  address: string;
-  price: number;
-  cover_url: string;
+type Card = {
+  id: number;
+  name: string;
+  age: number;
+  image: string;
 };
 
-export default function MatchDeck({ matches }: { matches: Match[] }) {
+const cards: Card[] = [
+  {
+    id: 1,
+    name: "Nancy",
+    age: 22,
+    image:
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e",
+  },
+  {
+    id: 2,
+    name: "Allen",
+    age: 18,
+    image:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d",
+  },
+];
+
+export default function MatchDeck() {
   const [index, setIndex] = useState(0);
-  const router = useRouter();
+  const [dx, setDx] = useState(0);
+  const dragging = useRef(false);
+  const startX = useRef(0);
 
-  const current = matches[index];
+  const card = cards[index];
+  if (!card) return null;
 
-  if (!current) {
-    return (
-      <div className="h-screen flex items-center justify-center text-white bg-black">
-        No hay más propiedades
-      </div>
-    );
+  function onPointerDown(e: React.PointerEvent) {
+    dragging.current = true;
+    startX.current = e.clientX;
   }
 
-  const next = () => setIndex((i) => i + 1);
+  function onPointerMove(e: React.PointerEvent) {
+    if (!dragging.current) return;
+    setDx(e.clientX - startX.current);
+  }
+
+  function onPointerUp() {
+    dragging.current = false;
+
+    if (Math.abs(dx) > 120) {
+      setIndex((i) => i + 1);
+    }
+    setDx(0);
+  }
 
   return (
-    <div className="h-screen bg-black flex items-center justify-center">
-      <div className="relative w-[360px] h-[640px] rounded-3xl overflow-hidden shadow-2xl">
+    <div className="flex justify-center items-center min-h-screen bg-black">
+      <div
+        className="relative w-[360px] h-[560px] rounded-2xl overflow-hidden select-none"
+        style={{
+          transform: `translateX(${dx}px) rotate(${dx * 0.05}deg)`,
+          transition: dragging.current ? "none" : "transform 0.3s ease",
+          touchAction: "pan-y",
+        }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+      >
+        {/* IMAGE */}
         <img
-          src={current.cover_url}
-          alt={current.title}
+          src={card.image}
+          alt={card.name}
+          draggable={false}
           className="absolute inset-0 w-full h-full object-cover"
         />
 
+        {/* GRADIENT */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-        <div className="absolute bottom-24 left-4 right-4 text-white">
-          <h2 className="text-2xl font-bold">{current.title}</h2>
-          <p className="text-sm opacity-80">{current.address}</p>
-          <p className="text-xl font-semibold mt-1">
-            ${current.price.toLocaleString("es-AR")}
-          </p>
+        {/* INFO */}
+        <div className="absolute bottom-20 left-4 text-white">
+          <div className="text-2xl font-bold">
+            {card.name} <span className="font-normal">{card.age}</span>
+          </div>
         </div>
 
-        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-6">
-          <button
-            onClick={next}
-            className="w-14 h-14 rounded-full bg-gray-700 text-xl"
-          >
-            ❌
+        {/* ACTIONS */}
+        <div className="absolute bottom-4 w-full flex justify-center gap-6">
+          <button className="w-14 h-14 rounded-full bg-white/90 text-red-500 text-xl">
+            ✕
           </button>
-
-          <button
-            onClick={() => {
-              next();
-            }}
-            className="w-16 h-16 rounded-full bg-emerald-500 text-2xl"
-          >
-            ❤️
+          <button className="w-16 h-16 rounded-full bg-white text-green-500 text-2xl">
+            ♥
           </button>
         </div>
       </div>
     </div>
   );
 }
-
