@@ -22,7 +22,7 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
   const cardRef = useRef<HTMLDivElement | null>(null)
 
   if (!matches || matches.length === 0) return null
-  const match = matches[index]
+  const match = matches[index] ?? null
 
   function swipe(dir: 'left' | 'right') {
     if (!cardRef.current) return
