@@ -47,18 +47,28 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
 }
 
   function swipe(dir: 'left' | 'right') {
-    if (!cardRef.current) return
-    const x = dir === 'right' ? 1000 : -1000
-    cardRef.current.style.transition = 'transform 0.3s ease'
-    cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
-    setTimeout(() => {
-      setIndex((i) => i + 1)
-      if (cardRef.current) {
-        cardRef.current.style.transition = ''
-        cardRef.current.style.transform = ''
-      }
-    }, 300)
-  }
+  if (!cardRef.current) return
+
+  const x = dir === 'right' ? 1000 : -1000
+
+  // 👉 HOOK LOGICO (ACA DESPUES VA SUPABASE)
+  // dir === 'right' → like
+  // dir === 'left'  → dislike
+  console.log('action:', dir, 'property:', match.id)
+
+  cardRef.current.style.transition = 'transform 0.3s ease'
+  cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
+
+  setTimeout(() => {
+    setIndex((i) => i + 1)
+
+    if (cardRef.current) {
+      cardRef.current.style.transition = ''
+      cardRef.current.style.transform = ''
+    }
+  }, 300)
+}
+
 
   function onPointerDown(e: React.PointerEvent) {
     startX.current = e.clientX
