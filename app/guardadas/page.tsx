@@ -1,97 +1,156 @@
-// app/guardadas/page.tsx
-import Link from 'next/link'
+//app/guardadas/page.tsx
+'use client'
+export const dynamic = "force-dynamic";
+import { useRouter } from "next/navigation";
 
-type Property = {
-  id: string
-  title: string
-  short_description: string
-  price: number
-  cover_url: string
-}
+type Match = {
+  id: string;
+  title: string;
+  short_description: string;
+  address: string;
+  price: number;
+  cover_url: string;
+};
 
-const savedProperties: Property[] = [
+const savedMatches: Match[] = [
   {
-    id: '1',
-    title: 'Depto 2 amb Palermo',
-    short_description: 'Luz natural todo el día, balcón y ubicación premium.',
+    id: "1",
+    title: "Depto 2 amb Palermo",
+    short_description: "Luminoso, balcón y ubicación top para entrar ya.",
+    address: "Palermo, CABA",
     price: 450000,
     cover_url:
-      'https://images.unsplash.com/photo-1502673530728-f79b4cab31b1',
+      "https://images.unsplash.com/photo-1502673530728-f79b4cab31b1",
   },
   {
-    id: '2',
-    title: 'Monoambiente Recoleta',
-    short_description: 'Ideal para vivir solo, moderno y bien conectado.',
+    id: "2",
+    title: "Monoambiente Recoleta",
+    short_description: "Compacto, moderno y a pasos de todo.",
+    address: "Recoleta, CABA",
     price: 380000,
     cover_url:
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267',
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
   },
-]
+];
 
 export default function GuardadasPage() {
+  const router = useRouter();
+
   return (
     <div style={container}>
       <h1 style={title}>Propiedades guardadas</h1>
 
-      <div style={grid}>
-        {savedProperties.map((p) => (
-          <Link key={p.id} href={`/guardadas/${p.id}`} style={card}>
-            <div
-              style={{
-                ...image,
-                backgroundImage: `url(${p.cover_url})`,
-              }}
-            />
-            <div style={info}>
-              <h2>{p.title}</h2>
-              <p style={desc}>{p.short_description}</p>
-              <strong>${p.price}</strong>
+      <div style={list}>
+        {savedMatches.map((match) => (
+          <div
+            key={match.id}
+            style={card}
+            onClick={() => router.push(`/guardadas/${match.id}`)}
+          >
+            <div style={imageWrap}>
+              <img
+                src={match.cover_url}
+                alt={match.title}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+              <div style={overlay} />
             </div>
-          </Link>
+
+            <div style={info}>
+              <h2>{match.title}</h2>
+              <p style={desc}>{match.short_description}</p>
+              <p style={address}>{match.address}</p>
+              <strong>${match.price}</strong>
+
+              <div style={actions}>
+                <button style={{ ...btn, background: "#22c55e" }}>
+                  Agendar visita
+                </button>
+                <button style={{ ...btn, background: "#2563eb" }}>
+                  Contactar
+                </button>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 const container: React.CSSProperties = {
-  minHeight: '100vh',
-  background: '#000',
-  color: '#fff',
-  padding: '40px 20px',
-}
+  minHeight: "100vh",
+  background: "#000",
+  color: "#fff",
+  padding: "24px",
+};
 
 const title: React.CSSProperties = {
-  textAlign: 'center',
-  marginBottom: '32px',
-}
+  fontSize: "22px",
+  marginBottom: "24px",
+  textAlign: "center",
+};
 
-const grid: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-  gap: '20px',
-}
+const list: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+  maxWidth: "420px",
+  margin: "0 auto",
+};
 
 const card: React.CSSProperties = {
-  background: '#111',
-  borderRadius: '16px',
-  overflow: 'hidden',
-  textDecoration: 'none',
-  color: '#fff',
-}
+  borderRadius: "20px",
+  overflow: "hidden",
+  background: "#111",
+  cursor: "pointer",
+};
 
-const image: React.CSSProperties = {
-  height: '180px',
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-}
+const imageWrap: React.CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: "220px",
+};
+
+const overlay: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background:
+    "linear-gradient(to top, rgba(0,0,0,0.6), transparent)",
+};
 
 const info: React.CSSProperties = {
-  padding: '14px',
-}
+  padding: "16px",
+};
 
 const desc: React.CSSProperties = {
-  fontSize: '14px',
-  opacity: 0.85,
-  marginBottom: '8px',
-}
+  fontSize: "14px",
+  opacity: 0.9,
+  marginBottom: "6px",
+};
+
+const address: React.CSSProperties = {
+  fontSize: "13px",
+  opacity: 0.7,
+  marginBottom: "8px",
+};
+
+const actions: React.CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  marginTop: "12px",
+};
+
+const btn: React.CSSProperties = {
+  flex: 1,
+  border: "none",
+  borderRadius: "12px",
+  color: "#fff",
+  padding: "10px",
+  fontSize: "14px",
+  cursor: "pointer",
+};
