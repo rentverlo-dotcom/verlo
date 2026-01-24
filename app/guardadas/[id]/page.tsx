@@ -4,9 +4,6 @@ import { useState } from 'react'
 import { useParams } from 'next/navigation'
 
 const OWNER_PHONE = '5491112345678' // después viene de la DB
-const whatsappUrl = `https://wa.me/${OWNER_PHONE}?text=${encodeURIComponent(
-  `Hola! Vi la propiedad "${property.title}" en VERLO y me interesa. ¿Podemos coordinar una visita?`
-)}`
 
 type Media = {
   id: string
@@ -23,7 +20,7 @@ type Property = {
   media: Media[]
 }
 
-// 👉 MOCK TEMPORAL (después viene Supabase)
+// 👉 MOCK TEMPORAL
 const MOCK_PROPERTY: Property = {
   id: '1',
   title: 'Depto 2 amb Palermo',
@@ -57,6 +54,11 @@ export default function GuardadaDetallePage() {
   const [index, setIndex] = useState(0)
   const current = property.media[index]
 
+  // ✅ WHATSAPP URL — ACÁ ES DONDE VA
+  const whatsappUrl = `https://wa.me/${OWNER_PHONE}?text=${encodeURIComponent(
+    `Hola! Vi la propiedad "${property.title}" en VERLO y me interesa. ¿Podemos coordinar una visita?`
+  )}`
+
   return (
     <div style={page}>
       {/* GALERÍA */}
@@ -72,10 +74,7 @@ export default function GuardadaDetallePage() {
             <span
               key={i}
               onClick={() => setIndex(i)}
-              style={{
-                ...dot,
-                opacity: i === index ? 1 : 0.4,
-              }}
+              style={{ ...dot, opacity: i === index ? 1 : 0.4 }}
             />
           ))}
         </div>
@@ -97,12 +96,11 @@ export default function GuardadaDetallePage() {
         <div style={actions}>
           <button style={primaryBtn}>Agendar visita</button>
           <button
-  style={secondaryBtn}
-  onClick={() => window.open(whatsappUrl, '_blank')}
->
-  Hablar por WhatsApp
-</button>
-
+            style={secondaryBtn}
+            onClick={() => window.open(whatsappUrl, '_blank')}
+          >
+            Hablar por WhatsApp
+          </button>
         </div>
       </div>
     </div>
