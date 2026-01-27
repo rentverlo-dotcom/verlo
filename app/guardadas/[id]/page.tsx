@@ -99,69 +99,68 @@ export default function GuardadaDetallePage() {
 
         {/* CTA */}
         <div style={actions}>
-         <button
-  style={primaryBtn}
-  onClick={async () => {
-    const res = await fetch('/api/identity-status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: 'FAKE_TENANT_ID', // después auth real
-      }),
-    })
+          <button
+            style={primaryBtn}
+            onClick={async () => {
+              const res = await fetch('/api/identity-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  user_id: 'FAKE_TENANT_ID', // después auth real
+                }),
+              })
 
-    const data = await res.json()
+              const data = await res.json()
 
-    if (!data.verified) {
-      alert('Para solicitar una visita necesitás validar tu identidad.')
-      return
-    }
+              if (!data.verified) {
+                alert('Para solicitar una visita necesitás validar tu identidad.')
+                return
+              }
 
-    await fetch('/api/visit-request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        property_id: property.id,
-        tenant_id: 'FAKE_TENANT_ID',
-      }),
-    })
+              await fetch('/api/visit-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  property_id: property.id,
+                  tenant_id: 'FAKE_TENANT_ID',
+                }),
+              })
 
-    alert('Solicitud enviada. Te contactamos para coordinar la visita.')
-  }}
->
-  Agendar visita
-</button>
+              alert('Solicitud enviada. Te contactamos para coordinar la visita.')
+            }}
+          >
+            Agendar visita
+          </button>
 
+          <button
+            style={secondaryBtn}
+            onClick={async () => {
+              const res = await fetch('/api/identity-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  user_id: 'FAKE_TENANT_ID', // después auth real
+                }),
+              })
 
-         <button
-  style={secondaryBtn}
-  onClick={async () => {
-    const res = await fetch('/api/identity-status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: 'FAKE_TENANT_ID', // después auth real
-      }),
-    })
+              const data = await res.json()
 
-    const data = await res.json()
+              if (!data.verified) {
+                alert('Para contactar al propietario necesitás validar tu identidad.')
+                return
+              }
 
-    if (!data.verified) {
-      alert('Para contactar al propietario necesitás validar tu identidad.')
-      return
-    }
-
-    window.open(whatsappUrl, '_blank')
-  }}
->
-  Hablar por WhatsApp
-</button>
-
+              window.open(whatsappUrl, '_blank')
+            }}
+          >
+            Hablar por WhatsApp
+          </button>
         </div>
       </div>
     </div>
   )
 }
+
 
 /* ================== STYLES ================== */
 
