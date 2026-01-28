@@ -7,7 +7,12 @@ export default function ContactoPage() {
       <h1 style={title}>Contacto</h1>
 
       <p style={p}>
-        ¿Tenés dudas, consultas o necesitás ayuda?
+        ¿Tenés dudas, consultas o necesitás ayuda con VERLO?
+      </p>
+
+      <p style={{ ...p, marginTop: "16px" }}>
+        También podés escribirnos para ejercer tus derechos sobre datos
+        personales (acceso, rectificación o eliminación).
       </p>
 
       <p style={{ ...p, marginTop: "16px" }}>
