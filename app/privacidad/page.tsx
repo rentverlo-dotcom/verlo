@@ -8,35 +8,62 @@ export default function PrivacidadPage() {
 
       <p style={p}>
         En VERLO nos tomamos en serio la privacidad y protección de los datos
-        personales de nuestros usuarios.
+        personales de nuestros usuarios, de conformidad con la Ley N° 25.326 de
+        Protección de Datos Personales y normativa aplicable en la República
+        Argentina.
       </p>
 
       <h2 style={h2}>1. Datos que recolectamos</h2>
       <p style={p}>
         Para habilitar funciones que implican contacto entre personas,
-        recolectamos datos identificatorios como DNI, imagen del documento,
-        selfie y datos de contacto.
+        verificación de identidad y celebración de contratos, podemos
+        recolectar datos personales tales como nombre, DNI, imagen del
+        documento, selfie, prueba de vida (liveness) y datos de contacto.
       </p>
 
-      <h2 style={h2}>2. Finalidad</h2>
+      <h2 style={h2}>2. Finalidad del tratamiento</h2>
       <p style={p}>
-        Los datos se utilizan exclusivamente para verificación de identidad,
-        prevención de fraude y habilitación de visitas, contacto y contratos.
+        Los datos se utilizan exclusivamente para:
+        <br />– Verificación de identidad
+        <br />– Prevención de fraude
+        <br />– Seguridad entre las partes
+        <br />– Habilitación de visitas, contacto y contratos
       </p>
 
-      <h2 style={h2}>3. Proveedor</h2>
+      <h2 style={h2}>3. Proveedor de verificación</h2>
       <p style={p}>
-        La verificación es realizada por <strong>Truora</strong>. VERLO no almacena
-        documentos ni datos biométricos, solo el resultado del proceso.
+        La verificación de identidad es realizada por un proveedor externo
+        especializado, actualmente <strong>Truora</strong>, quien actúa como
+        encargado del tratamiento de los datos.
       </p>
-
-      <h2 style={h2}>4. Derechos</h2>
       <p style={p}>
-        Podés ejercer tus derechos de acceso, rectificación o eliminación
-        escribiendo a <strong>hola@verlo.lat</strong>.
+        VERLO no almacena copias de documentos ni datos biométricos. Únicamente
+        conserva el resultado del proceso de verificación (aprobado, rechazado
+        o pendiente) y metadatos asociados.
       </p>
 
-      <h2 style={h2}>5. Responsable</h2>
+      <h2 style={h2}>4. Consentimiento</h2>
+      <p style={p}>
+        Al utilizar las funciones de verificación de identidad, el usuario
+        presta su consentimiento libre, expreso e informado para el tratamiento
+        de sus datos personales conforme a esta Política de Privacidad.
+      </p>
+
+      <h2 style={h2}>5. Conservación de los datos</h2>
+      <p style={p}>
+        Los datos personales se conservan únicamente durante el tiempo
+        necesario para cumplir con las finalidades descriptas o mientras exista
+        una relación activa con el usuario, salvo obligación legal en contrario.
+      </p>
+
+      <h2 style={h2}>6. Derechos del titular</h2>
+      <p style={p}>
+        El titular de los datos puede ejercer sus derechos de acceso,
+        rectificación, actualización o supresión conforme al artículo 14 de la
+        Ley 25.326, escribiendo a <strong>hola@verlo.lat</strong>.
+      </p>
+
+      <h2 style={h2}>7. Responsable del tratamiento</h2>
       <p style={p}>
         VERLO – Servicios digitales<br />
         Titular: Juan Manuel Oddone<br />
