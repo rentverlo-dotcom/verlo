@@ -2,28 +2,27 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
 export async function POST(req: Request) {
-  const { user_id } = await req.json()
+  const { subject_id } = await req.json()
 
-  if (!user_id) {
-    return NextResponse.json({ error: 'user_id required' }, { status: 400 })
+  if (!subject_id) {
+    return NextResponse.json({ verified: false }, { status: 400 })
   }
 
-  // Crear intento local (antes de Truora)
   const { data, error } = await supabaseAdmin
     .from('identity_verifications')
-    .insert({
-      user_id,
-      provider: 'truora',
-      status: 'pending',
-    })
-    .select()
+    .select('status')
+    .eq('subject_type', 'user')
+    .eq('subject_id', subject_id)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: 'db_error' }, { status: 500 })
+  if (error || !data) {
+    return NextResponse.json({ verified: false, status: null })
   }
 
   return NextResponse.json({
-    verification_id: data.id,
+    verified: data.status === 'verified',
+    status: data.status,
   })
 }
