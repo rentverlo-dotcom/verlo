@@ -5,21 +5,25 @@ export async function POST(req: Request) {
   const { user_id } = await req.json()
 
   if (!user_id) {
-    return NextResponse.json({ error: 'missing user' }, { status: 400 })
+    return NextResponse.json({ error: 'user_id required' }, { status: 400 })
   }
 
-  // crea registro si no existe
-  await supabaseAdmin
+  // Crear intento local (antes de Truora)
+  const { data, error } = await supabaseAdmin
     .from('identity_verifications')
-    .upsert({
+    .insert({
       user_id,
+      provider: 'truora',
       status: 'pending',
     })
+    .select()
+    .single()
 
-  // por ahora simulamos proveedor externo
-  // después acá conectás Renaper / Mi Argentina
+  if (error) {
+    return NextResponse.json({ error: 'db_error' }, { status: 500 })
+  }
+
   return NextResponse.json({
-    ok: true,
-    redirect_url: '/verificacion/en-proceso',
+    verification_id: data.id,
   })
 }
