@@ -1,6 +1,6 @@
 // app/propiedades/[id]/page.tsx
 import { cookies } from 'next/headers'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createServerComponentClient } from '@supabase/supabase-js'
 
 export default async function Page({ params }: { params: { id: string } }) {
   const supabase = createServerComponentClient({ cookies })
