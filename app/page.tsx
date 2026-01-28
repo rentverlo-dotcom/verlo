@@ -404,9 +404,9 @@ export default function HomePage() {
         opacity: 0.8,
       }}
     >
-      <a href="#">Términos</a>
-      <a href="#">Privacidad</a>
-      <a href="mailto:hola@verlo.lat">Contacto</a>
+      <a href="/terminos">Términos</a>
+      <a href="/privacidad">Privacidad</a>
+      <a href="/contacto">Contacto</a>
     </div>
   </div>
 
@@ -422,6 +422,6 @@ export default function HomePage() {
     © {new Date().getFullYear()} VERLO. Todos los derechos reservados.
   </div>
 </footer>
-    </>
-  );
+</> 
+  ); 
 }
