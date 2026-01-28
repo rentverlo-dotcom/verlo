@@ -1,36 +1,72 @@
-// app/propiedades/[id]/page.tsx
-import { cookies } from 'next/headers'
-import { createServerComponentClient } from '@supabase/supabase-js'
+'use client'
 
-export default async function Page({ params }: { params: { id: string } }) {
-  const supabase = createServerComponentClient({ cookies })
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
 
-  // 🔹 Traemos propiedad + media en una sola query
-  const { data: property, error } = await supabase
-    .from('properties')
-    .select(`
-      *,
-      property_media (
-        id,
-        url,
-        type,
-        position
-      )
-    `)
-    .eq('id', params.id)
-    .maybeSingle()
+export default function PropertyPage() {
+  const { id } = useParams<{ id: string }>()
+  const [loading, setLoading] = useState(true)
+  const [property, setProperty] = useState<any>(null)
+  const [media, setMedia] = useState<any[]>([])
 
-  if (!property || error) {
-    return <div>No existe</div>
-  }
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
 
-  // 🔹 URLs públicas del storage
-  const mediaUrls =
-    property.property_media?.map(m =>
-      supabase.storage
-        .from('property-media') // ⚠️ asegurate que este sea el bucket real
-        .getPublicUrl(m.url).data.publicUrl
-    ) ?? []
+      const { data: auth } = await supabase.auth.getUser()
+      const user = auth.user
+
+      const { data: propertyData } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (!propertyData) {
+        setProperty(null)
+        setLoading(false)
+        return
+      }
+
+      // OWNER puede ver aunque no esté publicada
+      if (user && propertyData.owner_id === user.id) {
+        const { data: mediaData } = await supabase
+          .from('property_media')
+          .select('*')
+          .eq('property_id', id)
+          .order('position')
+
+        setProperty(propertyData)
+        setMedia(mediaData || [])
+        setLoading(false)
+        return
+      }
+
+      // Público: solo si está publicada
+      if (propertyData.publish_status === 'published') {
+        const { data: mediaData } = await supabase
+          .from('property_media')
+          .select('*')
+          .eq('property_id', id)
+          .order('position')
+
+        setProperty(propertyData)
+        setMedia(mediaData || [])
+        setLoading(false)
+        return
+      }
+
+      // Ni owner ni pública
+      setProperty(null)
+      setLoading(false)
+    }
+
+    load()
+  }, [id])
+
+  if (loading) return <div style={{ padding: 40 }}>Cargando…</div>
+  if (!property) return <div style={{ padding: 40 }}>No existe</div>
 
   return (
     <div style={{ maxWidth: 900, margin: '40px auto', padding: 24 }}>
@@ -38,11 +74,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         {property.property_type} – ${property.price}
       </h1>
 
-      <p style={{ opacity: 0.7 }}>
-        {property.city ?? ''} {property.zone ?? ''}
-      </p>
-
-      {mediaUrls.length > 0 && (
+      {media.length > 0 && (
         <div
           style={{
             display: 'grid',
@@ -51,18 +83,24 @@ export default async function Page({ params }: { params: { id: string } }) {
             marginTop: 24,
           }}
         >
-          {mediaUrls.map(url => (
-            <img
-              key={url}
-              src={url}
-              style={{
-                width: '100%',
-                height: 160,
-                objectFit: 'cover',
-                borderRadius: 8,
-              }}
-            />
-          ))}
+          {media.map(m => {
+            const url = supabase.storage
+              .from('property-media')
+              .getPublicUrl(m.url).data.publicUrl
+
+            return (
+              <img
+                key={m.id}
+                src={url}
+                style={{
+                  width: '100%',
+                  height: 160,
+                  objectFit: 'cover',
+                  borderRadius: 8,
+                }}
+              />
+            )
+          })}
         </div>
       )}
 
