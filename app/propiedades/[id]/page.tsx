@@ -1,3 +1,4 @@
+// app/propiedades/[id]/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -5,25 +6,29 @@ import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 
 export default function PropertyPage() {
-  const { id } = useParams<{ id: string }>()
+  const params = useParams<{ id: string | string[] }>()
+  const id = Array.isArray(params.id) ? params.id[0] : params.id
+
   const [loading, setLoading] = useState(true)
   const [property, setProperty] = useState<any>(null)
   const [media, setMedia] = useState<any[]>([])
 
   useEffect(() => {
+    if (!id) return
+
     async function load() {
       setLoading(true)
 
       const { data: auth } = await supabase.auth.getUser()
       const user = auth.user
 
-      const { data: propertyData } = await supabase
+      const { data: propertyData, error: propertyError } = await supabase
         .from('properties')
         .select('*')
         .eq('id', id)
         .single()
 
-      if (!propertyData) {
+      if (propertyError || !propertyData) {
         setProperty(null)
         setLoading(false)
         return
@@ -110,4 +115,3 @@ export default function PropertyPage() {
     </div>
   )
 }
-
