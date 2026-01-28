@@ -1,30 +1,34 @@
 // app/propiedades/[id]/page.tsx
-import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default async function Page({ params }: { params: { id: string } }) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createServerComponentClient({ cookies })
 
-  const { data: property } = await supabase
+  // 🔹 Traemos propiedad + media en una sola query
+  const { data: property, error } = await supabase
     .from('properties')
-    .select('*')
+    .select(`
+      *,
+      property_media (
+        id,
+        url,
+        type,
+        position
+      )
+    `)
     .eq('id', params.id)
-    .single()
+    .maybeSingle()
 
-  if (!property) return <div>No existe</div>
+  if (!property || error) {
+    return <div>No existe</div>
+  }
 
-  const { data: media } = await supabase
-    .from('property_media')
-    .select('*')
-    .eq('property_id', params.id)
-    .order('position')
-
+  // 🔹 URLs públicas del storage
   const mediaUrls =
-    media?.map(m =>
+    property.property_media?.map(m =>
       supabase.storage
-        .from('media')
+        .from('property-media') // ⚠️ asegurate que este sea el bucket real
         .getPublicUrl(m.url).data.publicUrl
     ) ?? []
 
@@ -35,7 +39,7 @@ export default async function Page({ params }: { params: { id: string } }) {
       </h1>
 
       <p style={{ opacity: 0.7 }}>
-        {property.city} · {property.zone}
+        {property.city ?? ''} {property.zone ?? ''}
       </p>
 
       {mediaUrls.length > 0 && (
@@ -68,3 +72,4 @@ export default async function Page({ params }: { params: { id: string } }) {
     </div>
   )
 }
+
