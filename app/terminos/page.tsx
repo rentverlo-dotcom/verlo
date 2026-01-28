@@ -7,36 +7,44 @@ export default function TerminosPage() {
       <h1 style={title}>Términos y Condiciones</h1>
 
       <p style={p}>
-        Al utilizar VERLO aceptás los presentes términos y condiciones.
+        Al utilizar VERLO aceptás los presentes Términos y Condiciones.
       </p>
 
       <h2 style={h2}>1. Objeto</h2>
       <p style={p}>
         VERLO es una plataforma digital que facilita el contacto entre
-        inquilinos y propietarios sin actuar como intermediario inmobiliario.
+        inquilinos y propietarios, así como la coordinación de visitas y la
+        generación de contratos, sin actuar como intermediario inmobiliario ni
+        como parte de la relación contractual entre las partes.
       </p>
 
       <h2 style={h2}>2. Responsabilidad</h2>
       <p style={p}>
-        VERLO no garantiza operaciones, pagos ni resultados y no reemplaza
-        asesoramiento legal o profesional.
+        VERLO no garantiza operaciones, pagos ni resultados, ni reemplaza
+        asesoramiento legal, inmobiliario o profesional.
       </p>
 
-      <h2 style={h2}>3. Identidad</h2>
+      <h2 style={h2}>3. Verificación de identidad</h2>
       <p style={p}>
-        Para habilitar contacto, visitas y contratos es obligatorio validar
-        identidad.
+        Para habilitar determinadas funcionalidades como el contacto, las
+        visitas o la firma de contratos, puede ser obligatorio validar la
+        identidad del usuario mediante proveedores externos especializados.
+      </p>
+      <p style={p}>
+        El usuario acepta que dicha verificación es una condición necesaria
+        para el uso de estas funciones.
       </p>
 
       <h2 style={h2}>4. Uso indebido</h2>
       <p style={p}>
-        El uso fraudulento o contrario a la ley podrá derivar en la suspensión
-        del acceso.
+        El uso fraudulento, engañoso o contrario a la ley podrá derivar en la
+        suspensión o cancelación del acceso a la plataforma.
       </p>
 
       <h2 style={h2}>5. Jurisdicción</h2>
       <p style={p}>
-        Estos términos se rigen por las leyes de la República Argentina.
+        Estos Términos y Condiciones se rigen por las leyes de la República
+        Argentina.
       </p>
     </div>
   );
