@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import FlowHeader from '@/components/FlowHeader'
+import IdentityVerificationModal from '@/components/IdentityVerificationModal' // 🆕 AGREGADO
 
 const OWNER_PHONE = '5491112345678' // después viene de la DB
 
@@ -56,10 +57,50 @@ export default function GuardadaDetallePage() {
   const [index, setIndex] = useState(0)
   const current = property.media[index]
 
+  const [showVerify, setShowVerify] = useState(false) // 🆕 AGREGADO
+  const [pendingAction, setPendingAction] = useState<
+    'visit' | 'whatsapp' | null
+  >(null) // 🆕 AGREGADO
+
   // ✅ WHATSAPP URL
   const whatsappUrl = `https://wa.me/${OWNER_PHONE}?text=${encodeURIComponent(
     `Hola! Vi la propiedad "${property.title}" en VERLO y me interesa. ¿Podemos coordinar una visita?`
   )}`
+
+  // 🆕 FUNCIÓN CENTRAL PARA VALIDAR IDENTIDAD
+  async function checkIdentity(action: 'visit' | 'whatsapp') {
+    const res = await fetch('/api/identity-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject_id: 'FAKE_TENANT_ID', // después auth real
+      }),
+    })
+
+    const data = await res.json()
+
+    if (!data.verified) {
+      setPendingAction(action)
+      setShowVerify(true)
+      return false
+    }
+
+    return true
+  }
+
+  // 🆕 INICIA VERIFICACIÓN
+  async function startVerification() {
+    await fetch('/api/identity-start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject_id: 'FAKE_TENANT_ID', // después auth real
+      }),
+    })
+
+    alert('Redirigir a verificación de identidad (Truora)')
+    setShowVerify(false)
+  }
 
   return (
     <div style={page}>
@@ -102,20 +143,8 @@ export default function GuardadaDetallePage() {
           <button
             style={primaryBtn}
             onClick={async () => {
-              const res = await fetch('/api/identity-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  user_id: 'FAKE_TENANT_ID', // después auth real
-                }),
-              })
-
-              const data = await res.json()
-
-              if (!data.verified) {
-                alert('Para solicitar una visita necesitás validar tu identidad.')
-                return
-              }
+              const ok = await checkIdentity('visit')
+              if (!ok) return
 
               await fetch('/api/visit-request', {
                 method: 'POST',
@@ -135,20 +164,8 @@ export default function GuardadaDetallePage() {
           <button
             style={secondaryBtn}
             onClick={async () => {
-              const res = await fetch('/api/identity-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  user_id: 'FAKE_TENANT_ID', // después auth real
-                }),
-              })
-
-              const data = await res.json()
-
-              if (!data.verified) {
-                alert('Para contactar al propietario necesitás validar tu identidad.')
-                return
-              }
+              const ok = await checkIdentity('whatsapp')
+              if (!ok) return
 
               window.open(whatsappUrl, '_blank')
             }}
@@ -157,6 +174,16 @@ export default function GuardadaDetallePage() {
           </button>
         </div>
       </div>
+
+      {/* 🆕 MODAL DE VERIFICACIÓN */}
+      <IdentityVerificationModal
+        open={showVerify}
+        onClose={() => {
+          setShowVerify(false)
+          setPendingAction(null)
+        }}
+        onVerify={startVerification}
+      />
     </div>
   )
 }
