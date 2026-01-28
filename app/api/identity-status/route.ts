@@ -12,6 +12,8 @@ export async function POST(req: Request) {
     .from('identity_verifications')
     .select('status')
     .eq('user_id', user_id)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single()
 
   if (error || !data) {
@@ -20,5 +22,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     verified: data.status === 'verified',
+    status: data.status,
   })
 }
