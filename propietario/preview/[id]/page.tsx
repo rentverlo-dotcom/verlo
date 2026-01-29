@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { supabase } from '@/lib/supabase/client'
 
 export default async function OwnerPreview({ params }) {
   const supabase = createClient()
