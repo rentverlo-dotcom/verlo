@@ -212,31 +212,32 @@ export default function PublicarPropiedad() {
   }
 
 async function publish() {
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) return
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return
 
-  // Resolver nombres para guardar en DB (tu schema guarda strings en city/zone)
+  // 1. Resolver nombres
   const municipalityName =
     municipalities.find(m => m.id === draft.municipality_id)?.name ?? null
 
   const neighborhoodName =
     neighborhoods.find(n => n.id === draft.neighborhood_id)?.name ?? null
 
-  // 1) INSERT en properties (OJO: NO existen neighborhood_id ni requirements en tu tabla)
+  // 2. Insert PROPERTY
   const { data: property, error: propertyError } = await supabase
     .from('properties')
     .insert({
-      owner_id: data.user.id,
+      owner_id: auth.user.id,
       city: municipalityName,
       zone: neighborhoodName,
       price: draft.price ?? null,
       property_type: draft.type,
-      allowed_durations: draft.duration ?? [],
+      description: draft.description ?? null,
+      sqm: draft.sqm ?? null,
       furnished: draft.furnished ?? false,
       pets_allowed: draft.pets ?? false,
-      publish_status: 'draft', // importante: no lo publiques todavía
-      available: true,
+      publish_status: 'draft',
       currency: 'ARS',
+      available: true,
     })
     .select()
     .single()
@@ -246,15 +247,19 @@ async function publish() {
     return
   }
 
-  // 2) MEDIA: subís a storage Y registrás en property_media (antes te faltaba esto)
-  if (draft.media) {
+  // 3. MEDIA (UPLOAD + DB)
+  if (draft.media?.length) {
     for (let i = 0; i < draft.media.length; i++) {
       const file = draft.media[i]
-      const path = `${property.id}/${crypto.randomUUID()}`
+      const extension = file.name.split('.').pop()
+      const path = `${property.id}/${crypto.randomUUID()}.${extension}`
 
       const { error: uploadError } = await supabase.storage
         .from('media')
-        .upload(path, file)
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: false,
+        })
 
       if (uploadError) {
         console.error(uploadError)
@@ -265,42 +270,40 @@ async function publish() {
         .from('property_media')
         .insert({
           property_id: property.id,
-          type: file.type.startsWith('image') ? 'image' : 'other',
+          type: file.type.startsWith('image') ? 'image' : 'video',
           url: path,
           position: i,
         })
 
-      if (mediaError) {
-        console.error(mediaError)
-      }
+      if (mediaError) console.error(mediaError)
     }
   }
 
- // 3) PRIVATE: address + phone + name + lastname + email
-const { error: privateError } = await supabase
-  .from('property_private')
-  .insert({
-    property_id: property.id,
-    address: draft.address ?? null,
-    phone: draft.phone ?? null,
-    first_name: draft.first_name ?? null,
-    last_name: draft.last_name ?? null,
-    email: draft.email ?? null,
-  })
-
+  // 4. PRIVATE DATA
+  const { error: privateError } = await supabase
+    .from('property_private')
+    .insert({
+      property_id: property.id,
+      address: draft.address ?? null,
+      phone: draft.phone ?? null,
+      first_name: draft.first_name ?? null,
+      last_name: draft.last_name ?? null,
+      email: draft.email ?? null,
+    })
 
   if (privateError) {
     console.error(privateError)
     return
   }
 
-  // 4) Cleanup
+  // 5. CLEANUP
   localStorage.removeItem('property_draft')
   localStorage.removeItem('property_step')
 
-  // 5) Redirect
-  window.location.href = '/owner'
+  // 6. REDIRECT FINAL (CLAVE)
+  window.location.href = `/propietario/preview/${property.id}`
 }
+
 
   return (
     <div className="min-h-screen bg-black flex justify-center pt-24 px-4">
