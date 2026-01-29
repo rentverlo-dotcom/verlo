@@ -4,49 +4,27 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 
-type Property = {
-  id: string
-  price: number | null
-  description: string | null
-  property_media: {
-    id: string
-    url: string
-    type: 'photo' | 'video'
-    position: number
-  }[]
-}
-
 export default function OwnerPreview() {
-  const params = useParams()
-  const id = params?.id as string
-
-  const [property, setProperty] = useState<Property | null>(null)
-  const [mediaUrls, setMediaUrls] = useState<string[]>([])
+  const { id } = useParams<{ id: string }>()
+  const [property, setProperty] = useState<any>(null)
+  const [media, setMedia] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!id) return
 
-    const fetchProperty = async () => {
-      setLoading(true)
-
+    const run = async () => {
       const { data, error } = await supabase
         .from('properties')
         .select(`
-          id,
           price,
           description,
-          property_media (
-            id,
-            url,
-            type,
-            position
-          )
+          property_media ( url, position )
         `)
         .eq('id', id)
         .single()
 
-      if (error || !data) {
+      if (error) {
         console.error(error)
         setLoading(false)
         return
@@ -58,28 +36,28 @@ export default function OwnerPreview() {
         const urls = await Promise.all(
           data.property_media
             .sort((a, b) => a.position - b.position)
-            .map(async m => {
-              const { data } = await supabase.storage
+            .map(async (m: any) => {
+              const { data } = await supabase
+                .storage
                 .from('media')
-                .createSignedUrl(m.url, 60 * 60)
+                .createSignedUrl(m.url, 3600)
 
-              return data?.signedUrl || ''
+              return data?.signedUrl
             })
         )
-
-        setMediaUrls(urls.filter(Boolean))
+        setMedia(urls.filter(Boolean))
       }
 
       setLoading(false)
     }
 
-    fetchProperty()
+    run()
   }, [id])
 
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        Cargando propiedad…
+        Cargando…
       </div>
     )
   }
@@ -93,24 +71,23 @@ export default function OwnerPreview() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex justify-center p-6">
-      <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
+    <div className="min-h-screen bg-black flex justify-center pt-10">
+      <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden">
 
         {/* MEDIA */}
         <div className="h-96 flex overflow-x-auto snap-x snap-mandatory">
-          {mediaUrls.map((url, i) => (
+          {media.map((url, i) => (
             <img
               key={i}
               src={url}
               className="h-full w-full object-cover snap-center shrink-0"
-              alt={`media-${i}`}
             />
           ))}
         </div>
 
         {/* INFO */}
-        <div className="p-6 space-y-3">
-          <div className="text-2xl font-semibold text-white">
+        <div className="p-6 space-y-4">
+          <div className="text-2xl font-bold text-white">
             ${property.price?.toLocaleString('es-AR')}
           </div>
 
@@ -118,14 +95,9 @@ export default function OwnerPreview() {
             {property.description}
           </p>
 
-          <div className="flex gap-2 pt-4">
-            <button className="button-secondary w-full">
-              Editar
-            </button>
-            <button className="button-primary w-full">
-              Publicar
-            </button>
-          </div>
+          <button className="button-primary w-full">
+            Publicar
+          </button>
         </div>
       </div>
     </div>
