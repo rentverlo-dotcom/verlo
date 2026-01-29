@@ -395,21 +395,44 @@ async function publish() {
 {step === 2 && (
   <div className="mt-8 space-y-4">
 
+    {/* Tipo */}
     <select
       className="input"
       value={draft.type || ''}
       onChange={e =>
-        setDraft({ ...draft, type: e.target.value })
+        setDraft(d => ({ ...d, type: e.target.value }))
       }
     >
       <option value="">Tipo de propiedad</option>
       <option value="apartment">Departamento</option>
       <option value="house">Casa</option>
-      <option value="apartment">PH</option>
+      <option value="ph">PH</option>
       <option value="room">Habitación</option>
-      <option value="apartment">Local</option>
+      <option value="local">Local</option>
     </select>
 
+    {/* Metros cuadrados */}
+    <input
+      className="input"
+      type="number"
+      placeholder="Metros cuadrados"
+      value={draft.sqm || ''}
+      onChange={e =>
+        setDraft(d => ({ ...d, sqm: Number(e.target.value) }))
+      }
+    />
+
+    {/* Descripción (CLAVE) */}
+    <textarea
+      className="input h-32 resize-none"
+      placeholder="Descripción de la propiedad (esto es lo que ve el inquilino)"
+      value={draft.description || ''}
+      onChange={e =>
+        setDraft(d => ({ ...d, description: e.target.value }))
+      }
+    />
+
+    {/* Requisitos */}
     <div className="space-y-2">
       {REQUIREMENTS.map(r => (
         <label
@@ -437,13 +460,13 @@ async function publish() {
     <button
       className="button-primary"
       onClick={() => setStep(3)}
-      disabled={!draft.type}
+      disabled={!draft.type || !draft.description}
     >
       Continuar
     </button>
-
   </div>
 )}
+
 
       {step === 3 && (
   <div className="mt-8 space-y-4">
