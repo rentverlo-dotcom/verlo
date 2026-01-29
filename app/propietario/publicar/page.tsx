@@ -19,6 +19,9 @@ type Draft = {
   first_name?: string
   last_name?: string
   email?: string
+  description?: string
+  sqm?: number
+
 }
 
 const PROPERTY_TYPES = [
