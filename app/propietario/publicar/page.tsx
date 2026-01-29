@@ -215,6 +215,7 @@ export default function PublicarPropiedad() {
   }
 
 async function publish() {
+  console.log('MEDIA EN PUBLISH:', draft.media)
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) return
 
