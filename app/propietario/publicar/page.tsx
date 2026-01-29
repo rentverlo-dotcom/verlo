@@ -299,7 +299,7 @@ const { error: privateError } = await supabase
   localStorage.removeItem('property_step')
 
   // 5) Redirect
-  window.location.href = `/propiedades/${property.id}`
+  window.location.href = '/owner'
 }
 
   return (
