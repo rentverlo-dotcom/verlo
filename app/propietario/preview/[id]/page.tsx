@@ -106,60 +106,61 @@ export default function OwnerPreview() {
       <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
 
         {mediaUrls.length > 0 && (
-          <div className="w-full aspect-[4/3] overflow-hidden bg-black">
-            <div className="h-full flex overflow-x-auto snap-x snap-mandatory">
-              {property.property_media
-                .sort((a, b) => a.position - b.position)
-                .map((media, i) => {
-                  const url = mediaUrls[i]
+          <div className="flex overflow-x-auto snap-x snap-mandatory py-4">
+            {property.property_media
+              .sort((a, b) => a.position - b.position)
+              .map((media, i) => {
+                const url = mediaUrls[i]
 
-                  if (media.type === 'photo') {
-                    return (
-                      <div
-                        key={i}
-                        className="h-full w-full flex items-center justify-center snap-center shrink-0"
-                      >
+                if (media.type === 'photo') {
+                  return (
+                    <div
+                      key={i}
+                      className="snap-center shrink-0 w-full flex justify-center"
+                    >
+                      {/* 👇 ESTA ES LA CLAVE */}
+                      <div className="h-40 w-full max-w-sm bg-black flex items-center justify-center rounded-lg overflow-hidden">
                         <img
                           src={url}
                           className="max-h-full max-w-full object-contain"
                         />
                       </div>
-                    )
-                  }
+                    </div>
+                  )
+                }
 
-                  if (media.type === 'video') {
-                    return (
-                      <video
-                        key={i}
-                        controls
-                        className="h-full w-full object-contain snap-center shrink-0"
+                if (media.type === 'video') {
+                  return (
+                    <video
+                      key={i}
+                      controls
+                      className="h-40 w-full snap-center shrink-0 object-contain"
+                    >
+                      <source src={url} />
+                    </video>
+                  )
+                }
+
+                if (media.type === 'pdf') {
+                  return (
+                    <div
+                      key={i}
+                      className="h-40 w-full snap-center shrink-0 flex items-center justify-center bg-neutral-800"
+                    >
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-white underline"
                       >
-                        <source src={url} />
-                      </video>
-                    )
-                  }
+                        Ver documento PDF
+                      </a>
+                    </div>
+                  )
+                }
 
-                  if (media.type === 'pdf') {
-                    return (
-                      <div
-                        key={i}
-                        className="h-full w-full flex items-center justify-center snap-center shrink-0 bg-neutral-800"
-                      >
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-white underline"
-                        >
-                          Ver documento PDF
-                        </a>
-                      </div>
-                    )
-                  }
-
-                  return null
-                })}
-            </div>
+                return null
+              })}
           </div>
         )}
 
