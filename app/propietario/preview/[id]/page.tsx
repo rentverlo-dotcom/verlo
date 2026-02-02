@@ -106,7 +106,7 @@ export default function OwnerPreview() {
       <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
 
         {mediaUrls.length > 0 && (
-          <div className="h-64 flex overflow-x-auto snap-x snap-mandatory">
+          <div className="h-40 flex overflow-x-auto snap-x snap-mandatory bg-black">
             {property.property_media
               .sort((a, b) => a.position - b.position)
               .map((media, i) => {
@@ -120,7 +120,7 @@ export default function OwnerPreview() {
                     >
                       <img
                         src={url}
-                        className="max-h-52 max-w-full object-contain"
+                        className="max-h-32 max-w-full object-contain"
                       />
                     </div>
                   )
@@ -162,11 +162,11 @@ export default function OwnerPreview() {
         )}
 
         <div className="p-6 space-y-3">
-          <div className="text-3xl font-semibold text-white">
+          <div className="text-2xl font-semibold text-white">
             ${property.price?.toLocaleString('es-AR')}
           </div>
 
-          <p className="text-neutral-400 text-base leading-snug">
+          <p className="text-neutral-300 text-sm leading-snug">
             {property.short_description}
           </p>
         </div>
@@ -174,3 +174,4 @@ export default function OwnerPreview() {
     </div>
   )
 }
+
