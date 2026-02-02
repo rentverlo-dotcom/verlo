@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
+function mapFileToMediaType(file: File): 'photo' | 'video' | 'pdf' {
+  if (file.type.startsWith('image/')) return 'photo'
+  if (file.type.startsWith('video/')) return 'video'
+  if (file.type === 'application/pdf') return 'pdf'
+  throw new Error('Tipo de archivo no soportado')
+}
 
 type Draft = {
   province_id?: string
