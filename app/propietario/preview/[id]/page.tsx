@@ -107,7 +107,7 @@ export default function OwnerPreview() {
       <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
 
         {mediaUrls.length > 0 && (
-          <div className="h-96 flex overflow-x-auto snap-x snap-mandatory">
+          <div className="h-64 flex overflow-x-auto snap-x snap-mandatory">
             {property.property_media
               .sort((a, b) => a.position - b.position)
               .map((media, i) => {
