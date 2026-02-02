@@ -17,7 +17,6 @@ type Property = {
   property_media: PropertyMedia[]
 }
 
-
 export default function OwnerPreview() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -115,11 +114,15 @@ export default function OwnerPreview() {
 
                 if (media.type === 'photo') {
                   return (
-                    <img
+                    <div
                       key={i}
-                      src={url}
-                      className="h-full w-full object-cover snap-center shrink-0"
-                    />
+                      className="h-full w-full flex items-center justify-center snap-center shrink-0"
+                    >
+                      <img
+                        src={url}
+                        className="max-h-52 max-w-full object-contain"
+                      />
+                    </div>
                   )
                 }
 
