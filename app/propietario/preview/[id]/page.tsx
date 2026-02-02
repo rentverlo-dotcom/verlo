@@ -106,54 +106,50 @@ export default function OwnerPreview() {
       <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
 
         {mediaUrls.length > 0 && (
-          <div className="flex overflow-x-auto snap-x snap-mandatory py-4">
+          <div className="flex gap-3 overflow-x-auto px-4 py-3 snap-x snap-mandatory">
             {property.property_media
               .sort((a, b) => a.position - b.position)
               .map((media, i) => {
                 const url = mediaUrls[i]
 
+                // 🔴 CARD CHICA REAL
+                const cardClasses =
+                  'snap-center shrink-0 w-48 h-32 bg-black rounded-lg overflow-hidden flex items-center justify-center'
+
                 if (media.type === 'photo') {
                   return (
-                    <div
-                      key={i}
-                      className="snap-center shrink-0 w-full flex justify-center"
-                    >
-                      {/* 👇 ESTA ES LA CLAVE */}
-                      <div className="h-40 w-full max-w-sm bg-black flex items-center justify-center rounded-lg overflow-hidden">
-                        <img
-                          src={url}
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      </div>
+                    <div key={i} className={cardClasses}>
+                      <img
+                        src={url}
+                        className="max-h-full max-w-full object-contain"
+                      />
                     </div>
                   )
                 }
 
                 if (media.type === 'video') {
                   return (
-                    <video
-                      key={i}
-                      controls
-                      className="h-40 w-full snap-center shrink-0 object-contain"
-                    >
-                      <source src={url} />
-                    </video>
+                    <div key={i} className={cardClasses}>
+                      <video
+                        controls
+                        className="max-h-full max-w-full object-contain"
+                      >
+                        <source src={url} />
+                      </video>
+                    </div>
                   )
                 }
 
                 if (media.type === 'pdf') {
                   return (
-                    <div
-                      key={i}
-                      className="h-40 w-full snap-center shrink-0 flex items-center justify-center bg-neutral-800"
-                    >
+                    <div key={i} className={cardClasses}>
                       <a
                         href={url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-white underline"
+                        className="text-white text-sm underline"
                       >
-                        Ver documento PDF
+                        Ver PDF
                       </a>
                     </div>
                   )
@@ -177,3 +173,4 @@ export default function OwnerPreview() {
     </div>
   )
 }
+
