@@ -29,7 +29,9 @@ export default function OwnerPreview() {
     if (!id) return
 
     const run = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
       if (!user) {
         router.replace('/ingresar')
@@ -102,26 +104,23 @@ export default function OwnerPreview() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex justify-center pt-10">
-      <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
+    <div className="min-h-screen bg-black flex justify-center py-10 px-4">
+      <div className="w-full max-w-5xl bg-neutral-900 rounded-2xl shadow-xl overflow-hidden">
 
+        {/* GALERÍA */}
         {mediaUrls.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto px-4 py-3 snap-x snap-mandatory">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
             {property.property_media
               .sort((a, b) => a.position - b.position)
               .map((media, i) => {
                 const url = mediaUrls[i]
 
-                // 🔴 CARD CHICA REAL
-                const cardClasses =
-                  'snap-center shrink-0 w-48 h-32 bg-black rounded-lg overflow-hidden flex items-center justify-center'
-
                 if (media.type === 'photo') {
                   return (
-                    <div key={i} className={cardClasses}>
+                    <div key={i} className="w-full h-56 bg-black rounded-lg overflow-hidden">
                       <img
                         src={url}
-                        className="max-h-full max-w-full object-contain"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   )
@@ -129,10 +128,10 @@ export default function OwnerPreview() {
 
                 if (media.type === 'video') {
                   return (
-                    <div key={i} className={cardClasses}>
+                    <div key={i} className="w-full h-56 bg-black rounded-lg overflow-hidden">
                       <video
                         controls
-                        className="max-h-full max-w-full object-contain"
+                        className="w-full h-full object-cover"
                       >
                         <source src={url} />
                       </video>
@@ -142,16 +141,15 @@ export default function OwnerPreview() {
 
                 if (media.type === 'pdf') {
                   return (
-                    <div key={i} className={cardClasses}>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-white text-sm underline"
-                      >
-                        Ver PDF
-                      </a>
-                    </div>
+                    <a
+                      key={i}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full h-56 bg-neutral-800 rounded-lg flex items-center justify-center text-white underline"
+                    >
+                      Ver documento PDF
+                    </a>
                   )
                 }
 
@@ -160,12 +158,13 @@ export default function OwnerPreview() {
           </div>
         )}
 
+        {/* INFO */}
         <div className="p-6 space-y-4">
-          <div className="text-2xl font-bold text-white">
+          <div className="text-3xl font-semibold text-white">
             ${property.price?.toLocaleString('es-AR')}
           </div>
 
-          <p className="text-neutral-300 text-base leading-relaxed">
+          <p className="text-neutral-300 text-base leading-relaxed whitespace-pre-line">
             {property.short_description}
           </p>
         </div>
@@ -173,4 +172,3 @@ export default function OwnerPreview() {
     </div>
   )
 }
-
