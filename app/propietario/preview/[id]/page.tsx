@@ -11,12 +11,6 @@ type PropertyMedia = {
   type: 'photo' | 'video' | 'pdf'
 }
 
-type PropertyMedia = {
-  url: string
-  position: number
-  type: 'photo' | 'video' | 'pdf'
-}
-
 type Property = {
   price: number | null
   short_description: string | null
