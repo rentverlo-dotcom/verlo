@@ -106,67 +106,69 @@ export default function OwnerPreview() {
       <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
 
         {mediaUrls.length > 0 && (
-          <div className="h-40 flex overflow-x-auto snap-x snap-mandatory bg-black">
-            {property.property_media
-              .sort((a, b) => a.position - b.position)
-              .map((media, i) => {
-                const url = mediaUrls[i]
+          <div className="w-full aspect-[4/3] overflow-hidden bg-black">
+            <div className="h-full flex overflow-x-auto snap-x snap-mandatory">
+              {property.property_media
+                .sort((a, b) => a.position - b.position)
+                .map((media, i) => {
+                  const url = mediaUrls[i]
 
-                if (media.type === 'photo') {
-                  return (
-                    <div
-                      key={i}
-                      className="h-full w-full flex items-center justify-center snap-center shrink-0"
-                    >
-                      <img
-                        src={url}
-                        className="max-h-32 max-w-full object-contain"
-                      />
-                    </div>
-                  )
-                }
-
-                if (media.type === 'video') {
-                  return (
-                    <video
-                      key={i}
-                      controls
-                      className="h-full w-full object-cover snap-center shrink-0"
-                    >
-                      <source src={url} />
-                    </video>
-                  )
-                }
-
-                if (media.type === 'pdf') {
-                  return (
-                    <div
-                      key={i}
-                      className="h-full w-full flex items-center justify-center snap-center shrink-0 bg-neutral-800"
-                    >
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-white underline"
+                  if (media.type === 'photo') {
+                    return (
+                      <div
+                        key={i}
+                        className="h-full w-full flex items-center justify-center snap-center shrink-0"
                       >
-                        Ver documento PDF
-                      </a>
-                    </div>
-                  )
-                }
+                        <img
+                          src={url}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                    )
+                  }
 
-                return null
-              })}
+                  if (media.type === 'video') {
+                    return (
+                      <video
+                        key={i}
+                        controls
+                        className="h-full w-full object-contain snap-center shrink-0"
+                      >
+                        <source src={url} />
+                      </video>
+                    )
+                  }
+
+                  if (media.type === 'pdf') {
+                    return (
+                      <div
+                        key={i}
+                        className="h-full w-full flex items-center justify-center snap-center shrink-0 bg-neutral-800"
+                      >
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-white underline"
+                        >
+                          Ver documento PDF
+                        </a>
+                      </div>
+                    )
+                  }
+
+                  return null
+                })}
+            </div>
           </div>
         )}
 
-        <div className="p-6 space-y-3">
-          <div className="text-2xl font-semibold text-white">
+        <div className="p-6 space-y-4">
+          <div className="text-2xl font-bold text-white">
             ${property.price?.toLocaleString('es-AR')}
           </div>
 
-          <p className="text-neutral-300 text-sm leading-snug">
+          <p className="text-neutral-300 text-base leading-relaxed">
             {property.short_description}
           </p>
         </div>
@@ -174,4 +176,3 @@ export default function OwnerPreview() {
     </div>
   )
 }
-
