@@ -166,10 +166,6 @@ export default function OwnerPreview() {
           <p className="text-neutral-400 text-base leading-snug">
             {property.short_description}
           </p>
-
-          <button className="button-primary w-full mt-4">
-            Publicar
-          </button>
         </div>
       </div>
     </div>
