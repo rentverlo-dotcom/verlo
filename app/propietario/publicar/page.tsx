@@ -264,6 +264,7 @@ const { data: property, error: propertyError } = await supabase
     zone: neighborhoodName,
     price: draft.price ?? null,
     property_type: safePropertyType,
+    short_description: draft.description ?? null, // agregue esta linea porque el front prop tiraba 400
     description: draft.description ?? null,
     sqm: draft.sqm ?? null,
     furnished: draft.furnished ?? false,
