@@ -5,13 +5,15 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 
+type PropertyMedia = {
+  url: string
+  position: number
+}
+
 type Property = {
   price: number | null
-  description: string | null
-  property_media: {
-    url: string
-    position: number
-  }[]
+  short_description: string | null
+  property_media: PropertyMedia[]
 }
 
 export default function OwnerPreview() {
@@ -26,22 +28,18 @@ export default function OwnerPreview() {
     if (!id) return
 
     const run = async () => {
-      // 1️⃣ GARANTIZAR SESIÓN (OPCIÓN A)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
         router.replace('/ingresar')
         return
       }
 
-      // 2️⃣ FETCH PROPERTY + MEDIA (authenticated)
       const { data, error } = await supabase
         .from('properties')
         .select(`
           price,
-          description,
+          short_description,
           property_media (
             url,
             position
@@ -58,17 +56,21 @@ export default function OwnerPreview() {
 
       setProperty(data)
 
-      // 3️⃣ SIGNED URLS
       if (data.property_media?.length) {
         const urls = await Promise.all(
           data.property_media
             .sort((a, b) => a.position - b.position)
-            .map(async m => {
-              const { data } = await supabase.storage
+            .map(async media => {
+              const { data, error } = await supabase.storage
                 .from('media')
-                .createSignedUrl(m.url, 3600)
+                .createSignedUrl(media.url, 3600)
 
-              return data?.signedUrl
+              if (error) {
+                console.error(error)
+                return null
+              }
+
+              return data.signedUrl
             })
         )
 
@@ -101,7 +103,6 @@ export default function OwnerPreview() {
     <div className="min-h-screen bg-black flex justify-center pt-10">
       <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
 
-        {/* MEDIA */}
         {mediaUrls.length > 0 && (
           <div className="h-96 flex overflow-x-auto snap-x snap-mandatory">
             {mediaUrls.map((url, i) => (
@@ -114,17 +115,16 @@ export default function OwnerPreview() {
           </div>
         )}
 
-        {/* INFO */}
-        <div className="p-6 space-y-4">
-          <div className="text-2xl font-bold text-white">
+        <div className="p-6 space-y-3">
+          <div className="text-3xl font-semibold text-white">
             ${property.price?.toLocaleString('es-AR')}
           </div>
 
-          <p className="text-neutral-300 text-sm whitespace-pre-line">
-            {property.description}
+          <p className="text-neutral-400 text-base leading-snug">
+            {property.short_description}
           </p>
 
-          <button className="button-primary w-full">
+          <button className="button-primary w-full mt-4">
             Publicar
           </button>
         </div>
