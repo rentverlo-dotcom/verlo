@@ -226,6 +226,29 @@ async function publish() {
   const neighborhoodName =
     neighborhoods.find(n => n.id === draft.neighborhood_id)?.name ?? null
 
+  // 1.5 MAPEO DEFINITIVO DE PROPERTY TYPE (ENUM SAFE)
+  const PROPERTY_TYPE_MAP: Record<
+    string,
+    'apartment' | 'house' | 'room' | 'hotel_room'
+  > = {
+    apartment: 'apartment',
+    house: 'house',
+    room: 'room',
+    hotel_room: 'hotel_room',
+
+    // valores del form que NO existen en el enum
+    local: 'apartment',
+    ph: 'apartment',
+  }
+
+  const safePropertyType =
+    PROPERTY_TYPE_MAP[draft.type as string]
+
+  if (!safePropertyType) {
+    console.error('Tipo de propiedad inválido:', draft.type)
+    return
+  }
+
   // 2. Insert PROPERTY
   const { data: property, error: propertyError } = await supabase
     .from('properties')
@@ -234,7 +257,7 @@ async function publish() {
       city: municipalityName,
       zone: neighborhoodName,
       price: draft.price ?? null,
-      property_type: draft.type,
+      property_type: safePropertyType,
       description: draft.description ?? null,
       sqm: draft.sqm ?? null,
       furnished: draft.furnished ?? false,
@@ -250,7 +273,6 @@ async function publish() {
     console.error(propertyError)
     return
   }
-
   // 3. MEDIA (UPLOAD + DB)
   if (draft.media?.length) {
     for (let i = 0; i < draft.media.length; i++) {
