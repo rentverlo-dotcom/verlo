@@ -306,7 +306,7 @@ console.log('PROPERTY ID INSERTADO:', property.id)
         .from('property_media')
         .insert({
           property_id: property.id,
-          type: file.type.startsWith('image') ? 'image' : 'video',
+          type: mapFileToMediaType(file),
           url: path,
           position: i,
         })
