@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client'
 type PropertyMedia = {
   url: string
   position: number
+  type: 'photo' | 'video' | 'pdf'
 }
 
 type Property = {
@@ -42,7 +43,8 @@ export default function OwnerPreview() {
           short_description,
           property_media (
             url,
-            position
+            position,
+            type
           )
         `)
         .eq('id', id)
@@ -105,13 +107,53 @@ export default function OwnerPreview() {
 
         {mediaUrls.length > 0 && (
           <div className="h-96 flex overflow-x-auto snap-x snap-mandatory">
-            {mediaUrls.map((url, i) => (
-              <img
-                key={i}
-                src={url}
-                className="h-full w-full object-cover snap-center shrink-0"
-              />
-            ))}
+            {property.property_media
+              .sort((a, b) => a.position - b.position)
+              .map((media, i) => {
+                const url = mediaUrls[i]
+
+                if (media.type === 'photo') {
+                  return (
+                    <img
+                      key={i}
+                      src={url}
+                      className="h-full w-full object-cover snap-center shrink-0"
+                    />
+                  )
+                }
+
+                if (media.type === 'video') {
+                  return (
+                    <video
+                      key={i}
+                      controls
+                      className="h-full w-full object-cover snap-center shrink-0"
+                    >
+                      <source src={url} />
+                    </video>
+                  )
+                }
+
+                if (media.type === 'pdf') {
+                  return (
+                    <div
+                      key={i}
+                      className="h-full w-full flex items-center justify-center snap-center shrink-0 bg-neutral-800"
+                    >
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-white underline"
+                      >
+                        Ver documento PDF
+                      </a>
+                    </div>
+                  )
+                }
+
+                return null
+              })}
           </div>
         )}
 
