@@ -22,10 +22,12 @@ export default function PropertyCard({
   return (
     <div className="max-w-sm mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
       {property.image_url && (
-        <img
-          src={property.image_url}
-          className="h-64 w-full object-cover"
-        />
+        <div className="h-40 w-full bg-black flex items-center justify-center">
+          <img
+            src={property.image_url}
+            className="max-h-full max-w-full object-contain"
+          />
+        </div>
       )}
 
       <div className="p-4">
