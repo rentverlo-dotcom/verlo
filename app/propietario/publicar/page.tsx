@@ -249,30 +249,34 @@ async function publish() {
     return
   }
 
-  // 2. Insert PROPERTY
-  const { data: property, error: propertyError } = await supabase
-    .from('properties')
-    .insert({
-      owner_id: auth.user.id,
-      city: municipalityName,
-      zone: neighborhoodName,
-      price: draft.price ?? null,
-      property_type: safePropertyType,
-      description: draft.description ?? null,
-      sqm: draft.sqm ?? null,
-      furnished: draft.furnished ?? false,
-      pets_allowed: draft.pets ?? false,
-      publish_status: 'draft',
-      currency: 'ARS',
-      available: true,
-    })
-    .select()
-    .single()
+ // 2. Insert PROPERTY
+const { data: property, error: propertyError } = await supabase
+  .from('properties')
+  .insert({
+    owner_id: auth.user.id,
+    city: municipalityName,
+    zone: neighborhoodName,
+    price: draft.price ?? null,
+    property_type: safePropertyType,
+    description: draft.description ?? null,
+    sqm: draft.sqm ?? null,
+    furnished: draft.furnished ?? false,
+    pets_allowed: draft.pets ?? false,
+    publish_status: 'draft',
+    currency: 'ARS',
+    available: true,
+  })
+  .select()
+  .single()
 
-  if (propertyError || !property) {
-    console.error(propertyError)
-    return
-  }
+if (propertyError || !property) {
+  console.error(propertyError)
+  return
+}
+
+console.log('PROPERTY INSERTADA:', property)
+console.log('PROPERTY ID INSERTADO:', property.id)
+
   // 3. MEDIA (UPLOAD + DB)
   if (draft.media?.length) {
     for (let i = 0; i < draft.media.length; i++) {
@@ -326,7 +330,9 @@ async function publish() {
   localStorage.removeItem('property_draft')
   localStorage.removeItem('property_step')
 
+
   // 6. REDIRECT FINAL (CLAVE)
+  console.log('REDIRECT A:', `/propietario/preview/${property.id}`)
   window.location.href = `/propietario/preview/${property.id}`
 }
 
