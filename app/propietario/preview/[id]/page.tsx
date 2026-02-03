@@ -29,9 +29,7 @@ export default function OwnerPreview() {
     if (!id) return
 
     const run = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
         router.replace('/ingresar')
@@ -104,10 +102,11 @@ export default function OwnerPreview() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex justify-center py-10 px-4">
-      <div className="w-full max-w-5xl bg-neutral-900 rounded-2xl shadow-xl overflow-hidden">
+    // 👇 COMPENSACIÓN DEL HEADER FIXO (CLAVE)
+    <div className="min-h-screen bg-black pt-[56px] px-4 pb-10">
+      <div className="max-w-5xl mx-auto bg-neutral-900 rounded-2xl shadow-xl overflow-hidden">
 
-        {/* GALERÍA */}
+        {/* GALERÍA PROPIETARIO */}
         {mediaUrls.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
             {property.property_media
@@ -117,7 +116,10 @@ export default function OwnerPreview() {
 
                 if (media.type === 'photo') {
                   return (
-                    <div key={i} className="w-full h-56 bg-black rounded-lg overflow-hidden">
+                    <div
+                      key={i}
+                      className="w-full h-64 bg-black rounded-lg overflow-hidden"
+                    >
                       <img
                         src={url}
                         className="w-full h-full object-cover"
@@ -128,7 +130,10 @@ export default function OwnerPreview() {
 
                 if (media.type === 'video') {
                   return (
-                    <div key={i} className="w-full h-56 bg-black rounded-lg overflow-hidden">
+                    <div
+                      key={i}
+                      className="w-full h-64 bg-black rounded-lg overflow-hidden"
+                    >
                       <video
                         controls
                         className="w-full h-full object-cover"
@@ -146,7 +151,7 @@ export default function OwnerPreview() {
                       href={url}
                       target="_blank"
                       rel="noreferrer"
-                      className="w-full h-56 bg-neutral-800 rounded-lg flex items-center justify-center text-white underline"
+                      className="w-full h-64 bg-neutral-800 rounded-lg flex items-center justify-center text-white underline"
                     >
                       Ver documento PDF
                     </a>
@@ -172,3 +177,4 @@ export default function OwnerPreview() {
     </div>
   )
 }
+
