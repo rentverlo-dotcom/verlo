@@ -88,24 +88,35 @@ export default function PropertyPage() {
             marginTop: 24,
           }}
         >
-          {media.map(m => {
-            const url = supabase.storage
-              .from('property-media')
-              .getPublicUrl(m.url).data.publicUrl
+         {media.map(m => {
+  const url = supabase.storage
+    .from('property-media')
+    .getPublicUrl(m.url).data.publicUrl
 
-            return (
-              <img
-                key={m.id}
-                src={url}
-                style={{
-                  width: '100%',
-                  height: 160,
-                  objectFit: 'cover',
-                  borderRadius: 8,
-                }}
-              />
-            )
-          })}
+  return (
+    <div
+      key={m.id}
+      style={{
+        width: '100%',
+        height: 180,
+        overflow: 'hidden',
+        borderRadius: 8,
+        background: '#111',
+      }}
+    >
+      <img
+        src={url}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          display: 'block',
+        }}
+      />
+    </div>
+  )
+})}
+
         </div>
       )}
 
