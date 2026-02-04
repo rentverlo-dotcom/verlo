@@ -30,9 +30,8 @@ export default function OwnerPreview() {
 
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-
       if (!user) {
-        router.replace('/ingresar')
+        router.replace('/login')
         return
       }
 
@@ -102,13 +101,11 @@ export default function OwnerPreview() {
   }
 
   return (
-    // 👇 COMPENSACIÓN DEL HEADER FIXO (CLAVE)
-    <div className="min-h-screen bg-black pt-[56px] px-4 pb-10">
-      <div className="max-w-5xl mx-auto bg-neutral-900 rounded-2xl shadow-xl overflow-hidden">
+    <div className="min-h-screen bg-black flex justify-center pt-10">
+      <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
 
-        {/* GALERÍA PROPIETARIO */}
         {mediaUrls.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+          <div className="space-y-3 p-4">
             {property.property_media
               .sort((a, b) => a.position - b.position)
               .map((media, i) => {
@@ -118,11 +115,11 @@ export default function OwnerPreview() {
                   return (
                     <div
                       key={i}
-                      className="w-full h-64 bg-black rounded-lg overflow-hidden"
+                      className="w-full h-56 overflow-hidden rounded-xl bg-black"
                     >
                       <img
                         src={url}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover block"
                       />
                     </div>
                   )
@@ -132,7 +129,7 @@ export default function OwnerPreview() {
                   return (
                     <div
                       key={i}
-                      className="w-full h-64 bg-black rounded-lg overflow-hidden"
+                      className="w-full h-56 overflow-hidden rounded-xl bg-black"
                     >
                       <video
                         controls
@@ -146,15 +143,19 @@ export default function OwnerPreview() {
 
                 if (media.type === 'pdf') {
                   return (
-                    <a
+                    <div
                       key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full h-64 bg-neutral-800 rounded-lg flex items-center justify-center text-white underline"
+                      className="w-full h-32 flex items-center justify-center rounded-xl bg-neutral-800"
                     >
-                      Ver documento PDF
-                    </a>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-white underline"
+                      >
+                        Ver documento PDF
+                      </a>
+                    </div>
                   )
                 }
 
@@ -163,13 +164,12 @@ export default function OwnerPreview() {
           </div>
         )}
 
-        {/* INFO */}
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-3">
           <div className="text-3xl font-semibold text-white">
             ${property.price?.toLocaleString('es-AR')}
           </div>
 
-          <p className="text-neutral-300 text-base leading-relaxed whitespace-pre-line">
+          <p className="text-neutral-400 text-base leading-snug">
             {property.short_description}
           </p>
         </div>
@@ -177,4 +177,3 @@ export default function OwnerPreview() {
     </div>
   )
 }
-
