@@ -30,7 +30,7 @@ export default function OwnerPreview() {
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.replace('/ingresar')
+        router.replace('/login')
         return
       }
 
@@ -56,27 +56,18 @@ export default function OwnerPreview() {
 
       setProperty(data)
 
-      if (data.property_media?.length) {
-        const urls = await Promise.all(
-          data.property_media
-            .sort((a, b) => a.position - b.position)
-            .map(async media => {
-              const { data, error } = await supabase.storage
-                .from('media')
-                .createSignedUrl(media.url, 3600)
+      const urls = await Promise.all(
+        (data.property_media || [])
+          .sort((a, b) => a.position - b.position)
+          .map(async m => {
+            const { data } = await supabase.storage
+              .from('media')
+              .createSignedUrl(m.url, 3600)
+            return data?.signedUrl ?? null
+          })
+      )
 
-              if (error) {
-                console.error(error)
-                return null
-              }
-
-              return data?.signedUrl ?? null
-            })
-        )
-
-        setMediaUrls(urls.filter(Boolean) as string[])
-      }
-
+      setMediaUrls(urls.filter(Boolean) as string[])
       setLoading(false)
     }
 
@@ -84,90 +75,58 @@ export default function OwnerPreview() {
   }, [id, router])
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        Cargando…
-      </div>
-    )
+    return <div className="min-h-screen bg-black text-white flex items-center justify-center">Cargando…</div>
   }
 
   if (!property) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        Propiedad no encontrada
-      </div>
-    )
+    return <div className="min-h-screen bg-black text-white flex items-center justify-center">No encontrada</div>
   }
 
   return (
     <div className="min-h-screen bg-black">
-
-      {/* HERO CON TODA LA MEDIA */}
+      {/* HERO */}
       {mediaUrls.length > 0 && (
-        <div className="relative w-full h-[480px] bg-black overflow-hidden">
-          <div className="absolute inset-0 flex">
-            {property.property_media
-              .sort((a, b) => a.position - b.position)
-              .map((media, i) => {
-                const url = mediaUrls[i]
+        <div className="w-full h-[420px] bg-black overflow-hidden grid grid-cols-3 gap-1">
+          {property.property_media.map((m, i) => {
+            const url = mediaUrls[i]
+            if (!url) return null
 
-                if (media.type === 'photo') {
-                  return (
-                    <div key={i} className="flex-1 h-full">
-                      <img
-                        src={url}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )
-                }
+            if (m.type === 'photo') {
+              return <img key={i} src={url} className="w-full h-full object-cover" />
+            }
 
-                if (media.type === 'video') {
-                  return (
-                    <div key={i} className="flex-1 h-full">
-                      <video
-                        controls
-                        className="w-full h-full object-cover"
-                      >
-                        <source src={url} />
-                      </video>
-                    </div>
-                  )
-                }
+            if (m.type === 'video') {
+              return (
+                <video key={i} controls className="w-full h-full object-cover">
+                  <source src={url} />
+                </video>
+              )
+            }
 
-                if (media.type === 'pdf') {
-                  return (
-                    <div
-                      key={i}
-                      className="flex-1 h-full flex items-center justify-center bg-neutral-900"
-                    >
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-white underline text-lg"
-                      >
-                        Ver documento PDF
-                      </a>
-                    </div>
-                  )
-                }
+            if (m.type === 'pdf') {
+              return (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full h-full flex items-center justify-center text-white bg-neutral-800"
+                >
+                  PDF
+                </a>
+              )
+            }
 
-                return null
-              })}
-          </div>
-
-          {/* Overlay suave */}
-          <div className="absolute inset-0 bg-black/30" />
+            return null
+          })}
         </div>
       )}
 
-      {/* CARD INFO */}
-      <div className="max-w-xl mx-auto bg-neutral-900 rounded-2xl shadow-xl -mt-24 relative z-10 p-6 space-y-4">
+      {/* INFO */}
+      <div className="max-w-xl mx-auto -mt-24 relative z-10 bg-neutral-900 rounded-2xl p-6 space-y-4">
         <div className="text-3xl font-semibold text-white">
           ${property.price?.toLocaleString('es-AR')}
         </div>
-
         <p className="text-neutral-300 text-base leading-relaxed">
           {property.short_description}
         </p>
@@ -175,3 +134,4 @@ export default function OwnerPreview() {
     </div>
   )
 }
+
