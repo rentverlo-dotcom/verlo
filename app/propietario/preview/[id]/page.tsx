@@ -1,4 +1,3 @@
-//app/propietario/preview/[id]/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -31,7 +30,7 @@ export default function OwnerPreview() {
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.replace('/login')
+        router.replace('/ingresar')
         return
       }
 
@@ -71,7 +70,7 @@ export default function OwnerPreview() {
                 return null
               }
 
-              return data.signedUrl
+              return data?.signedUrl ?? null
             })
         )
 
@@ -101,11 +100,12 @@ export default function OwnerPreview() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex justify-center pt-10">
-      <div className="w-full max-w-md bg-neutral-900 rounded-2xl overflow-hidden shadow-xl">
+    <div className="min-h-screen bg-black">
 
-        {mediaUrls.length > 0 && (
-          <div className="space-y-3 p-4">
+      {/* HERO CON TODA LA MEDIA */}
+      {mediaUrls.length > 0 && (
+        <div className="relative w-full h-[480px] bg-black overflow-hidden">
+          <div className="absolute inset-0 flex">
             {property.property_media
               .sort((a, b) => a.position - b.position)
               .map((media, i) => {
@@ -113,13 +113,10 @@ export default function OwnerPreview() {
 
                 if (media.type === 'photo') {
                   return (
-                    <div
-                      key={i}
-                      className="w-full h-56 overflow-hidden rounded-xl bg-black"
-                    >
+                    <div key={i} className="flex-1 h-full">
                       <img
                         src={url}
-                        className="w-full h-full object-cover block"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   )
@@ -127,10 +124,7 @@ export default function OwnerPreview() {
 
                 if (media.type === 'video') {
                   return (
-                    <div
-                      key={i}
-                      className="w-full h-56 overflow-hidden rounded-xl bg-black"
-                    >
+                    <div key={i} className="flex-1 h-full">
                       <video
                         controls
                         className="w-full h-full object-cover"
@@ -145,13 +139,13 @@ export default function OwnerPreview() {
                   return (
                     <div
                       key={i}
-                      className="w-full h-32 flex items-center justify-center rounded-xl bg-neutral-800"
+                      className="flex-1 h-full flex items-center justify-center bg-neutral-900"
                     >
                       <a
                         href={url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-white underline"
+                        className="text-white underline text-lg"
                       >
                         Ver documento PDF
                       </a>
@@ -162,17 +156,21 @@ export default function OwnerPreview() {
                 return null
               })}
           </div>
-        )}
 
-        <div className="p-6 space-y-3">
-          <div className="text-3xl font-semibold text-white">
-            ${property.price?.toLocaleString('es-AR')}
-          </div>
-
-          <p className="text-neutral-400 text-base leading-snug">
-            {property.short_description}
-          </p>
+          {/* Overlay suave */}
+          <div className="absolute inset-0 bg-black/30" />
         </div>
+      )}
+
+      {/* CARD INFO */}
+      <div className="max-w-xl mx-auto bg-neutral-900 rounded-2xl shadow-xl -mt-24 relative z-10 p-6 space-y-4">
+        <div className="text-3xl font-semibold text-white">
+          ${property.price?.toLocaleString('es-AR')}
+        </div>
+
+        <p className="text-neutral-300 text-base leading-relaxed">
+          {property.short_description}
+        </p>
       </div>
     </div>
   )
