@@ -17,7 +17,9 @@ export async function GET() {
       price,
       currency,
       short_description,
-      property_media:image_url
+      property_media (
+        image_url
+      )
     `)
     .eq('available', true)
 
@@ -25,17 +27,16 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const normalized = data.map(p => ({
+  const normalized = (data ?? []).map(p => ({
     id: p.id,
     title: p.title,
     city: p.city,
     zone: p.zone,
     price: p.price,
     currency: p.currency,
-    cover_url: p.property_media?.[0] ?? null,
+    cover_url: p.property_media?.[0]?.image_url ?? null,
     short_description: p.short_description ?? null,
   }))
 
   return NextResponse.json(normalized)
 }
-
