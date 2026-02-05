@@ -180,31 +180,38 @@ export default function Buscar() {
     // city obligatoria por decisión MVP
     const city = municipalityName
     if (!city) return
+async function createDemand() {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return
 
-    const { error } = await supabase.from('demands').insert({
-      tenant_id: auth.user.id,
-      city,
-      zone: neighborhoodName ?? null,
-      min_price: draft.min_price,
-      max_price: draft.max_price,
-      preferred_property_types: draft.preferred_property_types ?? [],
-      preferred_durations: (draft.preferred_durations?.length ? draft.preferred_durations : null),
-      furnished_preference: draft.furnished_preference ?? null,
-      pets_preference: draft.pets_preference ?? null,
-      notes: draft.notes ?? null,
-    })
+  const { error } = await supabase.from('demands').insert({
+    tenant_id: auth.user.id,
+    city,
+    zone: neighborhoodName ?? null,
+    min_price: draft.min_price,
+    max_price: draft.max_price,
+    preferred_property_types: draft.preferred_property_types ?? [],
+    preferred_durations: draft.preferred_durations?.length
+      ? draft.preferred_durations
+      : null,
+    furnished_preference: draft.furnished_preference ?? null,
+    pets_preference: draft.pets_preference ?? null,
+    notes: draft.notes ?? null,
+  })
 
-    if (error) {
-      console.error(error)
-      return
-    }
-
-    localStorage.removeItem('demand_draft')
-    localStorage.removeItem('demand_step')
-
-    // Te mando a la sección donde ya tenés el “Tinder” (ajustalo si tu ruta real es otra)
-    window.location.href = '/propiedades'
+  if (error) {
+    console.error(error)
+    return
   }
+
+  // Limpieza del draft
+  localStorage.removeItem('demand_draft')
+  localStorage.removeItem('demand_step')
+
+  // 🔴 ACA VA LA REDIRECCIÓN (ESTE ES EL CAMBIO CLAVE)
+  window.location.href = '/busqueda/creada'
+}
+
 
   return (
     <div className="min-h-screen bg-black flex justify-center pt-24 px-4">
