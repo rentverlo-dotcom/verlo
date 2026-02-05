@@ -98,7 +98,7 @@ export default function Buscar() {
   }, [])
 
   // Cargar enums reales desde tu DB (sin inventar)
-  useEffect(() => {
+  {/*useEffect(() => {
     fetch('/api/enums/property_type')
       .then(r => r.json())
       .then(d => setPropertyTypes(d.values || []))
@@ -108,7 +108,7 @@ export default function Buscar() {
       .then(r => r.json())
       .then(d => setDurations(d.values || []))
       .catch(() => setDurations([]))
-  }, [])
+  }, [])*/}
 
   // Provincias → Municipios (igual que propietario)
   useEffect(() => {
