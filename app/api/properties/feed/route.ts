@@ -8,7 +8,7 @@ const supabase = createClient(
 
 export async function GET() {
   const { data, error } = await supabase
-    .from("properties")
+    .from('properties')
     .select(`
       id,
       title,
@@ -17,26 +17,25 @@ export async function GET() {
       price,
       currency,
       short_description,
-      property_media (
-        image_url
-      )
+      property_media:image_url
     `)
-    .eq("available", true);
+    .eq('available', true)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const normalized = (data ?? []).map((p: any) => ({
+  const normalized = data.map(p => ({
     id: p.id,
-    title: p.title ?? "Propiedad en alquiler",
-    city: p.city ?? null,
-    zone: p.zone ?? null,
-    price: p.price ?? null,
-    currency: p.currency ?? "ARS",
-    cover_url: p.property_media?.[0]?.image_url ?? null,
+    title: p.title,
+    city: p.city,
+    zone: p.zone,
+    price: p.price,
+    currency: p.currency,
+    cover_url: p.property_media?.[0] ?? null,
     short_description: p.short_description ?? null,
-  }));
+  }))
 
-  return NextResponse.json(normalized);
+  return NextResponse.json(normalized)
 }
+
