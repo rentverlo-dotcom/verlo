@@ -80,9 +80,12 @@ export default function Buscar() {
   const [provinces] = useState<any[]>(ARG_PROVINCES)
   const [municipalities, setMunicipalities] = useState<any[]>([])
   const [neighborhoods, setNeighborhoods] = useState<any[]>([])
+  const PROPERTY_TYPES = ['apartment', 'house', 'ph', 'room', 'local']
+  const DURATIONS = ['6_months', '12_months', '24_months']
+  
+  const [propertyTypes] = useState<string[]>(PROPERTY_TYPES)
+  const [durations] = useState<string[]>(DURATIONS)
 
-  const [propertyTypes, setPropertyTypes] = useState<string[]>([])
-  const [durations, setDurations] = useState<string[]>([])
 
   useEffect(() => localStorage.setItem('demand_draft', JSON.stringify(draft)), [draft])
   useEffect(() => localStorage.setItem('demand_step', String(step)), [step])
@@ -165,7 +168,7 @@ export default function Buscar() {
   )
 
   const canGoStep2 = Boolean(municipalityName && draft.min_price != null && draft.max_price != null)
-  const canGoStep3 = Boolean(draft.preferred_property_types?.length)
+  const canGoStep3 = (draft.preferred_property_types?.length ?? 0) > 0
 
   async function submitDemand() {
     const { data: auth } = await supabase.auth.getUser()
