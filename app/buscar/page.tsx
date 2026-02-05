@@ -277,59 +277,117 @@ export default function Buscar() {
           </div>
         )}
 
-        {/* STEP 2 */}
-        {step === 2 && (
-          <div className="mt-8 space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-neutral-300">Tipo de propiedad (obligatorio)</p>
-              {propertyTypes.map(t => (
-                <label key={t} className="flex items-center gap-2 text-sm text-neutral-300">
-                  <input
-                    type="checkbox"
-                    checked={draft.preferred_property_types?.includes(t) || false}
-                    onChange={e => {
-                      const cur = draft.preferred_property_types || []
-                      setDraft(d => ({
-                        ...d,
-                        preferred_property_types: e.target.checked ? [...cur, t] : cur.filter(x => x !== t),
-                      }))
-                    }}
-                  />
-                  {t}
-                </label>
-              ))}
-            </div>
+    {/* STEP 2 */}
+{step === 2 && (
+  <div className="mt-8 space-y-6">
 
-            <div className="space-y-2">
-              <p className="text-sm text-neutral-300">Duración preferida (opcional)</p>
-              {durations.map(dur => (
-                <label key={dur} className="flex items-center gap-2 text-sm text-neutral-300">
-                  <input
-                    type="checkbox"
-                    checked={draft.preferred_durations?.includes(dur) || false}
-                    onChange={e => {
-                      const cur = draft.preferred_durations || []
-                      setDraft(d => ({
-                        ...d,
-                        preferred_durations: e.target.checked ? [...cur, dur] : cur.filter(x => x !== dur),
-                      }))
-                    }}
-                  />
-                  {dur}
-                </label>
-              ))}
-            </div>
+    {/* PROPERTY TYPES */}
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-neutral-300">
+        Tipo de propiedad (obligatorio)
+      </p>
 
-            <div className="flex gap-3">
-              <button className="button-primary" type="button" onClick={() => setStep(1)}>
-                Volver
-              </button>
-              <button className="button-primary" disabled={!canGoStep3} onClick={() => setStep(3)}>
-                Continuar
-              </button>
-            </div>
-          </div>
-        )}
+      {propertyTypes.length === 0 && (
+        <p className="text-sm text-red-400">
+          Error cargando tipos de propiedad
+        </p>
+      )}
+
+      {propertyTypes.map(t => (
+        <label
+          key={t}
+          className="flex items-center gap-3 text-sm text-neutral-200 cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            className="accent-white"
+            checked={draft.preferred_property_types?.includes(t) || false}
+            onChange={e => {
+              const current = draft.preferred_property_types || []
+              setDraft(d => ({
+                ...d,
+                preferred_property_types: e.target.checked
+                  ? [...current, t]
+                  : current.filter(x => x !== t),
+              }))
+            }}
+          />
+          <span>
+            {{
+              apartment: 'Departamento',
+              house: 'Casa',
+              room: 'Habitación',
+              hotel_room: 'Hotel',
+            }[t] ?? t}
+          </span>
+        </label>
+      ))}
+    </div>
+
+    {/* DURATIONS */}
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-neutral-300">
+        Duración preferida (opcional)
+      </p>
+
+      {durations.length === 0 && (
+        <p className="text-sm text-neutral-500">
+          No especificada
+        </p>
+      )}
+
+      {durations.map(dur => (
+        <label
+          key={dur}
+          className="flex items-center gap-3 text-sm text-neutral-200 cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            className="accent-white"
+            checked={draft.preferred_durations?.includes(dur) || false}
+            onChange={e => {
+              const current = draft.preferred_durations || []
+              setDraft(d => ({
+                ...d,
+                preferred_durations: e.target.checked
+                  ? [...current, dur]
+                  : current.filter(x => x !== dur),
+              }))
+            }}
+          />
+          <span>
+            {{
+              short: 'Corto plazo',
+              medium: 'Mediano plazo',
+              long: 'Largo plazo',
+            }[dur] ?? dur}
+          </span>
+        </label>
+      ))}
+    </div>
+
+    {/* ACTIONS */}
+    <div className="flex gap-3 pt-4">
+      <button
+        type="button"
+        className="button-secondary"
+        onClick={() => setStep(1)}
+      >
+        Volver
+      </button>
+
+      <button
+        type="button"
+        className="button-primary"
+        disabled={!draft.preferred_property_types?.length}
+        onClick={() => setStep(3)}
+      >
+        Continuar
+      </button>
+    </div>
+  </div>
+)}
+
 
         {/* STEP 3 */}
         {step === 3 && (
