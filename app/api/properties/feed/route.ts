@@ -7,23 +7,24 @@ const supabase = createClient(
 );
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from("properties")
-    .select(`
-      id,
-      title,
-      city,
-      zone,
-      price,
-      currency,
-      short_description,
-      property_media (
-        url,
-        position
-      )
-    `)
-    .or("available.is.null,available.eq.true")
-    .order("created_at", { ascending: false });
+const { data, error } = await supabase
+  .from("properties")
+  .select(`
+    id,
+    title,
+    city,
+    zone,
+    price,
+    currency,
+    short_description,
+    property_media (
+      url,
+      position
+    )
+  `)
+  .or("available.is.null,available.eq.true")
+  .order("created_at", { ascending: false });
+
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
