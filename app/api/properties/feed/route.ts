@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -9,13 +8,14 @@ const supabase = createClient(
 
 export async function GET() {
   const { data, error } = await supabase
-    .from('properties')
+    .from("properties")
     .select(`
       id,
       title,
+      address,
+      price,
       city,
       zone,
-      price,
       currency,
       short_description,
       property_media (
@@ -23,8 +23,8 @@ export async function GET() {
         position
       )
     `)
-    .eq('available', true)
-    .eq('publish_status', 'published');
+    .eq("available", true)
+    .order("created_at", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -32,17 +32,18 @@ export async function GET() {
 
   const normalized = (data ?? []).map((p: any) => {
     const cover =
-      (p.property_media || [])
-        .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))[0]
+      (p.property_media ?? [])
+        .slice()
+        .sort((a: any, b: any) => (a.position ?? 999) - (b.position ?? 999))[0]
         ?.url ?? null;
 
     return {
       id: p.id,
-      title: p.title ?? 'Propiedad en alquiler',
+      title: p.title ?? "Propiedad en alquiler",
       city: p.city ?? null,
       zone: p.zone ?? null,
       price: p.price ?? null,
-      currency: p.currency ?? 'ARS',
+      currency: p.currency ?? "ARS",
       cover_url: cover,
       short_description: p.short_description ?? null,
     };
