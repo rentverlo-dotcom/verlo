@@ -170,19 +170,15 @@ export default function Buscar() {
   const canGoStep2 = Boolean(municipalityName && draft.min_price != null && draft.max_price != null)
   const canGoStep3 = (draft.preferred_property_types?.length ?? 0) > 0
 
-  async function submitDemand() {
-    const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) {
-      window.location.href = '/login'
-      return
-    }
-
-    // city obligatoria por decisión MVP
-    const city = municipalityName
-    if (!city) return
-async function createDemand() {
+ async function submitDemand() {
   const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) return
+  if (!auth.user) {
+    window.location.href = '/login'
+    return
+  }
+
+  const city = municipalityName
+  if (!city) return
 
   const { error } = await supabase.from('demands').insert({
     tenant_id: auth.user.id,
@@ -204,13 +200,12 @@ async function createDemand() {
     return
   }
 
-  // Limpieza del draft
   localStorage.removeItem('demand_draft')
   localStorage.removeItem('demand_step')
 
-  // 🔴 ACA VA LA REDIRECCIÓN (ESTE ES EL CAMBIO CLAVE)
   window.location.href = '/busqueda/creada'
 }
+
 
 
   return (
