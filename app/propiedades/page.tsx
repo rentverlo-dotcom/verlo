@@ -3,15 +3,15 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
-type Property = {
+type PropertyFeedItem = {
   id: string
-  title?: string | null
-  description?: string | null
-  city: string
-  zone?: string | null
-  price: number
+  title: string
+  city: string | null
+  zone: string | null
+  price: number | null
   currency: string
-  property_type: string
+  cover_url: string | null
+  short_description: string | null
 }
 
 export default function PropiedadesFeed() {
