@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // OJO: NO NEXT_PUBLIC
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function GET() {
@@ -18,34 +18,25 @@ export async function GET() {
       currency,
       short_description,
       property_media (
-        url,
-        position
+        image_url
       )
     `)
-    .eq("available", true)
-    .eq("publish_status", "published");
+    .eq("available", true);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const normalized = (data || []).map((p: any) => {
-    const cover =
-      (p.property_media || [])
-        .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))[0]
-        ?.url ?? null;
-
-    return {
-      id: p.id,
-      title: p.title ?? "Propiedad en alquiler",
-      city: p.city ?? null,
-      zone: p.zone ?? null,
-      price: p.price ?? null,
-      currency: p.currency ?? "ARS",
-      cover_url: cover,
-      short_description: p.short_description ?? null,
-    };
-  });
+  const normalized = (data ?? []).map((p: any) => ({
+    id: p.id,
+    title: p.title ?? "Propiedad en alquiler",
+    city: p.city ?? null,
+    zone: p.zone ?? null,
+    price: p.price ?? null,
+    currency: p.currency ?? "ARS",
+    cover_url: p.property_media?.[0]?.image_url ?? null,
+    short_description: p.short_description ?? null,
+  }));
 
   return NextResponse.json(normalized);
 }
