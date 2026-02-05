@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // OJO: NO NEXT_PUBLIC
 );
 
 export async function GET() {
@@ -12,27 +12,40 @@ export async function GET() {
     .select(`
       id,
       title,
-      address,
-      price,
       city,
+      zone,
+      price,
+      currency,
+      short_description,
       property_media (
-        image_url
+        url,
+        position
       )
     `)
-    .eq("available", true);
+    .eq("available", true)
+    .eq("publish_status", "published");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // normalizamos para el deck
-  const normalized = data.map((p) => ({
-    id: p.id,
-    title: p.title,
-    address: p.address,
-    price: p.price,
-    image_url: p.property_media?.[0]?.image_url ?? null,
-  }));
+  const normalized = (data || []).map((p: any) => {
+    const cover =
+      (p.property_media || [])
+        .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))[0]
+        ?.url ?? null;
+
+    return {
+      id: p.id,
+      title: p.title ?? "Propiedad en alquiler",
+      city: p.city ?? null,
+      zone: p.zone ?? null,
+      price: p.price ?? null,
+      currency: p.currency ?? "ARS",
+      cover_url: cover,
+      short_description: p.short_description ?? null,
+    };
+  });
 
   return NextResponse.json(normalized);
 }
