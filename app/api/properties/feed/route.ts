@@ -12,10 +12,9 @@ export async function GET() {
     .select(`
       id,
       title,
-      address,
-      price,
       city,
       zone,
+      price,
       currency,
       short_description,
       property_media (
@@ -23,7 +22,7 @@ export async function GET() {
         position
       )
     `)
-    .eq("available", true)
+    .or("available.is.null,available.eq.true")
     .order("created_at", { ascending: false });
 
   if (error) {
