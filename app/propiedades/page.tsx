@@ -15,7 +15,7 @@ type PropertyFeedItem = {
 }
 
 export default function PropiedadesFeed() {
-  const [properties, setProperties] = useState<Property[]>([])
+  const [properties, setProperties] = useState<PropertyFeedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,9 +25,7 @@ export default function PropiedadesFeed() {
         if (!res.ok) throw new Error('Error cargando propiedades')
         return res.json()
       })
-      .then(data => {
-        setProperties(data || [])
-      })
+      .then((data: PropertyFeedItem[]) => setProperties(data || []))
       .catch(err => {
         console.error(err)
         setError('No pudimos cargar las propiedades')
@@ -68,27 +66,28 @@ export default function PropiedadesFeed() {
             href={`/propiedades/${p.id}`}
             className="block bg-neutral-900 rounded-xl p-4 hover:bg-neutral-800 transition"
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-white font-medium">
-                  {p.title || 'Propiedad en alquiler'}
+            <div className="flex justify-between items-start gap-4">
+              <div className="min-w-0">
+                <h2 className="text-white font-medium truncate">
+                  {p.title}
                 </h2>
+
                 <p className="text-sm text-neutral-400">
-                  {p.city}
+                  {p.city ?? '—'}
                   {p.zone ? ` · ${p.zone}` : ''}
                 </p>
+
+                {p.short_description && (
+                  <p className="text-sm text-neutral-400 mt-2 line-clamp-2">
+                    {p.short_description}
+                  </p>
+                )}
               </div>
 
-              <div className="text-white font-semibold">
-                {p.price} {p.currency}
+              <div className="text-white font-semibold whitespace-nowrap">
+                {p.price != null ? `${p.price} ${p.currency}` : 'Consultar'}
               </div>
             </div>
-
-            {p.description && (
-              <p className="text-sm text-neutral-400 mt-2 line-clamp-2">
-                {p.description}
-              </p>
-            )}
           </Link>
         ))}
       </div>
