@@ -2,18 +2,18 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
 export async function POST(req: Request) {
-  const { property_id, action, tenant_id } = await req.json()
+  const { property_id, tenant_id } = await req.json()
 
-  if (!property_id || !action || !tenant_id) {
+  if (!property_id || !tenant_id) {
     return NextResponse.json({ error: 'invalid payload' }, { status: 400 })
   }
 
   const { error } = await supabaseAdmin
     .from('property_likes')
-    .upsert({
+    .insert({
       property_id,
       tenant_id,
-      action,
+      action: 'like',
     })
 
   if (error) {
