@@ -1,37 +1,26 @@
-import { useEffect, useState } from 'react'
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react'
+import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 
-type Capabilities = {
-  isOwner: boolean
-  isTenant: boolean
-  loading: boolean
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-export function useCapabilities(): Capabilities {
-  const user = useUser()
-  const supabase = useSupabaseClient()
-  const [state, setState] = useState<Capabilities>({
-    isOwner: false,
-    isTenant: false,
-    loading: true,
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const userId = searchParams.get('userId')
+
+  if (!userId) {
+    return NextResponse.json({ error: 'userId required' }, { status: 400 })
+  }
+
+  const [{ data: properties }, { data: demands }] = await Promise.all([
+    supabase.from('properties').select('id').eq('owner_id', userId).limit(1),
+    supabase.from('demands').select('id').eq('tenant_id', userId).limit(1),
+  ])
+
+  return NextResponse.json({
+    isOwner: !!properties?.length,
+    isTenant: !!demands?.length,
   })
-
-  useEffect(() => {
-    if (!user) {
-      setState({ isOwner: false, isTenant: false, loading: false })
-      return
-    }
-
-    fetch(`/api/capabilities?userId=${user.id}`)
-      .then(res => res.json())
-      .then(data => {
-        setState({
-          isOwner: data.isOwner,
-          isTenant: data.isTenant,
-          loading: false,
-        })
-      })
-  }, [user])
-
-  return state
 }
