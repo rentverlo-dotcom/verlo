@@ -47,29 +47,19 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
     )
   }
 
-import { supabase } from '@/lib/supabase/client' // ← tu cliente browser
-
-async function swipe(dir: 'left' | 'right') {
+function swipe(dir: 'left' | 'right') {
   if (!cardRef.current) return
 
   const x = dir === 'right' ? 1000 : -1000
 
+  // 👉 LIKE REAL (solo derecha)
   if (dir === 'right') {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    if (!session) {
-      console.error('No hay sesión activa')
-      return
-    }
-
     fetch('/api/property-action', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`, // 🔴 CLAVE
       },
+      credentials: 'include', // 🔴 CLAVE: manda cookies de sesión
       body: JSON.stringify({
         property_id: match.id,
         action: 'like',
