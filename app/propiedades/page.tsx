@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import MatchDeck from '@/components/MatchDeck' // ⬅️ AGREGADO (no borra nada)
 
 type PropertyFeedItem = {
   id: string
@@ -60,6 +61,14 @@ export default function PropiedadesFeed() {
   return (
     <div className="min-h-screen bg-black px-4 pt-24 pb-16">
       <div className="max-w-3xl mx-auto space-y-4">
+
+        {/* 🔥 MATCH DECK (CORE EXPERIENCE) */}
+        <MatchDeck
+          items={properties}
+          source="properties"
+        />
+
+        {/* ⬇️ LISTADO EXISTENTE (NO SE BORRA, queda como fallback / SEO / debug) */}
         {properties.map(p => (
           <Link
             key={p.id}
