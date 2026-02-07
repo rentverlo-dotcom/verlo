@@ -14,8 +14,7 @@ type PropertyFeedItem = {
   short_description: string | null
 }
 
-export default function PropiedadesFeed() {
-  const [properties, setProperties] = useState<PropertyFeedItem[]>([])
+export default function PropiedadesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,12 +24,11 @@ export default function PropiedadesFeed() {
         if (!res.ok) throw new Error('Error cargando propiedades')
         return res.json()
       })
-      .then((data: PropertyFeedItem[]) => setProperties(data || []))
-      .catch(err => {
-        console.error(err)
+      .then(() => setLoading(false))
+      .catch(() => {
         setError('No pudimos cargar las propiedades')
+        setLoading(false)
       })
-      .finally(() => setLoading(false))
   }, [])
 
   if (loading) {
@@ -49,20 +47,10 @@ export default function PropiedadesFeed() {
     )
   }
 
-  if (properties.length === 0) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-neutral-400">
-        No hay propiedades disponibles por ahora
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-black">
-      <MatchDeck
-        items={properties}
-        source="properties"
-      />
+      <MatchDeck />
     </div>
   )
 }
+
