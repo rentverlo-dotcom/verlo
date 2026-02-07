@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import MatchDeck from '@/components/MatchDeck' // ⬅️ AGREGADO (no borra nada)
+import MatchDeck from '@/components/MatchDeck'
 
 type PropertyFeedItem = {
   id: string
@@ -13,6 +13,15 @@ type PropertyFeedItem = {
   currency: string
   cover_url: string | null
   short_description: string | null
+}
+
+type MatchDeckItem = {
+  id: string
+  title: string
+  address: string
+  price: number
+  cover_url: string
+  short_description: string
 }
 
 export default function PropiedadesFeed() {
@@ -58,17 +67,20 @@ export default function PropiedadesFeed() {
     )
   }
 
+  // 🔥 ADAPTADOR PARA MATCHDECK (CLAVE)
+  const matches: MatchDeckItem[] = properties.map(p => ({
+    id: p.id,
+    title: p.title,
+    address: `${p.city ?? ''}${p.zone ? ` · ${p.zone}` : ''}`,
+    price: p.price ?? 0,
+    cover_url: p.cover_url ?? '',
+    short_description: p.short_description ?? '',
+  }))
+
   return (
-    <div className="min-h-screen bg-black px-4 pt-24 pb-16">
+    <div className="min-h-screen bg-black px-4 pt-24 pb-16 space-y-12">
+      {/* 🧱 LISTADO CLÁSICO (NO SE TOCA) */}
       <div className="max-w-3xl mx-auto space-y-4">
-
-        {/* 🔥 MATCH DECK (CORE EXPERIENCE) */}
-        <MatchDeck
-          items={properties}
-          source="properties"
-        />
-
-        {/* ⬇️ LISTADO EXISTENTE (NO SE BORRA, queda como fallback / SEO / debug) */}
         {properties.map(p => (
           <Link
             key={p.id}
@@ -100,6 +112,12 @@ export default function PropiedadesFeed() {
           </Link>
         ))}
       </div>
+
+      {/* 🔥 MATCH DECK (CORE TENANT EXPERIENCE) */}
+      <div className="max-w-3xl mx-auto">
+        <MatchDeck matches={matches} />
+      </div>
     </div>
   )
 }
+
