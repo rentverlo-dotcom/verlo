@@ -1,17 +1,17 @@
+//app/api/properties/feed/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
 // helpers
 function sanitizeText(text: string | null): string | null {
   if (!text) return null
 
-  // si parece código, a la mierda
-  const banned = ['import ', 'useEffect', 'from(', 'export default', '<div', 'function ']
+  const banned = ['import ', 'useEffect', 'export default', '<div', 'function ']
   if (banned.some(b => text.includes(b))) return null
 
   return text
@@ -24,19 +24,27 @@ function isVideo(url: string) {
   return url.endsWith('.mp4') || url.endsWith('.mov') || url.endsWith('.webm')
 }
 
-function toPublicUrl(path: string) {
-  if (path.startsWith('http')) return path
+export async function GET(req: Request) {
+  // 🔐 AUTH VIA HEADER (OBLIGATORIO)
+  const authHeader = req.headers.get('authorization')
+  if (!authHeader) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
 
-  const { data } = supabase.storage
-    .from('media')
-    .getPublicUrl(path)
+  const token = authHeader.replace('Bearer ', '')
 
-  return data.publicUrl
-}
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token)
 
-export async function GET() {
+  if (authError || !user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
+  // 🎯 FEED REAL: SOLO LO SWIPEABLE PARA ESTE TENANT
   const { data, error } = await supabase
-    .from('properties')
+    .from('properties_visible_to_tenant')
     .select(`
       id,
       title,
@@ -51,38 +59,34 @@ export async function GET() {
         type
       )
     `)
-    .eq('available', true)
     .order('created_at', { ascending: false })
+    .limit(50)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const normalized = (data ?? []).map((p: any) => {
-    const media = (p.property_media ?? [])
-      .filter((m: any) => m.type === 'photo' && m.url)
-      .sort((a: any, b: any) => (a.position ?? 999) - (b.position ?? 999))
+  const normalized = (data ?? [])
+    .map((p: any) => {
+      const media = (p.property_media ?? [])
+        .filter((m: any) => m.type === 'photo' && m.url && !isVideo(m.url))
+        .sort((a: any, b: any) => (a.position ?? 999) - (b.position ?? 999))
 
-    let coverUrl: string | null = null
+      if (media.length === 0) return null
+      if (!p.price) return null
 
-    if (media.length > 0) {
-      const raw = media[0].url
-      if (!isVideo(raw)) {
-        coverUrl = toPublicUrl(raw)
+      return {
+        id: p.id,
+        title: p.title ?? 'Propiedad en alquiler',
+        city: p.city ?? null,
+        zone: p.zone ?? null,
+        price: p.price,
+        currency: p.currency ?? 'ARS',
+        cover_url: media[0].url,
+        short_description: sanitizeText(p.short_description),
       }
-    }
-
-    return {
-      id: p.id,
-      title: p.title ?? 'Propiedad en alquiler',
-      city: p.city ?? null,
-      zone: p.zone ?? null,
-      price: p.price ?? null,
-      currency: p.currency ?? 'ARS',
-      cover_url: coverUrl,
-      short_description: sanitizeText(p.short_description),
-    }
-  })
+    })
+    .filter(Boolean)
 
   return NextResponse.json(normalized)
 }
