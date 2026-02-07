@@ -42,16 +42,17 @@ export default function PropiedadesFeed() {
       .finally(() => setLoading(false))
   }, [])
 
-  const matches: DeckMatch[] = useMemo(() => {
-    return (properties || []).map(p => ({
-      id: p.id,
-      title: p.title,
-      address: [p.zone, p.city].filter(Boolean).join(', ') || '—',
-      price: p.price ?? 0,
-      cover_url: p.cover_url ?? null,
-      short_description: p.short_description ?? '',
-    }))
-  }, [properties])
+ const matches: DeckMatch[] = useMemo(() => {
+  return (properties || []).map(p => ({
+    id: p.id,
+    title: p.title,
+    address: [p.zone, p.city].filter(Boolean).join(', ') || '—',
+    price: p.price ?? 0,
+    cover_url: p.cover_url ?? '/placeholder.jpg',
+    short_description: p.short_description ?? '',
+  }))
+}, [properties])
+
 
   if (loading) {
     return (
@@ -78,8 +79,9 @@ export default function PropiedadesFeed() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      <MatchDeck matches={matches} source="properties" />
-    </div>
-  )
+  <div className="min-h-screen bg-black">
+    <MatchDeck matches={matches} />
+  </div>
+)
+
 }
