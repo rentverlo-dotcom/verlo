@@ -47,38 +47,37 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
     )
   }
 
-function swipe(dir: 'left' | 'right') {
+// 👉 LIKE REAL (solo derecha)
+async function swipe(dir: 'left' | 'right') {
   if (!cardRef.current) return
 
-  const x = dir === 'right' ? 1000 : -1000
-
-  // 👉 LIKE REAL (solo derecha)
   if (dir === 'right') {
-    fetch('/api/property-action', {
+    await fetch('/api/property-action', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // 🔴 CLAVE: manda cookies de sesión
+      credentials: 'include', // 🔥 CLAVE
       body: JSON.stringify({
         property_id: match.id,
         action: 'like',
       }),
-    }).catch(() => {})
+    })
   }
 
+  const x = dir === 'right' ? 1000 : -1000
   cardRef.current.style.transition = 'transform 0.3s ease'
   cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
 
   setTimeout(() => {
     setIndex((i) => i + 1)
-
     if (cardRef.current) {
       cardRef.current.style.transition = ''
       cardRef.current.style.transform = ''
     }
   }, 300)
 }
+
 
 
   function onPointerDown(e: React.PointerEvent) {
