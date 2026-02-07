@@ -47,24 +47,39 @@ export default function MatchDeck({ matches }: MatchDeckProps) {
     )
   }
 
-function swipe(dir: 'left' | 'right') {
+async function swipe(dir: 'left' | 'right') {
   if (!cardRef.current) return
 
   const x = dir === 'right' ? 1000 : -1000
 
   // 👉 LIKE REAL (solo derecha)
-if (dir === 'right') {
-  fetch('/api/property-action', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      property_id: match.id,
-      action: 'like',
-    }),
-  }).catch(() => {})
-}
+  if (dir === 'right') {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
+      if (!session) {
+        console.error('No hay sesión activa')
+      } else {
+        await fetch('/api/property-action', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            property_id: match.id,
+            action: 'like',
+          }),
+        })
+      }
+    } catch (err) {
+      console.error('Error enviando like', err)
+    }
+  }
 
+  // animación swipe
   cardRef.current.style.transition = 'transform 0.3s ease'
   cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
 
@@ -77,6 +92,7 @@ if (dir === 'right') {
     }
   }, 300)
 }
+
 
   function onPointerDown(e: React.PointerEvent) {
     startX.current = e.clientX
