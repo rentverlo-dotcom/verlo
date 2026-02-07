@@ -14,7 +14,8 @@ type PropertyFeedItem = {
   short_description: string | null
 }
 
-export default function PropiedadesPage() {
+export default function PropiedadesFeed() {
+  const [properties, setProperties] = useState<PropertyFeedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,11 +25,11 @@ export default function PropiedadesPage() {
         if (!res.ok) throw new Error('Error cargando propiedades')
         return res.json()
       })
-      .then(() => setLoading(false))
+      .then((data: PropertyFeedItem[]) => setProperties(data || []))
       .catch(() => {
         setError('No pudimos cargar las propiedades')
-        setLoading(false)
       })
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading) {
@@ -49,8 +50,10 @@ export default function PropiedadesPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <MatchDeck />
+      <MatchDeck
+        matches={properties}
+        source="properties"
+      />
     </div>
   )
 }
-
