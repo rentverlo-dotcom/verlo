@@ -52,12 +52,21 @@ async function swipe(dir: 'left' | 'right') {
   if (!cardRef.current) return
 
   if (dir === 'right') {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      console.error('NO SESSION')
+      return
+    }
+
     await fetch('/api/property-action', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
       },
-      credentials: 'include', // 🔥 CLAVE
       body: JSON.stringify({
         property_id: match.id,
         action: 'like',
@@ -77,8 +86,6 @@ async function swipe(dir: 'left' | 'right') {
     }
   }, 300)
 }
-
-
 
   function onPointerDown(e: React.PointerEvent) {
     startX.current = e.clientX
