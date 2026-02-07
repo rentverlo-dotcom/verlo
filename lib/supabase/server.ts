@@ -1,6 +1,7 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+// lib/supabase/server.ts
+import { createClient } from '@supabase/supabase-js';
 
-export function supabaseServer() {
-  return createRouteHandlerClient({ cookies })
-}
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
