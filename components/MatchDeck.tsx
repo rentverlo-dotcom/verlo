@@ -52,10 +52,10 @@ function swipe(dir: 'left' | 'right') {
 
   const x = dir === 'right' ? 1000 : -1000
 
-  // 👉 LIKE REAL (solo derecha)
   if (dir === 'right') {
     fetch('/api/property-action', {
       method: 'POST',
+      credentials: 'include', // 🔴 ESTA ES LA PUTA CLAVE!!!!!!!!!!??????
       headers: {
         'Content-Type': 'application/json',
       },
@@ -78,7 +78,6 @@ function swipe(dir: 'left' | 'right') {
     }
   }, 300)
 }
-
 
 
   function onPointerDown(e: React.PointerEvent) {
