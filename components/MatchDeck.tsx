@@ -1,6 +1,6 @@
 // components/MatchDeck.tsx
 'use client'
-
+import { supabase } from '@/lib/supabase/client'
 import { useRef, useState } from 'react'
 
 type Match = {
