@@ -7,20 +7,26 @@ const supabase = createClient(
 )
 
 export async function POST(req: Request) {
+  const authHeader = req.headers.get('authorization')
+  if (!authHeader) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token)
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
   const { property_id, action } = await req.json()
 
   if (!property_id || action !== 'like') {
     return NextResponse.json({ error: 'invalid payload' }, { status: 400 })
-  }
-
-  // 🔐 usuario desde sesión (AUTH REAL, SIN INVENTAR IDS)
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const { error } = await supabase.from('property_likes').insert({
@@ -34,4 +40,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true })
 }
+
 
