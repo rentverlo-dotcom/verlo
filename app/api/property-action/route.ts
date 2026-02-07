@@ -5,13 +5,19 @@ import { cookies } from 'next/headers'
 export async function POST(req: Request) {
   const cookieStore = cookies()
 
-  const supabase = createServerClient(
+  const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: {
-        get(name) {
-          return cookieStore.get(name)?.value
+      auth: {
+        persistSession: false,
+      },
+      global: {
+        headers: {
+          Cookie: cookieStore
+            .getAll()
+            .map(c => `${c.name}=${c.value}`)
+            .join('; '),
         },
       },
     }
@@ -31,10 +37,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid payload' }, { status: 400 })
   }
 
-  const { error } = await supabase.from('property_likes').insert({
-    property_id,
-    tenant_id: user.id,
-  })
+  const { error } = await supabase
+    .from('property_likes')
+    .insert({
+      property_id,
+      tenant_id: user.id,
+    })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
