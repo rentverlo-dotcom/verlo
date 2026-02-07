@@ -53,17 +53,17 @@ function swipe(dir: 'left' | 'right') {
   const x = dir === 'right' ? 1000 : -1000
 
   // 👉 LIKE REAL (solo derecha)
-  if (dir === 'right') {
-    fetch('/api/property-action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tenant_id: 'FAKE_TENANT_ID', // después auth real
-        property_id: match.id,
-        match_id: null,
-      }),
-    }).catch(() => {})
-  }
+if (dir === 'right') {
+  fetch('/api/property-action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      property_id: match.id,
+      action: 'like',
+    }),
+  }).catch(() => {})
+}
+
 
   cardRef.current.style.transition = 'transform 0.3s ease'
   cardRef.current.style.transform = `translateX(${x}px) rotate(${x / 20}deg)`
