@@ -1,25 +1,27 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function POST(req: Request) {
-  const authHeader = req.headers.get('authorization')
-  if (!authHeader) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  }
+  const cookieStore = cookies()
 
-  const token = authHeader.replace('Bearer ', '')
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
 
   const {
     data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token)
+  } = await supabase.auth.getUser()
 
-  if (authError || !user) {
+  if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -40,5 +42,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true })
 }
-
-
