@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { notifyOwner } from "@/lib/notifyOwner";
+import { sendWhatsApp } from "@/lib/notifications/whatsapp"; // 🆕 NUEVO
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
     .eq("id", property.owner_id)
     .single();
 
-  // 3. Notificar owner
+  // 3. Notificar owner (EXISTENTE, NO SE TOCA)
   if (owner?.phone) {
     await notifyOwner({
       phone: owner.phone,
@@ -46,6 +47,22 @@ export async function POST(req: Request) {
     });
   }
 
+  // 4. 🆕 MOCK WhatsApp (side-effect adicional, desacoplado)
+  if (owner?.phone) {
+    await sendWhatsApp({
+      to: owner.phone,
+      template: "match_created",
+      variables: {
+        match_id: match.id,
+        property_id: property_id,
+        property_title: property?.title,
+      },
+      context: {
+        trigger: "match_created",
+        source: "api/matches/create",
+      },
+    });
+  }
+
   return NextResponse.json({ match });
 }
-
