@@ -30,15 +30,14 @@ export default function ContractPage() {
     if (!session) return
     setUserId(session.user.id)
 
-
-    const res = await fetch(
-      `/api/contracts/by-match/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      }
-    )
+   const res = await fetch(
+  `/api/contracts/by-match/${matchId}`,
+  {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  }
+)
 
     if (!res.ok) {
   const text = await res.text()
