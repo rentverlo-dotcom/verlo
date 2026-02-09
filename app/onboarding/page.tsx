@@ -15,4 +15,5 @@ export default function Onboarding() {
       role,
     })
 
-    router.push(role === 'tenant' ? '/inquilino'
+router.push(role === 'tenant' ? '/inquilino' : '/propietario/publicar')
+
