@@ -20,28 +20,35 @@ export default function ContractPage() {
   const [loading, setLoading] = useState(true)
   const [signing, setSigning] = useState(false)
 
-  useEffect(() => {
-    const load = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+ useEffect(() => {
+  const load = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-      if (!user) return
+    if (!session) return
 
-      setUserId(user.id)
+    const res = await fetch(
+      `/api/contracts/by-match/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      }
+    )
 
-      const { data } = await supabase
-        .from('contracts')
-        .select('*')
-        .eq('match_id', id)
-        .single()
-
-      setContract(data)
+    if (!res.ok) {
       setLoading(false)
+      return
     }
 
-    load()
-  }, [id])
+    const json = await res.json()
+    setContract(json.contract)
+    setLoading(false)
+  }
+
+  load()
+}, [id])
 
   const isOwner = contract && userId === contract.owner_id
   const isTenant = contract && userId === contract.tenant_id
