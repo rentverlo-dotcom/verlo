@@ -15,7 +15,7 @@ type Contract = {
 
 export default function ContractPage() {
   const { id } = useParams<{ id: string }>()
-  const supabase = createClient()
+  
 
   const [contract, setContract] = useState<Contract | null>(null)
   const [loading, setLoading] = useState(true)
