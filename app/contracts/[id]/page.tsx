@@ -33,7 +33,7 @@ export default function ContractPage() {
       const { data } = await supabase
         .from('contracts')
         .select('*')
-        .eq('id', id)
+        .eq('match_id', id)
         .single()
 
       setContract(data)
