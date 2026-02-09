@@ -103,6 +103,8 @@ export default function LoginPage() {
           {loading ? 'Enviando link…' : 'Enviar link de acceso'}
         </button>
       </form>
+        </div>
     </div>
   )
+}
 
