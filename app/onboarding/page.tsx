@@ -1,19 +1,28 @@
 'use client'
 
-import { supabase } from '@/lib/supabase/client'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
 
-export default function Onboarding() {
+export default function OnboardingPage() {
   const router = useRouter()
 
-  async function choose(role: 'tenant' | 'owner') {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+  useEffect(() => {
+    async function run() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
 
-    await supabase.from('profiles').insert({
-      id: user.id,
-      role,
-    })
+      const role = user.user_metadata?.role
 
-router.push(role === 'tenant' ? '/inquilino' : '/propietario/publicar')
+      if (role === 'tenant') {
+        router.push('/inquilino')
+      } else if (role === 'owner') {
+        router.push('/propietario/publicar')
+      }
+    }
 
+    run()
+  }, [router])
+
+  return null
+}
