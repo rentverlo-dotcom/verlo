@@ -27,6 +27,8 @@ export default function ContractPage() {
     } = await supabase.auth.getSession()
 
     if (!session) return
+    setUserId(session.user.id)
+
 
     const res = await fetch(
       `/api/contracts/by-match/${id}`,
@@ -38,9 +40,11 @@ export default function ContractPage() {
     )
 
     if (!res.ok) {
-      setLoading(false)
-      return
-    }
+  const text = await res.text()
+  console.error('API ERROR:', res.status, text)
+  setLoading(false)
+  return
+}
 
     const json = await res.json()
     setContract(json.contract)
