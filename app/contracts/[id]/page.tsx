@@ -2,80 +2,81 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 
 type Contract = {
   id: string
   match_id: string
-  status: 'draft' | 'ready_to_sign' | 'signed'
-  content: string
   tenant_id: string
   owner_id: string
-  signed_at: string | null
+  created_at: string
+  // agregá acá los campos reales que tengas
 }
 
 export default function ContractPage() {
-  const { id } = useParams() // id = match_id
+  const { id } = useParams<{ id: string }>()
+  const supabase = createClient()
+
   const [contract, setContract] = useState<Contract | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const load = async () => {
-      const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData.session) {
-        setLoading(false)
-        return
-      }
+    if (!id) return
+
+    const loadContract = async () => {
+      setLoading(true)
+      setError(null)
 
       const { data, error } = await supabase
         .from('contracts')
         .select('*')
         .eq('match_id', id)
-        .single()
 
       if (error) {
         console.error(error)
+        setError('Error cargando contrato')
         setLoading(false)
         return
       }
 
-      setContract(data)
+      if (!data || data.length === 0) {
+        setError('Contrato no encontrado')
+        setLoading(false)
+        return
+      }
+
+      setContract(data[0])
       setLoading(false)
     }
 
-    load()
+    loadContract()
   }, [id])
 
   if (loading) {
-    return <div className="p-8">Cargando contrato…</div>
+    return <div className="p-6">Cargando contrato…</div>
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-500">{error}</div>
   }
 
   if (!contract) {
-    return <div className="p-8">Contrato no encontrado</div>
+    return <div className="p-6">Contrato no disponible</div>
   }
 
   return (
-    <main className="max-w-3xl mx-auto p-8">
-      <h1 className="text-2xl font-semibold mb-4">
-        Contrato de alquiler
-      </h1>
+    <div className="p-6 space-y-4">
+      <h1 className="text-2xl font-bold">Contrato</h1>
 
-      <p className="text-sm text-gray-500 mb-6">
-        Estado:{' '}
-        <strong>
-          {contract.status === 'ready_to_sign'
-            ? 'Listo para firmar'
-            : contract.status === 'signed'
-            ? 'Firmado'
-            : 'Borrador'}
-        </strong>
-      </p>
-
-      <section
-        className="prose max-w-none border rounded-lg p-6 bg-white"
-        dangerouslySetInnerHTML={{ __html: contract.content }}
-      />
-    </main>
+      <div className="border rounded p-4">
+        <p><strong>ID:</strong> {contract.id}</p>
+        <p><strong>Match ID:</strong> {contract.match_id}</p>
+        <p><strong>Inquilino:</strong> {contract.tenant_id}</p>
+        <p><strong>Propietario:</strong> {contract.owner_id}</p>
+        <p><strong>Creado:</strong> {new Date(contract.created_at).toLocaleString()}</p>
+      </div>
+    </div>
   )
 }
 
