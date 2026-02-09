@@ -15,6 +15,7 @@ type Contract = {
 
 export default function ContractPage() {
   const { id } = useParams()
+  const matchId = Array.isArray(id) ? id[0] : id
   const [contract, setContract] = useState<Contract | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
