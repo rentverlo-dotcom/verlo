@@ -229,8 +229,7 @@ export default function HomePage() {
       <h2 className="section-title">Transparencia ante todo</h2>
 
       <p style={{ fontSize: "18px", lineHeight: 1.6 }}>
-        VERLO no promete resultados mágicos ni publica miles de avisos sin
-        sentido.
+        VERLO elimina la ineficiencia en el mundo de alquileres.
       </p>
 
       <p
@@ -241,9 +240,10 @@ export default function HomePage() {
           opacity: 0.85,
         }}
       >
-        Nuestro objetivo es simple: generar coincidencias reales entre
-        inquilinos y propietarios que buscan lo mismo, reduciendo vueltas,
-        conflictos y costos innecesarios.
+        Unimos inquilinos y propietarios según sus preferencias y los ponemos en contacto. Los ayudamos a coordinar visitas
+        y si se ponen de acuerdo y quieren avanzar, pueden firmar su contrato electrónicamente en VERLO.
+        No solo les garantizamos seguirdad jurídica, sino que ademas valdiamos identidad sin excepción antes de que tomen contacto 
+        telefónico y realicen visitas.
       </p>
 
       <p
@@ -254,7 +254,8 @@ export default function HomePage() {
           opacity: 0.85,
         }}
       >
-        Si no hay compatibilidad, no hay match. Así de claro.
+       Cuánto costaba firmar un contrato de alquiler cuando lo hacía una inmobiliaria? Y cuánto tardaban en atender tus necesidades? 
+       VERLO hace todo en tiempo real, sin demoras, vía Whatsapp y con seguridad garantizada. Y, además, muchísimo más barato.
       </p>
     </div>
   </div>
