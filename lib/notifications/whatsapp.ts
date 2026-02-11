@@ -1,9 +1,8 @@
-// lib/notifications/whatsapp.ts
-
 import crypto from 'crypto'
 
 type WhatsAppMessage = {
-  to: string
+  to?: string
+  role?: 'tenant' | 'owner'
   template: string
   variables?: Record<string, string | number>
   context?: Record<string, any>
@@ -18,54 +17,45 @@ type WhatsAppResult = {
 
 const PROVIDER = process.env.WHATSAPP_PROVIDER || 'mock'
 
+const TENANT_DEBUG = process.env.WHATSAPP_TENANT_DEBUG
+const OWNER_DEBUG = process.env.WHATSAPP_OWNER_DEBUG
+
 export async function sendWhatsApp(
   message: WhatsAppMessage
 ): Promise<WhatsAppResult> {
-  try {
-    switch (PROVIDER) {
-      case 'mock':
-        return await sendMock(message)
-
-      // FUTURO:
-      // case 'meta':
-      // case 'twilio':
-      //   return await sendReal(message)
-
-      default:
-        throw new Error(`Unknown WHATSAPP_PROVIDER: ${PROVIDER}`)
-    }
-  } catch (error: any) {
-    console.error('[WHATSAPP ERROR]', error)
-
-    return {
-      provider: PROVIDER,
-      success: false,
-      error: error.message,
-    }
+  switch (PROVIDER) {
+    case 'mock':
+      return sendMock(message)
+    default:
+      throw new Error(`Unknown WHATSAPP_PROVIDER: ${PROVIDER}`)
   }
 }
 
-/**
- * MOCK — No envía nada real.
- * Solo loguea en consola del servidor.
- * Seguro para usar en producción mientras diseñamos UX.
- */
 async function sendMock(
   message: WhatsAppMessage
 ): Promise<WhatsAppResult> {
   const messageId = `mock-${crypto.randomUUID()}`
 
-  console.log('\n📲 [WHATSAPP MOCK]')
-  console.log({
+  let destination = message.to
+
+  // 🔥 OVERRIDE PARA TESTING REAL
+  if (message.role === 'tenant' && TENANT_DEBUG) {
+    destination = TENANT_DEBUG
+  }
+
+  if (message.role === 'owner' && OWNER_DEBUG) {
+    destination = OWNER_DEBUG
+  }
+
+  console.log('[WHATSAPP MOCK SEND]', {
     provider: 'mock',
     message_id: messageId,
-    to: message.to,
+    to: destination,
     template: message.template,
-    variables: message.variables || {},
-    context: message.context || {},
+    variables: message.variables,
+    context: message.context,
     timestamp: new Date().toISOString(),
   })
-  console.log('--------------------------------------\n')
 
   return {
     provider: 'mock',
