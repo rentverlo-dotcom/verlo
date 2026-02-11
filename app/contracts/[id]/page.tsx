@@ -22,48 +22,63 @@ export default function ContractPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!id) return
+useEffect(() => {
+  if (!id) return
 
-    const loadContract = async () => {
-      setLoading(true)
-      setError(null)
+  const loadContract = async () => {
+    setLoading(true)
+    setError(null)
 
-      const { data, error } = await supabase
-        .from('contracts')
-        .select('*')
-        .eq('match_id', id)
-        .single()
+    // 1️⃣ Verificar sesión
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-      if (error) {
-        console.error(error)
-        setError('Error cargando contrato')
-        setLoading(false)
-        return
-      }
-
-      setContract(data)
+    if (!user) {
+      setError('Debes iniciar sesión')
       setLoading(false)
+      return
     }
 
-    loadContract()
-  }, [id])
+    // 2️⃣ Verificar datos legales obligatorios
+    const { data: legalData, error: legalError } = await supabase
+      .from('user_contract_data')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        Cargando contrato…
-      </div>
-    )
+    if (legalError) {
+      console.error(legalError)
+      setError('Error verificando datos legales')
+      setLoading(false)
+      return
+    }
+
+    if (!legalData) {
+      router.push(`/contracts/${id}/legal-data`)
+      return
+    }
+
+    // 3️⃣ Cargar contrato
+    const { data, error } = await supabase
+      .from('contracts')
+      .select('*')
+      .eq('match_id', id)
+      .single()
+
+    if (error) {
+      console.error(error)
+      setError('Error cargando contrato')
+      setLoading(false)
+      return
+    }
+
+    setContract(data)
+    setLoading(false)
   }
 
-  if (error || !contract) {
-    return (
-      <div className="min-h-screen bg-black text-red-400 flex items-center justify-center">
-        {error || 'Contrato no encontrado'}
-      </div>
-    )
-  }
+  loadContract()
+}, [id])
 
   return (
     <div className="min-h-screen bg-black text-white px-6 py-12">
