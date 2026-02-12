@@ -101,7 +101,9 @@ export default function MatchPage() {
         {(match.status === 'contract_started' ||
           match.status === 'signed') && (
           <button
-            onClick={() => router.push(`/contracts/${id}`)}
+            onClick={() => {
+  alert('Contrato aún no integrado con Truora');
+}}
             className="w-full bg-green-600 text-white py-3 rounded"
           >
             Ver contrato
