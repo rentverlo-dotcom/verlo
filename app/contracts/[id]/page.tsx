@@ -83,17 +83,18 @@ export default function ContractPage() {
 
       setTerms(termsData)
 
-      const { data: ownerLegal } = await supabase
-        .from('user_contract_data')
-        .select('*')
-        .eq('user_id', contractData.owner_id)
-        .single()
+   const { data: ownerLegal } = await supabase
+  .from('user_contract_data')
+  .select('*')
+  .eq('user_id', contractData.owner_id)
+  .maybeSingle()
 
-      const { data: tenantLegal } = await supabase
-        .from('user_contract_data')
-        .select('*')
-        .eq('user_id', contractData.tenant_id)
-        .single()
+const { data: tenantLegal } = await supabase
+  .from('user_contract_data')
+  .select('*')
+  .eq('user_id', contractData.tenant_id)
+  .maybeSingle()
+
 
       setOwnerData(ownerLegal)
       setTenantData(tenantLegal)
