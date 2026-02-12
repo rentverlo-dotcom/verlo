@@ -48,6 +48,18 @@ export default function TenantDocumentsPage() {
   async function handleUpload() {
     if (!file) return
 
+    // 🔐 VALIDACIÓN FRONTEND
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Formato no permitido. Solo PDF, JPG o PNG.')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('El archivo no puede superar los 5MB.')
+      return
+    }
+
     setUploading(true)
 
     const {
@@ -59,9 +71,9 @@ export default function TenantDocumentsPage() {
     const fileExt = file.name.split('.').pop()
     const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`
 
-    // 1️⃣ Subir a bucket privado
+    // 🔐 Subir a bucket PRIVADO correcto
     const { error: uploadError } = await supabase.storage
-      .from('financial-documents')
+      .from('tenant-financial-docs')
       .upload(fileName, file)
 
     if (uploadError) {
@@ -70,7 +82,7 @@ export default function TenantDocumentsPage() {
       return
     }
 
-    // 2️⃣ Guardar en DB
+    // Guardar metadata
     const { error: dbError } = await supabase
       .from('tenant_financial_documents')
       .insert({
@@ -82,11 +94,14 @@ export default function TenantDocumentsPage() {
 
     if (dbError) {
       alert(dbError.message)
+      setUploading(false)
+      return
     }
 
     setFile(null)
     setUploading(false)
-    loadDocuments()
+
+    await loadDocuments()
   }
 
   if (loading) {
@@ -106,7 +121,7 @@ export default function TenantDocumentsPage() {
             Documentación financiera
           </h1>
           <p className="text-neutral-400 text-sm">
-            Estos documentos serán visibles únicamente para propietarios con match aprobado.
+            Tus documentos solo serán visibles para propietarios con match aprobado.
           </p>
         </div>
 
@@ -165,6 +180,16 @@ export default function TenantDocumentsPage() {
               </p>
             </div>
           ))}
+        </div>
+
+        {/* CTA */}
+        <div className="pt-6">
+          <button
+            onClick={() => router.push('/propiedades')}
+            className="w-full border border-white py-3 rounded"
+          >
+            Continuar buscando propiedades
+          </button>
         </div>
 
       </div>
