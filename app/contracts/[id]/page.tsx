@@ -1,3 +1,68 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
+
+type Contract = {
+  id: string
+  match_id: string
+  tenant_id: string
+  owner_id: string
+  status: string
+  created_at: string
+  signed_at: string | null
+}
+
+export default function ContractPage() {
+  const { id } = useParams<{ id: string }>()
+
+  const [contract, setContract] = useState<Contract | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!id) return
+
+    const loadContract = async () => {
+      setLoading(true)
+      setError(null)
+
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('match_id', id)
+        .single()
+
+      if (error) {
+        console.error(error)
+        setError('Contrato no encontrado')
+        setLoading(false)
+        return
+      }
+
+      setContract(data)
+      setLoading(false)
+    }
+
+    loadContract()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Cargando contrato…
+      </div>
+    )
+  }
+
+  if (error || !contract) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600">
+        {error || 'Contrato no disponible'}
+      </div>
+    )
+  }
 return (
   <div className="min-h-screen bg-white text-black py-16 px-6">
     <div className="max-w-[794px] mx-auto">
@@ -112,4 +177,4 @@ return (
     </div>
   </div>
 )
-
+}
