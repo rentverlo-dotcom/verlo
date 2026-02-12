@@ -54,9 +54,11 @@ export default function MatchTermsPage() {
       })
       .eq('match_id', matchId)
 
-    if (!error) {
-      router.push('/matches')
-    }
+   if (error) {
+  alert(error.message)
+} else {
+  router.push(`/matches/${matchId}`)
+}
 
     setSubmitting(false)
   }
