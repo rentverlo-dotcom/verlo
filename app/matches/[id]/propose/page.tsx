@@ -16,16 +16,35 @@ export default function ProposeTermsPage() {
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
+  e.preventDefault()
+  setSubmitting(true)
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    if (!user) return
+  if (!user) {
+    setSubmitting(false)
+    return
+  }
 
-    await supabase.from('match_terms').insert({
+  // 🔐 Validar estado del match antes de proponer
+  const { data: matchData, error: matchError } = await supabase
+    .from('matches')
+    .select('status')
+    .eq('id', matchId)
+    .single()
+
+  if (matchError || matchData?.status !== 'approved') {
+    alert('El match no está listo para proponer condiciones')
+    setSubmitting(false)
+    return
+  }
+
+  // Insertar términos
+  const { error: insertError } = await supabase
+    .from('match_terms')
+    .insert({
       match_id: matchId,
       price: Number(price),
       deposit: Number(deposit),
@@ -35,8 +54,15 @@ export default function ProposeTermsPage() {
       proposed_by: user.id,
     })
 
-    router.push(`/matches/${matchId}/terms`)
+  if (insertError) {
+    alert(insertError.message)
+    setSubmitting(false)
+    return
   }
+
+  router.push(`/matches/${matchId}/terms`)
+}
+
 
   return (
     <main className="max-w-xl mx-auto p-8">
