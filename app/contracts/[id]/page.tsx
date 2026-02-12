@@ -119,92 +119,119 @@ export default function ContractPage() {
     )
   }
 
-  return (
-    <div className="min-h-screen bg-black text-white px-6 py-12">
-      <div className="max-w-4xl mx-auto space-y-10">
+return (
+  <div className="min-h-screen bg-white text-black py-16 px-6">
+    <div className="max-w-[794px] mx-auto">
 
-        <h1 className="text-5xl font-bold">
-          CONTRATO DE LOCACIÓN DE VIVIENDA
+      {/* Encabezado */}
+      <div className="text-center space-y-2 mb-10">
+        <h1 className="text-2xl tracking-wide font-semibold uppercase">
+          Contrato de Locación
         </h1>
+        <p className="text-sm text-neutral-600">
+          República Argentina
+        </p>
+        <div className="border-t border-black mt-4"></div>
+      </div>
 
-        <div className="text-sm text-neutral-400">
-          Estado: {contract.status}
+      {/* Estado discreto */}
+      <div className="flex justify-end mb-6 text-sm text-neutral-700">
+        Estado: <span className="ml-2 font-medium uppercase">{contract.status}</span>
+      </div>
+
+      {/* Cuerpo */}
+      <div
+        className="text-[15px] leading-[1.8] space-y-6"
+        style={{
+          fontFamily: 'Georgia, Times New Roman, serif',
+          textAlign: 'justify',
+        }}
+      >
+
+        <p>
+          En la República Argentina, a los {new Date().toLocaleDateString('es-AR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          })}, entre{" "}
+          <strong>{contract.owner_id}</strong>, en adelante “EL LOCADOR”, y{" "}
+          <strong>{contract.tenant_id}</strong>, en adelante “EL LOCATARIO”, se celebra el presente contrato de locación.
+        </p>
+
+        <p>
+          <strong>PRIMERA — OBJETO.</strong>  
+          EL LOCADOR da en locación al LOCATARIO el inmueble vinculado al match{" "}
+          <strong>{contract.match_id}</strong>, destinado al uso acordado entre las partes.
+        </p>
+
+        <p>
+          <strong>SEGUNDA — PLAZO.</strong>  
+          El presente contrato tendrá la duración acordada conforme a las condiciones previamente aceptadas por ambas partes.
+        </p>
+
+        <p>
+          <strong>TERCERA — PRECIO.</strong>  
+          El canon locativo mensual será el pactado en los términos aceptados, pagadero en tiempo y forma conforme lo estipulado.
+        </p>
+
+        <p>
+          <strong>CUARTA — DEPÓSITO.</strong>  
+          El LOCATARIO entrega en concepto de depósito en garantía la suma equivalente a un período locativo, conforme lo acordado.
+        </p>
+
+        <p>
+          <strong>QUINTA — ACTUALIZACIÓN.</strong>  
+          El precio podrá actualizarse conforme índice legal vigente al momento de la firma, respetando la normativa aplicable.
+        </p>
+
+        <p>
+          <strong>SEXTA — JURISDICCIÓN.</strong>  
+          Para cualquier controversia derivada del presente, las partes se someten a los tribunales ordinarios de la jurisdicción correspondiente al inmueble.
+        </p>
+
+        <p className="mt-10">
+          El presente contrato fue generado digitalmente mediante la plataforma VERLO.
+        </p>
+
+        <p className="text-sm text-neutral-600">
+          Fecha de generación digital:{" "}
+          {new Date(contract.created_at).toLocaleString()}
+        </p>
+      </div>
+
+      {/* Firmas */}
+      <div className="mt-20 grid grid-cols-2 gap-20 text-center text-sm">
+        <div>
+          <div className="border-t border-black pt-3">
+            EL LOCADOR
+          </div>
         </div>
-
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-10 space-y-6 text-neutral-200 leading-relaxed text-[15px]">
-
-          <p>
-            En la República Argentina, a la fecha de generación digital del presente,
-            entre <strong>{ownerData.first_name} {ownerData.last_name}</strong>,
-            DNI {ownerData.dni}, con domicilio en {ownerData.address},
-            {ownerData.city}, {ownerData.province}, en adelante "EL LOCADOR",
-            y <strong>{tenantData.first_name} {tenantData.last_name}</strong>,
-            DNI {tenantData.dni}, con domicilio en {tenantData.address},
-            {tenantData.city}, {tenantData.province}, en adelante
-            "EL LOCATARIO", se celebra el presente contrato de locación.
-          </p>
-
-          <h2 className="text-xl font-semibold">PRIMERA — OBJETO</h2>
-          <p>
-            EL LOCADOR da en locación al LOCATARIO el inmueble vinculado al match
-            {contract.match_id}, destinado exclusivamente a vivienda.
-          </p>
-
-          <h2 className="text-xl font-semibold">SEGUNDA — PLAZO</h2>
-          <p>
-            El contrato tendrá una duración de 24 meses conforme legislación vigente.
-          </p>
-
-          <h2 className="text-xl font-semibold">TERCERA — PRECIO</h2>
-          <p>
-            El canon locativo mensual será el acordado en condiciones previas
-            aceptadas por ambas partes.
-          </p>
-
-          <h2 className="text-xl font-semibold">CUARTA — DEPÓSITO</h2>
-          <p>
-            Se entrega en concepto de depósito en garantía una suma equivalente
-            a un mes de alquiler.
-          </p>
-
-          <h2 className="text-xl font-semibold">QUINTA — ACTUALIZACIÓN</h2>
-          <p>
-            El valor del alquiler podrá actualizarse conforme índice legal
-            aplicable según normativa vigente al momento de la firma.
-          </p>
-
-          <h2 className="text-xl font-semibold">SEXTA — JURISDICCIÓN</h2>
-          <p>
-            Para cualquier controversia, las partes se someten a los tribunales
-            ordinarios de la jurisdicción correspondiente al inmueble.
-          </p>
-
-          <p>
-            El presente contrato fue generado digitalmente mediante la plataforma VERLO.
-          </p>
-
-          <p>
-            Fecha de creación digital: {new Date(contract.created_at).toLocaleString()}
-          </p>
-
+        <div>
+          <div className="border-t border-black pt-3">
+            EL LOCATARIO
+          </div>
         </div>
+      </div>
 
-        {contract.status === 'ready_to_sign' && (
-          <button className="w-full bg-white text-black py-4 rounded-xl font-semibold text-lg">
+      {/* Acción sobria */}
+      {contract.status === 'ready_to_sign' && (
+        <div className="mt-16 flex justify-center">
+          <button className="border border-black px-8 py-3 text-sm tracking-wide hover:bg-black hover:text-white transition">
             Firmar contrato
           </button>
-        )}
+        </div>
+      )}
 
-        {contract.status === 'signed' && (
-          <div className="bg-green-900 border border-green-700 rounded-xl p-6 text-green-300">
-            Contrato firmado el{' '}
-            {contract.signed_at
-              ? new Date(contract.signed_at).toLocaleString()
-              : '—'}
-          </div>
-        )}
-
-      </div>
+      {contract.status === 'signed' && (
+        <div className="mt-16 text-center text-green-700 font-medium">
+          ✔ Contrato firmado el{" "}
+          {contract.signed_at
+            ? new Date(contract.signed_at).toLocaleString()
+            : ''}
+        </div>
+      )}
     </div>
-  )
+  </div>
+)
+
 }
