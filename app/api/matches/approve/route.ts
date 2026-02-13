@@ -10,7 +10,39 @@ const supabase = createClient(
 export async function POST(req: Request) {
   const { match_id } = await req.json();
 
-  // 1️⃣ Transición real vía función
+  if (!match_id) {
+    return NextResponse.json(
+      { error: "match_id required" },
+      { status: 400 }
+    );
+  }
+
+  // 1️⃣ Obtener match + demand
+  const { data: match, error: matchError } = await supabase
+    .from("matches")
+    .select("id, demand_id")
+    .eq("id", match_id)
+    .single();
+
+  if (matchError || !match) {
+    return NextResponse.json(
+      { error: "match not found" },
+      { status: 404 }
+    );
+  }
+
+  // 2️⃣ Aprobar garantía automáticamente
+  await supabase
+    .from("match_guarantee_reviews")
+    .upsert({
+      match_id: match_id,
+      demand_id: match.demand_id,
+      status: "approved",
+      reviewed_by: null,
+      reviewed_at: new Date().toISOString(),
+    }, { onConflict: "match_id" });
+
+  // 3️⃣ Transición real del match → approved
   const { error: transitionError } = await supabase.rpc(
     "transition_match_status",
     {
@@ -26,17 +58,11 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2️⃣ Buscar tenant para notificar
-  const { data: match } = await supabase
-    .from("matches")
-    .select("demand_id")
-    .eq("id", match_id)
-    .single();
-
+  // 4️⃣ Buscar tenant para notificar
   const { data: demand } = await supabase
     .from("demands")
     .select("tenant_id")
-    .eq("id", match?.demand_id)
+    .eq("id", match.demand_id)
     .single();
 
   const { data: tenant } = await supabase
@@ -45,16 +71,14 @@ export async function POST(req: Request) {
     .eq("id", demand?.tenant_id)
     .single();
 
-  // 3️⃣ WhatsApp mock al tenant
+  // 5️⃣ WhatsApp mock
   if (tenant?.phone) {
     await sendWhatsApp({
       to: tenant.phone,
       template: "match_approved",
-      variables: {
-        match_id,
-      },
+      variables: { match_id },
       context: {
-        trigger: "match_approved",
+        trigger: "match_approved_full",
         source: "api/matches/approve",
       },
     });
