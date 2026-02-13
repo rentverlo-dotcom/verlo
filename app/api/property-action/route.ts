@@ -39,8 +39,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid payload' }, { status: 400 })
   }
 
-  // 5️⃣ Insert protegido por RLS
-  const { error } = await supabase
+  // 5️⃣ Insert protegido por RLS (LIKE)
+  const { error: likeError } = await supabase
     .from('property_likes')
     .insert({
       property_id,
@@ -48,8 +48,39 @@ export async function POST(req: Request) {
       action: 'like',
     })
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (likeError) {
+    return NextResponse.json({ error: likeError.message }, { status: 500 })
+  }
+
+  // 6️⃣ Buscar demanda más reciente del tenant
+  const { data: demand, error: demandError } = await supabase
+    .from('demands')
+    .select('id')
+    .eq('tenant_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (demandError || !demand) {
+    return NextResponse.json(
+      { error: 'tenant has no active demand' },
+      { status: 400 }
+    )
+  }
+
+  // 7️⃣ Crear match si no existe
+  const { error: matchError } = await supabase
+    .from('matches')
+    .insert({
+      property_id,
+      demand_id: demand.id,
+      status: 'pending',
+      created_by: 'system',
+    })
+
+  // Si falla por unique (ya existe), lo ignoramos
+  if (matchError && !matchError.message.includes('duplicate')) {
+    return NextResponse.json({ error: matchError.message }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })
