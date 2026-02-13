@@ -23,6 +23,7 @@ export default function MatchPage() {
   const [match, setMatch] = useState<Match | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [approving, setApproving] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -61,6 +62,27 @@ export default function MatchPage() {
     load()
   }, [id, router])
 
+  async function approveMatch() {
+    if (!match) return
+
+    setApproving(true)
+
+    const res = await fetch('/api/matches/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ match_id: match.id }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json()
+      alert(data.error || 'Error aprobando match')
+      setApproving(false)
+      return
+    }
+
+    window.location.reload()
+  }
+
   if (loading) return <div className="p-8">Cargando match…</div>
   if (!match) return <div className="p-8">Match no encontrado</div>
 
@@ -76,6 +98,17 @@ export default function MatchPage() {
       <p className="mb-2">Estado: {match.status}</p>
 
       <div className="space-y-4 mt-6">
+
+        {/* OWNER — Aprobar match */}
+        {isOwner && match.status === 'pending' && (
+          <button
+            onClick={approveMatch}
+            disabled={approving}
+            className="w-full bg-blue-600 text-white py-3 rounded"
+          >
+            {approving ? 'Aprobando…' : 'Aprobar match'}
+          </button>
+        )}
 
         {/* OWNER — Proponer condiciones */}
         {isOwner && match.status === 'approved' && (
@@ -102,8 +135,8 @@ export default function MatchPage() {
           match.status === 'signed') && (
           <button
             onClick={() => {
-  alert('Contrato aún no integrado con Truora');
-}}
+              alert('Contrato aún no integrado con Truora');
+            }}
             className="w-full bg-green-600 text-white py-3 rounded"
           >
             Ver contrato
