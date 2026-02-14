@@ -66,11 +66,8 @@ const CABA_BARRIOS = [
 ].map(b => ({ id: b, name: b }))
 
 export default function Buscar() {
-  const [step, setStep] = useState<number>(() => {
-    if (typeof window === 'undefined') return 1
-    const saved = localStorage.getItem('demand_step')
-    return saved ? Number(saved) : 1
-  })
+ const [step, setStep] = useState<number>(1)
+
 
   const [draft, setDraft] = useState<Draft>(() => {
     if (typeof window === 'undefined') return {}
@@ -88,8 +85,7 @@ export default function Buscar() {
 
 
   useEffect(() => localStorage.setItem('demand_draft', JSON.stringify(draft)), [draft])
-  useEffect(() => localStorage.setItem('demand_step', String(step)), [step])
-
+  
   // Login obligatorio antes de arrancar
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
