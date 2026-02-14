@@ -28,7 +28,7 @@ export default function InquilinoPage() {
         style={{ marginTop: 32 }}
         onClick={() => router.push('/buscar')}
       >
-        Crear mi perfil de inquilino
+        Buscar propiedades
       </button>
     </div>
   )
