@@ -24,6 +24,7 @@ export default function MatchReviewPage() {
   const [loading, setLoading] = useState(true)
   const [documents, setDocuments] = useState<Document[]>([])
   const [tenantId, setTenantId] = useState<string | null>(null)
+  const [demandId, setDemandId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -45,6 +46,8 @@ export default function MatchReviewPage() {
       setLoading(false)
       return
     }
+
+    setDemandId(match.demand_id)
 
     // 2️⃣ Traer tenant_id
     const { data: demand } = await supabase
@@ -73,6 +76,8 @@ export default function MatchReviewPage() {
   }
 
   async function approveGuarantee() {
+    if (!demandId) return
+
     setSubmitting(true)
 
     const {
@@ -85,7 +90,7 @@ export default function MatchReviewPage() {
       .from('match_guarantee_reviews')
       .upsert({
         match_id: matchId,
-        demand_id: null, // no es necesario si ya existe FK por match
+        demand_id: demandId,
         status: 'approved',
         reviewed_by: user.id,
         reviewed_at: new Date().toISOString(),
@@ -102,6 +107,8 @@ export default function MatchReviewPage() {
   }
 
   async function rejectGuarantee() {
+    if (!demandId) return
+
     setSubmitting(true)
 
     const {
@@ -114,7 +121,7 @@ export default function MatchReviewPage() {
       .from('match_guarantee_reviews')
       .upsert({
         match_id: matchId,
-        demand_id: null,
+        demand_id: demandId,
         status: 'rejected',
         reviewed_by: user.id,
         reviewed_at: new Date().toISOString(),
@@ -213,3 +220,4 @@ export default function MatchReviewPage() {
     </div>
   )
 }
+
