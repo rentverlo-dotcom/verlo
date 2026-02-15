@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import ContractSignature from '@/components/ContractSignature'
 
 type Contract = {
   id: string
