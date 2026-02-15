@@ -38,40 +38,50 @@ export default function MatchTermsPage() {
     load()
   }, [matchId])
 
-  async function acceptTerms() {
-    setSubmitting(true)
+async function acceptTerms() {
+  setSubmitting(true)
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    if (!user) return
-
-    const { error } = await supabase
-      .from('match_terms')
-      .update({
-        accepted_by: user.id,
-      })
-      .eq('match_id', matchId)
-
-   if (error) {
-  alert(error.message)
-} else {
-  router.push(`/matches/${matchId}`)
-}
-
+  if (!user) {
     setSubmitting(false)
+    return
   }
 
-  if (loading) return <div className="p-8">Cargando términos…</div>
-  if (!terms) return <div className="p-8 text-red-600">No hay términos</div>
+  // 🔐 1️⃣ Verificar identidad aprobada
+  const { data: identityDoc } = await supabase
+    .from('identity_documents')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('status', 'approved')
+    .maybeSingle()
 
-  if (terms.locked)
-    return (
-      <div className="p-8">
-        <p>Estos términos ya fueron aceptados.</p>
-      </div>
-    )
+  if (!identityDoc) {
+    alert('Debes completar y aprobar tu verificación de identidad antes de continuar.')
+    router.push('/inquilino/verificacion')
+    setSubmitting(false)
+    return
+  }
+
+  // ✅ 2️⃣ Aceptar términos
+  const { error } = await supabase
+    .from('match_terms')
+    .update({
+      accepted_by: user.id,
+    })
+    .eq('match_id', matchId)
+
+  if (error) {
+    alert(error.message)
+  } else {
+    router.push(`/matches/${matchId}`)
+  }
+
+  setSubmitting(false)
+}
+
 
   return (
     <main className="max-w-xl mx-auto p-8">
