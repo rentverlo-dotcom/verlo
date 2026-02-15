@@ -157,14 +157,31 @@ return (
         </div>
       </div>
 
-      {/* Acción sobria */}
-      {contract.status === 'ready_to_sign' && (
-        <div className="mt-16 flex justify-center">
-          <button className="border border-black px-8 py-3 text-sm tracking-wide hover:bg-black hover:text-white transition">
-            Firmar contrato
-          </button>
-        </div>
-      )}
+  {contract.status === 'ready_to_sign' && (
+  <div className="mt-16 flex justify-center">
+    <button
+      onClick={async () => {
+        const { error } = await supabase
+          .from('contracts')
+          .update({
+            status: 'signed',
+            signed_at: new Date().toISOString(),
+          })
+          .eq('match_id', id)
+
+        if (error) {
+          alert(error.message)
+        } else {
+          window.location.reload()
+        }
+      }}
+      className="border border-black px-8 py-3 text-sm tracking-wide hover:bg-black hover:text-white transition"
+    >
+      Firmar contrato
+    </button>
+  </div>
+)}
+
 
       {contract.status === 'signed' && (
         <div className="mt-16 text-center text-green-700 font-medium">
