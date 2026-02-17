@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 
-
 type Contract = {
   id: string
   status: string
@@ -14,24 +13,19 @@ type Contract = {
   tenant_signature: string | null
   owner_signature: string | null
   signed_at: string | null
-  hash: string | null
+  contract_hash: string | null
 }
 
 export default function ContractPage() {
   const { id } = useParams<{ id: string }>()
   const [contract, setContract] = useState<Contract | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!id) return
     load()
   }, [id])
 
   async function load() {
-    const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) return
-
-    setUserId(auth.user.id)
-
     const { data } = await supabase
       .from('contracts')
       .select('*')
@@ -39,23 +33,6 @@ export default function ContractPage() {
       .single()
 
     if (data) setContract(data)
-  }
-
-  async function handleSign(signature: string) {
-    const res = await fetch('/api/contracts/sign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contract_id: id,
-        signature,
-      }),
-    })
-
-    if (res.ok) {
-      await load()
-    } else {
-      alert('Error al firmar')
-    }
   }
 
   if (!contract) {
@@ -66,13 +43,11 @@ export default function ContractPage() {
     )
   }
 
-  const isTenant = userId === contract.tenant_id
-  const isOwner = userId === contract.owner_id
-
   return (
     <div className="min-h-screen bg-white text-black py-16 px-6">
       <div className="max-w-[794px] mx-auto space-y-10">
 
+        {/* Contenido del contrato */}
         <div
           className="text-[15px] leading-[1.8]"
           style={{
@@ -83,47 +58,50 @@ export default function ContractPage() {
           {contract.content}
         </div>
 
-        {/* Estado parcial */}
+        {/* Estado firmas */}
         {contract.status === 'ready_to_sign' && (
-          <div className="space-y-4 text-sm">
+          <div className="space-y-4 text-sm border-t pt-6">
 
-            {contract.tenant_signature && (
+            {contract.tenant_signature ? (
               <div className="text-green-600">
                 ✔ Firmado por inquilino
               </div>
-            )}
-
-            {contract.owner_signature && (
-              <div className="text-green-600">
-                ✔ Firmado por propietario
+            ) : (
+              <div className="text-neutral-500">
+                Pendiente firma inquilino
               </div>
             )}
 
-            {/* Firma si aún no firmó */}
-            {isTenant && !contract.tenant_signature && (
-              <ContractSignature onSign={handleSign} />
-            )}
-
-            {isOwner && !contract.owner_signature && (
-              <ContractSignature onSign={handleSign} />
+            {contract.owner_signature ? (
+              <div className="text-green-600">
+                ✔ Firmado por propietario
+              </div>
+            ) : (
+              <div className="text-neutral-500">
+                Pendiente firma propietario
+              </div>
             )}
           </div>
         )}
 
-        {/* Sello final */}
+        {/* Contrato firmado */}
         {contract.status === 'signed' && (
           <div className="border border-green-700 p-6 rounded-xl bg-green-50 text-center space-y-3">
             <div className="text-green-700 font-semibold text-lg">
               ✔ CONTRATO FIRMADO DIGITALMENTE
             </div>
 
-            <div className="text-sm text-neutral-700">
-              Fecha: {new Date(contract.signed_at!).toLocaleString()}
-            </div>
+            {contract.signed_at && (
+              <div className="text-sm text-neutral-700">
+                Fecha: {new Date(contract.signed_at).toLocaleString()}
+              </div>
+            )}
 
-            <div className="text-xs text-neutral-600 break-all">
-              Hash de integridad: {contract.hash}
-            </div>
+            {contract.contract_hash && (
+              <div className="text-xs text-neutral-600 break-all">
+                Hash de integridad: {contract.contract_hash}
+              </div>
+            )}
           </div>
         )}
 
