@@ -36,8 +36,7 @@ export default function HomePage() {
               lineHeight: 1.6,
             }}
           >
-            Alquiler directo, sin inmobiliarias ni comisiones, con un proceso simple
-            y transparente.
+            Pero con seguridad jurídica, personal, y mucho más ágil y eficiente.
           </p>
 
           <button
@@ -72,33 +71,7 @@ export default function HomePage() {
       <HeroCarousel />
       
       {/* HERO BRIDGE */}
-      <section>
-        <div className="hero-bridge">
-
-          <div className="card">
-            <strong>Sin inmobiliarias</strong>
-            <p>
-              Alquilá de forma directa, sin intermediarios ni costos ocultos.
-            </p>
-          </div>
-
-          <div className="card">
-            <strong>Matching inteligente</strong>
-            <p>
-              Menos vueltas: conectamos perfiles realmente compatibles.
-            </p>
-          </div>
-
-          <div className="card">
-            <strong>Contrato digital</strong>
-            <p>
-              Cerrá el acuerdo con un proceso claro y seguro desde el inicio.
-            </p>
-          </div>
-
-        </div>
-      </section>
-
+     
       <section
         style={{
           padding: "80px 24px",
