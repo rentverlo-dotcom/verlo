@@ -1,5 +1,5 @@
 'use client'
-
+import HeroCarousel from '@/components/HeroCarousel'
 
 export default function HomePage() {
   return (
@@ -69,6 +69,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      <HeroCarousel />
       
       {/* HERO BRIDGE */}
       <section>
