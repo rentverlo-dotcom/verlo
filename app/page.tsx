@@ -1,4 +1,6 @@
 'use client'
+
+
 export default function HomePage() {
   return (
     <>
@@ -67,6 +69,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      
       {/* HERO BRIDGE */}
       <section>
         <div className="hero-bridge">
