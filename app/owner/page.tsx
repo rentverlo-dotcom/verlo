@@ -19,7 +19,6 @@ export default function OwnerPage() {
   const [covers, setCovers] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
-
   const money = useMemo(
     () =>
       new Intl.NumberFormat('es-AR', {
@@ -54,8 +53,8 @@ export default function OwnerPage() {
           .order('created_at', { ascending: false })
 
         if (propsErr) throw propsErr
-
         if (!alive) return
+
         setProperties(props ?? [])
 
         if (!props || props.length === 0) {
@@ -63,49 +62,62 @@ export default function OwnerPage() {
           setLoading(false)
           return
         }
-// 2) Cover por propiedad
-const ids = props.map(p => p.id)
 
-const { data: media, error: mediaErr } = await supabase
-  .from('property_media')
-  .select('property_id, url, position')
-  .in('property_id', ids)
-  .order('position', { ascending: true })
+        // 2) Covers
+        const ids = props.map(p => p.id)
 
-if (mediaErr) throw mediaErr
+        const { data: media, error: mediaErr } = await supabase
+          .from('property_media')
+          .select('property_id, url, position')
+          .in('property_id', ids)
+          .order('position', { ascending: true })
 
-const map: Record<string, string> = {}
+        if (mediaErr) throw mediaErr
 
-// IMPORTANTE: for...of para poder usar await
-for (const m of media ?? []) {
-  if (map[m.property_id]) continue
+        const map: Record<string, string> = {}
 
-  const raw = m.url
+        for (const m of media ?? []) {
+          if (map[m.property_id]) continue
 
-  // Si en DB guardaste una URL completa, úsala directo
-  if (raw?.startsWith('http')) {
-    map[m.property_id] = raw
-    continue
-  }
+          const raw = m.url
+          if (!raw) continue
 
-  // 1) Intento signed URL (sirve si el bucket es privado)
-  const { data: signed, error: signErr } = await supabase.storage
-    .from('property-media')
-    .createSignedUrl(raw, 60 * 60)
+          // Si guardaste URL completa
+          if (raw.startsWith('http')) {
+            map[m.property_id] = raw
+            continue
+          }
 
-  if (!signErr && signed?.signedUrl) {
-    map[m.property_id] = signed.signedUrl
-    continue
-  }
+          // Normalización crítica del path
+          const cleanPath = raw
+            .replace(/^public\//, '')
+            .replace(/^property-media\//, '')
+            .replace(/^\/+/, '')
 
-  // 2) Fallback: public URL (sirve si el bucket es público)
-  const pub = supabase.storage.from('property-media').getPublicUrl(raw).data.publicUrl
-  if (pub) map[m.property_id] = pub
-}
+          // 1) Intento signed URL
+          const { data: signed, error: signErr } = await supabase.storage
+            .from('property-media')
+            .createSignedUrl(cleanPath, 60 * 60)
 
-if (!alive) return
-setCovers(map)
-setLoading(false)
+          if (!signErr && signed?.signedUrl) {
+            map[m.property_id] = signed.signedUrl
+            continue
+          }
+
+          // 2) Fallback público
+          const pub = supabase.storage
+            .from('property-media')
+            .getPublicUrl(cleanPath).data.publicUrl
+
+          if (pub) {
+            map[m.property_id] = pub
+          }
+        }
+
+        if (!alive) return
+        setCovers(map)
+        setLoading(false)
+
       } catch (e: any) {
         if (!alive) return
         setError(e?.message ?? 'Error cargando propiedades')
@@ -120,9 +132,8 @@ setLoading(false)
   }, [router])
 
   const goPublish = () => router.push('/propietario/publicar')
-
-  // IMPORTANTÍSIMO: al clickear una propiedad, mandalo a la ficha linda:
-  const goPreview = (propertyId: string) => router.push(`/propietario/preview/${propertyId}`)
+  const goPreview = (propertyId: string) =>
+    router.push(`/propietario/preview/${propertyId}`)
 
   if (loading) {
     return (
@@ -130,7 +141,7 @@ setLoading(false)
         <div style={topbar}>
           <h1 style={title}>Mis propiedades</h1>
         </div>
-        <div style={{ padding: 40, color: '#fff', opacity: 0.9 }}>Cargando…</div>
+        <div style={{ padding: 40, color: '#fff' }}>Cargando…</div>
       </div>
     )
   }
@@ -142,10 +153,7 @@ setLoading(false)
           <h1 style={title}>Mis propiedades</h1>
           <button style={cta} onClick={goPublish}>Publicar</button>
         </div>
-        <div style={{ padding: 40, color: '#fff' }}>
-          <div style={{ marginBottom: 10, opacity: 0.85 }}>Algo salió mal:</div>
-          <div style={{ fontFamily: 'monospace', opacity: 0.9 }}>{error}</div>
-        </div>
+        <div style={{ padding: 40, color: '#fff' }}>{error}</div>
       </div>
     )
   }
@@ -153,10 +161,7 @@ setLoading(false)
   if (properties.length === 0) {
     return (
       <div style={empty}>
-        <h2 style={{ margin: 0 }}>Todavía no publicaste propiedades</h2>
-        <p style={{ margin: 0, opacity: 0.75 }}>
-          Cuando publiques, van a aparecer acá ordenadas por las más recientes.
-        </p>
+        <h2>No publicaste propiedades todavía</h2>
         <button style={cta} onClick={goPublish}>
           Publicar ahora
         </button>
@@ -179,6 +184,7 @@ setLoading(false)
       <div style={grid}>
         {properties.map(p => {
           const cover = covers[p.id]
+
           return (
             <div
               key={p.id}
@@ -187,19 +193,21 @@ setLoading(false)
                 backgroundImage: cover ? `url(${cover})` : undefined,
               }}
               onClick={() => goPreview(p.id)}
-              role="button"
-              tabIndex={0}
             >
               <div style={overlay} />
               {!cover && <div style={noCover}>Sin foto</div>}
 
               <div style={info}>
                 <div style={rowBetween}>
-                  <h3 style={h3}>{p.property_type || 'Propiedad'}</h3>
-                  <span style={pill(p.publish_status)}>{labelStatus(p.publish_status)}</span>
+                  <h3 style={h3}>{p.property_type}</h3>
+                  <span style={pill(p.publish_status)}>
+                    {labelStatus(p.publish_status)}
+                  </span>
                 </div>
 
-                <div style={price}>{money.format(Number(p.price || 0))}</div>
+                <div style={price}>
+                  {money.format(Number(p.price || 0))}
+                </div>
 
                 {p.created_at && (
                   <div style={meta}>
@@ -216,29 +224,23 @@ setLoading(false)
 }
 
 /* helpers */
+
 function labelStatus(s?: string) {
   const v = (s || '').toLowerCase()
-  if (v.includes('publish') || v.includes('public')) return 'Publicada'
-  if (v.includes('draft') || v.includes('borr')) return 'Borrador'
-  if (v.includes('review') || v.includes('pend')) return 'Pendiente'
+  if (v.includes('publish')) return 'Publicada'
+  if (v.includes('draft')) return 'Borrador'
   return s || '—'
 }
 
 function pill(status?: string): React.CSSProperties {
-  const v = (status || '').toLowerCase()
-  const base: React.CSSProperties = {
+  return {
     padding: '6px 10px',
     borderRadius: 999,
     fontSize: 12,
     fontWeight: 700,
-    background: 'rgba(255,255,255,0.12)',
+    background: 'rgba(255,255,255,0.15)',
     color: '#fff',
-    border: '1px solid rgba(255,255,255,0.18)',
-    whiteSpace: 'nowrap',
   }
-  if (v.includes('publish') || v.includes('public')) return { ...base, background: 'rgba(34,197,94,0.18)', borderColor: 'rgba(34,197,94,0.28)' }
-  if (v.includes('draft') || v.includes('borr')) return { ...base, background: 'rgba(250,204,21,0.14)', borderColor: 'rgba(250,204,21,0.25)' }
-  return base
 }
 
 /* ================== STYLES ================== */
@@ -246,35 +248,30 @@ function pill(status?: string): React.CSSProperties {
 const page: React.CSSProperties = {
   minHeight: '100vh',
   background: `
-    radial-gradient(1200px 600px at 50% -10%, rgba(59,130,246,0.45), transparent 60%),
-    radial-gradient(1000px 500px at 50% 110%, rgba(236,72,153,0.55), transparent 60%),
-    linear-gradient(180deg, #0b0f1a 0%, #111827 40%, #1f2937 100%)
+    radial-gradient(1000px 500px at 50% -10%, rgba(59,130,246,0.45), transparent 60%),
+    radial-gradient(900px 500px at 50% 110%, rgba(236,72,153,0.6), transparent 60%),
+    linear-gradient(180deg, #0b0f1a 0%, #111827 50%, #0f172a 100%)
   `,
   color: '#fff',
 }
 
 const topbar: React.CSSProperties = {
-  padding: '28px 20px 10px',
+  padding: '28px 20px',
   display: 'flex',
   alignItems: 'flex-end',
   justifyContent: 'space-between',
-  gap: 12,
-  position: 'sticky',
-  top: 0,
-  background: 'rgba(248,250,252,0.75)',
-  backdropFilter: 'blur(12px)',
-  zIndex: 10,
-  borderBottom: '1px solid rgba(15,23,42,0.08)',
+  background: 'rgba(0,0,0,0.6)',
+  backdropFilter: 'blur(20px)',
 }
 
-const title = { margin: 0, color: '#0f172a', fontSize: 26, letterSpacing: -0.3 }
-const subtitle = { marginTop: 6, color: '#334155', opacity: 0.9, fontSize: 13 }
+const title = { margin: 0, color: '#fff', fontSize: 26 }
+const subtitle = { marginTop: 6, opacity: 0.7 }
 
 const grid: React.CSSProperties = {
-  padding: '18px 20px 80px',
+  padding: '20px',
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: 18,
+  gap: 20,
 }
 
 const card: React.CSSProperties = {
@@ -285,16 +282,14 @@ const card: React.CSSProperties = {
   position: 'relative',
   cursor: 'pointer',
   overflow: 'hidden',
-  border: '1px solid rgba(15,23,42,0.10)',
-  boxShadow: '0 10px 30px rgba(15,23,42,0.08)',
-  backgroundColor: 'rgba(255,255,255,0.65)',
+  border: '1px solid rgba(255,255,255,0.1)',
 }
 
 const overlay: React.CSSProperties = {
   position: 'absolute',
   inset: 0,
   background:
-    'linear-gradient(to top, rgba(15,23,42,0.70) 12%, rgba(15,23,42,0.18) 55%, rgba(15,23,42,0.04) 100%)',
+    'linear-gradient(to top, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0.2) 60%, transparent)',
 }
 
 const info: React.CSSProperties = {
@@ -302,7 +297,6 @@ const info: React.CSSProperties = {
   bottom: 18,
   left: 18,
   right: 18,
-  color: '#fff',
   display: 'flex',
   flexDirection: 'column',
   gap: 8,
@@ -310,15 +304,11 @@ const info: React.CSSProperties = {
 
 const rowBetween: React.CSSProperties = {
   display: 'flex',
-  alignItems: 'center',
   justifyContent: 'space-between',
-  gap: 10,
 }
 
 const h3: React.CSSProperties = {
   margin: 0,
-  fontSize: 18,
-  letterSpacing: -0.2,
 }
 
 const price: React.CSSProperties = {
@@ -339,22 +329,18 @@ const noCover: React.CSSProperties = {
   borderRadius: 999,
   fontSize: 12,
   fontWeight: 700,
-  background: 'rgba(255,255,255,0.12)',
+  background: 'rgba(255,255,255,0.15)',
   color: '#fff',
-  border: '1px solid rgba(255,255,255,0.18)',
 }
 
 const empty: React.CSSProperties = {
   minHeight: '100vh',
-  background: 'transparent',
-  color: '#0f172a',
   display: 'flex',
-  flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
+  flexDirection: 'column',
   gap: 14,
-  textAlign: 'center',
-  padding: 20,
+  color: '#fff',
 }
 
 const cta: React.CSSProperties = {
