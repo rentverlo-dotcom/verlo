@@ -332,17 +332,17 @@ const page: React.CSSProperties = {
 }
 
 const topbar: React.CSSProperties = {
-  padding: '26px 20px',
+  padding: '28px 20px',
   display: 'flex',
   alignItems: 'flex-end',
   justifyContent: 'space-between',
   gap: 14,
   position: 'sticky',
   top: 0,
+  background: 'rgba(255,255,255,0.7)',
+  backdropFilter: 'blur(14px)',
+  borderBottom: '1px solid rgba(15,23,42,0.08)',
   zIndex: 10,
-  background: 'rgba(8,10,18,0.72)',
-  backdropFilter: 'blur(18px)',
-  borderBottom: '1px solid rgba(255,255,255,0.08)',
 }
 
 const actions: React.CSSProperties = {
@@ -471,16 +471,13 @@ const empty: React.CSSProperties = {
  * (es la paleta que estás pidiendo: rosa/rojo, no verde)
  */
 const cta: React.CSSProperties = {
-  padding: '12px 16px',
+  padding: '12px 20px',
   borderRadius: 999,
-  border: '1px solid rgba(255,255,255,0.14)',
-  background:
-    'linear-gradient(180deg, rgba(255,77,141,1) 0%, rgba(236,72,153,1) 40%, rgba(168,85,247,1) 100%)',
-  color: '#0b0f1a',
-  fontWeight: 1000,
-  letterSpacing: 0.2,
+  border: 'none',
+  background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+  color: '#fff',
+  fontWeight: 800,
   cursor: 'pointer',
-  boxShadow:
-    '0 12px 30px rgba(236,72,153,0.25), 0 10px 22px rgba(168,85,247,0.18)',
+  boxShadow: '0 8px 20px rgba(236,72,153,0.35)',
+  transition: 'all 0.2s ease',
 }
-
