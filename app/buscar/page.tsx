@@ -131,11 +131,10 @@ export default function Buscar() {
     fetch(`https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(province.name)}&max=1000`)
       .then(r => r.json())
       .then(d => {
-        console.log('[v0] municipios response:', JSON.stringify(d).slice(0, 200))
         setMunicipalities((d.municipios || []).map((m: any) => ({ id: m.id, name: m.nombre })))
         setNeighborhoods([])
       })
-      .catch(err => console.error('[v0] Error cargando municipios:', err))
+      .catch(() => {})
   }, [draft.province_id])
 
   // Municipios → Barrios (igual que propietario)
@@ -149,10 +148,9 @@ export default function Buscar() {
     fetch(`https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(draft.municipality_id)}&max=1000`)
       .then(r => r.json())
       .then(d => {
-        console.log('[v0] localidades response:', JSON.stringify(d).slice(0, 200))
         setNeighborhoods((d.localidades || []).map((n: any) => ({ id: n.id, name: n.nombre })))
       })
-      .catch(err => console.error('[v0] Error cargando localidades:', err))
+      .catch(() => {})
   }, [draft.municipality_id])
 
   const municipalityName = useMemo(
