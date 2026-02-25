@@ -12,6 +12,7 @@ type Property = {
   created_at?: string
 }
 
+
 export default function OwnerPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
