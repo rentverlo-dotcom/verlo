@@ -166,22 +166,29 @@ export default function PublicarPropiedad() {
 
     if (!province?.name) return
 
+    let cancelled = false
+
     fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
-      .then(r => r.json())
-      .then(d => {
-        setMunicipalities(
-          (d.municipios || []).map((m: any) => ({
-            id: m.id,
-            name: m.nombre,
-          }))
-        )
-        setNeighborhoods([])
-        setDraft(prev => ({
-          ...prev,
-          municipality_id: undefined,
-          neighborhood_id: undefined,
-        }))
+      .then(r => {
+        if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
+        return r.json()
       })
+      .then(d => {
+        if (cancelled) return
+        const mapped = (d.municipios || []).map((m: any) => ({
+          id: String(m.id),
+          name: m.nombre,
+        }))
+        setMunicipalities(mapped)
+        setNeighborhoods([])
+      })
+      .catch(err => {
+        if (cancelled) return
+        console.error('Error cargando municipios:', err)
+        setMunicipalities([])
+      })
+
+    return () => { cancelled = true }
   }, [draft.province_id])
 
   // ===============================
@@ -195,21 +202,37 @@ export default function PublicarPropiedad() {
 
     if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
-    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(draft.municipality_id)}`)
-      .then(r => r.json())
+    // La API de georef espera el NOMBRE del municipio, no el ID
+    const municipality = municipalities.find(
+      m => String(m.id) === String(draft.municipality_id)
+    )
+
+    if (!municipality?.name) return
+
+    let cancelled = false
+
+    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(municipality.name)}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
+        return r.json()
+      })
       .then(d => {
+        if (cancelled) return
         setNeighborhoods(
           (d.localidades || []).map((n: any) => ({
-            id: n.id,
+            id: String(n.id),
             name: n.nombre,
           }))
         )
-        setDraft(prev => ({
-          ...prev,
-          neighborhood_id: undefined,
-        }))
       })
-  }, [draft.municipality_id])
+      .catch(err => {
+        if (cancelled) return
+        console.error('Error cargando localidades:', err)
+        setNeighborhoods([])
+      })
+
+    return () => { cancelled = true }
+  }, [draft.municipality_id, municipalities])
 
   async function requireAuth() {
     const { data } = await supabase.auth.getUser()
@@ -359,14 +382,16 @@ console.log('PROPERTY ID INSERTADO:', property.id)
             <select
               className="input"
               value={draft.province_id || ''}
-              onChange={e =>
+              onChange={e => {
+                setMunicipalities([])
+                setNeighborhoods([])
                 setDraft(d => ({
                   ...d,
                   province_id: e.target.value,
                   municipality_id: undefined,
                   neighborhood_id: undefined,
                 }))
-              }
+              }}
             >
               <option value="">Provincia</option>
               {provinces.map(p => (
@@ -378,13 +403,14 @@ console.log('PROPERTY ID INSERTADO:', property.id)
               className="input"
               value={draft.municipality_id || ''}
               disabled={!draft.province_id}
-              onChange={e =>
+              onChange={e => {
+                setNeighborhoods([])
                 setDraft(d => ({
                   ...d,
                   municipality_id: e.target.value,
                   neighborhood_id: undefined,
                 }))
-              }
+              }}
             >
               <option value="">Municipio</option>
               {municipalities.map(m => (
