@@ -82,19 +82,19 @@ export default function OwnerPage() {
           const raw = m.url
           if (!raw) continue
 
-          // Si guardaste URL completa
+          // Si guardaste URL completa en DB (https://...)
           if (raw.startsWith('http')) {
             map[m.property_id] = raw
             continue
           }
 
-          // Normalización crítica del path
+          // Normalización del path (esto es CLAVE)
           const cleanPath = raw
             .replace(/^public\//, '')
             .replace(/^property-media\//, '')
             .replace(/^\/+/, '')
 
-          // 1) Intento signed URL
+          // Intento signed URL (bucket privado)
           const { data: signed, error: signErr } = await supabase.storage
             .from('property-media')
             .createSignedUrl(cleanPath, 60 * 60)
@@ -104,20 +104,28 @@ export default function OwnerPage() {
             continue
           }
 
-          // 2) Fallback público
+          // Fallback público (bucket público)
           const pub = supabase.storage
             .from('property-media')
             .getPublicUrl(cleanPath).data.publicUrl
 
-          if (pub) {
-            map[m.property_id] = pub
-          }
+          if (pub) map[m.property_id] = pub
         }
 
-        if (!alive) return
-        setCovers(map)
-        setLoading(false)
+        // ✅ Validar que las URLs realmente carguen (si no, las descartamos)
+        const validated: Record<string, string> = {}
+        const entries = Object.entries(map)
 
+        await Promise.all(
+          entries.map(async ([propertyId, url]) => {
+            const ok = await preloadImage(url)
+            if (ok) validated[propertyId] = url
+          })
+        )
+
+        if (!alive) return
+        setCovers(validated)
+        setLoading(false)
       } catch (e: any) {
         if (!alive) return
         setError(e?.message ?? 'Error cargando propiedades')
@@ -139,9 +147,16 @@ export default function OwnerPage() {
     return (
       <div style={page}>
         <div style={topbar}>
-          <h1 style={title}>Mis propiedades</h1>
+          <div>
+            <div style={brandRow}>
+              <h1 style={title}>Mis propiedades</h1>
+              <span style={chip}>Cargando…</span>
+            </div>
+            <div style={subtitle}>Tus publicaciones, en un solo lugar</div>
+          </div>
+          <button style={cta} onClick={goPublish}>Publicar</button>
         </div>
-        <div style={{ padding: 40, color: '#fff' }}>Cargando…</div>
+        <div style={{ padding: 28, color: 'rgba(255,255,255,0.85)' }}>Cargando…</div>
       </div>
     )
   }
@@ -150,21 +165,46 @@ export default function OwnerPage() {
     return (
       <div style={page}>
         <div style={topbar}>
-          <h1 style={title}>Mis propiedades</h1>
+          <div>
+            <div style={brandRow}>
+              <h1 style={title}>Mis propiedades</h1>
+              <span style={chip}>Error</span>
+            </div>
+            <div style={subtitle}>Algo salió mal cargando tus datos</div>
+          </div>
           <button style={cta} onClick={goPublish}>Publicar</button>
         </div>
-        <div style={{ padding: 40, color: '#fff' }}>{error}</div>
+        <div style={{ padding: 28, color: 'rgba(255,255,255,0.85)' }}>
+          <div style={{ marginBottom: 10, opacity: 0.85 }}>Detalle:</div>
+          <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+            {error}
+          </div>
+        </div>
       </div>
     )
   }
 
   if (properties.length === 0) {
     return (
-      <div style={empty}>
-        <h2>No publicaste propiedades todavía</h2>
-        <button style={cta} onClick={goPublish}>
-          Publicar ahora
-        </button>
+      <div style={page}>
+        <div style={topbar}>
+          <div>
+            <div style={brandRow}>
+              <h1 style={title}>Mis propiedades</h1>
+              <span style={chip}>0</span>
+            </div>
+            <div style={subtitle}>Todavía no publicaste nada</div>
+          </div>
+          <button style={cta} onClick={goPublish}>Publicar</button>
+        </div>
+
+        <div style={empty}>
+          <h2 style={{ margin: 0, fontSize: 22 }}>Todavía no publicaste propiedades</h2>
+          <p style={{ margin: 0, opacity: 0.75 }}>
+            Publicá una propiedad y va a aparecer acá automáticamente.
+          </p>
+          <button style={cta} onClick={goPublish}>Publicar ahora</button>
+        </div>
       </div>
     )
   }
@@ -173,12 +213,18 @@ export default function OwnerPage() {
     <div style={page}>
       <div style={topbar}>
         <div>
-          <h1 style={title}>Mis propiedades</h1>
+          <div style={brandRow}>
+            <h1 style={title}>Mis propiedades</h1>
+            <span style={chip}>{properties.length}</span>
+          </div>
           <div style={subtitle}>
-            {properties.length} {properties.length === 1 ? 'propiedad' : 'propiedades'}
+            {properties.length === 1 ? '1 propiedad' : `${properties.length} propiedades`} • ordenadas por las más recientes
           </div>
         </div>
-        <button style={cta} onClick={goPublish}>Publicar</button>
+
+        <div style={actions}>
+          <button style={cta} onClick={goPublish}>Publicar</button>
+        </div>
       </div>
 
       <div style={grid}>
@@ -190,24 +236,23 @@ export default function OwnerPage() {
               key={p.id}
               style={{
                 ...card,
-                backgroundImage: cover ? `url(${cover})` : undefined,
+                // ✅ comillas para URLs con query params (signed URLs)
+                backgroundImage: cover ? `url("${cover}")` : undefined,
               }}
               onClick={() => goPreview(p.id)}
+              role="button"
+              tabIndex={0}
             >
               <div style={overlay} />
               {!cover && <div style={noCover}>Sin foto</div>}
 
               <div style={info}>
                 <div style={rowBetween}>
-                  <h3 style={h3}>{p.property_type}</h3>
-                  <span style={pill(p.publish_status)}>
-                    {labelStatus(p.publish_status)}
-                  </span>
+                  <h3 style={h3}>{p.property_type || 'Propiedad'}</h3>
+                  <span style={pill(p.publish_status)}>{labelStatus(p.publish_status)}</span>
                 </div>
 
-                <div style={price}>
-                  {money.format(Number(p.price || 0))}
-                </div>
+                <div style={price}>{money.format(Number(p.price || 0))}</div>
 
                 {p.created_at && (
                   <div style={meta}>
@@ -223,73 +268,142 @@ export default function OwnerPage() {
   )
 }
 
-/* helpers */
+/* ---------- helpers ---------- */
 
 function labelStatus(s?: string) {
   const v = (s || '').toLowerCase()
-  if (v.includes('publish')) return 'Publicada'
-  if (v.includes('draft')) return 'Borrador'
+  if (v.includes('publish') || v.includes('public')) return 'Publicada'
+  if (v.includes('draft') || v.includes('borr')) return 'Borrador'
+  if (v.includes('review') || v.includes('pend')) return 'Pendiente'
   return s || '—'
 }
 
 function pill(status?: string): React.CSSProperties {
-  return {
+  const v = (status || '').toLowerCase()
+  const base: React.CSSProperties = {
     padding: '6px 10px',
     borderRadius: 999,
     fontSize: 12,
-    fontWeight: 700,
-    background: 'rgba(255,255,255,0.15)',
+    fontWeight: 800,
+    letterSpacing: 0.2,
     color: '#fff',
+    background: 'rgba(255,255,255,0.14)',
+    border: '1px solid rgba(255,255,255,0.18)',
+    whiteSpace: 'nowrap',
   }
+  if (v.includes('publish') || v.includes('public')) {
+    return {
+      ...base,
+      background: 'rgba(34,197,94,0.18)',
+      borderColor: 'rgba(34,197,94,0.28)',
+    }
+  }
+  if (v.includes('draft') || v.includes('borr')) {
+    return {
+      ...base,
+      background: 'rgba(250,204,21,0.14)',
+      borderColor: 'rgba(250,204,21,0.25)',
+    }
+  }
+  return base
 }
 
-/* ================== STYLES ================== */
+function preloadImage(url: string) {
+  return new Promise<boolean>(resolve => {
+    const img = new Image()
+    img.onload = () => resolve(true)
+    img.onerror = () => resolve(false)
+    img.src = url
+  })
+}
+
+/* ================== STYLES (Lovable vibe) ================== */
 
 const page: React.CSSProperties = {
   minHeight: '100vh',
   background: `
-    radial-gradient(1000px 500px at 50% -10%, rgba(59,130,246,0.45), transparent 60%),
-    radial-gradient(900px 500px at 50% 110%, rgba(236,72,153,0.6), transparent 60%),
-    linear-gradient(180deg, #0b0f1a 0%, #111827 50%, #0f172a 100%)
+    radial-gradient(900px 520px at 50% 0%, rgba(59,130,246,0.55), rgba(0,0,0,0) 70%),
+    radial-gradient(1100px 650px at 50% 120%, rgba(236,72,153,0.65), rgba(0,0,0,0) 65%),
+    radial-gradient(900px 550px at 85% 55%, rgba(168,85,247,0.35), rgba(0,0,0,0) 70%),
+    linear-gradient(180deg, #070a12 0%, #0b1020 35%, #0a0f1c 60%, #070a12 100%)
   `,
   color: '#fff',
 }
 
 const topbar: React.CSSProperties = {
-  padding: '28px 20px',
+  padding: '26px 20px',
   display: 'flex',
   alignItems: 'flex-end',
   justifyContent: 'space-between',
-  background: 'rgba(0,0,0,0.6)',
-  backdropFilter: 'blur(20px)',
+  gap: 14,
+  position: 'sticky',
+  top: 0,
+  zIndex: 10,
+  background: 'rgba(8,10,18,0.72)',
+  backdropFilter: 'blur(18px)',
+  borderBottom: '1px solid rgba(255,255,255,0.08)',
 }
 
-const title = { margin: 0, color: '#fff', fontSize: 26 }
-const subtitle = { marginTop: 6, opacity: 0.7 }
+const actions: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+}
+
+const brandRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+}
+
+const title: React.CSSProperties = {
+  margin: 0,
+  fontSize: 30,
+  letterSpacing: -0.6,
+  lineHeight: 1.05,
+}
+
+const chip: React.CSSProperties = {
+  padding: '6px 10px',
+  borderRadius: 999,
+  fontSize: 12,
+  fontWeight: 900,
+  background: 'rgba(255,255,255,0.10)',
+  border: '1px solid rgba(255,255,255,0.14)',
+  color: 'rgba(255,255,255,0.9)',
+}
+
+const subtitle: React.CSSProperties = {
+  marginTop: 8,
+  fontSize: 13,
+  color: 'rgba(255,255,255,0.72)',
+}
 
 const grid: React.CSSProperties = {
-  padding: '20px',
+  padding: '22px 20px 80px',
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: 20,
+  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+  gap: 18,
 }
 
 const card: React.CSSProperties = {
   height: 420,
-  borderRadius: 22,
+  borderRadius: 24,
   backgroundSize: 'cover',
   backgroundPosition: 'center',
   position: 'relative',
   cursor: 'pointer',
   overflow: 'hidden',
-  border: '1px solid rgba(255,255,255,0.1)',
+  border: '1px solid rgba(255,255,255,0.10)',
+  boxShadow: '0 18px 50px rgba(0,0,0,0.45)',
+  backgroundColor: 'rgba(255,255,255,0.04)',
 }
 
 const overlay: React.CSSProperties = {
   position: 'absolute',
   inset: 0,
   background:
-    'linear-gradient(to top, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0.2) 60%, transparent)',
+    'linear-gradient(to top, rgba(0,0,0,0.90) 18%, rgba(0,0,0,0.25) 62%, rgba(0,0,0,0.05) 100%)',
 }
 
 const info: React.CSSProperties = {
@@ -304,21 +418,26 @@ const info: React.CSSProperties = {
 
 const rowBetween: React.CSSProperties = {
   display: 'flex',
+  alignItems: 'center',
   justifyContent: 'space-between',
+  gap: 10,
 }
 
 const h3: React.CSSProperties = {
   margin: 0,
+  fontSize: 18,
+  letterSpacing: -0.2,
 }
 
 const price: React.CSSProperties = {
-  fontSize: 22,
-  fontWeight: 800,
+  fontSize: 24,
+  fontWeight: 900,
+  letterSpacing: -0.4,
 }
 
 const meta: React.CSSProperties = {
   fontSize: 12,
-  opacity: 0.7,
+  opacity: 0.72,
 }
 
 const noCover: React.CSSProperties = {
@@ -328,27 +447,39 @@ const noCover: React.CSSProperties = {
   padding: '6px 10px',
   borderRadius: 999,
   fontSize: 12,
-  fontWeight: 700,
-  background: 'rgba(255,255,255,0.15)',
+  fontWeight: 900,
+  background: 'rgba(255,255,255,0.12)',
+  border: '1px solid rgba(255,255,255,0.18)',
   color: '#fff',
 }
 
 const empty: React.CSSProperties = {
-  minHeight: '100vh',
+  minHeight: 'calc(100vh - 92px)',
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  flexDirection: 'column',
   gap: 14,
+  textAlign: 'center',
+  padding: 20,
   color: '#fff',
 }
 
+/**
+ * Botón “Lovable-ish” rojizo/magenta con glow.
+ * (es la paleta que estás pidiendo: rosa/rojo, no verde)
+ */
 const cta: React.CSSProperties = {
-  padding: '12px 18px',
+  padding: '12px 16px',
   borderRadius: 999,
-  border: 'none',
-  background: '#22c55e',
-  color: '#000',
-  fontWeight: 800,
+  border: '1px solid rgba(255,255,255,0.14)',
+  background:
+    'linear-gradient(180deg, rgba(255,77,141,1) 0%, rgba(236,72,153,1) 40%, rgba(168,85,247,1) 100%)',
+  color: '#0b0f1a',
+  fontWeight: 1000,
+  letterSpacing: 0.2,
   cursor: 'pointer',
+  boxShadow:
+    '0 12px 30px rgba(236,72,153,0.25), 0 10px 22px rgba(168,85,247,0.18)',
 }
+
