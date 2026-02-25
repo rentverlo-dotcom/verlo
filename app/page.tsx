@@ -114,7 +114,7 @@ export default function HomePage() {
               maxWidth: "720px",
               fontSize: "18px",
               lineHeight: 1.6,
-              marginTop: "16px",
+              marginTop: "8px",
               opacity: 0.85,
             }}
           >
