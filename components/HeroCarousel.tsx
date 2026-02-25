@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react'
 
-const items = [
+const baseItems = [
   {
     id: 1,
     title: 'Depto Palermo',
@@ -40,9 +40,21 @@ const items = [
   },
 ]
 
+// duplicamos para simular infinito
+const items = [...baseItems, ...baseItems, ...baseItems]
+
 export default function HeroCarousel() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [activeIndex, setActiveIndex] = useState(2)
+  const [activeIndex, setActiveIndex] = useState(baseItems.length)
+
+  // centrar en el bloque del medio al iniciar
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const cardWidth = 360 // ancho + gap aproximado
+    container.scrollLeft = cardWidth * baseItems.length
+  }, [])
 
   useEffect(() => {
     const container = containerRef.current
@@ -68,6 +80,15 @@ export default function HeroCarousel() {
       })
 
       setActiveIndex(closestIndex)
+
+      // LOOP real
+      const totalWidth = container.scrollWidth / 3
+      if (container.scrollLeft < totalWidth * 0.5) {
+        container.scrollLeft += totalWidth
+      }
+      if (container.scrollLeft > totalWidth * 1.5) {
+        container.scrollLeft -= totalWidth
+      }
     }
 
     container.addEventListener('scroll', handleScroll)
@@ -75,12 +96,7 @@ export default function HeroCarousel() {
   }, [])
 
   return (
-    <div
-      style={{
-        marginTop: 80,
-        paddingBottom: 80,
-      }}
-    >
+    <div style={{ marginTop: 80, paddingBottom: 100 }}>
       <div
         ref={containerRef}
         style={{
@@ -97,10 +113,10 @@ export default function HeroCarousel() {
 
           return (
             <div
-              key={item.id}
+              key={`${item.id}-${index}`}
               style={{
                 flex: '0 0 320px',
-                height: 440,
+                height: 460,
                 borderRadius: 32,
                 scrollSnapAlign: 'center',
                 backgroundImage: `
@@ -118,7 +134,7 @@ export default function HeroCarousel() {
                   ? '0 50px 120px rgba(0,0,0,0.25)'
                   : '0 20px 60px rgba(0,0,0,0.12)',
                 transform: `scale(${isActive ? 1 : 0.82})`,
-                opacity: isActive ? 1 : 0.5,
+                opacity: isActive ? 1 : 0.45,
                 transition: 'all 0.4s cubic-bezier(.4,0,.2,1)',
                 display: 'flex',
                 alignItems: 'flex-end',
@@ -133,7 +149,6 @@ export default function HeroCarousel() {
                     margin: 0,
                     fontSize: 24,
                     fontWeight: 700,
-                    color: '#fff',
                   }}
                 >
                   {item.title}
@@ -143,7 +158,6 @@ export default function HeroCarousel() {
                     marginTop: 8,
                     fontSize: 16,
                     opacity: 0.95,
-                    color: '#fff',
                   }}
                 >
                   {item.price}
