@@ -362,6 +362,7 @@ const title: React.CSSProperties = {
   fontSize: 30,
   letterSpacing: -0.6,
   lineHeight: 1.05,
+  color: '#0f172a',
 }
 
 const chip: React.CSSProperties = {
@@ -369,15 +370,15 @@ const chip: React.CSSProperties = {
   borderRadius: 999,
   fontSize: 12,
   fontWeight: 900,
-  background: 'rgba(255,255,255,0.10)',
-  border: '1px solid rgba(255,255,255,0.14)',
-  color: 'rgba(255,255,255,0.9)',
+  background: '#f1f5f9',
+  border: '1px solid #e2e8f0',
+  color: '#0f172a',
 }
 
 const subtitle: React.CSSProperties = {
   marginTop: 8,
   fontSize: 13,
-  color: 'rgba(255,255,255,0.72)',
+  color: '#475569',
 }
 
 const grid: React.CSSProperties = {
