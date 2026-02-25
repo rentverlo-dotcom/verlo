@@ -1,0 +1,105 @@
+const fs = require('fs')
+const path = require('path')
+
+const PROVINCES = [
+  { id: '06', name: 'Buenos Aires' },
+  { id: '10', name: 'Catamarca' },
+  { id: '14', name: 'Córdoba' },
+  { id: '18', name: 'Corrientes' },
+  { id: '22', name: 'Chaco' },
+  { id: '26', name: 'Chubut' },
+  { id: '30', name: 'Entre Ríos' },
+  { id: '34', name: 'Formosa' },
+  { id: '38', name: 'Jujuy' },
+  { id: '42', name: 'La Pampa' },
+  { id: '46', name: 'La Rioja' },
+  { id: '50', name: 'Mendoza' },
+  { id: '54', name: 'Misiones' },
+  { id: '58', name: 'Neuquén' },
+  { id: '62', name: 'Río Negro' },
+  { id: '66', name: 'Salta' },
+  { id: '70', name: 'San Juan' },
+  { id: '74', name: 'San Luis' },
+  { id: '78', name: 'Santa Cruz' },
+  { id: '82', name: 'Santa Fe' },
+  { id: '86', name: 'Santiago del Estero' },
+  { id: '90', name: 'Tucumán' },
+  { id: '94', name: 'Tierra del Fuego, Antártida e Islas del Atlántico Sur' },
+]
+
+async function fetchJSON(url) {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`${res.status} for ${url}`)
+  return res.json()
+}
+
+async function main() {
+  // CABA (province 02) is hardcoded in the app, skip it
+
+  // 1. Download municipios grouped by province_id
+  const municipiosByProvince = {}
+  console.log('=== Downloading municipios ===')
+
+  for (const prov of PROVINCES) {
+    const url = `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(prov.name)}&max=500`
+    try {
+      const data = await fetchJSON(url)
+      const municipios = (data.municipios || [])
+        .map(m => ({ id: String(m.id), nombre: m.nombre }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre))
+      municipiosByProvince[prov.id] = municipios
+      console.log(`  ${prov.name}: ${municipios.length} municipios`)
+    } catch (err) {
+      console.error(`  ERROR ${prov.name}: ${err.message}`)
+      municipiosByProvince[prov.id] = []
+    }
+    await new Promise(r => setTimeout(r, 300))
+  }
+
+  // 2. Download localidades by province, then group by municipio_id
+  const localidadesByMunicipio = {}
+  console.log('\n=== Downloading localidades ===')
+
+  for (const prov of PROVINCES) {
+    const url = `https://apis.datos.gob.ar/georef/api/localidades?provincia=${encodeURIComponent(prov.name)}&max=5000`
+    try {
+      const data = await fetchJSON(url)
+      const localidades = data.localidades || []
+      for (const loc of localidades) {
+        const munId = String(loc.municipio?.id || '')
+        if (!munId) continue
+        if (!localidadesByMunicipio[munId]) localidadesByMunicipio[munId] = []
+        localidadesByMunicipio[munId].push({ id: String(loc.id), nombre: loc.nombre })
+      }
+      console.log(`  ${prov.name}: ${localidades.length} localidades`)
+    } catch (err) {
+      console.error(`  ERROR ${prov.name}: ${err.message}`)
+    }
+    await new Promise(r => setTimeout(r, 300))
+  }
+
+  // Sort localidades within each municipio
+  for (const munId of Object.keys(localidadesByMunicipio)) {
+    localidadesByMunicipio[munId].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  }
+
+  // 3. Write files to public/data/
+  const dataDir = path.join(process.cwd(), 'public', 'data')
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
+
+  fs.writeFileSync(
+    path.join(dataDir, 'municipios.json'),
+    JSON.stringify(municipiosByProvince)
+  )
+  fs.writeFileSync(
+    path.join(dataDir, 'localidades.json'),
+    JSON.stringify(localidadesByMunicipio)
+  )
+
+  const totalMun = Object.values(municipiosByProvince).reduce((s, a) => s + a.length, 0)
+  const totalLoc = Object.values(localidadesByMunicipio).reduce((s, a) => s + a.length, 0)
+  console.log(`\nDone! ${totalMun} municipios, ${totalLoc} localidades`)
+  console.log('Files: public/data/municipios.json, public/data/localidades.json')
+}
+
+main().catch(console.error)
