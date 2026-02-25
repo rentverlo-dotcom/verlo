@@ -1,5 +1,5 @@
-import fs from 'fs'
-import path from 'path'
+const fs = require('fs')
+const path = require('path')
 
 const PROVINCES = [
   { id: '06', name: 'Buenos Aires' },
@@ -56,29 +56,31 @@ async function main() {
     await new Promise(r => setTimeout(r, 300))
   }
 
-  // 2. Download localidades grouped by municipio_id
+  // 2. Download localidades by province, then group by municipio_id
   const localidadesByMunicipio = {}
   console.log('\n=== Downloading localidades ===')
 
-  for (const provId of Object.keys(municipiosByProvince)) {
-    const municipios = municipiosByProvince[provId]
-    for (const mun of municipios) {
-      const url = `https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(mun.id)}&max=500`
-      try {
-        const data = await fetchJSON(url)
-        const localidades = (data.localidades || [])
-          .map(l => ({ id: String(l.id), nombre: l.nombre }))
-          .sort((a, b) => a.nombre.localeCompare(b.nombre))
-        if (localidades.length > 0) {
-          localidadesByMunicipio[mun.id] = localidades
-        }
-      } catch (err) {
-        console.error(`  ERROR municipio ${mun.nombre} (${mun.id}): ${err.message}`)
+  for (const prov of PROVINCES) {
+    const url = `https://apis.datos.gob.ar/georef/api/localidades?provincia=${encodeURIComponent(prov.name)}&max=5000`
+    try {
+      const data = await fetchJSON(url)
+      const localidades = data.localidades || []
+      for (const loc of localidades) {
+        const munId = String(loc.municipio?.id || '')
+        if (!munId) continue
+        if (!localidadesByMunicipio[munId]) localidadesByMunicipio[munId] = []
+        localidadesByMunicipio[munId].push({ id: String(loc.id), nombre: loc.nombre })
       }
-      await new Promise(r => setTimeout(r, 100))
+      console.log(`  ${prov.name}: ${localidades.length} localidades`)
+    } catch (err) {
+      console.error(`  ERROR ${prov.name}: ${err.message}`)
     }
-    const provName = PROVINCES.find(p => p.id === provId)?.name
-    console.log(`  ${provName}: done`)
+    await new Promise(r => setTimeout(r, 300))
+  }
+
+  // Sort localidades within each municipio
+  for (const munId of Object.keys(localidadesByMunicipio)) {
+    localidadesByMunicipio[munId].sort((a, b) => a.nombre.localeCompare(b.nombre))
   }
 
   // 3. Write files to public/data/
