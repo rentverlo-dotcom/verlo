@@ -1,6 +1,3 @@
-const fs = require('fs')
-const path = require('path')
-
 const PROVINCES = [
   { id: '06', name: 'Buenos Aires' },
   { id: '10', name: 'Catamarca' },
@@ -30,13 +27,9 @@ const PROVINCES = [
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 async function main() {
-  const dataDir = path.join(process.cwd(), 'public', 'data')
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
-
-  // 1. Download municipios by province
   const municipiosByProvince = {}
-  console.log('=== Downloading municipios ===')
 
+  console.log('=== Downloading municipios ===')
   for (const prov of PROVINCES) {
     try {
       const url = `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(prov.name)}&max=500`
@@ -46,7 +39,7 @@ async function main() {
         .map(m => ({ id: String(m.id), nombre: m.nombre }))
         .sort((a, b) => a.nombre.localeCompare(b.nombre))
       municipiosByProvince[prov.id] = municipios
-      console.log('  ' + prov.name + ': ' + municipios.length + ' municipios')
+      console.log('  ' + prov.name + ': ' + municipios.length)
     } catch (err) {
       console.error('  ERROR ' + prov.name + ': ' + err.message)
       municipiosByProvince[prov.id] = []
@@ -54,14 +47,9 @@ async function main() {
     await sleep(300)
   }
 
-  fs.writeFileSync(path.join(dataDir, 'municipios.json'), JSON.stringify(municipiosByProvince))
-  const totalMun = Object.values(municipiosByProvince).reduce((s, a) => s + a.length, 0)
-  console.log('Total municipios: ' + totalMun)
-
-  // 2. Download localidades by province, group by municipio
   const localidadesByMunicipio = {}
-  console.log('\n=== Downloading localidades ===')
 
+  console.log('=== Downloading localidades ===')
   for (const prov of PROVINCES) {
     try {
       const url = `https://apis.datos.gob.ar/georef/api/localidades?provincia=${encodeURIComponent(prov.name)}&max=5000`
@@ -69,28 +57,29 @@ async function main() {
       const data = await res.json()
       const localidades = data.localidades || []
       for (const loc of localidades) {
-        const munId = String(loc.municipio && loc.municipio.id || '')
+        const munId = loc.municipio ? String(loc.municipio.id) : ''
         if (!munId) continue
         if (!localidadesByMunicipio[munId]) localidadesByMunicipio[munId] = []
         localidadesByMunicipio[munId].push({ id: String(loc.id), nombre: loc.nombre })
       }
-      console.log('  ' + prov.name + ': ' + localidades.length + ' localidades')
+      console.log('  ' + prov.name + ': ' + localidades.length)
     } catch (err) {
       console.error('  ERROR ' + prov.name + ': ' + err.message)
     }
     await sleep(300)
   }
 
-  // Sort
   for (const munId of Object.keys(localidadesByMunicipio)) {
     localidadesByMunicipio[munId].sort((a, b) => a.nombre.localeCompare(b.nombre))
   }
 
-  fs.writeFileSync(path.join(dataDir, 'localidades.json'), JSON.stringify(localidadesByMunicipio))
-  const totalLoc = Object.values(localidadesByMunicipio).reduce((s, a) => s + a.length, 0)
-  console.log('Total localidades: ' + totalLoc)
+  console.log('===MUNICIPIOS_JSON_START===' + JSON.stringify(municipiosByProvince) + '===MUNICIPIOS_JSON_END===')
+  console.log('===LOCALIDADES_JSON_START===' + JSON.stringify(localidadesByMunicipio) + '===LOCALIDADES_JSON_END===')
 
-  console.log('\nDone!')
+  const totalMun = Object.values(municipiosByProvince).reduce((s, a) => s + a.length, 0)
+  const totalLoc = Object.values(localidadesByMunicipio).reduce((s, a) => s + a.length, 0)
+  console.log('Total municipios: ' + totalMun)
+  console.log('Total localidades: ' + totalLoc)
 }
 
 main().catch(console.error)
