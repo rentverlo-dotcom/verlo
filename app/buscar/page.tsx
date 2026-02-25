@@ -128,13 +128,14 @@ export default function Buscar() {
     const province = ARG_PROVINCES.find(p => String(p.id) === String(draft.province_id))
     if (!province?.name) return
 
-    fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
+    fetch(`https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(province.name)}&max=500`)
       .then(r => r.json())
       .then(d => {
         setMunicipalities((d.municipios || []).map((m: any) => ({ id: m.id, name: m.nombre })))
         setNeighborhoods([])
         setDraft(prev => ({ ...prev, municipality_id: undefined, neighborhood_id: undefined }))
       })
+      .catch(err => console.error('Error cargando municipios:', err))
   }, [draft.province_id])
 
   // Municipios → Barrios (igual que propietario)
@@ -145,12 +146,13 @@ export default function Buscar() {
     }
     if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
-    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(draft.municipality_id)}`)
+    fetch(`https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(draft.municipality_id)}&max=500`)
       .then(r => r.json())
       .then(d => {
         setNeighborhoods((d.localidades || []).map((n: any) => ({ id: n.id, name: n.nombre })))
         setDraft(prev => ({ ...prev, neighborhood_id: undefined }))
       })
+      .catch(err => console.error('Error cargando localidades:', err))
   }, [draft.municipality_id])
 
   const municipalityName = useMemo(

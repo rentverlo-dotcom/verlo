@@ -166,7 +166,7 @@ export default function PublicarPropiedad() {
 
     if (!province?.name) return
 
-    fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
+    fetch(`https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(province.name)}&max=500`)
       .then(r => r.json())
       .then(d => {
         setMunicipalities(
@@ -182,6 +182,7 @@ export default function PublicarPropiedad() {
           neighborhood_id: undefined,
         }))
       })
+      .catch(err => console.error('Error cargando municipios:', err))
   }, [draft.province_id])
 
   // ===============================
@@ -195,7 +196,7 @@ export default function PublicarPropiedad() {
 
     if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
-    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(draft.municipality_id)}`)
+    fetch(`https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(draft.municipality_id)}&max=500`)
       .then(r => r.json())
       .then(d => {
         setNeighborhoods(
@@ -209,6 +210,7 @@ export default function PublicarPropiedad() {
           neighborhood_id: undefined,
         }))
       })
+      .catch(err => console.error('Error cargando localidades:', err))
   }, [draft.municipality_id])
 
   async function requireAuth() {
