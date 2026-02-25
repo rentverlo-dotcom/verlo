@@ -68,7 +68,9 @@ export default function HomePage() {
 
   </div>
 </section>
-
+</>
+  )
+}
 
     {/* HERO BRIDGE */}
     <div className="hero-bridge">
