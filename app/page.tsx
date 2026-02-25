@@ -19,7 +19,7 @@ export default function HomePage() {
               lineHeight: 0.95,
               letterSpacing: "-1.5px",
               margin: 0,
-              color: "#0f172a"
+              color: "#e11d74"
             }}
           >
             Alquilá sin inmobiliarias.
