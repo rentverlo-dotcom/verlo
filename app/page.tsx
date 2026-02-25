@@ -6,11 +6,8 @@ export default function HomePage() {
       {/* HERO */}
       <section
         style={{
-          minHeight: "85vh",
-          display: "flex",
-          alignItems: "center",
-          paddingTop: "140px",
-          paddingBottom: "100px",
+          paddingTop: "120px",
+          paddingBottom: "60px",  
         }}
       >
         <div className="container" style={{ maxWidth: 1100 }}>
@@ -22,7 +19,7 @@ export default function HomePage() {
               lineHeight: 0.95,
               letterSpacing: "-1.5px",
               margin: 0,
-              color: "#0f172a",
+              color: "#0f172a"
             }}
           >
             Alquilá sin inmobiliarias.
