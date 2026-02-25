@@ -393,178 +393,94 @@ export default function HomePage() {
         </div>
       </section>
 
-     {/* FOOTER */}
+  {/* FOOTER */}
 <footer
   style={{
-    padding: "72px 24px 44px",
-    borderTop: "1px solid rgba(2,6,23,0.08)",
-    background:
-      "radial-gradient(900px 500px at 15% 120%, rgba(236,72,153,0.18), transparent 60%), radial-gradient(900px 500px at 85% -10%, rgba(59,130,246,0.18), transparent 60%), linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+    padding: "60px 24px 40px",
+    borderTop: "1px solid #e2e8f0",
+    background: "#f8fafc",
   }}
 >
-  <div className="container" style={{ maxWidth: 1100 }}>
+  <div
+    className="container"
+    style={{
+      maxWidth: 1100,
+      margin: "0 auto",
+      display: "grid",
+      gridTemplateColumns: "1fr auto",
+      gap: "40px",
+    }}
+  >
+    {/* LEFT */}
+    <div>
+      <strong
+        style={{
+          fontSize: "16px",
+          letterSpacing: "0.5px",
+          color: "#0f172a",
+        }}
+      >
+        VERLO
+      </strong>
+
+      <p
+        style={{
+          marginTop: "10px",
+          maxWidth: "480px",
+          color: "#475569",
+          fontSize: "14px",
+          lineHeight: 1.6,
+        }}
+      >
+        Alquiler directo entre inquilinos y propietarios, sin intermediarios
+        ni comisiones innecesarias.
+      </p>
+    </div>
+
+    {/* RIGHT */}
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "1fr auto",
-        gap: "28px",
-        alignItems: "start",
-        padding: "22px 22px",
-        borderRadius: 22,
-        background: "rgba(255,255,255,0.72)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        border: "1px solid rgba(2,6,23,0.08)",
-        boxShadow: "0 18px 55px rgba(2,6,23,0.08)",
+        gap: "12px",
+        fontSize: "14px",
+        textAlign: "right",
       }}
     >
-      {/* LEFT */}
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <strong
-            style={{
-              fontSize: "18px",
-              letterSpacing: "0.6px",
-              color: "#0f172a",
-            }}
-          >
-            VERLO
-          </strong>
-
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              padding: "6px 10px",
-              borderRadius: 999,
-              color: "#0f172a",
-              background:
-                "linear-gradient(90deg, rgba(236,72,153,0.18), rgba(59,130,246,0.18))",
-              border: "1px solid rgba(2,6,23,0.08)",
-            }}
-          >
-            Alquiler directo
-          </span>
-        </div>
-
-        <p
-          style={{
-            marginTop: 10,
-            color: "#475569",
-            maxWidth: 520,
-            lineHeight: 1.6,
-            fontSize: 14,
-          }}
-        >
-          Alquiler directo entre inquilinos y propietarios, sin intermediarios
-          ni comisiones innecesarias.
-        </p>
-
-        <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <a
-            href="/login"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "10px 14px",
-              borderRadius: 999,
-              border: "1px solid rgba(2,6,23,0.10)",
-              background: "rgba(255,255,255,0.65)",
-              color: "#0f172a",
-              fontWeight: 700,
-              fontSize: 13,
-              textDecoration: "none",
-            }}
-          >
-            Empezar ahora
-            <span style={{ opacity: 0.7 }}>→</span>
-          </a>
-
-          <a
-            href="/#forms"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "10px 14px",
-              borderRadius: 999,
-              border: "1px solid rgba(236,72,153,0.35)",
-              background:
-                "linear-gradient(90deg, rgba(255,45,122,0.95), rgba(255,74,166,0.95))",
-              color: "#fff",
-              fontWeight: 800,
-              fontSize: 13,
-              textDecoration: "none",
-              boxShadow: "0 14px 40px rgba(255,45,122,0.20)",
-            }}
-          >
-            Publicar propiedad
-          </a>
-        </div>
-      </div>
-
-      {/* RIGHT */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "auto auto",
-          gap: "10px 18px",
-          alignContent: "start",
-          justifyItems: "start",
-          fontSize: 14,
-        }}
-      >
-        {[
-          { href: "/terminos", label: "Términos" },
-          { href: "/privacidad", label: "Privacidad" },
-          { href: "/contacto", label: "Contacto" },
-          { href: "/#transparencia", label: "Transparencia" },
-        ].map((l) => (
-          <a
-            key={l.href}
-            href={l.href}
-            style={{
-              color: "#0f172a",
-              opacity: 0.8,
-              textDecoration: "none",
-              padding: "8px 10px",
-              borderRadius: 10,
-              border: "1px solid transparent",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "1"
-              e.currentTarget.style.borderColor = "rgba(2,6,23,0.10)"
-              e.currentTarget.style.background = "rgba(255,255,255,0.55)"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "0.8"
-              e.currentTarget.style.borderColor = "transparent"
-              e.currentTarget.style.background = "transparent"
-            }}
-          >
-            {l.label}
-          </a>
-        ))}
-      </div>
+      <a href="/terminos" style={{ color: "#0f172a", opacity: 0.8 }}>
+        Términos
+      </a>
+      <a href="/privacidad" style={{ color: "#0f172a", opacity: 0.8 }}>
+        Privacidad
+      </a>
+      <a href="/contacto" style={{ color: "#0f172a", opacity: 0.8 }}>
+        Contacto
+      </a>
+      <a href="/#transparencia" style={{ color: "#0f172a", opacity: 0.8 }}>
+        Transparencia
+      </a>
     </div>
+  </div>
 
-    {/* BOTTOM */}
-    <div
-      style={{
-        marginTop: 18,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 12,
-        color: "#64748b",
-        fontSize: 13,
-        padding: "0 6px",
-      }}
-    >
-      <span>© {new Date().getFullYear()} VERLO. Todos los derechos reservados.</span>
-      <span style={{ opacity: 0.8 }}>Hecho para alquileres sin vueltas.</span>
-    </div>
+  {/* BOTTOM */}
+  <div
+    style={{
+      marginTop: "40px",
+      borderTop: "1px solid #e2e8f0",
+      paddingTop: "20px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      fontSize: "13px",
+      color: "#64748b",
+      maxWidth: 1100,
+      marginInline: "auto",
+    }}
+  >
+    <span>
+      © {new Date().getFullYear()} VERLO. Todos los derechos reservados.
+    </span>
+
+    <span>Hecho para alquileres sin vueltas.</span>
   </div>
 </footer>
     </>
