@@ -169,16 +169,15 @@ export default function PublicarPropiedad() {
     fetch(`https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(province.name)}&max=1000`)
       .then(r => r.json())
       .then(d => {
-        console.log('[v0] municipios response:', JSON.stringify(d).slice(0, 200))
-        const mapped = (d.municipios || []).map((m: any) => ({
-          id: m.id,
-          name: m.nombre,
-        }))
-        console.log('[v0] setting municipalities, count:', mapped.length)
-        setMunicipalities(mapped)
+        setMunicipalities(
+          (d.municipios || []).map((m: any) => ({
+            id: m.id,
+            name: m.nombre,
+          }))
+        )
         setNeighborhoods([])
       })
-      .catch(err => console.error('[v0] Error cargando municipios:', err))
+      .catch(() => {})
   }, [draft.province_id])
 
   // ===============================
@@ -195,7 +194,6 @@ export default function PublicarPropiedad() {
     fetch(`https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(draft.municipality_id)}&max=1000`)
       .then(r => r.json())
       .then(d => {
-        console.log('[v0] localidades response:', JSON.stringify(d).slice(0, 200))
         setNeighborhoods(
           (d.localidades || []).map((n: any) => ({
             id: n.id,
@@ -203,7 +201,7 @@ export default function PublicarPropiedad() {
           }))
         )
       })
-      .catch(err => console.error('[v0] Error cargando localidades:', err))
+      .catch(() => {})
   }, [draft.municipality_id])
 
   async function requireAuth() {
@@ -338,8 +336,6 @@ console.log('PROPERTY ID INSERTADO:', property.id)
   window.location.href = `/propietario/preview/${property.id}`
 }
 
-
-  console.log('[v0] RENDER - municipalities:', municipalities.length, 'province_id:', draft.province_id, 'municipality_id:', draft.municipality_id)
 
   return (
     <div className="min-h-screen bg-black flex justify-center pt-24 px-4">
