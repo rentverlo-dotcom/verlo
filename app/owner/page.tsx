@@ -274,7 +274,7 @@ export default function OwnerPage() {
 function labelStatus(s?: string) {
   const v = (s || '').toLowerCase()
   if (v.includes('publish') || v.includes('public')) return 'Publicada'
-  if (v.includes('draft') || v.includes('borr')) return 'Borrador'
+  if (v.includes('draft') || v.includes('borr')) return 'Desplegar ficha'
   if (v.includes('review') || v.includes('pend')) return 'Pendiente'
   return s || '—'
 }
