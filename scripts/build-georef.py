@@ -30,7 +30,7 @@ PROVINCES = [
     ("94", "Tierra del Fuego, Antártida e Islas del Atlántico Sur"),
 ]
 
-data_dir = os.path.join(os.getcwd(), "public", "data")
+data_dir = "/vercel/share/v0-project/public/data"
 os.makedirs(data_dir, exist_ok=True)
 
 def fetch_json(url):
