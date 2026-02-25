@@ -128,25 +128,27 @@ export default function Buscar() {
     const province = ARG_PROVINCES.find(p => String(p.id) === String(draft.province_id))
     if (!province?.name) return
 
-    let cancelled = false
+    const controller = new AbortController()
 
-    fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
+    fetch(
+      `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(province.name)}&max=500`,
+      { signal: controller.signal }
+    )
       .then(r => {
         if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
         return r.json()
       })
       .then(d => {
-        if (cancelled) return
         setMunicipalities((d.municipios || []).map((m: any) => ({ id: String(m.id), name: m.nombre })))
         setNeighborhoods([])
       })
       .catch(err => {
-        if (cancelled) return
+        if (err.name === 'AbortError') return
         console.error('[v0] Error cargando municipios (buscar):', err)
         setMunicipalities([])
       })
 
-    return () => { cancelled = true }
+    return () => controller.abort()
   }, [draft.province_id])
 
   // Municipios → Barrios (igual que propietario)
@@ -162,24 +164,26 @@ export default function Buscar() {
     )
     if (!municipality?.name) return
 
-    let cancelledLoc = false
+    const controller = new AbortController()
 
-    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(municipality.name)}`)
+    fetch(
+      `https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(municipality.name)}&max=500`,
+      { signal: controller.signal }
+    )
       .then(r => {
         if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
         return r.json()
       })
       .then(d => {
-        if (cancelledLoc) return
         setNeighborhoods((d.localidades || []).map((n: any) => ({ id: String(n.id), name: n.nombre })))
       })
       .catch(err => {
-        if (cancelledLoc) return
+        if (err.name === 'AbortError') return
         console.error('[v0] Error cargando localidades (buscar):', err)
         setNeighborhoods([])
       })
 
-    return () => { cancelledLoc = true }
+    return () => controller.abort()
   }, [draft.municipality_id, municipalities])
 
   const municipalityName = useMemo(

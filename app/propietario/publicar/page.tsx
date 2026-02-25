@@ -166,17 +166,19 @@ export default function PublicarPropiedad() {
 
     if (!province?.name) return
 
-    let cancelled = false
+    const controller = new AbortController()
 
     console.log('[v0] Fetching municipios for province:', province.name)
 
-    fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
+    fetch(
+      `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(province.name)}&max=500`,
+      { signal: controller.signal }
+    )
       .then(r => {
         if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
         return r.json()
       })
       .then(d => {
-        if (cancelled) return
         const mapped = (d.municipios || []).map((m: any) => ({
           id: String(m.id),
           name: m.nombre,
@@ -186,12 +188,12 @@ export default function PublicarPropiedad() {
         setNeighborhoods([])
       })
       .catch(err => {
-        if (cancelled) return
+        if (err.name === 'AbortError') return
         console.error('[v0] Error cargando municipios:', err)
         setMunicipalities([])
       })
 
-    return () => { cancelled = true }
+    return () => controller.abort()
   }, [draft.province_id])
 
   // ===============================
@@ -212,15 +214,17 @@ export default function PublicarPropiedad() {
 
     if (!municipality?.name) return
 
-    let cancelled = false
+    const controller = new AbortController()
 
-    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(municipality.name)}`)
+    fetch(
+      `https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(municipality.name)}&max=500`,
+      { signal: controller.signal }
+    )
       .then(r => {
         if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
         return r.json()
       })
       .then(d => {
-        if (cancelled) return
         setNeighborhoods(
           (d.localidades || []).map((n: any) => ({
             id: String(n.id),
@@ -229,12 +233,12 @@ export default function PublicarPropiedad() {
         )
       })
       .catch(err => {
-        if (cancelled) return
-        console.error('Error cargando localidades:', err)
+        if (err.name === 'AbortError') return
+        console.error('[v0] Error cargando localidades:', err)
         setNeighborhoods([])
       })
 
-    return () => { cancelled = true }
+    return () => controller.abort()
   }, [draft.municipality_id, municipalities])
 
   async function requireAuth() {
