@@ -323,12 +323,12 @@ function preloadImage(url: string) {
 const page: React.CSSProperties = {
   minHeight: '100vh',
   background: `
-    radial-gradient(900px 520px at 50% 0%, rgba(59,130,246,0.55), rgba(0,0,0,0) 70%),
-    radial-gradient(1100px 650px at 50% 120%, rgba(236,72,153,0.65), rgba(0,0,0,0) 65%),
-    radial-gradient(900px 550px at 85% 55%, rgba(168,85,247,0.35), rgba(0,0,0,0) 70%),
-    linear-gradient(180deg, #070a12 0%, #0b1020 35%, #0a0f1c 60%, #070a12 100%)
+    radial-gradient(900px 500px at 20% 10%, rgba(99,102,241,0.18), transparent 60%),
+    radial-gradient(900px 500px at 80% 20%, rgba(236,72,153,0.16), transparent 55%),
+    radial-gradient(900px 500px at 60% 90%, rgba(168,85,247,0.14), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 60%, #ffffff 100%)
   `,
-  color: '#fff',
+  color: '#0f172a',
 }
 
 const topbar: React.CSSProperties = {
