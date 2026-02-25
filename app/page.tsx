@@ -8,12 +8,22 @@ export default function HomePage() {
     minHeight: "85vh",
     display: "flex",
     alignItems: "center",
-    paddingTop: "120px",
-    paddingBottom: "80px",
+    paddingTop: "140px",
+    paddingBottom: "100px",
   }}
 >
-  <div className="container">
-    <h1 className="hero-title">
+  <div className="container" style={{ maxWidth: 1100 }}>
+
+    <h1
+      style={{
+        fontSize: "72px",
+        fontWeight: 900,
+        lineHeight: 0.95,
+        letterSpacing: "-1.5px",
+        margin: 0,
+        color: "#0f172a",
+      }}
+    >
       Alquilá sin inmobiliarias.
     </h1>
 
@@ -21,15 +31,43 @@ export default function HomePage() {
       style={{
         fontSize: "20px",
         maxWidth: "680px",
-        marginTop: "16px",
+        marginTop: "24px",
+        color: "#64748b",
+        lineHeight: 1.6,
       }}
     >
       Alquiler directo, sin inmobiliarias ni comisiones, con un proceso simple
       y transparente.
     </p>
-    <button className="button">
-  Empezar ahora
-</button>
+
+    <button
+      style={{
+        marginTop: "36px",
+        padding: "14px 28px",
+        borderRadius: "999px",
+        border: "none",
+        fontSize: "16px",
+        fontWeight: 700,
+        cursor: "pointer",
+        background: "linear-gradient(90deg, #ff2d7a, #ff4aa6)",
+        color: "#fff",
+        boxShadow: "0 10px 30px rgba(255,45,122,0.25)",
+        transition: "transform 0.15s ease, box-shadow 0.15s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)"
+        e.currentTarget.style.boxShadow = "0 14px 40px rgba(255,45,122,0.35)"
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)"
+        e.currentTarget.style.boxShadow = "0 10px 30px rgba(255,45,122,0.25)"
+      }}
+    >
+      Empezar ahora
+    </button>
+
+  </div>
+</section>
 
 
     {/* HERO BRIDGE */}
