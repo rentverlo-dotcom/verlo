@@ -43,21 +43,24 @@ const header: React.CSSProperties = {
   top: 0,
   left: 0,
   right: 0,
-  height: '56px',
-  background: 'rgba(0,0,0,0.85)',
-  backdropFilter: 'blur(6px)',
+  height: '64px',
+  background: 'rgba(255,255,255,0.8)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
   display: 'flex',
   alignItems: 'center',
-  padding: '0 12px',
+  padding: '0 24px',
   zIndex: 100,
+  borderBottom: '1px solid #e2e8f0',
 }
 
 const backBtn: React.CSSProperties = {
   background: 'none',
   border: 'none',
-  color: '#fff',
-  fontSize: '22px',
+  color: '#0f172a',
+  fontSize: '20px',
   cursor: 'pointer',
+  opacity: 0.8,
 }
 
 const center: React.CSSProperties = {
@@ -67,7 +70,9 @@ const center: React.CSSProperties = {
 
 const titleStyle: React.CSSProperties = {
   fontSize: '14px',
-  opacity: 0.85,
+  color: '#0f172a',
+  fontWeight: 600,
+  letterSpacing: '0.3px',
 }
 
 const right: React.CSSProperties = {
@@ -78,7 +83,8 @@ const right: React.CSSProperties = {
 const savedBtn: React.CSSProperties = {
   background: 'none',
   border: 'none',
-  color: '#fff',
-  fontSize: '20px',
+  color: '#0f172a',
+  fontSize: '18px',
   cursor: 'pointer',
+  opacity: 0.8,
 }
