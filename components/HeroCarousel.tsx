@@ -40,19 +40,19 @@ const baseItems = [
   },
 ]
 
-// duplicamos para simular infinito
+// duplicamos SOLO una vez a cada lado
 const items = [...baseItems, ...baseItems, ...baseItems]
 
 export default function HeroCarousel() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(baseItems.length)
 
-  // centrar en el bloque del medio al iniciar
+  // centramos en el bloque del medio
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
-    const cardWidth = 360 // ancho + gap aproximado
+    const cardWidth = 360 // ancho aproximado + gap
     container.scrollLeft = cardWidth * baseItems.length
   }, [])
 
@@ -80,15 +80,6 @@ export default function HeroCarousel() {
       })
 
       setActiveIndex(closestIndex)
-
-      // LOOP real
-      const totalWidth = container.scrollWidth / 3
-      if (container.scrollLeft < totalWidth * 0.5) {
-        container.scrollLeft += totalWidth
-      }
-      if (container.scrollLeft > totalWidth * 1.5) {
-        container.scrollLeft -= totalWidth
-      }
     }
 
     container.addEventListener('scroll', handleScroll)
@@ -109,7 +100,12 @@ export default function HeroCarousel() {
         }}
       >
         {items.map((item, index) => {
-          const isActive = index === activeIndex
+          const normalizedIndex =
+            index % baseItems.length
+
+          const isActive =
+            normalizedIndex ===
+            activeIndex % baseItems.length
 
           return (
             <div
@@ -144,22 +140,10 @@ export default function HeroCarousel() {
               }}
             >
               <div>
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: 24,
-                    fontWeight: 700,
-                  }}
-                >
+                <h3 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>
                   {item.title}
                 </h3>
-                <p
-                  style={{
-                    marginTop: 8,
-                    fontSize: 16,
-                    opacity: 0.95,
-                  }}
-                >
+                <p style={{ marginTop: 8, fontSize: 16 }}>
                   {item.price}
                 </p>
               </div>
