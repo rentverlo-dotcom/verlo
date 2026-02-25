@@ -19,6 +19,7 @@ export default function OwnerPage() {
   const [covers, setCovers] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
+
   const money = useMemo(
     () =>
       new Intl.NumberFormat('es-AR', {
@@ -62,30 +63,49 @@ export default function OwnerPage() {
           setLoading(false)
           return
         }
+// 2) Cover por propiedad
+const ids = props.map(p => p.id)
 
-        // 2) Cover por propiedad
-        const ids = props.map(p => p.id)
+const { data: media, error: mediaErr } = await supabase
+  .from('property_media')
+  .select('property_id, url, position')
+  .in('property_id', ids)
+  .order('position', { ascending: true })
 
-        const { data: media, error: mediaErr } = await supabase
-          .from('property_media')
-          .select('property_id, url, position')
-          .in('property_id', ids)
-          .order('position', { ascending: true })
+if (mediaErr) throw mediaErr
 
-        if (mediaErr) throw mediaErr
+const map: Record<string, string> = {}
 
-        const map: Record<string, string> = {}
-        media?.forEach(m => {
-          if (!map[m.property_id]) {
-            map[m.property_id] = supabase.storage
-              .from('property-media')
-              .getPublicUrl(m.url).data.publicUrl
-          }
-        })
+// IMPORTANTE: for...of para poder usar await
+for (const m of media ?? []) {
+  if (map[m.property_id]) continue
 
-        if (!alive) return
-        setCovers(map)
-        setLoading(false)
+  const raw = m.url
+
+  // Si en DB guardaste una URL completa, úsala directo
+  if (raw?.startsWith('http')) {
+    map[m.property_id] = raw
+    continue
+  }
+
+  // 1) Intento signed URL (sirve si el bucket es privado)
+  const { data: signed, error: signErr } = await supabase.storage
+    .from('property-media')
+    .createSignedUrl(raw, 60 * 60)
+
+  if (!signErr && signed?.signedUrl) {
+    map[m.property_id] = signed.signedUrl
+    continue
+  }
+
+  // 2) Fallback: public URL (sirve si el bucket es público)
+  const pub = supabase.storage.from('property-media').getPublicUrl(raw).data.publicUrl
+  if (pub) map[m.property_id] = pub
+}
+
+if (!alive) return
+setCovers(map)
+setLoading(false)
       } catch (e: any) {
         if (!alive) return
         setError(e?.message ?? 'Error cargando propiedades')
@@ -225,7 +245,13 @@ function pill(status?: string): React.CSSProperties {
 
 const page: React.CSSProperties = {
   minHeight: '100vh',
-  background: '#000',
+  background: `
+    radial-gradient(900px 500px at 15% 10%, rgba(99,102,241,0.18), transparent 60%),
+    radial-gradient(900px 500px at 85% 20%, rgba(16,185,129,0.16), transparent 55%),
+    radial-gradient(900px 500px at 60% 85%, rgba(236,72,153,0.12), transparent 60%),
+    linear-gradient(180deg, #f8fafc 0%, #ffffff 60%, #f8fafc 100%)
+  `,
+  color: '#0f172a',
 }
 
 const topbar: React.CSSProperties = {
@@ -236,25 +262,14 @@ const topbar: React.CSSProperties = {
   gap: 12,
   position: 'sticky',
   top: 0,
-  background: 'rgba(0,0,0,0.85)',
-  backdropFilter: 'blur(10px)',
+  background: 'rgba(248,250,252,0.75)',
+  backdropFilter: 'blur(12px)',
   zIndex: 10,
-  borderBottom: '1px solid rgba(255,255,255,0.08)',
+  borderBottom: '1px solid rgba(15,23,42,0.08)',
 }
 
-const title: React.CSSProperties = {
-  margin: 0,
-  color: '#fff',
-  fontSize: 26,
-  letterSpacing: -0.3,
-}
-
-const subtitle: React.CSSProperties = {
-  marginTop: 6,
-  color: '#fff',
-  opacity: 0.65,
-  fontSize: 13,
-}
+const title = { margin: 0, color: '#0f172a', fontSize: 26, letterSpacing: -0.3 }
+const subtitle = { marginTop: 6, color: '#334155', opacity: 0.9, fontSize: 13 }
 
 const grid: React.CSSProperties = {
   padding: '18px 20px 80px',
@@ -271,14 +286,16 @@ const card: React.CSSProperties = {
   position: 'relative',
   cursor: 'pointer',
   overflow: 'hidden',
-  border: '1px solid rgba(255,255,255,0.10)',
+  border: '1px solid rgba(15,23,42,0.10)',
+  boxShadow: '0 10px 30px rgba(15,23,42,0.08)',
+  backgroundColor: 'rgba(255,255,255,0.65)',
 }
 
 const overlay: React.CSSProperties = {
   position: 'absolute',
   inset: 0,
   background:
-    'linear-gradient(to top, rgba(0,0,0,0.88) 18%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.05) 100%)',
+    'linear-gradient(to top, rgba(15,23,42,0.70) 12%, rgba(15,23,42,0.18) 55%, rgba(15,23,42,0.04) 100%)',
 }
 
 const info: React.CSSProperties = {
@@ -330,8 +347,8 @@ const noCover: React.CSSProperties = {
 
 const empty: React.CSSProperties = {
   minHeight: '100vh',
-  background: '#000',
-  color: '#fff',
+  background: 'transparent',
+  color: '#0f172a',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
