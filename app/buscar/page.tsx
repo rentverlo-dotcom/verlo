@@ -128,7 +128,7 @@ export default function Buscar() {
     const province = ARG_PROVINCES.find(p => String(p.id) === String(draft.province_id))
     if (!province?.name) return
 
-    fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
+    fetch(`https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(province.name)}&max=1000`)
       .then(r => r.json())
       .then(d => {
         console.log('[v0] municipios response:', JSON.stringify(d).slice(0, 200))
@@ -146,7 +146,7 @@ export default function Buscar() {
     }
     if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
-    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(draft.municipality_id)}`)
+    fetch(`https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(draft.municipality_id)}&max=1000`)
       .then(r => r.json())
       .then(d => {
         console.log('[v0] localidades response:', JSON.stringify(d).slice(0, 200))
