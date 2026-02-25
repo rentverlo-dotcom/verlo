@@ -166,34 +166,22 @@ export default function PublicarPropiedad() {
 
     if (!province?.name) return
 
-    const controller = new AbortController()
-
-    console.log('[v0] Fetching municipios for province:', province.name)
-
-    fetch(
-      `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(province.name)}&max=500`,
-      { signal: controller.signal }
-    )
-      .then(r => {
-        if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
-        return r.json()
-      })
+    fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
+      .then(r => r.json())
       .then(d => {
-        const mapped = (d.municipios || []).map((m: any) => ({
-          id: String(m.id),
-          name: m.nombre,
-        }))
-        console.log('[v0] Municipios loaded:', mapped.length, 'first:', mapped[0])
-        setMunicipalities(mapped)
+        setMunicipalities(
+          (d.municipios || []).map((m: any) => ({
+            id: m.id,
+            name: m.nombre,
+          }))
+        )
         setNeighborhoods([])
+        setDraft(prev => ({
+          ...prev,
+          municipality_id: undefined,
+          neighborhood_id: undefined,
+        }))
       })
-      .catch(err => {
-        if (err.name === 'AbortError') return
-        console.error('[v0] Error cargando municipios:', err)
-        setMunicipalities([])
-      })
-
-    return () => controller.abort()
   }, [draft.province_id])
 
   // ===============================
@@ -207,39 +195,21 @@ export default function PublicarPropiedad() {
 
     if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
-    // La API de georef espera el NOMBRE del municipio, no el ID
-    const municipality = municipalities.find(
-      m => String(m.id) === String(draft.municipality_id)
-    )
-
-    if (!municipality?.name) return
-
-    const controller = new AbortController()
-
-    fetch(
-      `https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(municipality.name)}&max=500`,
-      { signal: controller.signal }
-    )
-      .then(r => {
-        if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
-        return r.json()
-      })
+    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(draft.municipality_id)}`)
+      .then(r => r.json())
       .then(d => {
         setNeighborhoods(
           (d.localidades || []).map((n: any) => ({
-            id: String(n.id),
+            id: n.id,
             name: n.nombre,
           }))
         )
+        setDraft(prev => ({
+          ...prev,
+          neighborhood_id: undefined,
+        }))
       })
-      .catch(err => {
-        if (err.name === 'AbortError') return
-        console.error('[v0] Error cargando localidades:', err)
-        setNeighborhoods([])
-      })
-
-    return () => controller.abort()
-  }, [draft.municipality_id, municipalities])
+  }, [draft.municipality_id])
 
   async function requireAuth() {
     const { data } = await supabase.auth.getUser()
@@ -389,16 +359,14 @@ console.log('PROPERTY ID INSERTADO:', property.id)
             <select
               className="input"
               value={draft.province_id || ''}
-              onChange={e => {
-                setMunicipalities([])
-                setNeighborhoods([])
+              onChange={e =>
                 setDraft(d => ({
                   ...d,
                   province_id: e.target.value,
                   municipality_id: undefined,
                   neighborhood_id: undefined,
                 }))
-              }}
+              }
             >
               <option value="">Provincia</option>
               {provinces.map(p => (
@@ -410,14 +378,13 @@ console.log('PROPERTY ID INSERTADO:', property.id)
               className="input"
               value={draft.municipality_id || ''}
               disabled={!draft.province_id}
-              onChange={e => {
-                setNeighborhoods([])
+              onChange={e =>
                 setDraft(d => ({
                   ...d,
                   municipality_id: e.target.value,
                   neighborhood_id: undefined,
                 }))
-              }}
+              }
             >
               <option value="">Municipio</option>
               {municipalities.map(m => (
