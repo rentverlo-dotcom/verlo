@@ -246,12 +246,11 @@ function pill(status?: string): React.CSSProperties {
 const page: React.CSSProperties = {
   minHeight: '100vh',
   background: `
-    radial-gradient(900px 500px at 15% 10%, rgba(99,102,241,0.18), transparent 60%),
-    radial-gradient(900px 500px at 85% 20%, rgba(16,185,129,0.16), transparent 55%),
-    radial-gradient(900px 500px at 60% 85%, rgba(236,72,153,0.12), transparent 60%),
-    linear-gradient(180deg, #f8fafc 0%, #ffffff 60%, #f8fafc 100%)
+    radial-gradient(1200px 600px at 50% -10%, rgba(59,130,246,0.45), transparent 60%),
+    radial-gradient(1000px 500px at 50% 110%, rgba(236,72,153,0.55), transparent 60%),
+    linear-gradient(180deg, #0b0f1a 0%, #111827 40%, #1f2937 100%)
   `,
-  color: '#0f172a',
+  color: '#fff',
 }
 
 const topbar: React.CSSProperties = {
