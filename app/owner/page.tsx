@@ -91,13 +91,13 @@ export default function OwnerPage() {
 
           // Normalización del path (esto es CLAVE)
           const cleanPath = raw
-            .replace(/^public\//, '')
-            .replace(/^property-media\//, '')
-            .replace(/^\/+/, '')
+          .replace(/^public\//, '')
+          .replace(/^media\//, '')
+          .replace(/^\/+/, '')
 
           // Intento signed URL (bucket privado)
           const { data: signed, error: signErr } = await supabase.storage
-            .from('property-media')
+            .from('media')
             .createSignedUrl(cleanPath, 60 * 60)
 
           if (!signErr && signed?.signedUrl) {
@@ -107,7 +107,7 @@ export default function OwnerPage() {
 
           // Fallback público (bucket público)
           const pub = supabase.storage
-            .from('property-media')
+            .from('media')
             .getPublicUrl(cleanPath).data.publicUrl
 
           if (pub) map[m.property_id] = pub
