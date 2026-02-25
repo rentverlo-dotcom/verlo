@@ -168,6 +168,8 @@ export default function PublicarPropiedad() {
 
     let cancelled = false
 
+    console.log('[v0] Fetching municipios for province:', province.name)
+
     fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
       .then(r => {
         if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
@@ -179,12 +181,13 @@ export default function PublicarPropiedad() {
           id: String(m.id),
           name: m.nombre,
         }))
+        console.log('[v0] Municipios loaded:', mapped.length, 'first:', mapped[0])
         setMunicipalities(mapped)
         setNeighborhoods([])
       })
       .catch(err => {
         if (cancelled) return
-        console.error('Error cargando municipios:', err)
+        console.error('[v0] Error cargando municipios:', err)
         setMunicipalities([])
       })
 

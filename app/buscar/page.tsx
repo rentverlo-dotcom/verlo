@@ -128,13 +128,25 @@ export default function Buscar() {
     const province = ARG_PROVINCES.find(p => String(p.id) === String(draft.province_id))
     if (!province?.name) return
 
+    let cancelled = false
+
     fetch(`/api/georef/municipios?provincia=${encodeURIComponent(province.name)}`)
-      .then(r => r.json())
-      .then(d => {
-        setMunicipalities((d.municipios || []).map((m: any) => ({ id: m.id, name: m.nombre })))
-        setNeighborhoods([])
-        setDraft(prev => ({ ...prev, municipality_id: undefined, neighborhood_id: undefined }))
+      .then(r => {
+        if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
+        return r.json()
       })
+      .then(d => {
+        if (cancelled) return
+        setMunicipalities((d.municipios || []).map((m: any) => ({ id: String(m.id), name: m.nombre })))
+        setNeighborhoods([])
+      })
+      .catch(err => {
+        if (cancelled) return
+        console.error('[v0] Error cargando municipios (buscar):', err)
+        setMunicipalities([])
+      })
+
+    return () => { cancelled = true }
   }, [draft.province_id])
 
   // Municipios → Barrios (igual que propietario)
@@ -145,13 +157,30 @@ export default function Buscar() {
     }
     if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
-    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(draft.municipality_id)}`)
-      .then(r => r.json())
-      .then(d => {
-        setNeighborhoods((d.localidades || []).map((n: any) => ({ id: n.id, name: n.nombre })))
-        setDraft(prev => ({ ...prev, neighborhood_id: undefined }))
+    const municipality = municipalities.find(
+      m => String(m.id) === String(draft.municipality_id)
+    )
+    if (!municipality?.name) return
+
+    let cancelledLoc = false
+
+    fetch(`/api/georef/localidades?municipio=${encodeURIComponent(municipality.name)}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`Georef API error: ${r.status}`)
+        return r.json()
       })
-  }, [draft.municipality_id])
+      .then(d => {
+        if (cancelledLoc) return
+        setNeighborhoods((d.localidades || []).map((n: any) => ({ id: String(n.id), name: n.nombre })))
+      })
+      .catch(err => {
+        if (cancelledLoc) return
+        console.error('[v0] Error cargando localidades (buscar):', err)
+        setNeighborhoods([])
+      })
+
+    return () => { cancelledLoc = true }
+  }, [draft.municipality_id, municipalities])
 
   const municipalityName = useMemo(
     () => municipalities.find(m => m.id === draft.municipality_id)?.name ?? null,
@@ -216,14 +245,16 @@ export default function Buscar() {
             <select
               className="input"
               value={draft.province_id || ''}
-              onChange={e =>
+              onChange={e => {
+                setMunicipalities([])
+                setNeighborhoods([])
                 setDraft(d => ({
                   ...d,
                   province_id: e.target.value,
                   municipality_id: undefined,
                   neighborhood_id: undefined,
                 }))
-              }
+              }}
             >
               <option value="">Provincia</option>
               {provinces.map(p => (
