@@ -7,7 +7,7 @@ export default function HomePage() {
       <section
         style={{
           paddingTop: "120px",
-          paddingBottom: "40px",  
+          paddingBottom: "10px",  
         }}
       >
         <div className="container" style={{ maxWidth: 1100 }}>
