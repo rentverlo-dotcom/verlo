@@ -1,106 +1,105 @@
 export default function HomePage() {
   return (
     <>
-  
-  {/* HERO */}
-<section
-  style={{
-    minHeight: "85vh",
-    display: "flex",
-    alignItems: "center",
-    paddingTop: "140px",
-    paddingBottom: "100px",
-  }}
->
-  <div className="container" style={{ maxWidth: 1100 }}>
 
-    <h1
-      style={{
-        fontSize: "72px",
-        fontWeight: 900,
-        lineHeight: 0.95,
-        letterSpacing: "-1.5px",
-        margin: 0,
-        color: "#0f172a",
-      }}
-    >
-      Alquilá sin inmobiliarias.
-    </h1>
+      {/* HERO */}
+      <section
+        style={{
+          minHeight: "85vh",
+          display: "flex",
+          alignItems: "center",
+          paddingTop: "140px",
+          paddingBottom: "100px",
+        }}
+      >
+        <div className="container" style={{ maxWidth: 1100 }}>
 
-    <p
-      style={{
-        fontSize: "20px",
-        maxWidth: "680px",
-        marginTop: "24px",
-        color: "#64748b",
-        lineHeight: 1.6,
-      }}
-    >
-      Alquiler directo, sin inmobiliarias ni comisiones, con un proceso simple
-      y transparente.
-    </p>
+          <h1
+            style={{
+              fontSize: "72px",
+              fontWeight: 900,
+              lineHeight: 0.95,
+              letterSpacing: "-1.5px",
+              margin: 0,
+              color: "#0f172a",
+            }}
+          >
+            Alquilá sin inmobiliarias.
+          </h1>
 
-    <button
-      style={{
-        marginTop: "36px",
-        padding: "14px 28px",
-        borderRadius: "999px",
-        border: "none",
-        fontSize: "16px",
-        fontWeight: 700,
-        cursor: "pointer",
-        background: "linear-gradient(90deg, #ff2d7a, #ff4aa6)",
-        color: "#fff",
-        boxShadow: "0 10px 30px rgba(255,45,122,0.25)",
-        transition: "transform 0.15s ease, box-shadow 0.15s ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-2px)"
-        e.currentTarget.style.boxShadow = "0 14px 40px rgba(255,45,122,0.35)"
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)"
-        e.currentTarget.style.boxShadow = "0 10px 30px rgba(255,45,122,0.25)"
-      }}
-    >
-      Empezar ahora
-    </button>
+          <p
+            style={{
+              fontSize: "20px",
+              maxWidth: "680px",
+              marginTop: "24px",
+              color: "#64748b",
+              lineHeight: 1.6,
+            }}
+          >
+            Alquiler directo, sin inmobiliarias ni comisiones, con un proceso simple
+            y transparente.
+          </p>
 
-  </div>
-</section>
-</>
+          <button
+            style={{
+              marginTop: "36px",
+              padding: "14px 28px",
+              borderRadius: "999px",
+              border: "none",
+              fontSize: "16px",
+              fontWeight: 700,
+              cursor: "pointer",
+              background: "linear-gradient(90deg, #ff2d7a, #ff4aa6)",
+              color: "#fff",
+              boxShadow: "0 10px 30px rgba(255,45,122,0.25)",
+              transition: "transform 0.15s ease, box-shadow 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)"
+              e.currentTarget.style.boxShadow = "0 14px 40px rgba(255,45,122,0.35)"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)"
+              e.currentTarget.style.boxShadow = "0 10px 30px rgba(255,45,122,0.25)"
+            }}
+          >
+            Empezar ahora
+          </button>
+
+        </div>
+      </section>
+
+      {/* HERO BRIDGE */}
+      <section>
+        <div className="hero-bridge">
+
+          <div className="card">
+            <strong>Sin inmobiliarias</strong>
+            <p>
+              Alquilá de forma directa, sin intermediarios ni costos ocultos.
+            </p>
+          </div>
+
+          <div className="card">
+            <strong>Matching inteligente</strong>
+            <p>
+              Menos vueltas: conectamos perfiles realmente compatibles.
+            </p>
+          </div>
+
+          <div className="card">
+            <strong>Contrato digital</strong>
+            <p>
+              Cerrá el acuerdo con un proceso claro y seguro desde el inicio.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+    </>
   )
 }
-
-    {/* HERO BRIDGE */}
-    <div className="hero-bridge">
-
-      <div className="card">
-        <strong>Sin inmobiliarias</strong>
-        <p>
-          Alquilá de forma directa, sin intermediarios ni costos ocultos.
-        </p>
-      </div>
-
-      <div className="card">
-        <strong>Matching inteligente</strong>
-        <p>
-          Menos vueltas: conectamos perfiles realmente compatibles.
-        </p>
-      </div>
-
-      <div className="card">
-        <strong>Contrato digital</strong>
-        <p>
-          Cerrá el acuerdo con un proceso claro y seguro desde el inicio.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-      {/* QUE ES VERLO */}
 <section
   style={{
     padding: "80px 24px",
