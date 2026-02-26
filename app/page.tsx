@@ -329,7 +329,7 @@ export default function HomePage() {
         </div>
       </section>
 
-   {/* FORMS */}
+ {/* FORMS */}
 <section
   id="forms"
   style={{
@@ -342,8 +342,6 @@ export default function HomePage() {
 
     <div
       style={{
-        display: "flex",
-        justifyContent: "center",
         marginTop: "40px",
       }}
     >
@@ -360,19 +358,25 @@ export default function HomePage() {
       <div
         className="card"
         style={{
-          maxWidth: "480px",
           width: "100%",
+          padding: "48px",
         }}
       >
         <h3 style={{ marginTop: 0 }}>Soy propietario</h3>
-        <p>Publicá tu propiedad y recibí inquilinos compatibles.</p>
-        <a href="/propietario/publicar">
-          <button className="button">Publicar propiedad</button>
-        </a>
+        <p style={{ fontSize: "16px", marginTop: "12px" }}>
+          Publicá tu propiedad y recibí inquilinos compatibles.
+        </p>
+
+        <div style={{ marginTop: "24px" }}>
+          <a href="/propietario/publicar">
+            <button className="button">Publicar propiedad</button>
+          </a>
+        </div>
       </div>
     </div>
   </div>
 </section>
+      
   {/* FOOTER */}
 <footer
   style={{
