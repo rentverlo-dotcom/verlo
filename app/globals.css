@@ -300,3 +300,25 @@ textarea::placeholder {
   background: #2ee59d;
 }
 
+.button-primary {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  background: #ec4899; /* rosa VERLO */
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.button-primary:hover {
+  background: #db2777;
+  transform: translateY(-1px);
+}
+
+.button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
