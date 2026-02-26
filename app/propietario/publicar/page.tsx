@@ -337,49 +337,23 @@ console.log('PROPERTY ID INSERTADO:', property.id)
 }
 
 
-  return (
+ return (
     <section
-  style={{
-    minHeight: "100vh",
-    paddingTop: "140px",
-    paddingBottom: "120px",
-    background: "linear-gradient(180deg,#f8fafc 0%, #ffffff 100%)",
-  }}
->
-  <div
-    className="container"
-    style={{
-      maxWidth: "760px",
-    }}
-  >
-    <div
       style={{
-        background: "#ffffff",
-        borderRadius: "24px",
-        padding: "56px",
-        boxShadow: "0 30px 80px rgba(15,23,42,0.08)",
-        border: "1px solid #f1f5f9",
+        minHeight: '100vh',
+        paddingTop: '140px',
+        paddingBottom: '120px',
+        background: 'linear-gradient(180deg,#f8fafc 0%, #ffffff 100%)',
       }}
     >
-<h1
-  style={{
-    fontSize: "48px",
-    fontWeight: 900,
-    marginBottom: "8px",
-    letterSpacing: "-1px",
-    color: "#0f172a",
-  }}
->          Publicá tu propiedad
-        </h1>
-        <p
-  style={{
-    fontSize: "16px",
-    color: "#64748b",
-    marginBottom: "32px",
-  }}
->
-          Paso {step} de 4
-        </p>
+      <div
+        style={{
+          maxWidth: '760px',
+          margin: '0 auto',
+        }}
+      >
+        <h1>Publicá tu propiedad</h1>
+        <p>Paso {step} de 4</p>
 
         {step === 1 && (
           <div className="mt-8 space-y-4">
