@@ -413,16 +413,9 @@ console.log('PROPERTY ID INSERTADO:', property.id)
               }
             />
 
-           <button
- style={{
-  width: "100%",
-  padding: "18px 20px",
-  borderRadius: "14px",
-  border: "1px solid #e2e8f0",
-  background: "#ffffff",
-  fontSize: "16px",
-  marginBottom: "16px",
-}}
+   <button
+  className="button-primary"
+  onClick={() => setStep(2)} // o 3 o 4 según corresponda
 >
   Continuar
 </button>
@@ -611,13 +604,13 @@ console.log('PROPERTY ID INSERTADO:', property.id)
   }
 />
 
-            <button
+     <button
   type="button"
   className="button-primary"
   onClick={publish}
 >
   Publicar propiedad
-</button> 
+</button>
           </div>
         )}
           </div>
