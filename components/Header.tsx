@@ -51,12 +51,12 @@ export default function Header() {
       }}
     >
       <a href="/#transparencia" style={{ color: '#334155', textDecoration: 'none' }}>
-        Transparencia
+        Transparencia total
       </a>
 
-      <a href="/login" style={{ color: '#334155', textDecoration: 'none' }}>
+      {/*  <a href="/login" style={{ color: '#334155', textDecoration: 'none' }}>
         Soy inquilino
-      </a>
+      </a>*/}
 
       <a href="/login" style={{ color: '#334155', textDecoration: 'none' }}>
         Soy propietario
