@@ -330,7 +330,7 @@ console.log('PROPERTY ID INSERTADO:', property.id)
   console.log('REDIRECT A:', `/propietario/preview/${property.id}`)
   window.location.href = `/propietario/preview/${property.id}`
 }
-
+}
 
  return (
     <section
