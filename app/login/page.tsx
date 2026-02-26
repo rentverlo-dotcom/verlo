@@ -65,7 +65,7 @@ export default function LoginPage() {
             ¿Cómo querés ingresar?
           </p>
 
-         <div
+  <div
   style={{
     display: 'flex',
     gap: 8,
@@ -74,24 +74,27 @@ export default function LoginPage() {
     borderRadius: 14,
   }}
 >
+  {/* INQUILINO BLOQUEADO */}
   <button
     type="button"
-    onClick={() => setRole('tenant')}
+    disabled
     style={{
       flex: 1,
       padding: '12px 16px',
       borderRadius: 10,
       border: 'none',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      background: role === 'tenant' ? '#ec4899' : 'transparent',
-      color: role === 'tenant' ? '#ffffff' : '#0f172a',
+      cursor: 'not-allowed',
+      background: '#e2e8f0',
+      color: '#94a3b8',
       fontWeight: 600,
+      position: 'relative',
+      opacity: 0.8,
     }}
   >
-    Soy inquilino
+    Muy pronto
   </button>
 
+  {/* PROPIETARIO ACTIVO */}
   <button
     type="button"
     onClick={() => setRole('owner')}
@@ -102,9 +105,13 @@ export default function LoginPage() {
       border: 'none',
       cursor: 'pointer',
       transition: 'all 0.2s ease',
-      background: role === 'owner' ? '#ec4899' : 'transparent',
-      color: role === 'owner' ? '#ffffff' : '#0f172a',
+      background: '#ec4899',
+      color: '#ffffff',
       fontWeight: 600,
+      boxShadow:
+        role === 'owner'
+          ? '0 4px 14px rgba(236,72,153,0.35)'
+          : 'none',
     }}
   >
     Soy propietario
