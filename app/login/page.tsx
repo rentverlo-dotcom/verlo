@@ -91,7 +91,7 @@ export default function LoginPage() {
         )}
 
         {info && (
-          <p style={{ color: '#6bffb3', marginTop: 16 }}>{info}</p>
+          <p style={{ color: '#ec4899', marginTop: 16 }}>{info}</p>
         )}
 
         <button
