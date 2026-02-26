@@ -65,7 +65,7 @@ export default function HomePage() {
           >
             Empezar ahora
           </button>
-          <LiveCounter target={327} />
+          <LiveCounter base={327} />
         </div>
       </section>
 
