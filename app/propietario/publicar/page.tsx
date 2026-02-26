@@ -236,7 +236,7 @@ async function publish() {
 } as const
 
   const safePropertyType =
-    PROPERTY_TYPE_MAP[draft.type as string]
+  propertyTypeMap[draft.type as keyof typeof propertyTypeMap]
 
   if (!safePropertyType) {
     console.error('Tipo de propiedad inválido:', draft.type)
