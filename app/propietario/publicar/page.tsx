@@ -620,7 +620,7 @@ console.log('PROPERTY ID INSERTADO:', property.id)
 </button> 
           </div>
         )}
-      </div>
-    </div>
+          </div>
+    </section>
   )
 }
