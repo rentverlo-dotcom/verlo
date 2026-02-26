@@ -331,7 +331,6 @@ console.log('PROPERTY ID INSERTADO:', property.id)
   window.location.href = `/propietario/preview/${property.id}`
 }
 
-  console.log("TEST")
 
  return (
     <section
