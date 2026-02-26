@@ -629,6 +629,5 @@ console.log('PROPERTY ID INSERTADO:', property.id)
         )}
       </div>
     </div>
-  </section>
   )
 }
