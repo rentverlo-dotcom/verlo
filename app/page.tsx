@@ -63,7 +63,7 @@ export default function HomePage() {
               e.currentTarget.style.boxShadow = "0 10px 30px rgba(255,45,122,0.25)"
             }}
           >
-            Empezar ahora
+            Empezar gratis
           </button>
           <LiveCounter />
         </div>
@@ -214,7 +214,7 @@ export default function HomePage() {
 
           <div style={{ marginTop: "48px" }}>
             <button className="button">
-              Ver cómo empezar
+              Empezar gratis
             </button>
           </div>
         </div>
@@ -323,50 +323,56 @@ export default function HomePage() {
             }}
           >
             <button className="button">
-              Completá tu perfil
+              Empezar gratis
             </button>
           </div>
         </div>
       </section>
 
-      {/* FORMS */}
-      <section
-        id="forms"
+   {/* FORMS */}
+<section
+  id="forms"
+  style={{
+    paddingTop: "100px",
+    paddingBottom: "140px",
+  }}
+>
+  <div className="container">
+    <h2 className="section-title">Empezá ahora</h2>
+
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        marginTop: "40px",
+      }}
+    >
+      {/*
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Soy inquilino</h3>
+        <p>Encontrá propiedades compatibles con tu perfil.</p>
+        <a href="/inquilino/registro">
+          <button className="button">Buscar propiedades</button>
+        </a>
+      </div>
+      */}
+
+      <div
+        className="card"
         style={{
-          paddingTop: "100px",
-          paddingBottom: "140px",
+          maxWidth: "480px",
+          width: "100%",
         }}
       >
-        <div className="container">
-          <h2 className="section-title">Empezá ahora</h2>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "32px",
-              marginTop: "40px",
-            }}
-          >
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Soy inquilino</h3>
-              <p>Encontrá propiedades compatibles con tu perfil.</p>
-              <a href="/inquilino/registro">
-                <button className="button">Buscar propiedades</button>
-              </a>
-            </div>
-
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Soy propietario</h3>
-              <p>Publicá tu propiedad y recibí inquilinos compatibles.</p>
-              <a href="/propietario/publicar">
-                <button className="button">Publicar propiedad</button>
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
+        <h3 style={{ marginTop: 0 }}>Soy propietario</h3>
+        <p>Publicá tu propiedad y recibí inquilinos compatibles.</p>
+        <a href="/propietario/publicar">
+          <button className="button">Publicar propiedad</button>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
   {/* FOOTER */}
 <footer
   style={{
