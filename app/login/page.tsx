@@ -91,7 +91,7 @@ export default function LoginPage() {
       opacity: 0.8,
     }}
   >
-    Muy pronto
+   Inquilino... Muy pronto!
   </button>
 
   {/* PROPIETARIO ACTIVO */}
