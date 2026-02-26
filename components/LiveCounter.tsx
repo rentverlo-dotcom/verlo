@@ -58,10 +58,28 @@ export default function LiveCounter() {
   }
 
   return (
-    <div style={{ marginTop: 24, textAlign: 'center' }}>
-      <div style={{ fontSize: 44, fontWeight: 900, color: '#0f172a', letterSpacing: '-1px' }}>
-        +{count}
-      </div>
+  <div style={{ marginTop: 24, textAlign: 'center' }}>
+    <div
+      style={{
+        fontSize: 44,
+        fontWeight: 900,
+        color: '#0f172a',
+        letterSpacing: '-1px',
+        lineHeight: 1,
+      }}
+    >
+      +{count}
     </div>
-  )
+
+    <div
+      style={{
+        marginTop: 8,
+        fontSize: 15,
+        color: '#64748b',
+      }}
+    >
+      propietarios ya publicaron en VERLO
+    </div>
+  </div>
+)
 }
