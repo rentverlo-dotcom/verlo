@@ -332,7 +332,7 @@ console.log('PROPERTY ID INSERTADO:', property.id)
 }
 
  return (
-    <section
+   <section
       style={{
         minHeight: '100vh',
         paddingTop: '140px',
