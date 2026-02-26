@@ -342,383 +342,224 @@ function back() {
 }
   
  return (
-  <section
-    style={{
-      minHeight: "100vh",
-      paddingTop: "140px",
-      paddingBottom: "120px",
-      background: "linear-gradient(180deg,#fdf2f8 0%, #ffffff 40%)",
-    }}
-  >
-    <div className="container" style={{ maxWidth: "760px" }}>
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: "28px",
-          padding: "56px",
-          boxShadow: "0 40px 100px rgba(236,72,153,0.12)",
-          border: "1px solid #fce7f3",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "48px",
-            fontWeight: 900,
-            marginBottom: "8px",
-            letterSpacing: "-1px",
-            color: "#0f172a",
-          }}
-        >
-          Publicá tu propiedad
-        </h1>
+  <section className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 py-16 px-6">
+    <div className="max-w-2xl mx-auto">
 
-        <p
-          style={{
-            fontSize: "16px",
-            color: "#64748b",
-            marginBottom: "32px",
-          }}
-        >
-          Paso {step} de 4
-        </p>
+      <h1 className="text-5xl font-bold text-slate-900 mb-2">
+        Publicá tu propiedad
+      </h1>
 
-        {/* PROGRESS */}
-        <div className="flex items-center gap-3 mb-10">
-          {[1, 2, 3, 4].map((n) => (
-            <div
-              key={n}
-              className="flex-1 h-2 rounded-full transition-all"
-              style={{
-                background: step >= n ? "#ec4899" : "#f1f5f9",
-              }}
+      <p className="text-slate-500 mb-10">
+        Paso {step} de 4
+      </p>
+
+      <div className="bg-white rounded-3xl shadow-xl p-8 space-y-6 transition-all duration-300">
+
+        {/* STEP 1 */}
+        {step === 1 && (
+          <>
+            <select
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              value={draft.province_id || ''}
+              onChange={e =>
+                setDraft(d => ({
+                  ...d,
+                  province_id: e.target.value,
+                  municipality_id: undefined,
+                  neighborhood_id: undefined,
+                }))
+              }
+            >
+              <option value="">Provincia</option>
+              {provinces.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              value={draft.municipality_id || ''}
+              disabled={!draft.province_id}
+              onChange={e =>
+                setDraft(d => ({
+                  ...d,
+                  municipality_id: e.target.value,
+                  neighborhood_id: undefined,
+                }))
+              }
+            >
+              <option value="">Municipio</option>
+              {municipalities.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              value={draft.neighborhood_id || ''}
+              disabled={!draft.municipality_id}
+              onChange={e =>
+                setDraft(d => ({
+                  ...d,
+                  neighborhood_id: e.target.value,
+                }))
+              }
+            >
+              <option value="">Barrio</option>
+              {neighborhoods.map(n => (
+                <option key={n.id} value={n.id}>{n.name}</option>
+              ))}
+            </select>
+
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              type="number"
+              placeholder="Precio mensual"
+              value={draft.price || ''}
+              onChange={e =>
+                setDraft(d => ({ ...d, price: Number(e.target.value) }))
+              }
             />
-          ))}
-        </div>
 
-        <AnimatePresence mode="wait">
-
-          {/* STEP 1 */}
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-6"
-            >
-
-              <select className="input-modern"
-                value={draft.province_id || ''}
-                onChange={e =>
-                  setDraft(d => ({
-                    ...d,
-                    province_id: e.target.value,
-                    municipality_id: undefined,
-                    neighborhood_id: undefined,
-                  }))
-                }
+            <div className="flex justify-end">
+              <button
+                onClick={() => setStep(2)}
+                className="px-8 py-4 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
               >
-                <option value="">Provincia</option>
-                {provinces.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+                Continuar
+              </button>
+            </div>
+          </>
+        )}
 
-              <select className="input-modern"
-                value={draft.municipality_id || ''}
-                disabled={!draft.province_id}
-                onChange={e =>
-                  setDraft(d => ({
-                    ...d,
-                    municipality_id: e.target.value,
-                    neighborhood_id: undefined,
-                  }))
-                }
-              >
-                <option value="">Municipio</option>
-                {municipalities.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
-
-              <select className="input-modern"
-                value={draft.neighborhood_id || ''}
-                disabled={!draft.municipality_id}
-                onChange={e =>
-                  setDraft(d => ({
-                    ...d,
-                    neighborhood_id: e.target.value,
-                  }))
-                }
-              >
-                <option value="">Barrio</option>
-                {neighborhoods.map(n => (
-                  <option key={n.id} value={n.id}>{n.name}</option>
-                ))}
-              </select>
-
-              <input
-                className="input-modern"
-                type="number"
-                placeholder="Precio mensual"
-                value={draft.price || ''}
-                onChange={e =>
-                  setDraft(d => ({ ...d, price: Number(e.target.value) }))
-                }
-              />
-
-              <div className="flex justify-end">
-                <button className="button-primary" onClick={next}>
-                  Continuar
-                </button>
-              </div>
-
-            </motion.div>
-          )}
-
-          {/* STEP 2 */}
-          {step === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-6"
+        {/* STEP 2 */}
+        {step === 2 && (
+          <>
+            <select
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              value={draft.type || ''}
+              onChange={e =>
+                setDraft(d => ({ ...d, type: e.target.value }))
+              }
             >
+              <option value="">Tipo de propiedad</option>
+              <option value="apartment">Departamento</option>
+              <option value="house">Casa</option>
+              <option value="ph">PH</option>
+              <option value="room">Habitación</option>
+              <option value="local">Local</option>
+            </select>
 
-              <select
-                className="input-modern"
-                value={draft.type || ''}
-                onChange={e =>
-                  setDraft(d => ({ ...d, type: e.target.value }))
-                }
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              type="number"
+              placeholder="Metros cuadrados"
+              value={draft.sqm || ''}
+              onChange={e =>
+                setDraft(d => ({ ...d, sqm: Number(e.target.value) }))
+              }
+            />
+
+            <textarea
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 h-32 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500"
+              placeholder="Descripción de la propiedad"
+              value={draft.description || ''}
+              onChange={e =>
+                setDraft(d => ({ ...d, description: e.target.value }))
+              }
+            />
+
+            <div className="flex justify-between">
+              <button
+                onClick={() => setStep(1)}
+                className="px-6 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition"
               >
-                <option value="">Tipo de propiedad</option>
-                <option value="apartment">Departamento</option>
-                <option value="house">Casa</option>
-                <option value="ph">PH</option>
-                <option value="room">Habitación</option>
-                <option value="local">Local</option>
-              </select>
+                Volver
+              </button>
 
-              <input
-                className="input-modern"
-                type="number"
-                placeholder="Metros cuadrados"
-                value={draft.sqm || ''}
-                onChange={e =>
-                  setDraft(d => ({ ...d, sqm: Number(e.target.value) }))
-                }
-              />
+              <button
+                onClick={() => setStep(3)}
+                className="px-8 py-4 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
+              >
+                Continuar
+              </button>
+            </div>
+          </>
+        )}
 
-              <textarea
-                className="input-modern h-32"
-                placeholder="Descripción de la propiedad"
-                value={draft.description || ''}
-                onChange={e =>
-                  setDraft(d => ({ ...d, description: e.target.value }))
-                }
-              />
+        {/* STEP 3 */}
+        {step === 3 && (
+          <>
+            <input
+              type="file"
+              multiple
+              accept="image/*,video/*"
+              onChange={e => {
+                const files = Array.from(e.target.files || [])
+                setDraft(d => ({
+                  ...d,
+                  media: [...(d.media || []), ...files],
+                }))
+              }}
+              className="w-full"
+            />
 
-              <div className="flex flex-wrap gap-3">
-                {REQUIREMENTS.map(r => {
-                  const selected = draft.requirements?.includes(r)
-                  return (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => {
-                        const current = draft.requirements || []
-                        setDraft({
-                          ...draft,
-                          requirements: selected
-                            ? current.filter(x => x !== r)
-                            : [...current, r],
-                        })
-                      }}
-                      style={{
-                        padding: "10px 16px",
-                        borderRadius: "999px",
-                        fontSize: "14px",
-                        background: selected ? "#ec4899" : "#f8fafc",
-                        color: selected ? "#ffffff" : "#334155",
-                        border: selected ? "none" : "1px solid #e2e8f0",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      {r}
-                    </button>
-                  )
-                })}
-              </div>
+            <div className="flex justify-between">
+              <button
+                onClick={() => setStep(2)}
+                className="px-6 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition"
+              >
+                Volver
+              </button>
 
-              <div className="flex justify-between">
-                <button className="button-secondary" onClick={back}>
-                  Volver
-                </button>
+              <button
+                onClick={() => setStep(4)}
+                className="px-8 py-4 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
+              >
+                Continuar
+              </button>
+            </div>
+          </>
+        )}
 
-                <button
-                  className="button-primary"
-                  onClick={next}
-                  disabled={!draft.type || !draft.description}
-                >
-                  Continuar
-                </button>
-              </div>
+        {/* STEP 4 */}
+        {step === 4 && (
+          <>
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              placeholder="Dirección (privada)"
+              value={draft.address || ''}
+              onChange={e =>
+                setDraft(d => ({ ...d, address: e.target.value }))
+              }
+            />
 
-            </motion.div>
-          )}
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              placeholder="Teléfono"
+              value={draft.phone || ''}
+              onChange={e =>
+                setDraft(d => ({ ...d, phone: e.target.value }))
+              }
+            />
 
-          {/* STEP 3 */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-6"
-            >
+            <div className="flex justify-between">
+              <button
+                onClick={() => setStep(3)}
+                className="px-6 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition"
+              >
+                Volver
+              </button>
 
-              <input
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                capture="environment"
-                onChange={e => {
-                  const files = Array.from(e.target.files || [])
-                  if (!files.length) return
-
-                  setDraft(d => ({
-                    ...d,
-                    media: [...(d.media || []), ...files],
-                  }))
-
-                  e.currentTarget.value = ''
-                }}
-              />
-
-              {draft.media && draft.media.length > 0 && (
-                <div className="space-y-2">
-                  {draft.media.map((f, idx) => (
-                    <div
-                      key={`${f.name}-${idx}`}
-                      className="flex items-center justify-between"
-                    >
-                      <span style={{ fontSize: "14px", color: "#475569" }}>
-                        {idx + 1}. {f.name}
-                      </span>
-                      <button
-                        type="button"
-                        style={{ color: "#ec4899", fontSize: "14px" }}
-                        onClick={() =>
-                          setDraft(d => ({
-                            ...d,
-                            media: d.media?.filter((_, i) => i !== idx),
-                          }))
-                        }
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex justify-between">
-                <button className="button-secondary" onClick={back}>
-                  Volver
-                </button>
-
-                <button
-                  className="button-primary"
-                  onClick={async () => (await requireAuth()) && next()}
-                >
-                  Continuar
-                </button>
-              </div>
-
-            </motion.div>
-          )}
-
-          {/* STEP 4 */}
-          {step === 4 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-6"
-            >
-
-              <input
-                className="input-modern"
-                placeholder="Dirección (privada)"
-                value={draft.address || ''}
-                onChange={e =>
-                  setDraft({ ...draft, address: e.target.value })
-                }
-              />
-
-              <input
-                className="input-modern"
-                placeholder="Teléfono de contacto"
-                value={draft.phone || ''}
-                onChange={e =>
-                  setDraft({ ...draft, phone: e.target.value })
-                }
-              />
-
-              <input
-                className="input-modern"
-                placeholder="Nombre"
-                value={draft.first_name || ''}
-                onChange={e =>
-                  setDraft(d => ({ ...d, first_name: e.target.value }))
-                }
-              />
-
-              <input
-                className="input-modern"
-                placeholder="Apellido"
-                value={draft.last_name || ''}
-                onChange={e =>
-                  setDraft(d => ({ ...d, last_name: e.target.value }))
-                }
-              />
-
-              <input
-                className="input-modern"
-                type="email"
-                placeholder="Email de contacto"
-                value={draft.email || ''}
-                onChange={e =>
-                  setDraft(d => ({ ...d, email: e.target.value }))
-                }
-              />
-
-              <div className="flex justify-between">
-                <button className="button-secondary" onClick={back}>
-                  Volver
-                </button>
-
-                <button
-                  type="button"
-                  className="button-primary"
-                  onClick={publish}
-                >
-                  Publicar propiedad
-                </button>
-              </div>
-
-            </motion.div>
-          )}
-
-        </AnimatePresence>
+              <button
+                onClick={publish}
+                className="px-8 py-4 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
+              >
+                Publicar propiedad
+              </button>
+            </div>
+          </>
+        )}
 
       </div>
     </div>
