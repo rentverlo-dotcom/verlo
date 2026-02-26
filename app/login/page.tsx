@@ -65,25 +65,51 @@ export default function LoginPage() {
             ¿Cómo querés ingresar?
           </p>
 
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button
-              type="button"
-              onClick={() => setRole('tenant')}
-              className={`button ${role === 'tenant' ? '' : 'button-outline'}`}
-              style={{ flex: 1 }}
-            >
-              Soy inquilino
-            </button>
+         <div
+  style={{
+    display: 'flex',
+    gap: 8,
+    background: '#f1f5f9',
+    padding: 6,
+    borderRadius: 14,
+  }}
+>
+  <button
+    type="button"
+    onClick={() => setRole('tenant')}
+    style={{
+      flex: 1,
+      padding: '12px 16px',
+      borderRadius: 10,
+      border: 'none',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      background: role === 'tenant' ? '#ec4899' : 'transparent',
+      color: role === 'tenant' ? '#ffffff' : '#0f172a',
+      fontWeight: 600,
+    }}
+  >
+    Soy inquilino
+  </button>
 
-            <button
-              type="button"
-              onClick={() => setRole('owner')}
-              className={`button ${role === 'owner' ? '' : 'button-outline'}`}
-              style={{ flex: 1 }}
-            >
-              Soy propietario
-            </button>
-          </div>
+  <button
+    type="button"
+    onClick={() => setRole('owner')}
+    style={{
+      flex: 1,
+      padding: '12px 16px',
+      borderRadius: 10,
+      border: 'none',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      background: role === 'owner' ? '#ec4899' : 'transparent',
+      color: role === 'owner' ? '#ffffff' : '#0f172a',
+      fontWeight: 600,
+    }}
+  >
+    Soy propietario
+  </button>
+</div>
         </div>
 
         {error && (
