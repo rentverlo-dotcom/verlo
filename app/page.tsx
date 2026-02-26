@@ -1,5 +1,6 @@
 'use client'
 import HeroCarousel from '@/components/HeroCarousel'
+import LiveCounter from '@/components/LiveCounter'
 
 export default function HomePage() {
   return (
