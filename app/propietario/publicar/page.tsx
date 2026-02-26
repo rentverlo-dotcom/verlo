@@ -226,19 +226,14 @@ async function publish() {
     neighborhoods.find(n => n.id === draft.neighborhood_id)?.name ?? null
 
   // 1.5 MAPEO DEFINITIVO DE PROPERTY TYPE (ENUM SAFE)
-  const PROPERTY_TYPE_MAP: Record<
-    string,
-    'apartment' | 'house' | 'room' | 'hotel_room'
-  > = {
-    apartment: 'apartment',
-    house: 'house',
-    room: 'room',
-    hotel_room: 'hotel_room',
-
-    // valores del form que NO existen en el enum
-    local: 'apartment',
-    ph: 'apartment',
-  }
+ const propertyTypeMap = {
+  apartment: 'apartment',
+  house: 'house',
+  room: 'room',
+  hotel_room: 'hotel_room',
+  local: 'apartment',
+  ph: 'apartment',
+} as const
 
   const safePropertyType =
     PROPERTY_TYPE_MAP[draft.type as string]
