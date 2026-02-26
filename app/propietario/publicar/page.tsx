@@ -351,7 +351,7 @@ console.log('PROPERTY ID INSERTADO:', property.id)
         {step === 1 && (
           <div className="mt-8 space-y-4">
             <select
-              className="input"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
               value={draft.province_id || ''}
               onChange={e =>
                 setDraft(d => ({
@@ -369,7 +369,7 @@ console.log('PROPERTY ID INSERTADO:', property.id)
             </select>
 
             <select
-              className="input"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
               value={draft.municipality_id || ''}
               disabled={!draft.province_id}
               onChange={e =>
@@ -387,7 +387,7 @@ console.log('PROPERTY ID INSERTADO:', property.id)
             </select>
 
             <select
-              className="input"
+             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
               value={draft.neighborhood_id || ''}
               disabled={!draft.municipality_id}
               onChange={e =>
@@ -404,7 +404,7 @@ console.log('PROPERTY ID INSERTADO:', property.id)
             </select>
 
             <input
-              className="input"
+             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
               type="number"
               placeholder="Precio mensual"
               value={draft.price || ''}
