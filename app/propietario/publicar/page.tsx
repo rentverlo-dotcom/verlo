@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { motion, AnimatePresence } from "framer-motion"
+
 function mapFileToMediaType(file: File): 'photo' | 'video' | 'pdf' {
   if (file.type.startsWith('image/')) return 'photo'
   if (file.type.startsWith('video/')) return 'video'
@@ -330,290 +332,396 @@ console.log('PROPERTY ID INSERTADO:', property.id)
   console.log('REDIRECT A:', `/propietario/preview/${property.id}`)
   window.location.href = `/propietario/preview/${property.id}`
 }
+  
+function next() {
+  setStep(s => Math.min(s + 1, 4))
+}
+
+function back() {
+  setStep(s => Math.max(s - 1, 1))
+}
+  
  return (
-   <section
-      style={{
-        minHeight: '100vh',
-        paddingTop: '140px',
-        paddingBottom: '120px',
-        background: 'linear-gradient(180deg,#f8fafc 0%, #ffffff 100%)',
-      }}
-    >
+  <section
+    style={{
+      minHeight: "100vh",
+      paddingTop: "140px",
+      paddingBottom: "120px",
+      background: "linear-gradient(180deg,#fdf2f8 0%, #ffffff 40%)",
+    }}
+  >
+    <div className="container" style={{ maxWidth: "760px" }}>
       <div
         style={{
-          maxWidth: '760px',
-          margin: '0 auto',
+          background: "#ffffff",
+          borderRadius: "28px",
+          padding: "56px",
+          boxShadow: "0 40px 100px rgba(236,72,153,0.12)",
+          border: "1px solid #fce7f3",
         }}
       >
-        <h1>Publicá tu propiedad</h1>
-        <p>Paso {step} de 4</p>
-
-        {step === 1 && (
-          <div className="mt-8 space-y-4">
-            <select
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
-              value={draft.province_id || ''}
-              onChange={e =>
-                setDraft(d => ({
-                  ...d,
-                  province_id: e.target.value,
-                  municipality_id: undefined,
-                  neighborhood_id: undefined,
-                }))
-              }
-            >
-              <option value="">Provincia</option>
-              {provinces.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-
-            <select
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
-              value={draft.municipality_id || ''}
-              disabled={!draft.province_id}
-              onChange={e =>
-                setDraft(d => ({
-                  ...d,
-                  municipality_id: e.target.value,
-                  neighborhood_id: undefined,
-                }))
-              }
-            >
-              <option value="">Municipio</option>
-              {municipalities.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-
-            <select
-             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
-              value={draft.neighborhood_id || ''}
-              disabled={!draft.municipality_id}
-              onChange={e =>
-                setDraft(d => ({
-                  ...d,
-                  neighborhood_id: e.target.value,
-                }))
-              }
-            >
-              <option value="">Barrio</option>
-              {neighborhoods.map(n => (
-                <option key={n.id} value={n.id}>{n.name}</option>
-              ))}
-            </select>
-
-            <input
-             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
-              type="number"
-              placeholder="Precio mensual"
-              value={draft.price || ''}
-              onChange={e =>
-                setDraft(d => ({ ...d, price: Number(e.target.value) }))
-              }
-            />
-
-   <button
-  className="button-primary"
-  onClick={() => setStep(2)} // o 3 o 4 según corresponda
->
-  Continuar
-</button>
-          </div>
-        )}
-{step === 2 && (
-  <div className="mt-8 space-y-4">
-
-    {/* Tipo */}
-    <select
-      className="input"
-      value={draft.type || ''}
-      onChange={e =>
-        setDraft(d => ({ ...d, type: e.target.value }))
-      }
-    >
-      <option value="">Tipo de propiedad</option>
-      <option value="apartment">Departamento</option>
-      <option value="house">Casa</option>
-      <option value="ph">PH</option>
-      <option value="room">Habitación</option>
-      <option value="local">Local</option>
-    </select>
-
-    {/* Metros cuadrados */}
-    <input
-      className="input"
-      type="number"
-      placeholder="Metros cuadrados"
-      value={draft.sqm || ''}
-      onChange={e =>
-        setDraft(d => ({ ...d, sqm: Number(e.target.value) }))
-      }
-    />
-
-    {/* Descripción (CLAVE) */}
-    <textarea
-      className="input h-32 resize-none"
-      placeholder="Descripción de la propiedad (esto es lo que ve el inquilino)"
-      value={draft.description || ''}
-      onChange={e =>
-        setDraft(d => ({ ...d, description: e.target.value }))
-      }
-    />
-
-    {/* Requisitos */}
-    <div className="space-y-2">
-      {REQUIREMENTS.map(r => (
-        <label
-          key={r}
-          className="flex items-center gap-2 text-sm text-neutral-300"
+        <h1
+          style={{
+            fontSize: "48px",
+            fontWeight: 900,
+            marginBottom: "8px",
+            letterSpacing: "-1px",
+            color: "#0f172a",
+          }}
         >
-          <input
-            type="checkbox"
-            checked={draft.requirements?.includes(r) || false}
-            onChange={e => {
-              const current = draft.requirements || []
-              setDraft({
-                ...draft,
-                requirements: e.target.checked
-                  ? [...current, r]
-                  : current.filter(x => x !== r),
-              })
-            }}
-          />
-          {r}
-        </label>
-      ))}
-    </div>
+          Publicá tu propiedad
+        </h1>
 
-    <button
-      className="button-primary"
-      onClick={() => setStep(3)}
-      disabled={!draft.type || !draft.description}
-    >
-      Continuar
-    </button>
-  </div>
-)}
+        <p
+          style={{
+            fontSize: "16px",
+            color: "#64748b",
+            marginBottom: "32px",
+          }}
+        >
+          Paso {step} de 4
+        </p>
 
+        {/* PROGRESS */}
+        <div className="flex items-center gap-3 mb-10">
+          {[1, 2, 3, 4].map((n) => (
+            <div
+              key={n}
+              className="flex-1 h-2 rounded-full transition-all"
+              style={{
+                background: step >= n ? "#ec4899" : "#f1f5f9",
+              }}
+            />
+          ))}
+        </div>
 
-      {step === 3 && (
-  <div className="mt-8 space-y-4">
-    {/* Fotos y videos */}
-    <input
-      type="file"
-      accept="image/*,video/*"
-      multiple
-      capture="environment"
-      onChange={e => {
-        const files = Array.from(e.target.files || [])
-        if (!files.length) return
+        <AnimatePresence mode="wait">
 
-        setDraft(d => ({
-          ...d,
-          media: [...(d.media || []), ...files],
-        }))
-
-        // permite volver a elegir el mismo archivo
-        e.currentTarget.value = ''
-      }}
-    />
-
-    {/* Preview + remove */}
-    {draft.media && draft.media.length > 0 && (
-      <div className="space-y-2">
-        {draft.media.map((f, idx) => (
-          <div
-            key={`${f.name}-${idx}`}
-            className="flex items-center justify-between"
-          >
-            <span className="text-sm opacity-80">
-              {idx + 1}. {f.name}
-            </span>
-            <button
-              type="button"
-              className="text-sm underline"
-              onClick={() =>
-                setDraft(d => ({
-                  ...d,
-                  media: d.media?.filter((_, i) => i !== idx),
-                }))
-              }
+          {/* STEP 1 */}
+          {step === 1 && (
+            <motion.div
+              key="step1"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-6"
             >
-              Quitar
-            </button>
-          </div>
-        ))}
+
+              <select className="input-modern"
+                value={draft.province_id || ''}
+                onChange={e =>
+                  setDraft(d => ({
+                    ...d,
+                    province_id: e.target.value,
+                    municipality_id: undefined,
+                    neighborhood_id: undefined,
+                  }))
+                }
+              >
+                <option value="">Provincia</option>
+                {provinces.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+
+              <select className="input-modern"
+                value={draft.municipality_id || ''}
+                disabled={!draft.province_id}
+                onChange={e =>
+                  setDraft(d => ({
+                    ...d,
+                    municipality_id: e.target.value,
+                    neighborhood_id: undefined,
+                  }))
+                }
+              >
+                <option value="">Municipio</option>
+                {municipalities.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+
+              <select className="input-modern"
+                value={draft.neighborhood_id || ''}
+                disabled={!draft.municipality_id}
+                onChange={e =>
+                  setDraft(d => ({
+                    ...d,
+                    neighborhood_id: e.target.value,
+                  }))
+                }
+              >
+                <option value="">Barrio</option>
+                {neighborhoods.map(n => (
+                  <option key={n.id} value={n.id}>{n.name}</option>
+                ))}
+              </select>
+
+              <input
+                className="input-modern"
+                type="number"
+                placeholder="Precio mensual"
+                value={draft.price || ''}
+                onChange={e =>
+                  setDraft(d => ({ ...d, price: Number(e.target.value) }))
+                }
+              />
+
+              <div className="flex justify-end">
+                <button className="button-primary" onClick={next}>
+                  Continuar
+                </button>
+              </div>
+
+            </motion.div>
+          )}
+
+          {/* STEP 2 */}
+          {step === 2 && (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-6"
+            >
+
+              <select
+                className="input-modern"
+                value={draft.type || ''}
+                onChange={e =>
+                  setDraft(d => ({ ...d, type: e.target.value }))
+                }
+              >
+                <option value="">Tipo de propiedad</option>
+                <option value="apartment">Departamento</option>
+                <option value="house">Casa</option>
+                <option value="ph">PH</option>
+                <option value="room">Habitación</option>
+                <option value="local">Local</option>
+              </select>
+
+              <input
+                className="input-modern"
+                type="number"
+                placeholder="Metros cuadrados"
+                value={draft.sqm || ''}
+                onChange={e =>
+                  setDraft(d => ({ ...d, sqm: Number(e.target.value) }))
+                }
+              />
+
+              <textarea
+                className="input-modern h-32"
+                placeholder="Descripción de la propiedad"
+                value={draft.description || ''}
+                onChange={e =>
+                  setDraft(d => ({ ...d, description: e.target.value }))
+                }
+              />
+
+              <div className="flex flex-wrap gap-3">
+                {REQUIREMENTS.map(r => {
+                  const selected = draft.requirements?.includes(r)
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => {
+                        const current = draft.requirements || []
+                        setDraft({
+                          ...draft,
+                          requirements: selected
+                            ? current.filter(x => x !== r)
+                            : [...current, r],
+                        })
+                      }}
+                      style={{
+                        padding: "10px 16px",
+                        borderRadius: "999px",
+                        fontSize: "14px",
+                        background: selected ? "#ec4899" : "#f8fafc",
+                        color: selected ? "#ffffff" : "#334155",
+                        border: selected ? "none" : "1px solid #e2e8f0",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {r}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="flex justify-between">
+                <button className="button-secondary" onClick={back}>
+                  Volver
+                </button>
+
+                <button
+                  className="button-primary"
+                  onClick={next}
+                  disabled={!draft.type || !draft.description}
+                >
+                  Continuar
+                </button>
+              </div>
+
+            </motion.div>
+          )}
+
+          {/* STEP 3 */}
+          {step === 3 && (
+            <motion.div
+              key="step3"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-6"
+            >
+
+              <input
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                capture="environment"
+                onChange={e => {
+                  const files = Array.from(e.target.files || [])
+                  if (!files.length) return
+
+                  setDraft(d => ({
+                    ...d,
+                    media: [...(d.media || []), ...files],
+                  }))
+
+                  e.currentTarget.value = ''
+                }}
+              />
+
+              {draft.media && draft.media.length > 0 && (
+                <div className="space-y-2">
+                  {draft.media.map((f, idx) => (
+                    <div
+                      key={`${f.name}-${idx}`}
+                      className="flex items-center justify-between"
+                    >
+                      <span style={{ fontSize: "14px", color: "#475569" }}>
+                        {idx + 1}. {f.name}
+                      </span>
+                      <button
+                        type="button"
+                        style={{ color: "#ec4899", fontSize: "14px" }}
+                        onClick={() =>
+                          setDraft(d => ({
+                            ...d,
+                            media: d.media?.filter((_, i) => i !== idx),
+                          }))
+                        }
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-between">
+                <button className="button-secondary" onClick={back}>
+                  Volver
+                </button>
+
+                <button
+                  className="button-primary"
+                  onClick={async () => (await requireAuth()) && next()}
+                >
+                  Continuar
+                </button>
+              </div>
+
+            </motion.div>
+          )}
+
+          {/* STEP 4 */}
+          {step === 4 && (
+            <motion.div
+              key="step4"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-6"
+            >
+
+              <input
+                className="input-modern"
+                placeholder="Dirección (privada)"
+                value={draft.address || ''}
+                onChange={e =>
+                  setDraft({ ...draft, address: e.target.value })
+                }
+              />
+
+              <input
+                className="input-modern"
+                placeholder="Teléfono de contacto"
+                value={draft.phone || ''}
+                onChange={e =>
+                  setDraft({ ...draft, phone: e.target.value })
+                }
+              />
+
+              <input
+                className="input-modern"
+                placeholder="Nombre"
+                value={draft.first_name || ''}
+                onChange={e =>
+                  setDraft(d => ({ ...d, first_name: e.target.value }))
+                }
+              />
+
+              <input
+                className="input-modern"
+                placeholder="Apellido"
+                value={draft.last_name || ''}
+                onChange={e =>
+                  setDraft(d => ({ ...d, last_name: e.target.value }))
+                }
+              />
+
+              <input
+                className="input-modern"
+                type="email"
+                placeholder="Email de contacto"
+                value={draft.email || ''}
+                onChange={e =>
+                  setDraft(d => ({ ...d, email: e.target.value }))
+                }
+              />
+
+              <div className="flex justify-between">
+                <button className="button-secondary" onClick={back}>
+                  Volver
+                </button>
+
+                <button
+                  type="button"
+                  className="button-primary"
+                  onClick={publish}
+                >
+                  Publicar propiedad
+                </button>
+              </div>
+
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+
       </div>
-    )}
-
-    <button
-      className="button-primary"
-      onClick={async () => (await requireAuth()) && setStep(4)}
-    >
-      Continuar
-    </button>
-  </div>
-)}
-
-
-
-        {step === 4 && (
-          <div className="mt-8 space-y-4">
-            <input
-              className="input"
-              placeholder="Dirección (privada)"
-              value={draft.address || ''}
-              onChange={e =>
-                setDraft({ ...draft, address: e.target.value })
-              }
-            />
-            <input
-              className="input"
-              placeholder="Teléfono de contacto"
-              value={draft.phone || ''}
-              onChange={e =>
-                setDraft({ ...draft, phone: e.target.value })
-              }
-            />
-            <input
-  className="input"
-  placeholder="Nombre"
-  value={draft.first_name || ''}
-  onChange={e =>
-    setDraft(d => ({ ...d, first_name: e.target.value }))
-  }
-/>
-
-<input
-  className="input"
-  placeholder="Apellido"
-  value={draft.last_name || ''}
-  onChange={e =>
-    setDraft(d => ({ ...d, last_name: e.target.value }))
-  }
-/>
-
-<input
-  className="input"
-  type="email"
-  placeholder="Email de contacto"
-  value={draft.email || ''}
-  onChange={e =>
-    setDraft(d => ({ ...d, email: e.target.value }))
-  }
-/>
-
-     <button
-  type="button"
-  className="button-primary"
-  onClick={publish}
->
-  Publicar propiedad
-</button>
-          </div>
-        )}
-          </div>
-    </section>
-  )
+    </div>
+  </section>
+)
 }
