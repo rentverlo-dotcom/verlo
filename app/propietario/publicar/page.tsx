@@ -338,12 +338,46 @@ console.log('PROPERTY ID INSERTADO:', property.id)
 
 
   return (
-    <div className="min-h-screen bg-black flex justify-center pt-24 px-4">
-      <div className="w-full max-w-xl bg-neutral-900 rounded-2xl p-8 shadow-xl">
-        <h1 className="text-2xl font-semibold text-white">
-          Publicá tu propiedad
+    <section
+  style={{
+    minHeight: "100vh",
+    paddingTop: "140px",
+    paddingBottom: "120px",
+    background: "linear-gradient(180deg,#f8fafc 0%, #ffffff 100%)",
+  }}
+>
+  <div
+    className="container"
+    style={{
+      maxWidth: "760px",
+    }}
+  >
+    <div
+      style={{
+        background: "#ffffff",
+        borderRadius: "24px",
+        padding: "56px",
+        boxShadow: "0 30px 80px rgba(15,23,42,0.08)",
+        border: "1px solid #f1f5f9",
+      }}
+    >
+<h1
+  style={{
+    fontSize: "48px",
+    fontWeight: 900,
+    marginBottom: "8px",
+    letterSpacing: "-1px",
+    color: "#0f172a",
+  }}
+>          Publicá tu propiedad
         </h1>
-        <p className="text-sm text-neutral-400 mt-1">
+        <p
+  style={{
+    fontSize: "16px",
+    color: "#64748b",
+    marginBottom: "32px",
+  }}
+>
           Paso {step} de 4
         </p>
 
@@ -412,13 +446,19 @@ console.log('PROPERTY ID INSERTADO:', property.id)
               }
             />
 
-            <button
-              className="button-primary"
-              disabled={!draft.neighborhood_id || !draft.price}
-              onClick={() => setStep(2)}
-            >
-              Continuar
-            </button>
+           <button
+ style={{
+  width: "100%",
+  padding: "18px 20px",
+  borderRadius: "14px",
+  border: "1px solid #e2e8f0",
+  background: "#ffffff",
+  fontSize: "16px",
+  marginBottom: "16px",
+}}
+>
+  Continuar
+</button>
           </div>
         )}
 {step === 2 && (
