@@ -1,0 +1,8 @@
+node_modules
+.pnpm
+.env.local
+.env
+.next
+.DS_Store
+verlo-clean
+verlo-clean.zip
