@@ -25,7 +25,7 @@ export default function HomePage() {
               color: "#0f172a"
             }}
           >
-            Alquilá sin inmobiliarias. NO SEAS PANCHO
+            Alquilá sin inmobiliarias. 
           </h1>
 
           <p
