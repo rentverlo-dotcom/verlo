@@ -83,8 +83,8 @@ export default function HomePage() {
 
           <p style={{ maxWidth: "720px", fontSize: "18px", lineHeight: 1.6 }}>
             VERLO es una plataforma de alquiler directo que conecta inquilinos y
-            propietarios compatibles, sin intermediarios y sin comisiones
-            innecesarias.
+            propietarios. Simple.
+            
           </p>
 
           <p
@@ -96,9 +96,11 @@ export default function HomePage() {
               opacity: 0.85,
             }}
           >
-            En lugar de buscar entre cientos de avisos o depender de una inmobiliaria,
-            VERLO analiza perfiles y propiedades para generar coincidencias reales y
-            facilitar acuerdos claros y seguros.
+            Validamos identidad de ambas partes, vamos construyendo el contrato real con la información
+            que vas caragando, y cuando deciden concretar el alquiler, lo firman.
+            100% legal, 100% protegidos.
+            Sin comisiones prohibitivas, ni inmobiliairas que no gestionan tu necesidad.     
+
           </p>
         </div>
       </section>
@@ -132,10 +134,9 @@ export default function HomePage() {
             </div>
 
             <div className="card">
-              <h3>2. Analizamos compatibilidad</h3>
+              <h3>2. Like + Match = Visita</h3>
               <p>
-                VERLO cruza perfiles y propiedades para encontrar coincidencias
-                reales.
+                VERLO permite al inquilino dar like a las propiedades que le interesan, validar identidad y visitar.
               </p>
             </div>
 
@@ -143,12 +144,12 @@ export default function HomePage() {
               <h3>3. Te avisamos</h3>
               <p>
                 Cuando hay un match, ambas partes reciben la notificación para
-                avanzar.
+                avanzar vía agenda y chat de la app.
               </p>
             </div>
 
             <div className="card">
-              <h3>4. Cerrás con contrato</h3>
+              <h3>4. Firmás tu contrato</h3>
               <p>
                 Si hay acuerdo, se genera el contrato digital de forma simple y
                 segura.
@@ -207,7 +208,7 @@ export default function HomePage() {
               <h3>Contrato digital</h3>
               <p>
                 Cuando hay acuerdo, el contrato se genera de forma simple y clara,
-                reduciendo errores y malentendidos.
+                eliminando errores y malentendidos.
               </p>
             </div>
           </div>
@@ -252,7 +253,7 @@ export default function HomePage() {
               Unimos inquilinos y propietarios según sus preferencias y los ponemos en contacto. Los ayudamos a coordinar visitas
               y si se ponen de acuerdo y quieren avanzar, pueden firmar su contrato electrónicamente en VERLO.
               No solo les garantizamos seguirdad jurídica, sino que ademas valdiamos identidad sin excepción antes de que tomen contacto 
-              telefónico y realicen visitas.
+              real y realicen visitas. NO desbloqueamos datos de usuarios con identidad no valdiada legalmente.
             </p>
 
             <p
@@ -264,7 +265,7 @@ export default function HomePage() {
               }}
             >
               Cuánto costaba firmar un contrato de alquiler cuando lo hacía una inmobiliaria? Y cuánto tardaban en atender tus necesidades? 
-              VERLO hace todo en tiempo real, sin demoras, vía Whatsapp y con seguridad garantizada. Y, además, muchísimo más barato.
+              VERLO hace todo en tiempo real, sin demoras, vía chat + agenda propia y con seguridad garantizada.
             </p>
           </div>
         </div>
@@ -302,7 +303,8 @@ export default function HomePage() {
             <div className="card">
               <h3>Te avisamos si hay match</h3>
               <p>
-                Solo te contactamos cuando existe compatibilidad entre ambas partes.
+                Cuando ambos perfiles compatibilizan, y expresan aprobación para realizar la visita, nuestro chat interno les abre canal de comuicación
+                y nuestra agenda les permite acordar fecha y hora de visita.
               </p>
             </div>
 
@@ -310,7 +312,7 @@ export default function HomePage() {
               <h3>Avanzás con seguridad</h3>
               <p>
                 Si hay acuerdo, podés generar el contrato digital y seguir el proceso
-                de forma clara.
+                electrónicamente.
               </p>
             </div>
           </div>
