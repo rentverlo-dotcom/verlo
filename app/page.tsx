@@ -5,6 +5,7 @@ import LiveCounter from '@/components/LiveCounter'
 export default function HomePage() {
   return (
     <>
+      
 
       {/* HERO */}
       <section
