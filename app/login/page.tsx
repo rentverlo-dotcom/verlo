@@ -12,38 +12,38 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
 
-  async function sendMagicLink(e: React.FormEvent) {
-    e.preventDefault()
+async function sendMagicLink(e: React.FormEvent) {
+  e.preventDefault()
 
-    if (!role) {
-      setError('Elegí si ingresás como inquilino o propietario')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-    setInfo(null)
-
-    const redirectTo =
-      role === 'owner'
-        ? 'https://verlo.lat/propietario/publicar'
-        : 'https://verlo.lat/inquilino'
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectTo,
-      },
-    })
-
-    if (error) {
-      setError('No se pudo enviar el link. Revisá el email.')
-    } else {
-      setInfo('Te enviamos un link a tu mail para ingresar.')
-    }
-
-    setLoading(false)
+  if (!role) {
+    setError("Elegí si ingresás como inquilino o propietario")
+    return
   }
+
+  setLoading(true)
+  setError(null)
+  setInfo(null)
+
+  const redirectTo =
+    role === "owner"
+      ? "https://verlo.lat/propietario/publicar-v2"
+      : "https://verlo.lat/inquilino"
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: redirectTo,
+    },
+  })
+
+  if (error) {
+    setError("No se pudo enviar el link. Revisá el email.")
+  } else {
+    setInfo("Te enviamos un link a tu mail para ingresar.")
+  }
+
+  setLoading(false)
+}
 
   return (
     <div className="container" style={{ paddingTop: '140px', maxWidth: 520 }}>
