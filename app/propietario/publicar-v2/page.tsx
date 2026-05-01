@@ -355,36 +355,43 @@ export default function PublicarPropiedad() {
         return
       }
 
-      if (draft.media?.length) {
-        for (let i = 0; i < draft.media.length; i++) {
-          const file = draft.media[i]
-          const extension = file.name.split(".").pop()
-          const path = `${property.id}/${crypto.randomUUID()}.${extension}`
+  const validMedia = (draft.media || []).filter(
+  (file): file is File =>
+    typeof File !== "undefined" &&
+    file instanceof File &&
+    typeof file.name === "string"
+)
 
-          const { error: uploadError } = await supabase.storage
-            .from("media")
-            .upload(path, file, {
-              cacheControl: "3600",
-              upsert: false,
-            })
+if (validMedia.length) {
+  for (let i = 0; i < validMedia.length; i++) {
+    const file = validMedia[i]
+    const extension = file.name.split(".").pop() || "jpg"
+    const path = `${property.id}/${crypto.randomUUID()}.${extension}`
 
-          if (uploadError) {
-            console.error(uploadError)
-            continue
-          }
+    const { error: uploadError } = await supabase.storage
+      .from("media")
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
 
-          const { error: mediaError } = await supabase
-            .from("property_media")
-            .insert({
-              property_id: property.id,
-              type: mapFileToMediaType(file),
-              url: path,
-              position: i,
-            })
+    if (uploadError) {
+      console.error(uploadError)
+      continue
+    }
 
-          if (mediaError) console.error(mediaError)
-        }
-      }
+    const { error: mediaError } = await supabase
+      .from("property_media")
+      .insert({
+        property_id: property.id,
+        type: mapFileToMediaType(file),
+        url: path,
+        position: i,
+      })
+
+    if (mediaError) console.error(mediaError)
+  }
+}
 
       const { error: privateError } = await supabase
         .from("property_private")
