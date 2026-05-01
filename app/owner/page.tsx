@@ -474,11 +474,11 @@ const empty: React.CSSProperties = {
 const cta: React.CSSProperties = {
   padding: '12px 20px',
   borderRadius: 999,
-  border: 'none',
-  background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+  border: '1px solid rgba(5,0,2,0.12)',
+  background: '#050002',
   color: '#fff',
-  fontWeight: 800,
+  fontWeight: 950,
   cursor: 'pointer',
-  boxShadow: '0 8px 20px rgba(236,72,153,0.35)',
+  boxShadow: '0 16px 34px rgba(5,0,2,0.16)',
   transition: 'all 0.2s ease',
 }
