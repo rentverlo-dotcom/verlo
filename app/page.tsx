@@ -745,7 +745,7 @@ export default function HomePage() {
               </p>
 
               <div className="hero-actions">
-                <Link className="btn btn-primary" href="/propietario/publicar">
+                <Link className="btn btn-primary" href="/propietario/publicar-v2">
                   Publicar mi propiedad
                 </Link>
                 <Link className="btn btn-secondary" href="/inquilino/registro">
