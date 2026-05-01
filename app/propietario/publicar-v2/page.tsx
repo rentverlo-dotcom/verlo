@@ -174,13 +174,17 @@ export default function PublicarPropiedad() {
   }, [])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return
-      if (!data.user.user_metadata?.has_password) {
-        window.location.href = "/set-password"
-      }
-    })
-  }, [])
+  supabase.auth.getUser().then(({ data }) => {
+    if (!data.user) {
+      window.location.href = "/login?next=/propietario/publicar-v2"
+      return
+    }
+
+    if (!data.user.user_metadata?.has_password) {
+      window.location.href = "/set-password"
+    }
+  })
+}, [])
 
   useEffect(() => {
     if (!draft.province_id) {
