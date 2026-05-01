@@ -140,7 +140,7 @@ export default function OwnerPage() {
     }
   }, [router])
 
-  const goPublish = () => router.push('/propietario/publicar')
+  const goPublish = () => router.push('/propietario/publicar-v2')
   const goPreview = (propertyId: string) =>
     router.push(`/propietario/preview/${propertyId}`)
 
