@@ -1,14 +1,13 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase/client'
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase/client"
 
-function mapFileToMediaType(file: File): 'photo' | 'video' | 'pdf' {
-  if (file.type.startsWith('image/')) return 'photo'
-  if (file.type.startsWith('video/')) return 'video'
-  if (file.type === 'application/pdf') return 'pdf'
-  throw new Error('Tipo de archivo no soportado')
+function mapFileToMediaType(file: File): "photo" | "video" | "pdf" {
+  if (file.type.startsWith("image/")) return "photo"
+  if (file.type.startsWith("video/")) return "video"
+  if (file.type === "application/pdf") return "pdf"
+  throw new Error("Tipo de archivo no soportado")
 }
 
 type Draft = {
@@ -29,103 +28,145 @@ type Draft = {
   email?: string
   description?: string
   sqm?: number
-
 }
-
-const PROPERTY_TYPES = [
-  'Casa',
-  'Departamento',
-  'PH',
-  'Habitación',
-  'Local',
-]
-// Mapea los labels del select (ES) al enum real de la DB (EN)
-const PROPERTY_TYPE_MAP: Record<string, 'apartment' | 'house' | 'room' | 'hotel_room'> = {
-  'Departamento': 'apartment',
-  'Casa': 'house',
-  'Habitación': 'room',
-  'PH': 'house',
-  'Local': 'house',
-}
-
-const REQUIREMENTS = [
-  'Garantía propietaria',
-  'Seguro de caución',
-  'Recibo de sueldo',
-  'Monotributo',
-  'Sin mascotas',
-]
 
 const ARG_PROVINCES = [
-  { id: '02', name: 'Ciudad Autónoma de Buenos Aires' },
-  { id: '06', name: 'Buenos Aires' },
-  { id: '10', name: 'Catamarca' },
-  { id: '22', name: 'Chaco' },
-  { id: '26', name: 'Chubut' },
-  { id: '14', name: 'Córdoba' },
-  { id: '18', name: 'Corrientes' },
-  { id: '30', name: 'Entre Ríos' },
-  { id: '34', name: 'Formosa' },
-  { id: '38', name: 'Jujuy' },
-  { id: '42', name: 'La Pampa' },
-  { id: '46', name: 'La Rioja' },
-  { id: '50', name: 'Mendoza' },
-  { id: '54', name: 'Misiones' },
-  { id: '58', name: 'Neuquén' },
-  { id: '62', name: 'Río Negro' },
-  { id: '66', name: 'Salta' },
-  { id: '70', name: 'San Juan' },
-  { id: '74', name: 'San Luis' },
-  { id: '78', name: 'Santa Cruz' },
-  { id: '82', name: 'Santa Fe' },
-  { id: '86', name: 'Santiago del Estero' },
-  { id: '90', name: 'Tucumán' },
-  { id: '94', name: 'Tierra del Fuego' },
+  { id: "02", name: "Ciudad Autónoma de Buenos Aires" },
+  { id: "06", name: "Buenos Aires" },
+  { id: "10", name: "Catamarca" },
+  { id: "22", name: "Chaco" },
+  { id: "26", name: "Chubut" },
+  { id: "14", name: "Córdoba" },
+  { id: "18", name: "Corrientes" },
+  { id: "30", name: "Entre Ríos" },
+  { id: "34", name: "Formosa" },
+  { id: "38", name: "Jujuy" },
+  { id: "42", name: "La Pampa" },
+  { id: "46", name: "La Rioja" },
+  { id: "50", name: "Mendoza" },
+  { id: "54", name: "Misiones" },
+  { id: "58", name: "Neuquén" },
+  { id: "62", name: "Río Negro" },
+  { id: "66", name: "Salta" },
+  { id: "70", name: "San Juan" },
+  { id: "74", name: "San Luis" },
+  { id: "78", name: "Santa Cruz" },
+  { id: "82", name: "Santa Fe" },
+  { id: "86", name: "Santiago del Estero" },
+  { id: "90", name: "Tucumán" },
+  { id: "94", name: "Tierra del Fuego" },
 ]
 
 const CABA_MUNICIPALITY = {
-  id: 'caba',
-  name: 'Ciudad Autónoma de Buenos Aires',
+  id: "caba",
+  name: "Ciudad Autónoma de Buenos Aires",
 }
 
 const CABA_BARRIOS = [
-  'Agronomía','Almagro','Balvanera','Barracas','Belgrano','Boedo',
-  'Caballito','Chacarita','Coghlan','Colegiales','Constitución',
-  'Flores','Floresta','La Boca','La Paternal','Liniers','Mataderos',
-  'Monte Castro','Monserrat','Nueva Pompeya','Nuñez','Palermo',
-  'Parque Avellaneda','Parque Chacabuco','Parque Chas',
-  'Parque Patricios','Puerto Madero','Recoleta','Retiro',
-  'Saavedra','San Cristóbal','San Nicolás','San Telmo',
-  'Vélez Sarsfield','Versalles','Villa Crespo','Villa del Parque',
-  'Villa Devoto','Villa General Mitre','Villa Lugano',
-  'Villa Luro','Villa Ortúzar','Villa Pueyrredón',
-  'Villa Real','Villa Riachuelo','Villa Santa Rita',
-  'Villa Soldati','Villa Urquiza'
-].map(b => ({ id: b, name: b }))
+  "Agronomía",
+  "Almagro",
+  "Balvanera",
+  "Barracas",
+  "Belgrano",
+  "Boedo",
+  "Caballito",
+  "Chacarita",
+  "Coghlan",
+  "Colegiales",
+  "Constitución",
+  "Flores",
+  "Floresta",
+  "La Boca",
+  "La Paternal",
+  "Liniers",
+  "Mataderos",
+  "Monte Castro",
+  "Monserrat",
+  "Nueva Pompeya",
+  "Nuñez",
+  "Palermo",
+  "Parque Avellaneda",
+  "Parque Chacabuco",
+  "Parque Chas",
+  "Parque Patricios",
+  "Puerto Madero",
+  "Recoleta",
+  "Retiro",
+  "Saavedra",
+  "San Cristóbal",
+  "San Nicolás",
+  "San Telmo",
+  "Vélez Sarsfield",
+  "Versalles",
+  "Villa Crespo",
+  "Villa del Parque",
+  "Villa Devoto",
+  "Villa General Mitre",
+  "Villa Lugano",
+  "Villa Luro",
+  "Villa Ortúzar",
+  "Villa Pueyrredón",
+  "Villa Real",
+  "Villa Riachuelo",
+  "Villa Santa Rita",
+  "Villa Soldati",
+  "Villa Urquiza",
+].map((b) => ({ id: b, name: b }))
+
+const steps = [
+  {
+    number: 1,
+    label: "Ubicación",
+    title: "¿Dónde está la propiedad?",
+    copy: "Ubicamos tu propiedad para mostrarla a inquilinos compatibles.",
+  },
+  {
+    number: 2,
+    label: "Características",
+    title: "Contanos cómo es",
+    copy: "Sumá los datos básicos para que el match sea más preciso.",
+  },
+  {
+    number: 3,
+    label: "Fotos",
+    title: "Mostrala bien",
+    copy: "Las fotos ayudan a que los inquilinos entiendan rápido si les interesa.",
+  },
+  {
+    number: 4,
+    label: "Contacto",
+    title: "Datos privados",
+    copy: "Esta información no se muestra públicamente. Solo se usa para gestionar el proceso.",
+  },
+]
 
 export default function PublicarPropiedad() {
-
   const [step, setStep] = useState<number>(() => {
-    if (typeof window === 'undefined') return 1
-    const savedStep = localStorage.getItem('property_step')
+    if (typeof window === "undefined") return 1
+    const savedStep = localStorage.getItem("property_step")
     return savedStep ? Number(savedStep) : 1
   })
 
   const [draft, setDraft] = useState<Draft>(() => {
-    if (typeof window === 'undefined') return {}
-    return JSON.parse(localStorage.getItem('property_draft') || '{}')
+    if (typeof window === "undefined") return {}
+    return JSON.parse(localStorage.getItem("property_draft") || "{}")
   })
 
   const [provinces, setProvinces] = useState<any[]>([])
   const [municipalities, setMunicipalities] = useState<any[]>([])
   const [neighborhoods, setNeighborhoods] = useState<any[]>([])
+  const [isPublishing, setIsPublishing] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const currentStep = steps.find((s) => s.number === step) ?? steps[0]
+  const progress = (step / 4) * 100
 
   useEffect(() => {
-    localStorage.setItem('property_draft', JSON.stringify(draft))
+    localStorage.setItem("property_draft", JSON.stringify(draft))
   }, [draft])
 
   useEffect(() => {
-    localStorage.setItem('property_step', String(step))
+    localStorage.setItem("property_step", String(step))
   }, [step])
 
   useEffect(() => {
@@ -136,14 +177,11 @@ export default function PublicarPropiedad() {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) return
       if (!data.user.user_metadata?.has_password) {
-        window.location.href = '/set-password'
+        window.location.href = "/set-password"
       }
     })
   }, [])
 
-  // ===============================
-  // PROVINCIAS → MUNICIPIOS
-  // ===============================
   useEffect(() => {
     if (!draft.province_id) {
       setMunicipalities([])
@@ -151,10 +189,10 @@ export default function PublicarPropiedad() {
       return
     }
 
-    if (draft.province_id === '02') {
+    if (draft.province_id === "02") {
       setMunicipalities([CABA_MUNICIPALITY])
       setNeighborhoods(CABA_BARRIOS)
-      setDraft(prev => ({
+      setDraft((prev) => ({
         ...prev,
         municipality_id: CABA_MUNICIPALITY.id,
         neighborhood_id: undefined,
@@ -163,14 +201,18 @@ export default function PublicarPropiedad() {
     }
 
     const province = ARG_PROVINCES.find(
-      p => String(p.id) === String(draft.province_id)
+      (p) => String(p.id) === String(draft.province_id)
     )
 
     if (!province?.name) return
 
-    fetch(`https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(province.name)}&max=1000`)
-      .then(r => r.json())
-      .then(d => {
+    fetch(
+      `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(
+        province.name
+      )}&max=1000`
+    )
+      .then((r) => r.json())
+      .then((d) => {
         setMunicipalities(
           (d.municipios || []).map((m: any) => ({
             id: m.id,
@@ -182,9 +224,6 @@ export default function PublicarPropiedad() {
       .catch(() => {})
   }, [draft.province_id])
 
-  // ===============================
-  // MUNICIPIOS → BARRIOS
-  // ===============================
   useEffect(() => {
     if (!draft.municipality_id) {
       setNeighborhoods([])
@@ -193,9 +232,13 @@ export default function PublicarPropiedad() {
 
     if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
-    fetch(`https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(draft.municipality_id)}&max=1000`)
-      .then(r => r.json())
-      .then(d => {
+    fetch(
+      `https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(
+        draft.municipality_id
+      )}&max=1000`
+    )
+      .then((r) => r.json())
+      .then((d) => {
         setNeighborhoods(
           (d.localidades || []).map((n: any) => ({
             id: n.id,
@@ -206,363 +249,1158 @@ export default function PublicarPropiedad() {
       .catch(() => {})
   }, [draft.municipality_id])
 
-  async function requireAuth() {
-    const { data } = await supabase.auth.getUser()
-    if (!data.user) {
-      window.location.href = '/login'
-      return false
+  function validateStep() {
+    setErrorMessage(null)
+
+    if (step === 1) {
+      if (!draft.province_id || !draft.municipality_id || !draft.price) {
+        setErrorMessage("Completá ubicación y precio para continuar.")
+        return false
+      }
     }
+
+    if (step === 2) {
+      if (!draft.type || !draft.description) {
+        setErrorMessage("Completá tipo de propiedad y una descripción.")
+        return false
+      }
+    }
+
+    if (step === 4) {
+      if (!draft.address || !draft.phone) {
+        setErrorMessage("Completá dirección y teléfono para publicar.")
+        return false
+      }
+    }
+
     return true
   }
 
-async function publish() {
-  console.log('MEDIA EN PUBLISH:', draft.media)
-  const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) return
-
-  // 1. Resolver nombres
-  const municipalityName =
-    municipalities.find(m => m.id === draft.municipality_id)?.name ?? null
-
-  const neighborhoodName =
-    neighborhoods.find(n => n.id === draft.neighborhood_id)?.name ?? null
-
-  // 1.5 MAPEO DEFINITIVO DE PROPERTY TYPE (ENUM SAFE)
- const propertyTypeMap = {
-  apartment: 'apartment',
-  house: 'house',
-  room: 'room',
-  hotel_room: 'hotel_room',
-  local: 'apartment',
-  ph: 'apartment',
-} as const
-
-  const safePropertyType =
-  propertyTypeMap[draft.type as keyof typeof propertyTypeMap]
-
-  if (!safePropertyType) {
-    console.error('Tipo de propiedad inválido:', draft.type)
-    return
+  function next() {
+    if (!validateStep()) return
+    setStep((s) => Math.min(s + 1, 4))
   }
 
- // 2. Insert PROPERTY
-const { data: property, error: propertyError } = await supabase
-  .from('properties')
-  .insert({
-    owner_id: auth.user.id,
-    city: municipalityName,
-    zone: neighborhoodName,
-    price: draft.price ?? null,
-    property_type: safePropertyType,
-    short_description: draft.description ?? null, // agregue esta linea porque el front prop tiraba 400
-    description: draft.description ?? null,
-    sqm: draft.sqm ?? null,
-    furnished: draft.furnished ?? false,
-    pets_allowed: draft.pets ?? false,
-    publish_status: 'draft',
-    currency: 'ARS',
-    available: true,
-  })
-  .select()
-  .single()
+  function back() {
+    setErrorMessage(null)
+    setStep((s) => Math.max(s - 1, 1))
+  }
 
-if (propertyError || !property) {
-  console.error(propertyError)
-  return
-}
+  async function publish() {
+    if (!validateStep()) return
 
-console.log('PROPERTY INSERTADA:', property)
-console.log('PROPERTY ID INSERTADO:', property.id)
+    setIsPublishing(true)
+    setErrorMessage(null)
 
-  // 3. MEDIA (UPLOAD + DB)
-  if (draft.media?.length) {
-    for (let i = 0; i < draft.media.length; i++) {
-      const file = draft.media[i]
-      const extension = file.name.split('.').pop()
-      const path = `${property.id}/${crypto.randomUUID()}.${extension}`
+    try {
+      const { data: auth } = await supabase.auth.getUser()
 
-      const { error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(path, file, {
-          cacheControl: '3600',
-          upsert: false,
-        })
-
-      if (uploadError) {
-        console.error(uploadError)
-        continue
+      if (!auth.user) {
+        window.location.href = "/login"
+        return
       }
 
-      const { error: mediaError } = await supabase
-        .from('property_media')
+      const municipalityName =
+        municipalities.find((m) => m.id === draft.municipality_id)?.name ?? null
+
+      const neighborhoodName =
+        neighborhoods.find((n) => n.id === draft.neighborhood_id)?.name ?? null
+
+      const propertyTypeMap = {
+        apartment: "apartment",
+        house: "house",
+        room: "room",
+        hotel_room: "hotel_room",
+        local: "apartment",
+        ph: "apartment",
+      } as const
+
+      const safePropertyType =
+        propertyTypeMap[draft.type as keyof typeof propertyTypeMap]
+
+      if (!safePropertyType) {
+        setErrorMessage("Tipo de propiedad inválido.")
+        setIsPublishing(false)
+        return
+      }
+
+      const { data: property, error: propertyError } = await supabase
+        .from("properties")
+        .insert({
+          owner_id: auth.user.id,
+          city: municipalityName,
+          zone: neighborhoodName,
+          price: draft.price ?? null,
+          property_type: safePropertyType,
+          short_description: draft.description ?? null,
+          description: draft.description ?? null,
+          sqm: draft.sqm ?? null,
+          furnished: draft.furnished ?? false,
+          pets_allowed: draft.pets ?? false,
+          publish_status: "draft",
+          currency: "ARS",
+          available: true,
+        })
+        .select()
+        .single()
+
+      if (propertyError || !property) {
+        console.error(propertyError)
+        setErrorMessage("No pudimos guardar la propiedad. Probá de nuevo.")
+        setIsPublishing(false)
+        return
+      }
+
+      if (draft.media?.length) {
+        for (let i = 0; i < draft.media.length; i++) {
+          const file = draft.media[i]
+          const extension = file.name.split(".").pop()
+          const path = `${property.id}/${crypto.randomUUID()}.${extension}`
+
+          const { error: uploadError } = await supabase.storage
+            .from("media")
+            .upload(path, file, {
+              cacheControl: "3600",
+              upsert: false,
+            })
+
+          if (uploadError) {
+            console.error(uploadError)
+            continue
+          }
+
+          const { error: mediaError } = await supabase
+            .from("property_media")
+            .insert({
+              property_id: property.id,
+              type: mapFileToMediaType(file),
+              url: path,
+              position: i,
+            })
+
+          if (mediaError) console.error(mediaError)
+        }
+      }
+
+      const { error: privateError } = await supabase
+        .from("property_private")
         .insert({
           property_id: property.id,
-          type: mapFileToMediaType(file),
-          url: path,
-          position: i,
+          address: draft.address ?? null,
+          phone: draft.phone ?? null,
+          first_name: draft.first_name ?? null,
+          last_name: draft.last_name ?? null,
+          email: draft.email ?? null,
         })
 
-      if (mediaError) console.error(mediaError)
+      if (privateError) {
+        console.error(privateError)
+        setErrorMessage("Guardamos la propiedad, pero fallaron los datos privados.")
+        setIsPublishing(false)
+        return
+      }
+
+      localStorage.removeItem("property_draft")
+      localStorage.removeItem("property_step")
+
+      window.location.href = `/propietario/preview/${property.id}`
+    } catch (err) {
+      console.error(err)
+      setErrorMessage("Ocurrió un error inesperado. Probá de nuevo.")
+      setIsPublishing(false)
     }
   }
 
-  // 4. PRIVATE DATA
-  const { error: privateError } = await supabase
-    .from('property_private')
-    .insert({
-      property_id: property.id,
-      address: draft.address ?? null,
-      phone: draft.phone ?? null,
-      first_name: draft.first_name ?? null,
-      last_name: draft.last_name ?? null,
-      email: draft.email ?? null,
-    })
+  return (
+    <main className="min-h-screen bg-[#f2ebec] text-[#050002]">
+      <style jsx global>{`
+        :root {
+          --pink: #f2a8a9;
+          --pink-dark: #c37986;
+          --black: #050002;
+          --soft: #f2ebec;
+          --cream: #efefea;
+          --blue: #74bedc;
+          --yellow: #e7c776;
+        }
 
-  if (privateError) {
-    console.error(privateError)
-    return
-  }
+        * {
+          box-sizing: border-box;
+        }
 
-  // 5. CLEANUP
-  localStorage.removeItem('property_draft')
-  localStorage.removeItem('property_step')
+        body {
+          margin: 0;
+          background: var(--soft);
+        }
 
+        .owner-page {
+          min-height: 100vh;
+          padding: 34px 0 70px;
+          background:
+            radial-gradient(circle at 12% 18%, rgba(242, 168, 169, 0.62), transparent 28%),
+            radial-gradient(circle at 88% 22%, rgba(231, 199, 118, 0.38), transparent 24%),
+            radial-gradient(circle at 78% 84%, rgba(116, 190, 220, 0.28), transparent 26%),
+            var(--soft);
+        }
 
-  // 6. REDIRECT FINAL (CLAVE)
-  console.log('REDIRECT A:', `/propietario/preview/${property.id}`)
-  window.location.href = `/propietario/preview/${property.id}`
-}
-  
-function next() {
-  setStep(s => Math.min(s + 1, 4))
-}
+        .container {
+          width: min(1180px, calc(100% - 40px));
+          margin: 0 auto;
+        }
 
-function back() {
-  setStep(s => Math.max(s - 1, 1))
-}
-  
- return (
-  <section className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 py-16 px-6">
-    <div className="max-w-2xl mx-auto">
+        .brand-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 44px;
+        }
 
-      <h1 className="text-5xl font-bold text-slate-900 mb-2">
-        Publicá tu propiedad
-      </h1>
+        .brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          color: var(--black);
+          text-decoration: none;
+          font-size: 28px;
+          font-weight: 950;
+          letter-spacing: -0.06em;
+        }
 
-      <p className="text-slate-500 mb-10">
-        Paso {step} de 4
-      </p>
+        .mark {
+          width: 34px;
+          height: 28px;
+          position: relative;
+          display: inline-block;
+        }
 
-      <div className="bg-white rounded-3xl shadow-xl p-8 space-y-6 transition-all duration-300">
+        .mark::before,
+        .mark::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          width: 21px;
+          height: 28px;
+          border: 6px solid var(--black);
+          border-radius: 999px;
+        }
 
-        {/* STEP 1 */}
-        {step === 1 && (
-          <>
-            <select
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              value={draft.province_id || ''}
-              onChange={e =>
-                setDraft(d => ({
-                  ...d,
-                  province_id: e.target.value,
-                  municipality_id: undefined,
-                  neighborhood_id: undefined,
-                }))
-              }
-            >
-              <option value="">Provincia</option>
-              {provinces.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+        .mark::before {
+          left: 0;
+        }
 
-            <select
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              value={draft.municipality_id || ''}
-              disabled={!draft.province_id}
-              onChange={e =>
-                setDraft(d => ({
-                  ...d,
-                  municipality_id: e.target.value,
-                  neighborhood_id: undefined,
-                }))
-              }
-            >
-              <option value="">Municipio</option>
-              {municipalities.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
+        .mark::after {
+          right: 0;
+        }
 
-            <select
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              value={draft.neighborhood_id || ''}
-              disabled={!draft.municipality_id}
-              onChange={e =>
-                setDraft(d => ({
-                  ...d,
-                  neighborhood_id: e.target.value,
-                }))
-              }
-            >
-              <option value="">Barrio</option>
-              {neighborhoods.map(n => (
-                <option key={n.id} value={n.id}>{n.name}</option>
-              ))}
-            </select>
+        .mark span {
+          position: absolute;
+          left: 50%;
+          top: 4px;
+          transform: translateX(-50%);
+          width: 10px;
+          height: 20px;
+          border-radius: 999px;
+          background: var(--pink);
+          z-index: 2;
+        }
 
-            <input
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              type="number"
-              placeholder="Precio mensual"
-              value={draft.price || ''}
-              onChange={e =>
-                setDraft(d => ({ ...d, price: Number(e.target.value) }))
-              }
-            />
+        .back-link {
+          color: rgba(5, 0, 2, 0.62);
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 850;
+        }
 
-            <div className="flex justify-end">
-              <button
-                onClick={() => setStep(2)}
-                className="px-8 py-4 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
-              >
-                Continuar
-              </button>
-            </div>
-          </>
-        )}
+        .layout {
+          display: grid;
+          grid-template-columns: 0.9fr 1.1fr;
+          gap: 34px;
+          align-items: start;
+        }
 
-        {/* STEP 2 */}
-        {step === 2 && (
-          <>
-            <select
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              value={draft.type || ''}
-              onChange={e =>
-                setDraft(d => ({ ...d, type: e.target.value }))
-              }
-            >
-              <option value="">Tipo de propiedad</option>
-              <option value="apartment">Departamento</option>
-              <option value="house">Casa</option>
-              <option value="ph">PH</option>
-              <option value="room">Habitación</option>
-              <option value="local">Local</option>
-            </select>
+        .intro {
+          position: sticky;
+          top: 28px;
+          padding: 42px;
+          border-radius: 42px;
+          background: rgba(255, 255, 255, 0.48);
+          border: 1px solid rgba(5, 0, 2, 0.08);
+          overflow: hidden;
+        }
 
-            <input
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              type="number"
-              placeholder="Metros cuadrados"
-              value={draft.sqm || ''}
-              onChange={e =>
-                setDraft(d => ({ ...d, sqm: Number(e.target.value) }))
-              }
-            />
+        .intro::after {
+          content: "";
+          position: absolute;
+          right: -90px;
+          bottom: -90px;
+          width: 250px;
+          height: 250px;
+          border-radius: 999px;
+          background: rgba(242, 168, 169, 0.45);
+          z-index: 0;
+        }
 
-            <textarea
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 h-32 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500"
-              placeholder="Descripción de la propiedad"
-              value={draft.description || ''}
-              onChange={e =>
-                setDraft(d => ({ ...d, description: e.target.value }))
-              }
-            />
+        .intro > * {
+          position: relative;
+          z-index: 1;
+        }
 
-            <div className="flex justify-between">
-              <button
-                onClick={() => setStep(1)}
-                className="px-6 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition"
-              >
-                Volver
-              </button>
+        .eyebrow {
+          width: fit-content;
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          padding: 9px 13px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.62);
+          border: 1px solid rgba(5, 0, 2, 0.08);
+          color: rgba(5, 0, 2, 0.66);
+          font-size: 13px;
+          font-weight: 900;
+        }
 
-              <button
-                onClick={() => setStep(3)}
-                className="px-8 py-4 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
-              >
-                Continuar
-              </button>
-            </div>
-          </>
-        )}
+        .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: var(--pink-dark);
+          box-shadow: 0 0 0 5px rgba(195, 121, 134, 0.16);
+        }
 
-        {/* STEP 3 */}
-        {step === 3 && (
-          <>
-            <input
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              onChange={e => {
-                const files = Array.from(e.target.files || [])
-                setDraft(d => ({
-                  ...d,
-                  media: [...(d.media || []), ...files],
-                }))
-              }}
-              className="w-full"
-            />
+        .intro h1 {
+          margin: 26px 0 0;
+          font-size: clamp(52px, 6vw, 88px);
+          line-height: 0.88;
+          letter-spacing: -0.085em;
+          font-weight: 950;
+        }
 
-            <div className="flex justify-between">
-              <button
-                onClick={() => setStep(2)}
-                className="px-6 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition"
-              >
-                Volver
-              </button>
+        .intro h1 em {
+          font-family: Georgia, "Times New Roman", serif;
+          font-weight: 400;
+          font-style: italic;
+        }
 
-              <button
-                onClick={() => setStep(4)}
-                className="px-8 py-4 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
-              >
-                Continuar
-              </button>
-            </div>
-          </>
-        )}
+        .intro-copy {
+          margin: 24px 0 0;
+          font-size: 19px;
+          line-height: 1.48;
+          color: rgba(5, 0, 2, 0.68);
+        }
 
-        {/* STEP 4 */}
-        {step === 4 && (
-          <>
-            <input
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              placeholder="Dirección (privada)"
-              value={draft.address || ''}
-              onChange={e =>
-                setDraft(d => ({ ...d, address: e.target.value }))
-              }
-            />
+        .mini-list {
+          display: grid;
+          gap: 12px;
+          margin: 30px 0 0;
+          padding: 0;
+          list-style: none;
+        }
 
-            <input
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              placeholder="Teléfono"
-              value={draft.phone || ''}
-              onChange={e =>
-                setDraft(d => ({ ...d, phone: e.target.value }))
-              }
-            />
+        .mini-list li {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          font-size: 15px;
+          font-weight: 850;
+          color: rgba(5, 0, 2, 0.72);
+        }
 
-            <div className="flex justify-between">
-              <button
-                onClick={() => setStep(3)}
-                className="px-6 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition"
-              >
-                Volver
-              </button>
+        .check {
+          width: 24px;
+          height: 24px;
+          border-radius: 999px;
+          background: var(--black);
+          color: white;
+          display: grid;
+          place-items: center;
+          font-size: 13px;
+          flex: 0 0 auto;
+        }
 
-              <button
-                onClick={publish}
-                className="px-8 py-4 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition"
-              >
-                Publicar propiedad
-              </button>
-            </div>
-          </>
-        )}
+        .form-card {
+          border-radius: 42px;
+          background: rgba(255, 255, 255, 0.78);
+          border: 1px solid rgba(5, 0, 2, 0.08);
+          box-shadow: 0 26px 80px rgba(5, 0, 2, 0.08);
+          overflow: hidden;
+        }
 
-      </div>
-    </div>
-  </section>
-)
+        .form-head {
+          padding: 34px 34px 24px;
+          border-bottom: 1px solid rgba(5, 0, 2, 0.08);
+        }
+
+        .step-meta {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: center;
+          margin-bottom: 18px;
+        }
+
+        .step-pill {
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: var(--black);
+          color: white;
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .step-name {
+          color: rgba(5, 0, 2, 0.55);
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .progress {
+          height: 9px;
+          border-radius: 999px;
+          background: rgba(5, 0, 2, 0.08);
+          overflow: hidden;
+        }
+
+        .progress span {
+          display: block;
+          height: 100%;
+          width: var(--progress);
+          background: linear-gradient(90deg, var(--pink), var(--pink-dark));
+          border-radius: inherit;
+          transition: width 220ms ease;
+        }
+
+        .form-head h2 {
+          margin: 24px 0 0;
+          font-size: clamp(32px, 4vw, 52px);
+          line-height: 0.98;
+          letter-spacing: -0.065em;
+          font-weight: 950;
+        }
+
+        .form-head p {
+          margin: 12px 0 0;
+          color: rgba(5, 0, 2, 0.62);
+          line-height: 1.45;
+          font-size: 16px;
+        }
+
+        .form-body {
+          padding: 34px;
+        }
+
+        .field-grid {
+          display: grid;
+          gap: 16px;
+        }
+
+        .two-cols {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .field {
+          display: grid;
+          gap: 8px;
+        }
+
+        .field label {
+          font-size: 13px;
+          font-weight: 950;
+          color: rgba(5, 0, 2, 0.72);
+          padding-left: 4px;
+        }
+
+        .input,
+        .select,
+        .textarea {
+          width: 100%;
+          min-height: 58px;
+          border: 1px solid rgba(5, 0, 2, 0.12);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.86);
+          padding: 0 18px;
+          color: var(--black);
+          font-size: 16px;
+          outline: none;
+          transition: border 140ms ease, box-shadow 140ms ease, background 140ms ease;
+        }
+
+        .textarea {
+          min-height: 150px;
+          resize: none;
+          padding-top: 18px;
+          line-height: 1.45;
+        }
+
+        .input:focus,
+        .select:focus,
+        .textarea:focus {
+          border-color: var(--pink-dark);
+          box-shadow: 0 0 0 5px rgba(195, 121, 134, 0.12);
+          background: white;
+        }
+
+        .select:disabled {
+          opacity: 0.46;
+          cursor: not-allowed;
+        }
+
+        .toggle-row {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .toggle {
+          border: 1px solid rgba(5, 0, 2, 0.1);
+          border-radius: 22px;
+          padding: 16px;
+          background: rgba(255, 255, 255, 0.62);
+          cursor: pointer;
+          font-weight: 900;
+          color: rgba(5, 0, 2, 0.64);
+          transition: 150ms ease;
+        }
+
+        .toggle.active {
+          background: var(--black);
+          color: white;
+          border-color: var(--black);
+        }
+
+        .upload-box {
+          border: 1.5px dashed rgba(5, 0, 2, 0.22);
+          background: rgba(255, 255, 255, 0.56);
+          border-radius: 30px;
+          padding: 34px;
+          text-align: center;
+        }
+
+        .upload-box h3 {
+          margin: 0;
+          font-size: 26px;
+          letter-spacing: -0.045em;
+        }
+
+        .upload-box p {
+          margin: 10px auto 0;
+          color: rgba(5, 0, 2, 0.6);
+          max-width: 460px;
+          line-height: 1.45;
+        }
+
+        .file-input {
+          display: none;
+        }
+
+        .file-label {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: 22px;
+          min-height: 52px;
+          padding: 0 22px;
+          border-radius: 999px;
+          background: var(--black);
+          color: white;
+          font-weight: 950;
+          cursor: pointer;
+        }
+
+        .media-list {
+          display: grid;
+          gap: 10px;
+          margin-top: 18px;
+        }
+
+        .media-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.72);
+          border: 1px solid rgba(5, 0, 2, 0.08);
+          color: rgba(5, 0, 2, 0.7);
+          font-size: 14px;
+          font-weight: 750;
+        }
+
+        .remove-file {
+          border: none;
+          background: rgba(5, 0, 2, 0.08);
+          color: var(--black);
+          border-radius: 999px;
+          padding: 8px 10px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .error {
+          margin-top: 18px;
+          padding: 14px 16px;
+          border-radius: 18px;
+          background: rgba(195, 121, 134, 0.14);
+          color: #7f2435;
+          font-weight: 850;
+          font-size: 14px;
+        }
+
+        .actions {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 14px;
+          margin-top: 28px;
+        }
+
+        .btn {
+          min-height: 54px;
+          border: 1px solid rgba(5, 0, 2, 0.12);
+          border-radius: 999px;
+          padding: 0 24px;
+          font-size: 15px;
+          font-weight: 950;
+          cursor: pointer;
+          transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+        }
+
+        .btn:hover {
+          transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-primary {
+          background: var(--black);
+          color: white;
+          box-shadow: 0 16px 34px rgba(5, 0, 2, 0.15);
+        }
+
+        .btn-secondary {
+          background: rgba(255, 255, 255, 0.72);
+          color: var(--black);
+        }
+
+        .summary {
+          margin-top: 20px;
+          padding: 18px;
+          border-radius: 24px;
+          background: rgba(5, 0, 2, 0.04);
+          display: grid;
+          gap: 8px;
+        }
+
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+          font-size: 14px;
+          color: rgba(5, 0, 2, 0.62);
+        }
+
+        .summary-row strong {
+          color: var(--black);
+          text-align: right;
+        }
+
+        @media (max-width: 980px) {
+          .layout {
+            grid-template-columns: 1fr;
+          }
+
+          .intro {
+            position: relative;
+            top: auto;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .container {
+            width: min(100% - 28px, 1180px);
+          }
+
+          .brand-row {
+            margin-bottom: 28px;
+          }
+
+          .intro,
+          .form-head,
+          .form-body {
+            padding: 24px;
+          }
+
+          .intro,
+          .form-card {
+            border-radius: 30px;
+          }
+
+          .two-cols,
+          .toggle-row {
+            grid-template-columns: 1fr;
+          }
+
+          .actions {
+            flex-direction: column-reverse;
+          }
+
+          .btn {
+            width: 100%;
+          }
+        }
+      `}</style>
+
+      <section className="owner-page">
+        <div className="container">
+          <div className="brand-row">
+            <a href="/" className="brand" aria-label="Verlo">
+              verlo
+              <span className="mark" aria-hidden="true">
+                <span />
+              </span>
+            </a>
+
+            <a href="/" className="back-link">
+              Volver al inicio
+            </a>
+          </div>
+
+          <div className="layout">
+            <aside className="intro">
+              <div className="eyebrow">
+                <span className="dot" />
+                Propietarios
+              </div>
+
+              <h1>
+                Publicá tu propiedad en <em>Verlo.</em>
+              </h1>
+
+              <p className="intro-copy">
+                Cargá la información clave y dejá tu propiedad lista para recibir
+                inquilinos compatibles. Primero queda en borrador; después la
+                revisás y publicás.
+              </p>
+
+              <ul className="mini-list">
+                <li>
+                  <span className="check">✓</span>
+                  Sin inmobiliarias ni intermediarios innecesarios
+                </li>
+                <li>
+                  <span className="check">✓</span>
+                  Datos privados protegidos
+                </li>
+                <li>
+                  <span className="check">✓</span>
+                  Match con inquilinos compatibles
+                </li>
+              </ul>
+            </aside>
+
+            <section className="form-card">
+              <div className="form-head">
+                <div className="step-meta">
+                  <span className="step-pill">Paso {step} de 4</span>
+                  <span className="step-name">{currentStep.label}</span>
+                </div>
+
+                <div
+                  className="progress"
+                  style={{ ["--progress" as any]: `${progress}%` }}
+                >
+                  <span />
+                </div>
+
+                <h2>{currentStep.title}</h2>
+                <p>{currentStep.copy}</p>
+              </div>
+
+              <div className="form-body">
+                {step === 1 && (
+                  <>
+                    <div className="field-grid">
+                      <div className="field">
+                        <label>Provincia</label>
+                        <select
+                          className="select"
+                          value={draft.province_id || ""}
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              province_id: e.target.value,
+                              municipality_id: undefined,
+                              neighborhood_id: undefined,
+                            }))
+                          }
+                        >
+                          <option value="">Elegí una provincia</option>
+                          {provinces.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="field">
+                        <label>Municipio</label>
+                        <select
+                          className="select"
+                          value={draft.municipality_id || ""}
+                          disabled={!draft.province_id}
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              municipality_id: e.target.value,
+                              neighborhood_id: undefined,
+                            }))
+                          }
+                        >
+                          <option value="">Elegí un municipio</option>
+                          {municipalities.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="field">
+                        <label>Barrio / localidad</label>
+                        <select
+                          className="select"
+                          value={draft.neighborhood_id || ""}
+                          disabled={!draft.municipality_id}
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              neighborhood_id: e.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">Elegí un barrio o localidad</option>
+                          {neighborhoods.map((n) => (
+                            <option key={n.id} value={n.id}>
+                              {n.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="field">
+                        <label>Precio mensual</label>
+                        <input
+                          className="input"
+                          type="number"
+                          placeholder="Ej: 450000"
+                          value={draft.price || ""}
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              price: Number(e.target.value),
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {errorMessage && <div className="error">{errorMessage}</div>}
+
+                    <div className="actions">
+                      <span />
+                      <button className="btn btn-primary" onClick={next}>
+                        Continuar
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {step === 2 && (
+                  <>
+                    <div className="field-grid">
+                      <div className="field">
+                        <label>Tipo de propiedad</label>
+                        <select
+                          className="select"
+                          value={draft.type || ""}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, type: e.target.value }))
+                          }
+                        >
+                          <option value="">Elegí el tipo</option>
+                          <option value="apartment">Departamento</option>
+                          <option value="house">Casa</option>
+                          <option value="ph">PH</option>
+                          <option value="room">Habitación</option>
+                          <option value="local">Local</option>
+                        </select>
+                      </div>
+
+                      <div className="field">
+                        <label>Metros cuadrados</label>
+                        <input
+                          className="input"
+                          type="number"
+                          placeholder="Ej: 65"
+                          value={draft.sqm || ""}
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              sqm: Number(e.target.value),
+                            }))
+                          }
+                        />
+                      </div>
+
+                      <div className="field">
+                        <label>Descripción</label>
+                        <textarea
+                          className="textarea"
+                          placeholder="Contá lo más importante: ambientes, luz, estado, cercanía a transporte, expensas, requisitos..."
+                          value={draft.description || ""}
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              description: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="toggle-row">
+                      <button
+                        type="button"
+                        className={`toggle ${draft.furnished ? "active" : ""}`}
+                        onClick={() =>
+                          setDraft((d) => ({
+                            ...d,
+                            furnished: !d.furnished,
+                          }))
+                        }
+                      >
+                        Amoblado
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`toggle ${draft.pets ? "active" : ""}`}
+                        onClick={() =>
+                          setDraft((d) => ({
+                            ...d,
+                            pets: !d.pets,
+                          }))
+                        }
+                      >
+                        Acepta mascotas
+                      </button>
+                    </div>
+
+                    {errorMessage && <div className="error">{errorMessage}</div>}
+
+                    <div className="actions">
+                      <button className="btn btn-secondary" onClick={back}>
+                        Volver
+                      </button>
+                      <button className="btn btn-primary" onClick={next}>
+                        Continuar
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {step === 3 && (
+                  <>
+                    <div className="upload-box">
+                      <h3>Subí fotos o videos</h3>
+                      <p>
+                        No hace falta que sean perfectas, pero sí claras. Después
+                        vas a poder revisar la propiedad antes de publicarla.
+                      </p>
+
+                      <input
+                        id="media-upload"
+                        className="file-input"
+                        type="file"
+                        multiple
+                        accept="image/*,video/*"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || [])
+                          setDraft((d) => ({
+                            ...d,
+                            media: [...(d.media || []), ...files],
+                          }))
+                        }}
+                      />
+
+                      <label htmlFor="media-upload" className="file-label">
+                        Elegir archivos
+                      </label>
+                    </div>
+
+                    {!!draft.media?.length && (
+                      <div className="media-list">
+                        {draft.media.map((file, index) => (
+                          <div className="media-item" key={`${file.name}-${index}`}>
+                            <span>
+                              {index + 1}. {file.name}
+                            </span>
+                            <button
+                              type="button"
+                              className="remove-file"
+                              onClick={() =>
+                                setDraft((d) => ({
+                                  ...d,
+                                  media: (d.media || []).filter(
+                                    (_, i) => i !== index
+                                  ),
+                                }))
+                              }
+                            >
+                              Quitar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {errorMessage && <div className="error">{errorMessage}</div>}
+
+                    <div className="actions">
+                      <button className="btn btn-secondary" onClick={back}>
+                        Volver
+                      </button>
+                      <button className="btn btn-primary" onClick={next}>
+                        Continuar
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {step === 4 && (
+                  <>
+                    <div className="field-grid">
+                      <div className="field">
+                        <label>Dirección exacta</label>
+                        <input
+                          className="input"
+                          placeholder="Ej: Av. Santa Fe 1234, piso 5"
+                          value={draft.address || ""}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, address: e.target.value }))
+                          }
+                        />
+                      </div>
+
+                      <div className="field two-cols">
+                        <div className="field">
+                          <label>Nombre</label>
+                          <input
+                            className="input"
+                            placeholder="Tu nombre"
+                            value={draft.first_name || ""}
+                            onChange={(e) =>
+                              setDraft((d) => ({
+                                ...d,
+                                first_name: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="field">
+                          <label>Apellido</label>
+                          <input
+                            className="input"
+                            placeholder="Tu apellido"
+                            value={draft.last_name || ""}
+                            onChange={(e) =>
+                              setDraft((d) => ({
+                                ...d,
+                                last_name: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className="field two-cols">
+                        <div className="field">
+                          <label>Teléfono</label>
+                          <input
+                            className="input"
+                            placeholder="Ej: 11 1234 5678"
+                            value={draft.phone || ""}
+                            onChange={(e) =>
+                              setDraft((d) => ({
+                                ...d,
+                                phone: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="field">
+                          <label>Email</label>
+                          <input
+                            className="input"
+                            type="email"
+                            placeholder="tu@email.com"
+                            value={draft.email || ""}
+                            onChange={(e) =>
+                              setDraft((d) => ({
+                                ...d,
+                                email: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="summary">
+                      <div className="summary-row">
+                        <span>Estado inicial</span>
+                        <strong>Borrador</strong>
+                      </div>
+                      <div className="summary-row">
+                        <span>Visibilidad</span>
+                        <strong>No pública todavía</strong>
+                      </div>
+                      <div className="summary-row">
+                        <span>Siguiente paso</span>
+                        <strong>Preview y publicación</strong>
+                      </div>
+                    </div>
+
+                    {errorMessage && <div className="error">{errorMessage}</div>}
+
+                    <div className="actions">
+                      <button className="btn btn-secondary" onClick={back}>
+                        Volver
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={publish}
+                        disabled={isPublishing}
+                      >
+                        {isPublishing ? "Guardando..." : "Guardar borrador"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  )
 }
