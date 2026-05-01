@@ -181,16 +181,18 @@ export default function Buscar() {
       return
     }
 
-    if (draft.province_id === "02") {
-      setMunicipalities([CABA_MUNICIPALITY])
-      setNeighborhoods(CABA_BARRIOS)
-      setDraft((prev) => ({
-        ...prev,
-        municipality_id: CABA_MUNICIPALITY.id,
-        neighborhood_id: undefined,
-      }))
-      return
-    }
+  if (draft.province_id === "02") {
+  setMunicipalities([CABA_MUNICIPALITY])
+  setNeighborhoods(CABA_BARRIOS)
+
+  setDraft((prev) => ({
+    ...prev,
+    municipality_id: prev.municipality_id || CABA_MUNICIPALITY.id,
+    neighborhood_id: prev.neighborhood_id,
+  }))
+
+  return
+}
 
     const province = ARG_PROVINCES.find(
       (p) => String(p.id) === String(draft.province_id)
