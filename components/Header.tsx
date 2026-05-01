@@ -1,8 +1,8 @@
-//components/Header.tsx
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { supabase } from "@/lib/supabase/client"
 
 export default function Header() {
   const [user, setUser] = useState<any>(null)
@@ -14,65 +14,164 @@ export default function Header() {
   }, [])
 
   return (
-  <header
-    style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: '64px',
-      background: 'rgba(255,255,255,0.8)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 32px',
-      zIndex: 100,
-      borderBottom: '1px solid #e2e8f0',
-    }}
-  >
-    <strong
+    <header
       style={{
-        fontSize: '18px',
-        letterSpacing: '0.5px',
-        color: '#0f172a',
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "76px",
+        background: "rgba(242,235,236,0.78)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 32px",
+        zIndex: 100,
+        borderBottom: "1px solid rgba(5,0,2,0.08)",
       }}
     >
-      VERLO
-    </strong>
+      <Link
+        href="/"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 12,
+          textDecoration: "none",
+          color: "#050002",
+          fontSize: 28,
+          fontWeight: 950,
+          letterSpacing: "-0.06em",
+          lineHeight: 1,
+        }}
+      >
+        verlo
+        <span
+          style={{
+            width: 34,
+            height: 28,
+            position: "relative",
+            display: "inline-block",
+          }}
+        >
+          <span
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: 21,
+              height: 28,
+              border: "6px solid #050002",
+              borderRadius: 999,
+            }}
+          />
+          <span
+            style={{
+              position: "absolute",
+              right: 0,
+              top: 0,
+              width: 21,
+              height: 28,
+              border: "6px solid #050002",
+              borderRadius: 999,
+            }}
+          />
+          <span
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: 4,
+              transform: "translateX(-50%)",
+              width: 10,
+              height: 20,
+              borderRadius: 999,
+              background: "#f2a8a9",
+              zIndex: 2,
+            }}
+          />
+        </span>
+      </Link>
 
-    <nav
-      style={{
-        display: 'flex',
-        gap: '28px',
-        alignItems: 'center',
-        fontSize: '14px',
-      }}
-    >
-      <a href="/#transparencia" style={{ color: '#334155', textDecoration: 'none' }}>
-        Transparencia total
-      </a>
+      <nav
+        style={{
+          display: "flex",
+          gap: 18,
+          alignItems: "center",
+          fontSize: 14,
+          fontWeight: 850,
+        }}
+      >
+        <Link
+          href="/#como-funciona"
+          style={{
+            color: "rgba(5,0,2,0.68)",
+            textDecoration: "none",
+          }}
+        >
+          Cómo funciona
+        </Link>
 
-      {/*  <a href="/login" style={{ color: '#334155', textDecoration: 'none' }}>
-        Soy inquilino
-      </a>*/}
+        <Link
+          href="/propietario/publicar-v2"
+          style={{
+            color: "rgba(5,0,2,0.68)",
+            textDecoration: "none",
+          }}
+        >
+          Publicar
+        </Link>
 
-      <a href="/login" style={{ color: '#334155', textDecoration: 'none' }}>
-        Soy propietario
-      </a>
+        {user && (
+          <Link
+            href="/owner"
+            style={{
+              color: "rgba(5,0,2,0.68)",
+              textDecoration: "none",
+            }}
+          >
+            Mis propiedades
+          </Link>
+        )}
 
-      {user ? (
-        <a href="/logout" style={{ color: '#0f172a', fontWeight: 600 }}>
-          Cerrar sesión
-        </a>
-      ) : (
-        <a href="/login" style={{ color: '#0f172a', fontWeight: 600 }}>
-          Ingresar
-        </a>
-      )}
-    </nav>
-  </header>
-)
+        {user ? (
+          <Link
+            href="/logout"
+            style={{
+              minHeight: 42,
+              padding: "0 16px",
+              borderRadius: 999,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#050002",
+              color: "#fff",
+              textDecoration: "none",
+              fontWeight: 950,
+            }}
+          >
+            Salir
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            style={{
+              minHeight: 42,
+              padding: "0 16px",
+              borderRadius: 999,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#050002",
+              color: "#fff",
+              textDecoration: "none",
+              fontWeight: 950,
+            }}
+          >
+            Ingresar
+          </Link>
+        )}
+      </nav>
+    </header>
+  )
 }
-
