@@ -731,7 +731,6 @@ export default function HomePage() {
           <div className="container hero-grid">
             <div>
               <div className="eyebrow">
-                <span className="dot" />
                 Alquiler directo entre personas reales
               </div>
 
