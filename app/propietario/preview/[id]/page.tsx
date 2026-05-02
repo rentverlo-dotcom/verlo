@@ -744,12 +744,12 @@ export default function OwnerPreview() {
                 Después podés publicarla para recibir interesados.
               </p>
 
-              <button
-                className="btn btn-primary"
-                onClick={() => router.push("/owner")}
-              >
-                Volver a mis propiedades
-              </button>
+           <button
+  className="btn btn-primary"
+  onClick={() => router.push("/propietario/gracias")}
+>
+  Finalizar carga
+</button>
             </aside>
           </div>
         </section>
