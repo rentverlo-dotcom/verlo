@@ -835,11 +835,11 @@ export default function HomePage() {
                   </ul>
                 </div>
 
-                <div style={{ marginTop: 28 }}>
-                  <href="/buscar">
-                    Quiero alquilar
-                  </Link>
-                </div>
+               <div style={{ marginTop: 28 }}>
+  <Link className="btn btn-secondary" href="/buscar">
+    Quiero alquilar
+  </Link>
+</div>
               </div>
             </div>
           </div>
