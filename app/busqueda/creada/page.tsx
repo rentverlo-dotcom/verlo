@@ -1,10 +1,47 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
+
+function Confetti() {
+  const [pieces, setPieces] = useState<
+    { left: number; delay: number; duration: number; size: number; rotate: number }[]
+  >([])
+
+  useEffect(() => {
+    setPieces(
+      Array.from({ length: 42 }).map(() => ({
+        left: Math.random() * 100,
+        delay: Math.random() * 0.8,
+        duration: 2.8 + Math.random() * 2,
+        size: 7 + Math.random() * 8,
+        rotate: Math.random() * 180,
+      }))
+    )
+  }, [])
+
+  return (
+    <div className="confetti" aria-hidden="true">
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          style={{
+            left: `${p.left}%`,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+            width: p.size,
+            height: p.size * 1.45,
+            transform: `rotate(${p.rotate}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
 
 export default function BusquedaCreadaPage() {
   return (
-    <main className="created-page">
+    <main className="success-page">
       <style jsx global>{`
         :root {
           --pink: #f2a8a9;
@@ -26,10 +63,12 @@ export default function BusquedaCreadaPage() {
           color: var(--black);
         }
 
-        .created-page {
+        .success-page {
+          position: relative;
           min-height: 100vh;
           display: grid;
           place-items: center;
+          overflow: hidden;
           padding: 90px 20px 60px;
           background:
             radial-gradient(circle at 14% 16%, rgba(242, 168, 169, 0.52), transparent 28%),
@@ -38,11 +77,57 @@ export default function BusquedaCreadaPage() {
             var(--soft);
         }
 
+        .confetti {
+          pointer-events: none;
+          position: fixed;
+          inset: 0;
+          overflow: hidden;
+          z-index: 1;
+        }
+
+        .confetti span {
+          position: absolute;
+          top: -24px;
+          border-radius: 3px;
+          background: var(--pink-dark);
+          animation-name: fall;
+          animation-timing-function: cubic-bezier(0.16, 0.72, 0.24, 1);
+          animation-fill-mode: forwards;
+        }
+
+        .confetti span:nth-child(3n) {
+          background: var(--yellow);
+        }
+
+        .confetti span:nth-child(4n) {
+          background: var(--blue);
+        }
+
+        .confetti span:nth-child(5n) {
+          background: var(--black);
+        }
+
+        @keyframes fall {
+          0% {
+            transform: translateY(-30px) rotate(0deg);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(110vh) rotate(520deg);
+            opacity: 0;
+          }
+        }
+
         .card {
-          width: min(100%, 860px);
-          border-radius: 46px;
-          padding: 52px;
-          background: rgba(255, 255, 255, 0.74);
+          position: relative;
+          z-index: 2;
+          width: min(100%, 880px);
+          border-radius: 48px;
+          padding: 56px;
+          background: rgba(255, 255, 255, 0.76);
           border: 1px solid rgba(5, 0, 2, 0.08);
           box-shadow: 0 28px 80px rgba(5, 0, 2, 0.08);
           text-align: center;
@@ -123,7 +208,7 @@ export default function BusquedaCreadaPage() {
 
         h1 {
           margin: 24px auto 0;
-          max-width: 720px;
+          max-width: 760px;
           font-size: clamp(54px, 7vw, 96px);
           line-height: 0.9;
           letter-spacing: -0.085em;
@@ -138,7 +223,7 @@ export default function BusquedaCreadaPage() {
 
         .copy {
           margin: 24px auto 0;
-          max-width: 620px;
+          max-width: 650px;
           color: rgba(5, 0, 2, 0.66);
           font-size: 19px;
           line-height: 1.5;
@@ -146,7 +231,7 @@ export default function BusquedaCreadaPage() {
 
         .summary {
           margin: 34px auto 0;
-          width: min(100%, 560px);
+          width: min(100%, 590px);
           display: grid;
           gap: 10px;
           padding: 18px;
@@ -203,7 +288,7 @@ export default function BusquedaCreadaPage() {
 
         @media (max-width: 640px) {
           .card {
-            padding: 32px 24px;
+            padding: 34px 24px;
             border-radius: 34px;
           }
 
@@ -226,6 +311,8 @@ export default function BusquedaCreadaPage() {
         }
       `}</style>
 
+      <Confetti />
+
       <section className="card">
         <Link href="/" className="brand" aria-label="Verlo">
           verlo
@@ -244,8 +331,9 @@ export default function BusquedaCreadaPage() {
         </h1>
 
         <p className="copy">
-          Ya guardamos tus preferencias. A partir de ahora Verlo puede cruzarte
-          con propiedades compatibles y ayudarte a avanzar cuando haya match.
+          Ya guardamos tus preferencias. Cuando activemos los cruces, Verlo va a
+          poder mostrarte propiedades compatibles y ayudarte a avanzar con
+          identidad validada cuando el match tenga sentido.
         </p>
 
         <div className="summary">
@@ -254,12 +342,12 @@ export default function BusquedaCreadaPage() {
             <strong>Activa</strong>
           </div>
           <div className="summary-row">
-            <span>Próximo paso</span>
-            <strong>Ver propiedades compatibles</strong>
+            <span>Qué guardamos</span>
+            <strong>Zona, presupuesto y preferencias</strong>
           </div>
           <div className="summary-row">
-            <span>Contacto real</span>
-            <strong>Después de identidad validada</strong>
+            <span>Próximo paso</span>
+            <strong>Te avisamos cuando haya coincidencias</strong>
           </div>
         </div>
 
@@ -268,8 +356,8 @@ export default function BusquedaCreadaPage() {
             Crear otra búsqueda
           </Link>
 
-          <Link href="/propiedades" className="btn btn-primary">
-            Ver propiedades disponibles
+          <Link href="/" className="btn btn-primary">
+            Volver al inicio
           </Link>
         </div>
       </section>
