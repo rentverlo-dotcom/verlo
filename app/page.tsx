@@ -153,14 +153,6 @@ export default function HomePage() {
           color: rgba(5, 0, 2, 0.72);
         }
 
-        .dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 999px;
-          background: var(--pink-dark);
-          box-shadow: 0 0 0 5px rgba(195, 121, 134, 0.16);
-        }
-
         .hero h1 {
           margin: 22px 0 0;
           font-size: clamp(56px, 8.6vw, 116px);
