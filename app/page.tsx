@@ -739,7 +739,7 @@ export default function HomePage() {
                 <Link className="btn btn-primary" href="/propietario/publicar-v2">
                   Publicar mi propiedad
                 </Link>
-                <Link className="btn btn-secondary" href="/inquilino/registro">
+                <href="/buscar">
                   Busco alquilar
                 </Link>
               </div>
@@ -807,7 +807,7 @@ export default function HomePage() {
                 </div>
 
                 <div style={{ marginTop: 28 }}>
-                  <Link className="btn btn-primary" href="/propietario/publicar">
+                 <href="/propietario/publicar-v2">
                     Publicar propiedad
                   </Link>
                 </div>
@@ -829,7 +829,7 @@ export default function HomePage() {
                 </div>
 
                 <div style={{ marginTop: 28 }}>
-                  <Link className="btn btn-secondary" href="/inquilino/registro">
+                  <href="/buscar">
                     Quiero alquilar
                   </Link>
                 </div>
@@ -925,10 +925,10 @@ export default function HomePage() {
               </p>
 
               <div className="hero-actions" style={{ justifyContent: "center" }}>
-                <Link className="btn btn-primary" href="/propietario/publicar">
+                <href="/propietario/publicar-v2">
                   Publicar propiedad
                 </Link>
-                <Link className="btn btn-secondary" href="/inquilino/registro">
+                <href="/buscar">
                   Busco alquilar
                 </Link>
               </div>
