@@ -4,7 +4,13 @@ import Link from "next/link"
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[#f2ebec] text-[#050002]">
+    <main
+  style={{
+    minHeight: "100vh",
+    background: "#f2ebec",
+    color: "#050002",
+  }}
+>
       <style jsx global>{`
         :root {
           --pink: #f2a8a9;
