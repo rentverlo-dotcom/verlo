@@ -741,14 +741,15 @@ export default function HomePage() {
                 acordar condiciones y firmar un contrato digital con identidad validada.
               </p>
 
-              <div className="hero-actions">
-                <Link className="btn btn-primary" href="/propietario/publicar-v2">
-                  Publicar mi propiedad
-                </Link>
-                <href="/buscar">
-                  Busco alquilar
-                </Link>
-              </div>
+             <div className="hero-actions">
+  <Link className="btn btn-primary" href="/propietario/publicar-v2">
+    Publicar mi propiedad
+  </Link>
+
+  <Link className="btn btn-secondary" href="/buscar">
+    Busco alquilar
+  </Link>
+</div>
 
               <div className="trust-row">
                 <span className="pill">Sin inmobiliarias</span>
@@ -812,11 +813,11 @@ export default function HomePage() {
                   </ul>
                 </div>
 
-                <div style={{ marginTop: 28 }}>
-                 <href="/propietario/publicar-v2">
-                    Publicar propiedad
-                  </Link>
-                </div>
+              <div style={{ marginTop: 28 }}>
+  <Link className="btn btn-primary" href="/propietario/publicar-v2">
+    Publicar propiedad
+  </Link>
+</div>
               </div>
 
               <div className="role-card blue">
