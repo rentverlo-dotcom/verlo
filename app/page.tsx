@@ -932,12 +932,12 @@ export default function HomePage() {
               </p>
 
               <div className="hero-actions" style={{ justifyContent: "center" }}>
-                <href="/propietario/publicar-v2">
-                  Publicar propiedad
-                </Link>
-                <href="/buscar">
-                  Busco alquilar
-                </Link>
+                <Link className="btn btn-primary" href="/propietario/publicar-v2">
+  Publicar propiedad
+</Link>
+               <Link className="btn btn-secondary" href="/buscar">
+  Busco alquilar
+</Link>
               </div>
             </div>
           </div>
