@@ -139,12 +139,12 @@ const steps = [
     title: "Contanos cómo es",
     copy: "Sumá los datos básicos para que el match sea más preciso.",
   },
-  {
-    number: 3,
-    label: "Fotos",
-    title: "Mostrala bien",
-    copy: "Las fotos ayudan a que los inquilinos entiendan rápido si les interesa.",
-  },
+// {
+//   number: 3,
+//   label: "Fotos",
+//   title: "Mostrala bien",
+//   copy: "Las fotos ayudan a que los inquilinos entiendan rápido si les interesa.",
+// },
   {
     number: 4,
     label: "Contacto",
@@ -172,7 +172,7 @@ export default function PublicarPropiedad() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const currentStep = steps.find((s) => s.number === step) ?? steps[0]
-  const progress = (step / 4) * 100
+  const progress = (step / 3) * 100
 
   useEffect(() => {
     localStorage.setItem("property_draft", JSON.stringify(draft))
@@ -1033,7 +1033,7 @@ if (validMedia.length) {
             <section className="form-card">
               <div className="form-head">
                 <div className="step-meta">
-                  <span className="step-pill">Paso {step} de 4</span>
+                  <span className="step-pill">Paso {step} de 3</span>
                   <span className="step-name">{currentStep.label}</span>
                 </div>
 
@@ -1242,6 +1242,7 @@ if (validMedia.length) {
                   </>
                 )}
 
+                {/*
                 {step === 3 && (
                   <>
                     <div className="upload-box">
@@ -1309,7 +1310,9 @@ if (validMedia.length) {
                     </div>
                   </>
                 )}
-
+          
+                */}
+            
                 {step === 4 && (
                   <>
                     <div className="field-grid">
