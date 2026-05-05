@@ -3,10 +3,20 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
+        protocol: "https",
+        hostname: "images.unsplash.com",
       },
     ],
+  },
+
+  async redirects() {
+    return [
+      {
+        source: "/set-password",
+        destination: "/login",
+        permanent: false,
+      },
+    ]
   },
 }
 
