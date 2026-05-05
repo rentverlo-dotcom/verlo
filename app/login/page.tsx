@@ -297,12 +297,7 @@ export default function LoginPage() {
       `}</style>
 
       <section className="login-card">
-        <a href="/" className="brand" aria-label="Verlo">
-          verlo
-          <span className="mark" aria-hidden="true">
-            <span />
-          </span>
-        </a>
+      <VerloBrand width={104} />
 
         <div className="eyebrow">
           <span className="dot" />
