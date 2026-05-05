@@ -146,7 +146,7 @@ const steps = [
 //   copy: "Las fotos ayudan a que los inquilinos entiendan rápido si les interesa.",
 // },
   {
-    number: 4,
+    number: 3,
     label: "Contacto",
     title: "Datos privados",
     copy: "Esta información no se muestra públicamente. Solo se usa para gestionar el proceso.",
