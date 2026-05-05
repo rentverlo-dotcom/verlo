@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase/client"
+import VerloBrand from "@/components/VerloBrand"
 
 declare global {
   interface Window {
@@ -989,12 +990,7 @@ if (validMedia.length) {
       <section className="owner-page">
         <div className="container">
           <div className="brand-row">
-            <a href="/" className="brand" aria-label="Verlo">
-              verlo
-              <span className="mark" aria-hidden="true">
-                <span />
-              </span>
-            </a>
+<VerloBrand width={104} />
 
             <a href="/" className="back-link">
               Volver al inicio
