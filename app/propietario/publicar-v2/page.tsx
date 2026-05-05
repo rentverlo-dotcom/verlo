@@ -416,6 +416,11 @@ if (validMedia.length) {
       localStorage.removeItem("property_draft")
       localStorage.removeItem("property_step")
 
+      trackMetaEvent("Lead_Propietario_FormularioEnviado", {
+  property_id: String(property.id),
+  journey: "propietario",
+  destination: `/propietario/preview/${property.id}`,
+})
       window.location.href = `/propietario/preview/${property.id}`
     } catch (err) {
       console.error(err)
