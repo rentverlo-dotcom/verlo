@@ -26,7 +26,19 @@ export default function VerloBrand({
         }}
       />
 
-      {showText && <span className="brand-text">verlo</span>}
+      {showText && <span
+  style={{
+    fontFamily: "Georgia, 'Times New Roman', serif",
+    fontSize: 32,
+    fontWeight: 500,
+    fontStyle: "italic",
+    letterSpacing: "-0.06em",
+    textTransform: "lowercase",
+    color: "inherit",
+  }}
+>
+  {text}
+</span>}
     </Link>
   )
 }
