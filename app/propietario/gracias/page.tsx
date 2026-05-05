@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 
+declare global {
+  interface Window {
+    fbq?: (...args: any[]) => void
+  }
+}
+
 function Confetti() {
   const [pieces, setPieces] = useState<
     { left: number; delay: number; duration: number; size: number; rotate: number }[]
@@ -40,6 +46,21 @@ function Confetti() {
 }
 
 export default function PropietarioGraciasPage() {
+  useEffect(() => {
+    if (typeof window !== "undefined" && typeof window.fbq === "function") {
+      window.fbq("track", "Lead", {
+        content_name: "Propietario completo",
+        content_category: "propietario",
+      })
+
+      window.fbq("trackCustom", "Lead_Propietario_Gracias_View", {
+        journey: "propietario",
+        step: "gracias",
+        destination: "/propietario/gracias",
+      })
+    }
+  }, [])
+
   return (
     <main className="success-page">
       <style jsx global>{`
@@ -311,7 +332,7 @@ export default function PropietarioGraciasPage() {
         }
       `}</style>
 
-      <Confetti />
+     <Confetti />
 
       <section className="card">
         <Link href="/" className="brand" aria-label="Verlo">
