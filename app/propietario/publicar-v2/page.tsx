@@ -3,6 +3,18 @@
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase/client"
 
+declare global {
+  interface Window {
+    fbq?: (...args: any[]) => void
+  }
+}
+
+function trackMetaEvent(eventName: string, params?: Record<string, string>) {
+  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+    window.fbq("trackCustom", eventName, params)
+  }
+}
+
 function mapFileToMediaType(file: File): "photo" | "video" | "pdf" {
   if (file.type.startsWith("image/")) return "photo"
   if (file.type.startsWith("video/")) return "video"
