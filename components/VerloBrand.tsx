@@ -25,7 +25,7 @@ export default function VerloBrand({
         alignItems: "center",
         gap: 10,
         textDecoration: "none",
-        color: "inherit",
+        color: "#050002",
         lineHeight: 1,
       }}
     >
@@ -50,7 +50,7 @@ export default function VerloBrand({
             fontStyle: "italic",
             letterSpacing: "-0.06em",
             textTransform: "lowercase",
-            color: "inherit",
+            color: "#050002",
           }}
         >
           {text}
