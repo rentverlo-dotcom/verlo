@@ -722,12 +722,7 @@ export default function HomePage() {
  <div className="verlo-page">
         <header className="nav">
           <div className="container nav-inner">
-            <Link href="/" className="brand" aria-label="Verlo">
-              verlo
-              <span className="mark" aria-hidden="true">
-                <span />
-              </span>
-            </Link>
+           <VerloBrand width={112} />
 
             <nav className="nav-links">
               <a href="#como-funciona">Cómo funciona</a>
