@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { supabase } from "@/lib/supabase/client"
+import VerloBrand from "@/components/VerloBrand"
 
 type Role = "tenant" | "owner"
 
