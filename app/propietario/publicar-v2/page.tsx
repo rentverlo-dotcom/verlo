@@ -193,7 +193,7 @@ export default function PublicarPropiedad() {
       return
     }
 
-    if (!data.user.user_metadata?.has_password) {
+      if (!data.user.user_metadata?.has_password) {
       window.location.href = "/set-password"
     }
   })
