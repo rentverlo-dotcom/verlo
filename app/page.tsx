@@ -2,6 +2,18 @@
 
 import Link from "next/link"
 
+declare global {
+  interface Window {
+    fbq?: (...args: any[]) => void
+  }
+}
+
+function trackMetaEvent(eventName: string, params?: Record<string, string>) {
+  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+    window.fbq("trackCustom", eventName, params)
+  }
+}
+
 export default function HomePage() {
   return (
     <main
@@ -11,6 +23,7 @@ export default function HomePage() {
     color: "#050002",
   }}
 >
+
       <style jsx global>{`
         :root {
           --pink: #f2a8a9;
@@ -705,7 +718,7 @@ export default function HomePage() {
         }
       `}</style>
 
-      <div className="verlo-page">
+ <div className="verlo-page">
         <header className="nav">
           <div className="container nav-inner">
             <Link href="/" className="brand" aria-label="Verlo">
@@ -718,7 +731,16 @@ export default function HomePage() {
             <nav className="nav-links">
               <a href="#como-funciona">Cómo funciona</a>
               <a href="#seguridad">Seguridad</a>
-              <a href="#sumate" className="nav-cta">
+              <a
+                href="#sumate"
+                className="nav-cta"
+                onClick={() =>
+                  trackMetaEvent("CTA_Sumate_Click", {
+                    location: "header",
+                    destination: "#sumate",
+                  })
+                }
+              >
                 Sumate
               </a>
             </nav>
@@ -742,11 +764,29 @@ export default function HomePage() {
               </p>
 
              <div className="hero-actions">
-  <Link className="btn btn-primary" href="/propietario/publicar-v2">
+  <Link
+    className="btn btn-primary"
+    href="/propietario/publicar-v2"
+    onClick={() =>
+      trackMetaEvent("CTA_PublicarPropiedad_Click", {
+        location: "hero",
+        destination: "/propietario/publicar-v2",
+      })
+    }
+  >
     Publicar mi propiedad
   </Link>
 
-  <Link className="btn btn-secondary" href="/buscar">
+  <Link
+    className="btn btn-secondary"
+    href="/buscar"
+    onClick={() =>
+      trackMetaEvent("CTA_BuscarAlquiler_Click", {
+        location: "hero",
+        destination: "/buscar",
+      })
+    }
+  >
     Busco alquilar
   </Link>
 </div>
@@ -784,7 +824,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="section" id="sumate">
+    <section className="section" id="sumate">
           <div className="container">
             <div className="section-header">
               <p className="kicker">Validación inicial</p>
@@ -814,13 +854,21 @@ export default function HomePage() {
                 </div>
 
               <div style={{ marginTop: 28 }}>
-  <Link className="btn btn-primary" href="/propietario/publicar-v2">
+  <Link
+    className="btn btn-primary"
+    href="/propietario/publicar-v2"
+    onClick={() =>
+      trackMetaEvent("CTA_PublicarPropiedad_Click", {
+        location: "sumate_propietario_card",
+        destination: "/propietario/publicar-v2",
+      })
+    }
+  >
     Publicar propiedad
   </Link>
 </div>
               </div>
-
-              <div className="role-card blue">
+<div className="role-card blue">
                 <div>
                   <h3>Soy inquilino</h3>
                   <p>
@@ -836,7 +884,16 @@ export default function HomePage() {
                 </div>
 
                <div style={{ marginTop: 28 }}>
-  <Link className="btn btn-secondary" href="/buscar">
+  <Link
+    className="btn btn-secondary"
+    href="/buscar"
+    onClick={() =>
+      trackMetaEvent("CTA_BuscarAlquiler_Click", {
+        location: "sumate_inquilino_card",
+        destination: "/buscar",
+      })
+    }
+  >
     Quiero alquilar
   </Link>
 </div>
@@ -932,10 +989,28 @@ export default function HomePage() {
               </p>
 
               <div className="hero-actions" style={{ justifyContent: "center" }}>
-                <Link className="btn btn-primary" href="/propietario/publicar-v2">
+                <Link
+                  className="btn btn-primary"
+                  href="/propietario/publicar-v2"
+                  onClick={() =>
+                    trackMetaEvent("CTA_PublicarPropiedad_Click", {
+                      location: "final_cta",
+                      destination: "/propietario/publicar-v2",
+                    })
+                  }
+                >
   Publicar propiedad
 </Link>
-               <Link className="btn btn-secondary" href="/buscar">
+               <Link
+                 className="btn btn-secondary"
+                 href="/buscar"
+                 onClick={() =>
+                   trackMetaEvent("CTA_BuscarAlquiler_Click", {
+                     location: "final_cta",
+                     destination: "/buscar",
+                   })
+                 }
+               >
   Busco alquilar
 </Link>
               </div>
@@ -953,9 +1028,39 @@ export default function HomePage() {
             </Link>
 
             <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-              <Link href="/terminos">Términos</Link>
-              <Link href="/privacidad">Privacidad</Link>
-              <Link href="/contacto">Contacto</Link>
+              <Link
+                href="/terminos"
+                onClick={() =>
+                  trackMetaEvent("CTA_Terminos_Click", {
+                    location: "footer",
+                    destination: "/terminos",
+                  })
+                }
+              >
+                Términos
+              </Link>
+              <Link
+                href="/privacidad"
+                onClick={() =>
+                  trackMetaEvent("CTA_Privacidad_Click", {
+                    location: "footer",
+                    destination: "/privacidad",
+                  })
+                }
+              >
+                Privacidad
+              </Link>
+              <Link
+                href="/contacto"
+                onClick={() =>
+                  trackMetaEvent("CTA_Contacto_Click", {
+                    location: "footer",
+                    destination: "/contacto",
+                  })
+                }
+              >
+                Contacto
+              </Link>
             </div>
           </div>
         </footer>
