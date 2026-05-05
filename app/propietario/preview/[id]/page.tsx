@@ -4,6 +4,19 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 
+declare global {
+  interface Window {
+    fbq?: (...args: any[]) => void
+  }
+}
+
+function trackMetaEvent(eventName: string, params?: Record<string, string>) {
+  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+    window.fbq("trackCustom", eventName, params)
+  }
+}
+
+
 type MediaItem = {
   url: string
   type: "photo" | "video" | "pdf"
