@@ -40,14 +40,14 @@ const { error } = await supabase.auth.signInWithOtp({
   },
 })
 
-    if (error) {
-      setError("No se pudo enviar el link. Revisá el email.")
-    } else {
-      setInfo("Te enviamos un link a tu mail para ingresar.")
-    }
+if (error) {
+  setError("No se pudo enviar el link. Revisá el email.")
+} else {
+  setInfo("Te enviamos un link a tu mail para ingresar.")
+}
 
-    setLoading(false)
-  }
+setLoading(false)
+}
 
   return (
     <main className="login-page">
