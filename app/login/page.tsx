@@ -25,17 +25,20 @@ export default function LoginPage() {
     setError(null)
     setInfo(null)
 
-    const redirectTo =
-      role === "owner"
-        ? "https://verlo.lat/propietario/publicar-v2"
-        : "https://verlo.lat/buscar"
+const next =
+  role === "owner"
+    ? "/propietario/publicar-v2"
+    : "/buscar"
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectTo,
-      },
-    })
+const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+
+const { error } = await supabase.auth.signInWithOtp({
+  email,
+  options: {
+    emailRedirectTo: redirectTo,
+    shouldCreateUser: true,
+  },
+})
 
     if (error) {
       setError("No se pudo enviar el link. Revisá el email.")
