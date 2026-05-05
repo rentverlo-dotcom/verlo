@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import VerloBrand from "@/components/VerloBrand"
 
 declare global {
   interface Window {
@@ -335,12 +336,7 @@ export default function PropietarioGraciasPage() {
      <Confetti />
 
       <section className="card">
-        <Link href="/" className="brand" aria-label="Verlo">
-          verlo
-          <span className="mark" aria-hidden="true">
-            <span />
-          </span>
-        </Link>
+      <VerloBrand width={104} />
 
         <div className="badge">
           <span className="dot" />
