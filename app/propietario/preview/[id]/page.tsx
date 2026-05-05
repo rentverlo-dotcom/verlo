@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
+import VerloBrand from "@/components/VerloBrand"
 
 declare global {
   interface Window {
@@ -631,12 +632,7 @@ export default function OwnerPreview() {
 
       <div className="container">
         <div className="topbar">
-          <a href="/" className="brand">
-            verlo
-            <span className="mark" aria-hidden="true">
-              <span />
-            </span>
-          </a>
+         <VerloBrand width={104} />
 
           <div className="top-actions">
             <div className="status-pill">
