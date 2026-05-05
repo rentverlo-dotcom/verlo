@@ -1,17 +1,79 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 import VerloBrand from "@/components/VerloBrand"
 
 type Role = "tenant" | "owner"
 
+const POST_LOGIN_NEXT_KEY = "verlo_post_login_next"
+
+function safeNext(value: string | null) {
+  if (!value) return null
+  if (!value.startsWith("/") || value.startsWith("//")) return "/"
+  return value
+}
+
 export default function LoginPage() {
+  const router = useRouter()
+
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<Role | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+
+  useEffect(() => {
+    function getNext() {
+      const params = new URLSearchParams(window.location.search)
+
+      return safeNext(
+        params.get("next") ||
+          window.localStorage.getItem(POST_LOGIN_NEXT_KEY)
+      )
+    }
+
+    async function redirectIfLoggedIn() {
+      const next = getNext()
+
+      if (!next) return
+
+      const { data } = await supabase.auth.getSession()
+
+      if (data.session) {
+        window.localStorage.removeItem(POST_LOGIN_NEXT_KEY)
+        router.replace(next)
+      }
+    }
+
+    redirectIfLoggedIn()
+
+    const retryOne = window.setTimeout(() => {
+      redirectIfLoggedIn()
+    }, 500)
+
+    const retryTwo = window.setTimeout(() => {
+      redirectIfLoggedIn()
+    }, 1200)
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const next = getNext()
+
+      if (session && next) {
+        window.localStorage.removeItem(POST_LOGIN_NEXT_KEY)
+        router.replace(next)
+      }
+    })
+
+    return () => {
+      window.clearTimeout(retryOne)
+      window.clearTimeout(retryTwo)
+      subscription.unsubscribe()
+    }
+  }, [router])
 
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault()
@@ -25,29 +87,31 @@ export default function LoginPage() {
     setError(null)
     setInfo(null)
 
-const next =
-  role === "owner"
-    ? "/propietario/publicar-v2"
-    : "/buscar"
+    const next =
+      role === "owner"
+        ? "/propietario/publicar-v2"
+        : "/buscar"
 
-const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+    window.localStorage.setItem(POST_LOGIN_NEXT_KEY, next)
 
-const { error } = await supabase.auth.signInWithOtp({
-  email,
-  options: {
-    emailRedirectTo: redirectTo,
-    shouldCreateUser: true,
-  },
-})
+    const redirectTo = `${window.location.origin}/login?next=${encodeURIComponent(next)}`
 
-if (error) {
-  setError("No se pudo enviar el link. Revisá el email.")
-} else {
-  setInfo("Te enviamos un link a tu mail para ingresar.")
-}
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+        shouldCreateUser: true,
+      },
+    })
 
-setLoading(false)
-}
+    if (error) {
+      setError("No se pudo enviar el link. Revisá el email.")
+    } else {
+      setInfo("Te enviamos un link a tu mail para ingresar.")
+    }
+
+    setLoading(false)
+  }
 
   return (
     <main className="login-page">
@@ -300,7 +364,7 @@ setLoading(false)
       `}</style>
 
       <section className="login-card">
-      <VerloBrand width={104} />
+        <VerloBrand width={104} />
 
         <div className="eyebrow">
           <span className="dot" />
