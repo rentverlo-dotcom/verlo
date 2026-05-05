@@ -798,9 +798,17 @@ export default function HomePage() {
               <div className="flower-bg" />
               <div className="phone">
                 <div className="phone-top">
-                  <span className="mini-logo">
-                    verlo <span className="mini-mark" />
-                  </span>
+                 <span className="mini-logo">
+  <img
+    src="/logo-verlo.png"
+    alt="Verlo"
+    style={{
+      width: 64,
+      height: "auto",
+      display: "block",
+    }}
+  />
+</span>
                   <span>● ● ●</span>
                 </div>
 
