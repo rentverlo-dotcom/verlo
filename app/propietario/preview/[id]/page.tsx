@@ -744,9 +744,17 @@ export default function OwnerPreview() {
                 Después podés publicarla para recibir interesados.
               </p>
 
-           <button
+     <button
   className="btn btn-primary"
-  onClick={() => router.push("/propietario/gracias")}
+  onClick={() => {
+    trackMetaEvent("Lead_Propietario_FinalizarCarga_Click", {
+      property_id: String(id),
+      journey: "propietario",
+      destination: "/propietario/gracias",
+    })
+
+    router.push("/propietario/gracias")
+  }}
 >
   Finalizar carga
 </button>
