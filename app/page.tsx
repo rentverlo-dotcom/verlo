@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import VerloBrand from "@/components/VerloBrand"
 
 declare global {
   interface Window {
