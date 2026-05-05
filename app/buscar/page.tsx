@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
+import VerloBrand from "@/components/VerloBrand"
 
 type Draft = {
   province_id?: string
@@ -862,12 +863,7 @@ export default function Buscar() {
       <section className="tenant-shell">
         <div className="container">
           <div className="brand-row">
-            <a href="/" className="brand" aria-label="Verlo">
-              verlo
-              <span className="mark" aria-hidden="true">
-                <span />
-              </span>
-            </a>
+         <VerloBrand width={104} />
 
             <a href="/" className="back-link">
               Volver al inicio
