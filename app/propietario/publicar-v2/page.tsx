@@ -285,7 +285,7 @@ export default function PublicarPropiedad() {
       }
     }
 
-    if (step === 4) {
+    if (step === 3) {
       if (!draft.address || !draft.phone) {
         setErrorMessage("Completá dirección y teléfono para publicar.")
         return false
@@ -297,7 +297,7 @@ export default function PublicarPropiedad() {
 
   function next() {
     if (!validateStep()) return
-    setStep((s) => Math.min(s + 1, 4))
+    setStep((s) => Math.min(s + 1, 3))
   }
 
   function back() {
