@@ -186,15 +186,10 @@ export default function PublicarPropiedad() {
     setProvinces(ARG_PROVINCES)
   }, [])
 
-  useEffect(() => {
-  supabase.auth.getUser().then(({ data }) => {
-    if (!data.user) {
+useEffect(() => {
+  supabase.auth.getSession().then(({ data }) => {
+    if (!data.session) {
       window.location.href = "/login?next=/propietario/publicar-v2"
-      return
-    }
-
-      if (!data.user.user_metadata?.has_password) {
-      window.location.href = "/set-password"
     }
   })
 }, [])
