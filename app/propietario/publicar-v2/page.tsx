@@ -139,31 +139,63 @@ const steps = [
     title: "Contanos cómo es",
     copy: "Sumá los datos básicos para que el match sea más preciso.",
   },
-// {
-//   number: 3,
-//   label: "Fotos",
-//   title: "Mostrala bien",
-//   copy: "Las fotos ayudan a que los inquilinos entiendan rápido si les interesa.",
-// },
   {
     number: 3,
+    label: "Fotos",
+    title: "Mostrala bien",
+    copy: "Las fotos ayudan a que los inquilinos entiendan rápido si les interesa.",
+  },
+  {
+    number: 4,
     label: "Contacto",
     title: "Datos privados",
     copy: "Esta información no se muestra públicamente. Solo se usa para gestionar el proceso.",
   },
 ]
 
+const TOTAL_STEPS = steps.length
+
+function normalizeStep(value: unknown) {
+  const parsed = Number(value)
+
+  if (!Number.isFinite(parsed)) return 1
+  if (parsed < 1) return 1
+  if (parsed > TOTAL_STEPS) return TOTAL_STEPS
+
+  return parsed
+}
+
+function loadDraftFromStorage(): Draft {
+  if (typeof window === "undefined") return {}
+
+  try {
+    const parsed = JSON.parse(localStorage.getItem("property_draft") || "{}")
+
+    // Los File no se pueden restaurar desde localStorage.
+    // Si había basura vieja de media serializada como {}, la limpiamos.
+    delete parsed.media
+
+    return parsed
+  } catch {
+    return {}
+  }
+}
+
 export default function PublicarPropiedad() {
   const [step, setStep] = useState<number>(() => {
     if (typeof window === "undefined") return 1
+
     const savedStep = localStorage.getItem("property_step")
-    return savedStep ? Number(savedStep) : 1
+    const normalizedStep = normalizeStep(savedStep)
+
+    if (savedStep && Number(savedStep) !== normalizedStep) {
+      localStorage.setItem("property_step", String(normalizedStep))
+    }
+
+    return normalizedStep
   })
 
-  const [draft, setDraft] = useState<Draft>(() => {
-    if (typeof window === "undefined") return {}
-    return JSON.parse(localStorage.getItem("property_draft") || "{}")
-  })
+  const [draft, setDraft] = useState<Draft>(() => loadDraftFromStorage())
 
   const [provinces, setProvinces] = useState<any[]>([])
   const [municipalities, setMunicipalities] = useState<any[]>([])
@@ -172,27 +204,37 @@ export default function PublicarPropiedad() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const currentStep = steps.find((s) => s.number === step) ?? steps[0]
-  const progress = (step / 3) * 100
+  const progress = (step / TOTAL_STEPS) * 100
 
   useEffect(() => {
-    localStorage.setItem("property_draft", JSON.stringify(draft))
+    const draftToStore = { ...draft }
+    delete draftToStore.media
+
+    localStorage.setItem("property_draft", JSON.stringify(draftToStore))
   }, [draft])
 
   useEffect(() => {
-    localStorage.setItem("property_step", String(step))
+    const normalizedStep = normalizeStep(step)
+
+    if (normalizedStep !== step) {
+      setStep(normalizedStep)
+      return
+    }
+
+    localStorage.setItem("property_step", String(normalizedStep))
   }, [step])
 
   useEffect(() => {
     setProvinces(ARG_PROVINCES)
   }, [])
 
-useEffect(() => {
-  supabase.auth.getSession().then(({ data }) => {
-    if (!data.session) {
-      window.location.href = "/login?next=/propietario/publicar-v2"
-    }
-  })
-}, [])
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        window.location.href = "/login?next=/propietario/publicar-v2"
+      }
+    })
+  }, [])
 
   useEffect(() => {
     if (!draft.province_id) {
@@ -201,18 +243,18 @@ useEffect(() => {
       return
     }
 
-   if (draft.province_id === "02") {
-  setMunicipalities([CABA_MUNICIPALITY])
-  setNeighborhoods(CABA_BARRIOS)
+    if (draft.province_id === "02") {
+      setMunicipalities([CABA_MUNICIPALITY])
+      setNeighborhoods(CABA_BARRIOS)
 
-  setDraft((prev) => ({
-    ...prev,
-    municipality_id: prev.municipality_id || CABA_MUNICIPALITY.id,
-    neighborhood_id: prev.neighborhood_id,
-  }))
+      setDraft((prev) => ({
+        ...prev,
+        municipality_id: prev.municipality_id || CABA_MUNICIPALITY.id,
+        neighborhood_id: prev.neighborhood_id,
+      }))
 
-  return
-}
+      return
+    }
 
     const province = ARG_PROVINCES.find(
       (p) => String(p.id) === String(draft.province_id)
@@ -280,7 +322,7 @@ useEffect(() => {
       }
     }
 
-    if (step === 3) {
+    if (step === 4) {
       if (!draft.address || !draft.phone) {
         setErrorMessage("Completá dirección y teléfono para publicar.")
         return false
@@ -292,7 +334,7 @@ useEffect(() => {
 
   function next() {
     if (!validateStep()) return
-    setStep((s) => Math.min(s + 1, 3))
+    setStep((s) => Math.min(s + 1, TOTAL_STEPS))
   }
 
   function back() {
@@ -310,7 +352,7 @@ useEffect(() => {
       const { data: auth } = await supabase.auth.getUser()
 
       if (!auth.user) {
-        window.location.href = "/login"
+        window.location.href = "/login?next=/propietario/publicar-v2"
         return
       }
 
@@ -365,43 +407,43 @@ useEffect(() => {
         return
       }
 
-  const validMedia = (draft.media || []).filter(
-  (file): file is File =>
-    typeof File !== "undefined" &&
-    file instanceof File &&
-    typeof file.name === "string"
-)
+      const validMedia = (draft.media || []).filter(
+        (file): file is File =>
+          typeof File !== "undefined" &&
+          file instanceof File &&
+          typeof file.name === "string"
+      )
 
-if (validMedia.length) {
-  for (let i = 0; i < validMedia.length; i++) {
-    const file = validMedia[i]
-    const extension = file.name.split(".").pop() || "jpg"
-    const path = `${property.id}/${crypto.randomUUID()}.${extension}`
+      if (validMedia.length) {
+        for (let i = 0; i < validMedia.length; i++) {
+          const file = validMedia[i]
+          const extension = file.name.split(".").pop() || "jpg"
+          const path = `${property.id}/${crypto.randomUUID()}.${extension}`
 
-    const { error: uploadError } = await supabase.storage
-      .from("media")
-      .upload(path, file, {
-        cacheControl: "3600",
-        upsert: false,
-      })
+          const { error: uploadError } = await supabase.storage
+            .from("media")
+            .upload(path, file, {
+              cacheControl: "3600",
+              upsert: false,
+            })
 
-    if (uploadError) {
-      console.error(uploadError)
-      continue
-    }
+          if (uploadError) {
+            console.error(uploadError)
+            continue
+          }
 
-    const { error: mediaError } = await supabase
-      .from("property_media")
-      .insert({
-        property_id: property.id,
-        type: mapFileToMediaType(file),
-        url: path,
-        position: i,
-      })
+          const { error: mediaError } = await supabase
+            .from("property_media")
+            .insert({
+              property_id: property.id,
+              type: mapFileToMediaType(file),
+              url: path,
+              position: i,
+            })
 
-    if (mediaError) console.error(mediaError)
-  }
-}
+          if (mediaError) console.error(mediaError)
+        }
+      }
 
       const { error: privateError } = await supabase
         .from("property_private")
@@ -425,10 +467,11 @@ if (validMedia.length) {
       localStorage.removeItem("property_step")
 
       trackMetaEvent("Lead_Propietario_FormularioEnviado", {
-  property_id: String(property.id),
-  journey: "propietario",
-  destination: `/propietario/preview/${property.id}`,
-})
+        property_id: String(property.id),
+        journey: "propietario",
+        destination: `/propietario/preview/${property.id}`,
+      })
+
       window.location.href = `/propietario/preview/${property.id}`
     } catch (err) {
       console.error(err)
@@ -985,7 +1028,7 @@ if (validMedia.length) {
       <section className="owner-page">
         <div className="container">
           <div className="brand-row">
-<VerloBrand width={104} />
+            <VerloBrand width={104} />
 
             <a href="/" className="back-link">
               Volver al inicio
@@ -1028,7 +1071,9 @@ if (validMedia.length) {
             <section className="form-card">
               <div className="form-head">
                 <div className="step-meta">
-                  <span className="step-pill">Paso {step} de 3</span>
+                  <span className="step-pill">
+                    Paso {step} de {TOTAL_STEPS}
+                  </span>
                   <span className="step-name">{currentStep.label}</span>
                 </div>
 
@@ -1237,7 +1282,6 @@ if (validMedia.length) {
                   </>
                 )}
 
-                {/*
                 {step === 3 && (
                   <>
                     <div className="upload-box">
@@ -1305,9 +1349,7 @@ if (validMedia.length) {
                     </div>
                   </>
                 )}
-          
-                */}
-            
+
                 {step === 4 && (
                   <>
                     <div className="field-grid">
@@ -1428,3 +1470,4 @@ if (validMedia.length) {
     </main>
   )
 }
+
