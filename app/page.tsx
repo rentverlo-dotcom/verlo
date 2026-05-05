@@ -1016,12 +1016,7 @@ export default function HomePage() {
 
         <footer className="footer">
           <div className="container footer-inner">
-            <Link href="/" className="brand" aria-label="Verlo">
-              verlo
-              <span className="mark" aria-hidden="true">
-                <span />
-              </span>
-            </Link>
+           <VerloBrand width={96} />
 
             <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
               <Link
