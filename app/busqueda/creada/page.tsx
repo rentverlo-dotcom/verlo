@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import VerloBrand from "@/components/VerloBrand"
 
 function Confetti() {
   const [pieces, setPieces] = useState<
@@ -314,12 +315,7 @@ export default function BusquedaCreadaPage() {
       <Confetti />
 
       <section className="card">
-        <Link href="/" className="brand" aria-label="Verlo">
-          verlo
-          <span className="mark" aria-hidden="true">
-            <span />
-          </span>
-        </Link>
+    <VerloBrand width={104} />
 
         <div className="badge">
           <span className="dot" />
