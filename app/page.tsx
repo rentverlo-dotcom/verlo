@@ -762,7 +762,7 @@ export default function HomePage() {
              <div className="hero-actions">
   <Link
     className="btn btn-primary"
-    href="/propietario/publicar-v2"
+   href="/login?role=owner&next=%2Fpropietario%2Fpublicar-v2"
     onClick={() =>
       trackMetaEvent("CTA_PublicarPropiedad_Click", {
         location: "hero",
@@ -860,7 +860,7 @@ export default function HomePage() {
               <div style={{ marginTop: 28 }}>
   <Link
     className="btn btn-primary"
-    href="/propietario/publicar-v2"
+   href="/login?role=owner&next=%2Fpropietario%2Fpublicar-v2"
     onClick={() =>
       trackMetaEvent("CTA_PublicarPropiedad_Click", {
         location: "sumate_propietario_card",
@@ -995,7 +995,7 @@ export default function HomePage() {
               <div className="hero-actions" style={{ justifyContent: "center" }}>
                 <Link
                   className="btn btn-primary"
-                  href="/propietario/publicar-v2"
+                  href="/login?role=owner&next=%2Fpropietario%2Fpublicar-v2"
                   onClick={() =>
                     trackMetaEvent("CTA_PublicarPropiedad_Click", {
                       location: "final_cta",
