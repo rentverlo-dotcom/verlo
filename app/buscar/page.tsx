@@ -273,40 +273,49 @@ export default function Buscar() {
     })
   }
 
-  function validateStep() {
-    setErrorMessage(null)
+function validateStep() {
+  setErrorMessage(null)
 
-    if (step === 1) {
-      if (!municipalityName || draft.min_price == null || draft.max_price == null) {
-        setErrorMessage("Completá ciudad y presupuesto para continuar.")
-        return false
-      }
-
-      if (Number(draft.min_price) > Number(draft.max_price)) {
-        setErrorMessage("El presupuesto mínimo no puede ser mayor al máximo.")
-        return false
-      }
+  if (step === 1) {
+    if (!municipalityName || draft.min_price == null || draft.max_price == null) {
+      setErrorMessage("Completá ciudad y presupuesto para continuar.")
+      return false
     }
 
-    if (step === 2) {
-      if (!draft.preferred_property_types?.length) {
-        setErrorMessage("Elegí al menos un tipo de propiedad.")
-        return false
-      }
+    if (Number(draft.min_price) > Number(draft.max_price)) {
+      setErrorMessage("El presupuesto mínimo no puede ser mayor al máximo.")
+      return false
     }
 
-    return true
+    if (
+      draft.min_rooms != null &&
+      draft.max_rooms != null &&
+      Number(draft.min_rooms) > Number(draft.max_rooms)
+    ) {
+      setErrorMessage("Los ambientes mínimos no pueden ser mayores al máximo.")
+      return false
+    }
   }
 
-  function next() {
-    if (!validateStep()) return
-    setStep((s) => Math.min(s + 1, 3))
+  if (step === 2) {
+    if (!draft.preferred_property_types?.length) {
+      setErrorMessage("Elegí al menos un tipo de propiedad.")
+      return false
+    }
   }
 
-  function back() {
-    setErrorMessage(null)
-    setStep((s) => Math.max(s - 1, 1))
-  }
+  return true
+}
+
+function next() {
+  if (!validateStep()) return
+  setStep((s) => Math.min(s + 1, 3))
+}
+
+function back() {
+  setErrorMessage(null)
+  setStep((s) => Math.max(s - 1, 1))
+}
 
   async function submitDemand() {
     if (!validateStep()) return
