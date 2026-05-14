@@ -15,6 +15,10 @@ type Draft = {
   min_price?: number
   max_price?: number
 
+  
+min_rooms?: number
+max_rooms?: number
+
   preferred_property_types?: string[]
   preferred_durations?: string[]
 
