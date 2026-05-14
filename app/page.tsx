@@ -746,9 +746,9 @@ export default function HomePage() {
         <section className="hero">
           <div className="container hero-grid">
             <div>
-              <div className="eyebrow">
+              {/*<div className="eyebrow">
                 Alquiler directo entre personas reales
-              </div>
+              </div>*/}
 
               <h1>
                 Matcheá con tu <em>futura casa.</em>
