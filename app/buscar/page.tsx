@@ -336,6 +336,8 @@ export default function Buscar() {
         zone: neighborhoodName ?? null,
         min_price: draft.min_price,
         max_price: draft.max_price,
+        min_rooms: draft.min_rooms ?? null,
+        max_rooms: draft.max_rooms ?? null,
         preferred_property_types: draft.preferred_property_types ?? [],
         preferred_durations: draft.preferred_durations?.length
           ? draft.preferred_durations
