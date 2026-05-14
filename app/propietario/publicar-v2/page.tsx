@@ -316,12 +316,12 @@ export default function PublicarPropiedad() {
       }
     }
 
-    if (step === 2) {
-      if (!draft.type || !draft.description) {
-        setErrorMessage("Completá tipo de propiedad y una descripción.")
-        return false
-      }
-    }
+  if (step === 2) {
+  if (!draft.type || !draft.rooms || !draft.description) {
+    setErrorMessage("Completá tipo, ambientes y descripción.")
+    return false
+  }
+}
 
     if (step === 4) {
       if (!draft.address || !draft.phone) {
