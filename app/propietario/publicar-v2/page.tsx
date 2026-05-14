@@ -392,6 +392,7 @@ export default function PublicarPropiedad() {
           short_description: draft.description ?? null,
           description: draft.description ?? null,
           sqm: draft.sqm ?? null,
+          rooms: draft.rooms ?? null,
           furnished: draft.furnished ?? false,
           pets_allowed: draft.pets ?? false,
           publish_status: "draft",
