@@ -41,6 +41,7 @@ type Draft = {
   email?: string
   description?: string
   sqm?: number
+  rooms?: number
 }
 
 const ARG_PROVINCES = [
@@ -1224,6 +1225,23 @@ export default function PublicarPropiedad() {
                           }
                         />
                       </div>
+
+                      <div className="field">
+  <label>Ambientes</label>
+  <input
+    className="input"
+    type="number"
+    min={1}
+    placeholder="Ej: 3"
+    value={draft.rooms || ""}
+    onChange={(e) =>
+      setDraft((d) => ({
+        ...d,
+        rooms: e.target.value ? Number(e.target.value) : undefined,
+      }))
+    }
+  />
+</div>
 
                       <div className="field">
                         <label>Descripción</label>
