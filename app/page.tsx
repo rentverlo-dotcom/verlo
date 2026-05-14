@@ -791,7 +791,7 @@ export default function HomePage() {
                 <span className="pill">Sin inmobiliarias</span>
                 <span className="pill">Identidad validada</span>
                 <span className="pill">Contrato digital</span>
-                <span className="pill">Primeros 1000 inquilinos, sin costo</span>
+                <span className="pill">Primeros 500 inquilinos, sin costo</span>
               </div>
             </div>
 
