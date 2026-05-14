@@ -1032,6 +1032,42 @@ export default function Buscar() {
 
                     {errorMessage && <div className="error">{errorMessage}</div>}
 
+                    <div className="field two-cols">
+  <div className="field">
+    <label>Ambientes mínimos</label>
+    <input
+      className="input"
+      type="number"
+      min={1}
+      placeholder="Ej: 2"
+      value={draft.min_rooms ?? ""}
+      onChange={(e) =>
+        setDraft((d) => ({
+          ...d,
+          min_rooms: e.target.value ? Number(e.target.value) : undefined,
+        }))
+      }
+    />
+  </div>
+
+  <div className="field">
+    <label>Ambientes máximos</label>
+    <input
+      className="input"
+      type="number"
+      min={1}
+      placeholder="Ej: 4"
+      value={draft.max_rooms ?? ""}
+      onChange={(e) =>
+        setDraft((d) => ({
+          ...d,
+          max_rooms: e.target.value ? Number(e.target.value) : undefined,
+        }))
+      }
+    />
+  </div>
+</div>
+
                     <div className="actions">
                       <span />
                       <button className="btn btn-primary" onClick={next}>
