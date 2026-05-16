@@ -480,7 +480,7 @@ export default function PublicarPropiedad() {
     journey: "propietario",
     destination: `/propietario/preview/${property.id}`,
   })
-}  `
+}  
 
       window.location.href = `/propietario/preview/${property.id}`
     } catch (err) {
