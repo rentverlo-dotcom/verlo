@@ -47,6 +47,64 @@ const properties = [
   },
 ]
 
+function FakeDniScreen() {
+  return (
+    <div className="dni-screen">
+      <span className="screen-kicker">
+        <span className="dot" />
+        Verificación segura
+      </span>
+
+      <h2 className="screen-title">
+        Subí tu documento
+      </h2>
+
+      <p className="screen-copy">
+        Sacá una foto clara del frente y dorso. Usamos esto para validar identidad antes de avanzar.
+      </p>
+
+      <div className="dni-card">
+        <div className="dni-top">
+          <span>DOCUMENTO</span>
+          <strong>VERLO ID</strong>
+        </div>
+
+        <div className="dni-body">
+          <div className="dni-photo" />
+          <div className="dni-lines">
+            <span />
+            <span />
+            <span />
+            <span className="short" />
+          </div>
+        </div>
+
+        <div className="dni-bottom">
+          <span>Nombre</span>
+          <strong>Persona Validada</strong>
+        </div>
+      </div>
+
+      <div className="scan-box">
+        <div className="scan-corners">
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+
+        <div className="scan-line" />
+
+        <p>Enfocá el frente del documento</p>
+      </div>
+
+      <button className="cta-button">
+        Sacar foto del DNI
+      </button>
+    </div>
+  )
+}
+
 export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
   if (!MOCKUP_KEY || searchParams.key !== MOCKUP_KEY) {
     notFound()
@@ -498,7 +556,178 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
             min-height: auto;
           }
         }
-      `}</style>
+      `}
+      .dni-screen {
+  height: 100%;
+  display: grid;
+  align-content: start;
+}
+
+.dni-card {
+  margin-top: 24px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(242, 168, 169, 0.55), transparent 24%),
+    linear-gradient(135deg, #ffffff, #f2ebec);
+  border: 1px solid rgba(5, 0, 2, 0.1);
+  padding: 18px;
+  box-shadow: 0 18px 40px rgba(5, 0, 2, 0.08);
+}
+
+.dni-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 950;
+  color: rgba(5, 0, 2, 0.55);
+  letter-spacing: 0.08em;
+}
+
+.dni-top strong {
+  color: var(--black);
+  letter-spacing: 0;
+}
+
+.dni-body {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.dni-photo {
+  width: 72px;
+  height: 86px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(5, 0, 2, 0.82), transparent 18%),
+    radial-gradient(circle at 50% 68%, rgba(5, 0, 2, 0.82), transparent 24%),
+    rgba(242, 168, 169, 0.55);
+}
+
+.dni-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.dni-lines span {
+  display: block;
+  height: 11px;
+  border-radius: 999px;
+  background: rgba(5, 0, 2, 0.16);
+}
+
+.dni-lines .short {
+  width: 62%;
+}
+
+.dni-bottom {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(5, 0, 2, 0.08);
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 12px;
+  color: rgba(5, 0, 2, 0.55);
+}
+
+.dni-bottom strong {
+  color: var(--black);
+}
+
+.scan-box {
+  position: relative;
+  margin-top: 22px;
+  height: 150px;
+  border-radius: 26px;
+  background: rgba(5, 0, 2, 0.92);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: white;
+}
+
+.scan-box p {
+  position: relative;
+  z-index: 3;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.scan-corners span {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-color: var(--pink);
+  border-style: solid;
+  z-index: 2;
+}
+
+.scan-corners span:nth-child(1) {
+  top: 18px;
+  left: 18px;
+  border-width: 4px 0 0 4px;
+  border-radius: 10px 0 0 0;
+}
+
+.scan-corners span:nth-child(2) {
+  top: 18px;
+  right: 18px;
+  border-width: 4px 4px 0 0;
+  border-radius: 0 10px 0 0;
+}
+
+.scan-corners span:nth-child(3) {
+  bottom: 18px;
+  left: 18px;
+  border-width: 0 0 4px 4px;
+  border-radius: 0 0 0 10px;
+}
+
+.scan-corners span:nth-child(4) {
+  bottom: 18px;
+  right: 18px;
+  border-width: 0 4px 4px 0;
+  border-radius: 0 0 10px 0;
+}
+
+.scan-line {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--pink);
+  box-shadow: 0 0 22px rgba(242, 168, 169, 0.9);
+  animation: scanMove 2.1s infinite ease-in-out;
+}
+
+@keyframes scanMove {
+  0% {
+    top: 24px;
+    opacity: 0.2;
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  50% {
+    top: 122px;
+    opacity: 1;
+  }
+
+  100% {
+    top: 24px;
+    opacity: 0.2;
+  }
+}
+      </style>
 
       <div className="lab-shell">
         <header className="lab-header">
