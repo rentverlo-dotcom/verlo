@@ -555,8 +555,8 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
           .phone-stage {
             min-height: auto;
           }
+             
         }
-      `}
       .dni-screen {
   height: 100%;
   display: grid;
@@ -727,6 +727,7 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
     opacity: 0.2;
   }
 }
+'}
       </style>
 
       <div className="lab-shell">
