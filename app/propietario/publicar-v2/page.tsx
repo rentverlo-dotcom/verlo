@@ -468,7 +468,7 @@ export default function PublicarPropiedad() {
       localStorage.removeItem("property_draft")
       localStorage.removeItem("property_step")
 
-   if (typeof window !== "undefined" && typeof window.fbq === "function") {
+if (typeof window !== "undefined" && typeof window.fbq === "function") {
   window.fbq("track", "Lead", {
     content_name: "Propietario formulario enviado",
     content_category: "propietario",
@@ -480,7 +480,9 @@ export default function PublicarPropiedad() {
     journey: "propietario",
     destination: `/propietario/preview/${property.id}`,
   })
-}  
+}
+
+window.location.href = `/propietario/preview/${property.id}`
 
       window.location.href = `/propietario/preview/${property.id}`
     } catch (err) {
