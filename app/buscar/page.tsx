@@ -366,6 +366,19 @@ function back() {
       localStorage.removeItem("demand_draft")
       localStorage.removeItem("demand_step")
 
+      
+    if (typeof window !== "undefined" && typeof window.fbq === "function") {
+  window.fbq("track", "Lead", {
+    content_name: "Inquilino búsqueda creada",
+    content_category: "inquilino",
+  })
+
+  window.fbq("trackCustom", "Lead_Inquilino_FormularioEnviado", {
+    journey: "inquilino",
+    destination: "/busqueda/creada",
+  })
+}
+      
       window.location.href = "/busqueda/creada"
     } catch (err) {
       console.error(err)
