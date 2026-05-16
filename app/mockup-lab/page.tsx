@@ -9,6 +9,30 @@ type MockupLabPageProps = {
 
 const MOCKUP_KEY = process.env.MOCKUP_LAB_KEY
 
+const properties = [
+  {
+    title: "Palermo, 3 amb.",
+    price: "$720.000",
+    match: "97% compatible",
+    image:
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1200&auto=format&fit=crop",
+  },
+  {
+    title: "Recoleta, 2 amb.",
+    price: "$590.000",
+    match: "94% compatible",
+    image:
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1200&auto=format&fit=crop",
+  },
+  {
+    title: "Belgrano, 4 amb.",
+    price: "$980.000",
+    match: "91% compatible",
+    image:
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
+  },
+]
+
 export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
   if (!MOCKUP_KEY || searchParams.key !== MOCKUP_KEY) {
     notFound()
@@ -38,12 +62,13 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
         .mockup-lab {
           min-height: 100vh;
           background:
-            radial-gradient(circle at 15% 20%, rgba(242, 168, 169, 0.7), transparent 28%),
-            radial-gradient(circle at 85% 18%, rgba(231, 199, 118, 0.45), transparent 24%),
-            radial-gradient(circle at 78% 82%, rgba(116, 190, 220, 0.34), transparent 26%),
+            radial-gradient(circle at 15% 20%, rgba(242, 168, 169, 0.72), transparent 28%),
+            radial-gradient(circle at 86% 20%, rgba(231, 199, 118, 0.45), transparent 24%),
+            radial-gradient(circle at 78% 82%, rgba(116, 190, 220, 0.38), transparent 26%),
             var(--soft);
           color: var(--black);
-          padding: 40px 24px 80px;
+          padding: 34px 24px 80px;
+          overflow: hidden;
         }
 
         .lab-shell {
@@ -61,7 +86,7 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
 
         .lab-tag {
           border: 1px solid rgba(5, 0, 2, 0.1);
-          background: rgba(255, 255, 255, 0.55);
+          background: rgba(255, 255, 255, 0.58);
           border-radius: 999px;
           padding: 10px 14px;
           font-size: 13px;
@@ -71,16 +96,17 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
 
         .hero {
           display: grid;
-          grid-template-columns: 0.92fr 1.08fr;
-          gap: 44px;
+          grid-template-columns: 0.9fr 1.1fr;
+          gap: 52px;
           align-items: center;
         }
 
         .copy-card {
           border-radius: 42px;
-          padding: 44px;
+          padding: 46px;
           background: rgba(255, 255, 255, 0.58);
           border: 1px solid rgba(5, 0, 2, 0.08);
+          box-shadow: 0 24px 80px rgba(5, 0, 2, 0.06);
         }
 
         .eyebrow {
@@ -107,8 +133,8 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
 
         h1 {
           margin: 24px 0 0;
-          font-size: clamp(48px, 6vw, 88px);
-          line-height: 0.9;
+          font-size: clamp(50px, 6.3vw, 92px);
+          line-height: 0.88;
           letter-spacing: -0.085em;
           font-weight: 950;
         }
@@ -156,12 +182,27 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
         }
 
         .phone-stage {
-          min-height: 680px;
+          min-height: 720px;
           display: grid;
           place-items: center;
+          position: relative;
+        }
+
+        .phone-stage::before {
+          content: "";
+          position: absolute;
+          width: 520px;
+          height: 520px;
+          border-radius: 999px;
+          background:
+            radial-gradient(circle at 30% 35%, rgba(242, 168, 169, 0.9), transparent 25%),
+            radial-gradient(circle at 70% 70%, rgba(116, 190, 220, 0.7), transparent 25%);
+          filter: blur(2px);
+          opacity: 0.75;
         }
 
         .phone {
+          position: relative;
           width: min(390px, 86vw);
           height: 720px;
           border: 10px solid var(--black);
@@ -169,7 +210,6 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
           background: #fbf8f5;
           box-shadow: 0 28px 90px rgba(5, 0, 2, 0.24);
           overflow: hidden;
-          position: relative;
         }
 
         .phone-top {
@@ -194,19 +234,13 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
 
         .screen {
           height: calc(100% - 74px);
-          padding: 24px;
-          display: grid;
-          align-content: start;
+          padding: 18px 20px 24px;
+          display: flex;
+          flex-direction: column;
         }
 
-        .screen-card {
-          border-radius: 32px;
-          padding: 26px;
-          background:
-            radial-gradient(circle at 88% 92%, rgba(116, 190, 220, 0.32), transparent 34%),
-            rgba(255, 255, 255, 0.82);
-          border: 1px solid rgba(5, 0, 2, 0.08);
-          min-height: 560px;
+        .screen-head {
+          margin-bottom: 14px;
         }
 
         .screen-kicker {
@@ -222,105 +256,223 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
         }
 
         .screen-title {
-          margin: 22px 0 0;
-          font-size: 42px;
+          margin: 14px 0 0;
+          font-size: 34px;
           line-height: 0.92;
           letter-spacing: -0.07em;
           font-weight: 950;
         }
 
-        .screen-copy {
-          margin: 16px 0 0;
-          color: rgba(5, 0, 2, 0.62);
-          font-size: 15px;
-          line-height: 1.45;
+        .card-area {
+          position: relative;
+          flex: 1;
+          margin-top: 16px;
         }
 
-        .id-box {
-          margin-top: 28px;
-          border-radius: 26px;
-          background: var(--black);
+        .property-card {
+          position: absolute;
+          inset: 0;
+          border-radius: 32px;
+          overflow: hidden;
+          background: #ddd;
+          box-shadow: 0 22px 60px rgba(5, 0, 2, 0.18);
+          transform-origin: 50% 90%;
+          opacity: 0;
+        }
+
+        .property-card:nth-child(1) {
+          animation: swipeOne 7.2s infinite;
+          z-index: 3;
+        }
+
+        .property-card:nth-child(2) {
+          animation: swipeTwo 7.2s infinite;
+          z-index: 2;
+        }
+
+        .property-card:nth-child(3) {
+          animation: swipeThree 7.2s infinite;
+          z-index: 1;
+        }
+
+        .property-image {
+          position: absolute;
+          inset: 0;
+          background-size: cover;
+          background-position: center;
+        }
+
+        .property-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to bottom, rgba(5,0,2,0.02) 35%, rgba(5,0,2,0.86));
+        }
+
+        .property-content {
+          position: absolute;
+          left: 22px;
+          right: 22px;
+          bottom: 24px;
+          z-index: 2;
           color: white;
-          padding: 22px;
-          display: grid;
-          gap: 14px;
         }
 
-        .id-row {
+        .property-content h3 {
+          margin: 0;
+          font-size: 34px;
+          line-height: 0.95;
+          letter-spacing: -0.06em;
+        }
+
+        .property-meta {
           display: flex;
           align-items: center;
-          gap: 12px;
+          justify-content: space-between;
+          gap: 10px;
+          margin-top: 14px;
         }
 
-        .id-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 16px;
-          background: var(--pink);
-          color: var(--black);
-          display: grid;
-          place-items: center;
-          font-size: 22px;
+        .price {
+          font-size: 16px;
           font-weight: 950;
         }
 
-        .id-row strong {
-          display: block;
-          font-size: 15px;
-        }
-
-        .id-row span {
-          display: block;
-          margin-top: 3px;
-          color: rgba(255, 255, 255, 0.66);
-          font-size: 13px;
-        }
-
-        .selfie-frame {
-          margin-top: 24px;
-          height: 210px;
-          border-radius: 30px;
-          background:
-            radial-gradient(circle at 50% 38%, rgba(242, 168, 169, 0.8), transparent 18%),
-            radial-gradient(circle at 50% 54%, rgba(5, 0, 2, 0.9), transparent 17%),
-            linear-gradient(135deg, #f2ebec, #ffffff);
-          border: 1px solid rgba(5, 0, 2, 0.08);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .selfie-frame::after {
-          content: "Video selfie";
-          position: absolute;
-          left: 50%;
-          bottom: 18px;
-          transform: translateX(-50%);
-          padding: 9px 13px;
+        .match {
+          padding: 8px 10px;
           border-radius: 999px;
-          background: rgba(5, 0, 2, 0.9);
-          color: white;
+          background: var(--pink);
+          color: var(--black);
           font-size: 12px;
           font-weight: 950;
         }
 
-        .cta-button {
-          margin-top: 26px;
-          width: 100%;
-          height: 54px;
-          border: 0;
+        .stamp {
+          position: absolute;
+          top: 26px;
+          right: 22px;
+          z-index: 4;
+          padding: 10px 13px;
+          border: 4px solid var(--pink);
+          border-radius: 16px;
+          color: var(--pink);
+          background: rgba(255, 255, 255, 0.84);
+          font-weight: 950;
+          font-size: 18px;
+          transform: rotate(8deg);
+          opacity: 0;
+        }
+
+        .property-card:nth-child(1) .stamp {
+          animation: stampLike 7.2s infinite;
+        }
+
+        .actions {
+          display: flex;
+          justify-content: center;
+          gap: 18px;
+          margin-top: 20px;
+        }
+
+        .round-action {
+          width: 62px;
+          height: 62px;
           border-radius: 999px;
-          background: var(--black);
-          color: white;
-          font-size: 15px;
+          border: 1px solid rgba(5, 0, 2, 0.08);
+          background: white;
+          display: grid;
+          place-items: center;
+          font-size: 26px;
+          box-shadow: 0 14px 30px rgba(5, 0, 2, 0.08);
           font-weight: 950;
         }
 
-        .slide-label {
-          margin-top: 26px;
-          text-align: center;
-          color: rgba(5, 0, 2, 0.48);
-          font-size: 13px;
-          font-weight: 900;
+        .round-action.like {
+          background: var(--pink);
+        }
+
+        @keyframes swipeOne {
+          0% {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg) scale(1);
+          }
+          18% {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg) scale(1);
+          }
+          32% {
+            opacity: 0;
+            transform: translateX(135%) rotate(16deg) scale(0.95);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(135%) rotate(16deg) scale(0.95);
+          }
+        }
+
+        @keyframes swipeTwo {
+          0% {
+            opacity: 1;
+            transform: translateX(0) rotate(-2deg) scale(0.95);
+          }
+          30% {
+            opacity: 1;
+            transform: translateX(0) rotate(-2deg) scale(0.95);
+          }
+          34% {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg) scale(1);
+          }
+          52% {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg) scale(1);
+          }
+          66% {
+            opacity: 0;
+            transform: translateX(-135%) rotate(-16deg) scale(0.95);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-135%) rotate(-16deg) scale(0.95);
+          }
+        }
+
+        @keyframes swipeThree {
+          0% {
+            opacity: 1;
+            transform: translateX(0) rotate(2deg) scale(0.9);
+          }
+          64% {
+            opacity: 1;
+            transform: translateX(0) rotate(2deg) scale(0.9);
+          }
+          68% {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg) scale(1);
+          }
+          90% {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg) scale(1);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg) scale(1);
+          }
+        }
+
+        @keyframes stampLike {
+          0%, 12% {
+            opacity: 0;
+            transform: scale(0.8) rotate(8deg);
+          }
+          16%, 24% {
+            opacity: 1;
+            transform: scale(1) rotate(8deg);
+          }
+          32%, 100% {
+            opacity: 0;
+            transform: scale(0.8) rotate(8deg);
+          }
         }
 
         @media (max-width: 960px) {
@@ -344,29 +496,29 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
           <div className="copy-card">
             <div className="eyebrow">
               <span className="dot" />
-              Verificación segura
+              Alquiler directo
             </div>
 
             <h1>
-              Validá tu identidad en <em>Verlo.</em>
+              Deslizá hasta encontrar tu <em>futura casa.</em>
             </h1>
 
             <p className="copy">
-              Para avanzar con confianza, Verlo puede pedir documento y video selfie antes de habilitar contacto, visitas o firma digital.
+              En Verlo ves propiedades compatibles, marcás interés y avanzás solo cuando hay match real entre propietario e inquilino.
             </p>
 
             <ul className="bullets">
               <li>
                 <span className="check">✓</span>
-                Identidad validada antes del contacto real
+                Propiedades compatibles con tu búsqueda
               </li>
               <li>
                 <span className="check">✓</span>
-                Menos perfiles falsos
+                Sin comisión inmobiliaria
               </li>
               <li>
                 <span className="check">✓</span>
-                Más seguridad para propietarios e inquilinos
+                Contacto solo cuando hay interés real
               </li>
             </ul>
           </div>
@@ -383,47 +535,42 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
               </div>
 
               <div className="screen">
-                <div className="screen-card">
+                <div className="screen-head">
                   <span className="screen-kicker">
                     <span className="dot" />
-                    Paso seguro
+                    Matches para vos
                   </span>
 
                   <h2 className="screen-title">
-                    Verificá tu identidad
+                    Elegí con un swipe
                   </h2>
+                </div>
 
-                  <p className="screen-copy">
-                    Subí tu documento y grabá una video selfie corta. Esto ayuda a que el alquiler directo sea más seguro.
-                  </p>
+                <div className="card-area">
+                  {properties.map((property) => (
+                    <article className="property-card" key={property.title}>
+                      <div
+                        className="property-image"
+                        style={{ backgroundImage: `url(${property.image})` }}
+                      />
 
-                  <div className="id-box">
-                    <div className="id-row">
-                      <div className="id-icon">ID</div>
-                      <div>
-                        <strong>Documento</strong>
-                        <span>Frente y dorso legibles</span>
+                      <div className="stamp">ME GUSTA</div>
+
+                      <div className="property-content">
+                        <h3>{property.title}</h3>
+
+                        <div className="property-meta">
+                          <span className="price">{property.price}</span>
+                          <span className="match">{property.match}</span>
+                        </div>
                       </div>
-                    </div>
+                    </article>
+                  ))}
+                </div>
 
-                    <div className="id-row">
-                      <div className="id-icon">▶</div>
-                      <div>
-                        <strong>Video selfie</strong>
-                        <span>Confirmamos que sos una persona real</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="selfie-frame" />
-
-                  <button className="cta-button">
-                    Empezar verificación
-                  </button>
-
-                  <div className="slide-label">
-                    Swipe para ver el siguiente paso →
-                  </div>
+                <div className="actions">
+                  <div className="round-action">×</div>
+                  <div className="round-action like">♥</div>
                 </div>
               </div>
             </div>
