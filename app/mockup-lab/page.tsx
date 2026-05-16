@@ -777,8 +777,9 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
                 </div>
               </div>
 
-              <div className="screen">
-                <div className="screen-head">
+             <div className="screen">
+  <FakeDniScreen />
+</div>
                   <span className="screen-kicker">
                     <span className="dot" />
                     Matches para vos
