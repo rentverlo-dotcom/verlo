@@ -105,6 +105,113 @@ function FakeDniScreen() {
   )
 }
 
+function SwipePropertiesScreen() {
+  return (
+    <div className="swipe-screen">
+      <div className="screen-head">
+        <span className="screen-kicker">
+          <span className="dot" />
+          Matches para vos
+        </span>
+
+        <h2 className="screen-title">
+          Elegí con un swipe
+        </h2>
+      </div>
+
+      <div className="card-area">
+        {properties.map((property) => (
+          <article className="property-card" key={property.title}>
+            <div
+              className="property-image"
+              style={{ backgroundImage: `url(${property.image})` }}
+            />
+
+            <div className="stamp">ME GUSTA</div>
+
+            <div className="property-content">
+              <h3>{property.title}</h3>
+
+              <div className="property-meta">
+                <span className="price">{property.price}</span>
+                <span className="match">{property.match}</span>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="actions">
+        <div className="round-action">×</div>
+        <div className="round-action like">♥</div>
+      </div>
+    </div>
+  )
+}
+
+function VideoSelfieScreen() {
+  return (
+    <div className="selfie-screen">
+      <span className="screen-kicker">
+        <span className="dot" />
+        Video selfie
+      </span>
+
+      <h2 className="screen-title">
+        Confirmá que sos vos
+      </h2>
+
+      <p className="screen-copy">
+        Grabá una selfie corta para validar tu identidad antes de avanzar al contacto.
+      </p>
+
+      <div className="selfie-camera">
+        <div className="face-shape" />
+        <div className="record-dot">REC</div>
+      </div>
+
+      <button className="cta-button">
+        Grabar video selfie
+      </button>
+    </div>
+  )
+}
+
+function ContractScreen() {
+  return (
+    <div className="contract-screen">
+      <span className="screen-kicker">
+        <span className="dot" />
+        Contrato digital
+      </span>
+
+      <h2 className="screen-title">
+        Firmá sin vueltas
+      </h2>
+
+      <p className="screen-copy">
+        Cuando ambas partes acuerdan, Verlo organiza los datos y habilita la firma digital.
+      </p>
+
+      <div className="contract-card">
+        <div className="contract-line wide" />
+        <div className="contract-line" />
+        <div className="contract-line short" />
+
+        <div className="signature-box">
+          <span>Firma digital</span>
+          <strong>Verlo</strong>
+        </div>
+      </div>
+
+      <button className="cta-button">
+        Firmar contrato
+      </button>
+    </div>
+  )
+}
+
+
 export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
   if (!MOCKUP_KEY || searchParams.key !== MOCKUP_KEY) {
     notFound()
@@ -751,6 +858,223 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
     }
   }
 
+  .screen {
+    position: relative;
+    height: calc(100% - 74px);
+    padding: 18px 20px 24px;
+    overflow: hidden;
+  }
+
+  .flow-scene {
+    position: absolute;
+    inset: 18px 20px 24px;
+    opacity: 0;
+    transform: translateX(24px);
+    animation-duration: 18s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+  }
+
+  .scene-swipe {
+    animation-name: sceneSwipe;
+  }
+
+  .scene-dni {
+    animation-name: sceneDni;
+  }
+
+  .scene-selfie {
+    animation-name: sceneSelfie;
+  }
+
+  .scene-contract {
+    animation-name: sceneContract;
+  }
+
+  @keyframes sceneSwipe {
+    0%, 24% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    28%, 100% {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+  }
+
+  @keyframes sceneDni {
+    0%, 26% {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+
+    30%, 48% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    52%, 100% {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+  }
+
+  @keyframes sceneSelfie {
+    0%, 50% {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+
+    54%, 72% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    76%, 100% {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+  }
+
+  @keyframes sceneContract {
+    0%, 74% {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+
+    78%, 96% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+  }
+
+  .swipe-screen,
+  .dni-screen,
+  .selfie-screen,
+  .contract-screen {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .selfie-camera {
+    position: relative;
+    margin-top: 26px;
+    flex: 1;
+    min-height: 310px;
+    border-radius: 32px;
+    background:
+      radial-gradient(circle at 50% 34%, rgba(242, 168, 169, 0.9), transparent 16%),
+      radial-gradient(circle at 50% 56%, rgba(5, 0, 2, 0.9), transparent 18%),
+      linear-gradient(135deg, #ffffff, #f2ebec);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    overflow: hidden;
+  }
+
+  .selfie-camera::before {
+    content: "";
+    position: absolute;
+    inset: 22px;
+    border: 4px solid var(--pink);
+    border-radius: 28px;
+    opacity: 0.75;
+  }
+
+  .face-shape {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    width: 120px;
+    height: 160px;
+    transform: translate(-50%, -50%);
+    border-radius: 999px 999px 70px 70px;
+    background:
+      radial-gradient(circle at 50% 28%, rgba(5, 0, 2, 0.9), transparent 18%),
+      radial-gradient(circle at 50% 74%, rgba(5, 0, 2, 0.9), transparent 28%),
+      rgba(242, 168, 169, 0.62);
+    filter: blur(0.2px);
+  }
+
+  .record-dot {
+    position: absolute;
+    top: 22px;
+    right: 24px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    font-size: 11px;
+    font-weight: 950;
+  }
+
+  .record-dot::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 999px;
+    background: #f24b4b;
+  }
+
+  .contract-card {
+    margin-top: 28px;
+    flex: 1;
+    min-height: 330px;
+    border-radius: 30px;
+    padding: 26px;
+    background:
+      radial-gradient(circle at 88% 18%, rgba(116, 190, 220, 0.25), transparent 28%),
+      white;
+    border: 1px solid rgba(5, 0, 2, 0.1);
+    box-shadow: 0 18px 40px rgba(5, 0, 2, 0.08);
+  }
+
+  .contract-line {
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(5, 0, 2, 0.14);
+    margin-bottom: 14px;
+  }
+
+  .contract-line.wide {
+    width: 100%;
+  }
+
+  .contract-line.short {
+    width: 58%;
+  }
+
+  .signature-box {
+    margin-top: 42px;
+    border-radius: 24px;
+    border: 2px dashed rgba(5, 0, 2, 0.18);
+    padding: 22px;
+    background: rgba(242, 168, 169, 0.22);
+  }
+
+  .signature-box span {
+    display: block;
+    color: rgba(5, 0, 2, 0.52);
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .signature-box strong {
+    display: block;
+    margin-top: 12px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-style: italic;
+    font-size: 46px;
+    line-height: 1;
+  }
+
   @media (max-width: 960px) {
     .hero {
       grid-template-columns: 1fr;
@@ -800,7 +1124,7 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
             </ul>
           </div>
 
-                 <div className="phone-stage">
+          <div className="phone-stage">
             <div className="phone">
               <div className="phone-top">
                 <VerloBrand width={70} />
@@ -812,49 +1136,24 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
               </div>
 
               <div className="screen">
-                <FakeDniScreen />
-
-                <div className="screen-head">
-                  <span className="screen-kicker">
-                    <span className="dot" />
-                    Matches para vos
-                  </span>
-
-                  <h2 className="screen-title">
-                    Elegí con un swipe
-                  </h2>
+                <div className="flow-scene scene-swipe">
+                  <SwipePropertiesScreen />
                 </div>
 
-                <div className="card-area">
-                  {properties.map((property) => (
-                    <article className="property-card" key={property.title}>
-                      <div
-                        className="property-image"
-                        style={{ backgroundImage: `url(${property.image})` }}
-                      />
-
-                      <div className="stamp">ME GUSTA</div>
-
-                      <div className="property-content">
-                        <h3>{property.title}</h3>
-
-                        <div className="property-meta">
-                          <span className="price">{property.price}</span>
-                          <span className="match">{property.match}</span>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
+                <div className="flow-scene scene-dni">
+                  <FakeDniScreen />
                 </div>
 
-                <div className="actions">
-                  <div className="round-action">×</div>
-                  <div className="round-action like">♥</div>
+                <div className="flow-scene scene-selfie">
+                  <VideoSelfieScreen />
+                </div>
+
+                <div className="flow-scene scene-contract">
+                  <ContractScreen />
                 </div>
               </div>
             </div>
           </div>
-        </section>
       </div>
     </main>
   )
