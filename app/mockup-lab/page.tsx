@@ -17,6 +17,20 @@ const properties = [
     image:
       "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1200&auto=format&fit=crop",
   },
+    {
+    title: "Almagro, 2 amb.",
+    price: "$430.000",
+    match: "97% compatible",
+    image:
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1200&auto=format&fit=crop",
+  },
+  {
+    title: "Villa Devoto, 3 amb.",
+    price: "$520.000",
+    match: "94% compatible",
+    image:
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
+  },
   {
     title: "Recoleta, 2 amb.",
     price: "$590.000",
