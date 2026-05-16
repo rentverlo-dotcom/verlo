@@ -468,11 +468,19 @@ export default function PublicarPropiedad() {
       localStorage.removeItem("property_draft")
       localStorage.removeItem("property_step")
 
-      trackMetaEvent("Lead_Propietario_FormularioEnviado", {
-        property_id: String(property.id),
-        journey: "propietario",
-        destination: `/propietario/preview/${property.id}`,
-      })
+   if (typeof window !== "undefined" && typeof window.fbq === "function") {
+  window.fbq("track", "Lead", {
+    content_name: "Propietario formulario enviado",
+    content_category: "propietario",
+    property_id: String(property.id),
+  })
+
+  window.fbq("trackCustom", "Lead_Propietario_FormularioEnviado", {
+    property_id: String(property.id),
+    journey: "propietario",
+    destination: `/propietario/preview/${property.id}`,
+  })
+}  `
 
       window.location.href = `/propietario/preview/${property.id}`
     } catch (err) {
