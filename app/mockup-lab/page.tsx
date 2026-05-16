@@ -800,7 +800,7 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
             </ul>
           </div>
 
-          <div className="phone-stage">
+                 <div className="phone-stage">
             <div className="phone">
               <div className="phone-top">
                 <VerloBrand width={70} />
@@ -811,9 +811,10 @@ export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
                 </div>
               </div>
 
-             <div className="screen">
-  <FakeDniScreen />
-</div>
+              <div className="screen">
+                <FakeDniScreen />
+
+                <div className="screen-head">
                   <span className="screen-kicker">
                     <span className="dot" />
                     Matches para vos
