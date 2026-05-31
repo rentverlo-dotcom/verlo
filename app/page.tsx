@@ -839,12 +839,12 @@ export default function HomePage() {
 </div>
 
               <div className="trust-row">
-                <span className="pill">Sin inmobiliarias</span>
-                <span className="pill">Identidad validada</span>
-                <span className="pill">Contrato digital</span>
-                <span className="pill">Primeros 500 inquilinos, sin costo</span>
-              </div>
-            </div>
+  <span className="pill">Sin comisión inmobiliaria</span>
+  <span className="pill">Identidad validada</span>
+  <span className="pill">Contrato digital</span>
+  <span className="pill">App disponible próximamente</span>
+  <span className="pill">Primeros usuarios sin costo</span>
+</div>
 
 <div className="hero-video-wrap">
   <div className="hero-video-glow" />
