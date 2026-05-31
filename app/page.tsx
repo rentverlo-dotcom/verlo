@@ -847,37 +847,18 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="phone-wrap" aria-hidden="true">
-              <div className="flower-bg" />
-              <div className="phone">
-                <div className="phone-top">
-                 <span className="mini-logo">
-  <img
-    src="/logo-verlo.png"
-    alt="Verlo"
-    style={{
-      width: 64,
-      height: "auto",
-      display: "block",
-    }}
-  />
-</span>
-                  <span>● ● ●</span>
-                </div>
+<div className="hero-video-wrap">
+  <div className="hero-video-glow" />
 
-                <div className="phone-card">
-                  <div className="phone-card-content">
-                    <h3>Palermo, 3 amb.</h3>
-                    <div className="match-badge">97% compatible</div>
-                  </div>
-                </div>
-
-                <div className="phone-actions">
-                  <div className="round-action">×</div>
-                  <div className="round-action like">♥</div>
-                </div>
-              </div>
-            </div>
+  <div className="hero-video-frame">
+    <iframe
+      src="/mockup-lab?key=verlo-demo-2026"
+      title="Video demo Verlo"
+      loading="eager"
+      allow="autoplay"
+    />
+  </div>
+</div>
           </div>
         </section>
 
