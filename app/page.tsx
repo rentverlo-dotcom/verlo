@@ -44,6 +44,13 @@ export default function HomePage() {
           color: var(--black);
         }
 
+
+        .verlo-root {
+  min-height: 100vh;
+  background: var(--soft);
+  color: var(--black);
+}
+
         .verlo-page {
           overflow: hidden;
         }
