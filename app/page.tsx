@@ -803,12 +803,11 @@ export default function HomePage() {
               </div>*/}
 
               <h1>
-                Matcheá con tu <em>futura casa.</em>
+               Alquilá directo, <em>seguro y sin comisión.</em>
               </h1>
 
               <p>
-                Verlo conecta propietarios e inquilinos compatibles para coordinar visitas,
-                acordar condiciones y firmar un contrato digital con identidad validada.
+                En Verlo conectás directo con la otra parte, validás identidad y avanzás hacia un contrato digital más simple, seguro y económico.
               </p>
 
              <div className="hero-actions">
