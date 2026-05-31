@@ -258,6 +258,58 @@ export default function HomePage() {
           place-items: center;
         }
 
+        .hero-video-wrap {
+  position: relative;
+  min-height: 640px;
+  display: grid;
+  place-items: center;
+}
+
+.hero-video-frame {
+  position: relative;
+  width: min(420px, 84vw);
+  aspect-ratio: 390 / 760;
+  border: 10px solid var(--black);
+  border-radius: 48px;
+  overflow: hidden;
+  background: #fbf8f5;
+  box-shadow: 0 30px 90px rgba(5, 0, 2, 0.28);
+  z-index: 2;
+}
+
+.hero-video-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  transform: scale(1);
+  transform-origin: center;
+}
+
+.hero-video-glow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 35%, rgba(242, 168, 169, 0.85), transparent 30%),
+    radial-gradient(circle at 76% 72%, rgba(116, 190, 220, 0.55), transparent 28%),
+    radial-gradient(circle at 78% 22%, rgba(231, 199, 118, 0.42), transparent 24%);
+  filter: blur(8px);
+  opacity: 0.9;
+  z-index: 1;
+}
+
+@media (max-width: 620px) {
+  .hero-video-wrap {
+    min-height: 560px;
+  }
+
+  .hero-video-frame {
+    width: min(340px, 90vw);
+  }
+}
+
         .flower-bg {
           position: absolute;
           inset: 22px 0 0;
