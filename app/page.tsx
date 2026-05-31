@@ -173,21 +173,21 @@ export default function HomePage() {
           color: rgba(5, 0, 2, 0.72);
         }
 
-        .hero h1 {
-          margin: 22px 0 0;
-          font-size: clamp(56px, 8.6vw, 116px);
-          line-height: 0.88;
-          letter-spacing: -0.085em;
-          font-weight: 950;
-          max-width: 780px;
-        }
+       .hero h1 {
+  margin: 22px 0 0;
+  font-size: clamp(54px, 7.4vw, 104px);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+  max-width: 820px;
+}
 
-        .hero h1 em {
-          font-family: Georgia, "Times New Roman", serif;
-          font-style: italic;
-          font-weight: 400;
-          letter-spacing: -0.075em;
-        }
+.hero h1 em {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
 
         .hero p {
           margin: 28px 0 0;
