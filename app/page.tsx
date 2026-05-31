@@ -796,7 +796,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        <section className="hero">
+             <section className="hero">
           <div className="container hero-grid">
             <div>
               {/*<div className="eyebrow">
@@ -804,61 +804,62 @@ export default function HomePage() {
               </div>*/}
 
               <h1>
-               Alquilá directo, <em>seguro y sin comisión.</em>
+                Alquilá directo, <em>seguro y sin comisión.</em>
               </h1>
 
               <p>
                 En Verlo conectás directo con la otra parte, validás identidad y avanzás hacia un contrato digital más simple, seguro y económico.
               </p>
 
-             <div className="hero-actions">
-  <Link
-    className="btn btn-primary"
-   href="/login?role=owner&next=%2Fpropietario%2Fpublicar-v2"
-    onClick={() =>
-      trackMetaEvent("CTA_PublicarPropiedad_Click", {
-        location: "hero",
-        destination: "/propietario/publicar-v2",
-      })
-    }
-  >
-    Publicar mi propiedad
-  </Link>
+              <div className="hero-actions">
+                <Link
+                  className="btn btn-primary"
+                  href="/login?role=owner&next=%2Fpropietario%2Fpublicar-v2"
+                  onClick={() =>
+                    trackMetaEvent("CTA_PublicarPropiedad_Click", {
+                      location: "hero",
+                      destination: "/propietario/publicar-v2",
+                    })
+                  }
+                >
+                  Publicar mi propiedad
+                </Link>
 
-  <Link
-    className="btn btn-secondary"
-    href="/buscar"
-    onClick={() =>
-      trackMetaEvent("CTA_BuscarAlquiler_Click", {
-        location: "hero",
-        destination: "/buscar",
-      })
-    }
-  >
-    Busco alquilar
-  </Link>
-</div>
+                <Link
+                  className="btn btn-secondary"
+                  href="/buscar"
+                  onClick={() =>
+                    trackMetaEvent("CTA_BuscarAlquiler_Click", {
+                      location: "hero",
+                      destination: "/buscar",
+                    })
+                  }
+                >
+                  Busco alquilar
+                </Link>
+              </div>
 
               <div className="trust-row">
-  <span className="pill">Sin comisión inmobiliaria</span>
-  <span className="pill">Identidad validada</span>
-  <span className="pill">Contrato digital</span>
-  <span className="pill">App disponible próximamente</span>
-  <span className="pill">Primeros usuarios sin costo</span>
-</div>
+                <span className="pill">Sin comisión inmobiliaria</span>
+                <span className="pill">Identidad validada</span>
+                <span className="pill">Contrato digital</span>
+                <span className="pill">App disponible próximamente</span>
+                <span className="pill">Primeros usuarios sin costo</span>
+              </div>
+            </div>
 
-<div className="hero-video-wrap">
-  <div className="hero-video-glow" />
+            <div className="hero-video-wrap" aria-hidden="true">
+              <div className="hero-video-glow" />
 
-  <div className="hero-video-frame">
-    <iframe
-      src="/mockup-lab?key=verlo-demo-2026"
-      title="Video demo Verlo"
-      loading="eager"
-      allow="autoplay"
-    />
-  </div>
-</div>
+              <div className="hero-video-frame">
+                <iframe
+                  src="/mockup-lab?key=verlo-demo-2026"
+                  title="Video demo Verlo"
+                  loading="eager"
+                  allow="autoplay"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
