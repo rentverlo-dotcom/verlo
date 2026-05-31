@@ -17,13 +17,7 @@ function trackMetaEvent(eventName: string, params?: Record<string, string>) {
 
 export default function HomePage() {
   return (
-    <main
-  style={{
-    minHeight: "100vh",
-    background: "#f2ebec",
-    color: "#050002",
-  }}
->
+    <main className="verlo-root">
 
       <style jsx global>{`
         :root {
