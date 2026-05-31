@@ -3,7 +3,10 @@ import Script from 'next/script'
 
 export const metadata = {
   title: 'VERLO',
-  description: 'Matching inmobiliario inteligente',
+  description: 'Alquiler directo, seguro y sin comisión.',
+  icons: {
+    icon: '/logo-verlo.png',
+  },
 }
 
 const META_PIXEL_ID = '1467553351441050'
