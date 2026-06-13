@@ -321,7 +321,6 @@ export default function PaginaDePrueba() {
                   </option>
                   <option>Propietario</option>
                   <option>Inquilino</option>
-                  <option>Martillero / gestor</option>
                   <option>Otro</option>
                 </select>
 
