@@ -354,7 +354,7 @@ export default function PaginaDePrueba() {
           </div>
         </div>
 
-        <div className="card">
+       <div className="card" id="acceso">
           {!sent ? (
             <>
               <h2>Entrá al acceso anticipado</h2>
@@ -401,7 +401,7 @@ export default function PaginaDePrueba() {
         </div>
       </section>
 
-      <section className="flow">
+      <section className="flow" id="como-funciona">
         <div className="step">
           <div className="num">1</div>
           <h3>Cargás los datos</h3>
