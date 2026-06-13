@@ -310,10 +310,19 @@ export default function PaginaDePrueba() {
         }
       `}</style>
 
-      <header className="header">
-        <img src={logoUrl} alt="Verlo" className="logo" />
-        <div className="badge">Pre-lanzamiento</div>
-      </header>
+      <header className="headerWrap">
+  <div className="header">
+    <img src={logoUrl} alt="Verlo" className="logo" />
+
+    <nav className="nav">
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#para-quien">Para quién es</a>
+      <a href="#acceso" className="headerButton">
+        Acceso anticipado
+      </a>
+    </nav>
+  </div>
+</header>
 
       <section className="hero">
         <div>
