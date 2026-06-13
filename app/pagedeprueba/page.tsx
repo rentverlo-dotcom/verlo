@@ -47,7 +47,7 @@ export default function PaginaDePrueba() {
 }
 
 .logo {
-  height: 42px;
+  height: 74px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -86,7 +86,7 @@ export default function PaginaDePrueba() {
   }
 
   .logo {
-    height: 36px;
+    height: 72px;
   }
 
   .headerWrap {
