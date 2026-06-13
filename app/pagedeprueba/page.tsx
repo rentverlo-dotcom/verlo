@@ -26,30 +26,73 @@ export default function PaginaDePrueba() {
           font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        .header {
-          max-width: 1180px;
-          margin: 0 auto;
-          padding: 26px 22px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
+      .headerWrap {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 18px 22px;
+  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.76);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
 
-        .logo {
-          height: 46px;
-          width: auto;
-          object-fit: contain;
-        }
+.header {
+  max-width: 1180px;
+  margin: 0 auto;
+  height: 58px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
 
-        .badge {
-          padding: 10px 14px;
-          border-radius: 999px;
-          background: #eafff1;
-          color: #087b35;
-          border: 1px solid rgba(37, 211, 102, 0.25);
-          font-size: 13px;
-          font-weight: 900;
-        }
+.logo {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.nav a {
+  color: rgba(0, 0, 0, 0.66);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.headerButton {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #050505;
+  color: white !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+@media (max-width: 900px) {
+  .nav a:not(.headerButton) {
+    display: none;
+  }
+
+  .logo {
+    height: 36px;
+  }
+
+  .headerWrap {
+    padding: 14px 16px;
+  }
+}
 
         .hero {
           max-width: 1180px;
