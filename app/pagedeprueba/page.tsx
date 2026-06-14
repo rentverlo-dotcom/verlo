@@ -408,6 +408,21 @@ export default function PaginaDePrueba() {
             grid-template-columns: 1fr;
           }
         }
+        .videoBlock {
+  width: min(620px, 100%);
+  margin: 30px auto 0;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #000;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.14);
+}
+
+.demoVideo {
+  width: 100%;
+  height: auto;
+  display: block;
+}
       `}</style>
 
       <div className="wrap">
