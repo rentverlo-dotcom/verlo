@@ -25,21 +25,21 @@ export default function PaginaDePrueba() {
         }
 
         .wrap {
-          width: min(760px, calc(100% - 34px));
-          margin: 0 auto;
-          padding: 42px 0 70px;
-        }
+  width: min(760px, calc(100% - 34px));
+  margin: 0 auto;
+  padding: 18px 0 70px;
+}
 
         .hero {
           text-align: center;
         }
 
-        .logo {
-          width: min(390px, 82vw);
-          height: auto;
-          display: block;
-          margin: 0 auto 12px;
-        }
+      .logo {
+  width: min(330px, 76vw);
+  height: auto;
+  display: block;
+  margin: 0 auto 8px;
+}
 
         h1 {
           margin: 0;
@@ -49,8 +49,8 @@ export default function PaginaDePrueba() {
           font-weight: 950;
         }
 
-        .saving {
-          margin: 8px 0 30px;
+      .saving {
+  margin: 6px 0 22px;
           font-size: clamp(24px, 4vw, 36px);
           line-height: 1.05;
           letter-spacing: -0.04em;
