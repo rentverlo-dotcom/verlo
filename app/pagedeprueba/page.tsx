@@ -5,6 +5,9 @@ import { FormEvent, useState } from "react"
 const logoUrl =
   "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-13%20at%2017.10.14.jpeg"
 
+const videoUrl =
+  "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Video%202026-06-14%20at%2001.15.23.mp4"
+
 export default function PaginaDePrueba() {
   const [sent, setSent] = useState(false)
 
@@ -18,28 +21,48 @@ export default function PaginaDePrueba() {
       <style jsx>{`
         .page {
           min-height: 100vh;
-          background: #fff;
+          background: #ffffff;
           color: #050505;
           font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
             sans-serif;
         }
 
+        .siteHeader {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          width: 100%;
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(14px);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .siteHeaderInner {
+          width: min(760px, calc(100% - 34px));
+          height: 82px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .headerLogo {
+          width: 230px;
+          height: auto;
+          display: block;
+        }
+
         .wrap {
-  width: min(760px, calc(100% - 34px));
-  margin: 0 auto;
-  padding: 18px 0 70px;
-}
+          width: min(760px, calc(100% - 34px));
+          margin: 0 auto;
+          padding: 26px 0 70px;
+        }
 
         .hero {
           text-align: center;
+          padding: 0 !important;
+          margin: 0;
         }
-
-      .logo {
-  width: min(330px, 76vw);
-  height: auto;
-  display: block;
-  margin: 0 auto 8px;
-}
 
         h1 {
           margin: 0;
@@ -49,8 +72,8 @@ export default function PaginaDePrueba() {
           font-weight: 950;
         }
 
-      .saving {
-  margin: 6px 0 22px;
+        .saving {
+          margin: 8px 0 28px;
           font-size: clamp(24px, 4vw, 36px);
           line-height: 1.05;
           letter-spacing: -0.04em;
@@ -122,7 +145,7 @@ export default function PaginaDePrueba() {
         }
 
         .trust {
-          margin: 34px auto 28px;
+          margin: 36px auto 28px;
           width: min(610px, 100%);
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -165,8 +188,24 @@ export default function PaginaDePrueba() {
           font-weight: 600;
         }
 
+        .videoBlock {
+          width: min(620px, 100%);
+          margin: 30px auto 0;
+          border-radius: 24px;
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: #000;
+          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.14);
+        }
+
+        .demoVideo {
+          width: 100%;
+          height: auto;
+          display: block;
+        }
+
         .infoCard {
-          margin-top: 30px;
+          margin-top: 32px;
           border: 1px solid rgba(0, 0, 0, 0.16);
           border-radius: 18px;
           padding: 28px;
@@ -200,18 +239,18 @@ export default function PaginaDePrueba() {
           letter-spacing: -0.035em;
         }
 
+        .followBox {
+          position: relative;
+          padding-left: 28px;
+        }
+
         .divider {
           width: 1px;
           height: 100%;
           background: rgba(0, 0, 0, 0.18);
           position: absolute;
-          left: 50%;
+          left: 0;
           top: 0;
-        }
-
-        .followBox {
-          position: relative;
-          padding-left: 28px;
         }
 
         .followBox p {
@@ -281,6 +320,7 @@ export default function PaginaDePrueba() {
           border: 0;
           font-weight: 950;
           white-space: nowrap;
+          cursor: pointer;
         }
 
         .formCard {
@@ -366,9 +406,17 @@ export default function PaginaDePrueba() {
         }
 
         @media (max-width: 720px) {
+          .siteHeaderInner {
+            height: 74px;
+          }
+
+          .headerLogo {
+            width: 180px;
+          }
+
           .wrap {
             width: min(100% - 28px, 760px);
-            padding-top: 28px;
+            padding: 22px 0 70px;
           }
 
           .step {
@@ -408,27 +456,16 @@ export default function PaginaDePrueba() {
             grid-template-columns: 1fr;
           }
         }
-        .videoBlock {
-  width: min(620px, 100%);
-  margin: 30px auto 0;
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: #000;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.14);
-}
-
-.demoVideo {
-  width: 100%;
-  height: auto;
-  display: block;
-}
       `}</style>
+
+      <header className="siteHeader">
+        <div className="siteHeaderInner">
+          <img src={logoUrl} alt="Verlo" className="headerLogo" />
+        </div>
+      </header>
 
       <div className="wrap">
         <section className="hero">
-          <img src={logoUrl} alt="Verlo" className="logo" />
-
           <h1>Alquilá fácil, rápido y seguro</h1>
           <div className="saving">Ahorrá hasta un 95%</div>
 
@@ -516,17 +553,18 @@ export default function PaginaDePrueba() {
               </div>
             </div>
           </div>
+
           <div className="videoBlock">
-  <video
-    className="demoVideo"
-    src="https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Video%202026-06-14%20at%2001.15.23.mp4"
-    autoPlay
-    muted
-    loop
-    playsInline
-    controls
-  />
-</div>
+            <video
+              className="demoVideo"
+              src={videoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
+            />
+          </div>
         </section>
 
         <section className="infoCard">
