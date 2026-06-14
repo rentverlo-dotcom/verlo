@@ -122,10 +122,18 @@ export default function PaginaDePrueba() {
           border-radius: 22px;
           display: grid;
           place-items: center;
-          font-size: 42px;
-          color: #20d466;
           background: white;
           line-height: 1;
+        }
+
+        .icon svg {
+          width: 54px;
+          height: 54px;
+          stroke: #20d466;
+          stroke-width: 2.5;
+          fill: none;
+          stroke-linecap: round;
+          stroke-linejoin: round;
         }
 
         .step h3 {
@@ -168,8 +176,16 @@ export default function PaginaDePrueba() {
           border-radius: 28px;
           display: grid;
           place-items: center;
-          font-size: 44px;
-          color: #20d466;
+        }
+
+        .trustIcon svg {
+          width: 54px;
+          height: 54px;
+          stroke: #20d466;
+          stroke-width: 3;
+          fill: none;
+          stroke-linecap: round;
+          stroke-linejoin: round;
         }
 
         .trustItem h3 {
@@ -427,7 +443,11 @@ export default function PaginaDePrueba() {
           .icon {
             width: 74px;
             height: 74px;
-            font-size: 34px;
+          }
+
+          .icon svg {
+            width: 45px;
+            height: 45px;
           }
 
           .trust,
@@ -438,6 +458,16 @@ export default function PaginaDePrueba() {
 
           .trustItem {
             grid-template-columns: 76px 1fr;
+          }
+
+          .trustIcon {
+            width: 72px;
+            height: 72px;
+          }
+
+          .trustIcon svg {
+            width: 46px;
+            height: 46px;
           }
 
           .followBox {
@@ -473,7 +503,15 @@ export default function PaginaDePrueba() {
             <div className="step">
               <div className="iconWrap">
                 <span className="pill">Paso 1</span>
-                <div className="icon">↗</div>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M26 38l12-12" />
+                    <path d="M36 18h10v10" />
+                    <path d="M38 26l8-8" />
+                    <path d="M25 20l-8 8c-5 5-5 13 0 18s13 5 18 0l6-6" />
+                    <path d="M39 44l8-8c5-5 5-13 0-18s-13-5-18 0l-6 6" />
+                  </svg>
+                </div>
               </div>
               <div>
                 <h3>Invitación</h3>
@@ -484,7 +522,21 @@ export default function PaginaDePrueba() {
             <div className="step">
               <div className="iconWrap">
                 <span className="pill">Paso 2</span>
-                <div className="icon">☻</div>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M18 28c0-9 6-16 14-16s14 7 14 16" />
+                    <path d="M20 31c0 11 5 19 12 19s12-8 12-19" />
+                    <path d="M26 31h.1" />
+                    <path d="M38 31h.1" />
+                    <path d="M27 40c3 3 7 3 10 0" />
+                    <path d="M12 22v-8h8" />
+                    <path d="M44 14h8v8" />
+                    <path d="M12 42v8h8" />
+                    <path d="M44 50h8v-8" />
+                    <rect x="40" y="36" width="16" height="16" rx="3" />
+                    <path d="M44 36v-4a4 4 0 018 0v4" />
+                  </svg>
+                </div>
               </div>
               <div>
                 <h3>Verlo ID</h3>
@@ -498,7 +550,15 @@ export default function PaginaDePrueba() {
             <div className="step">
               <div className="iconWrap">
                 <span className="pill">Paso 3</span>
-                <div className="icon">☑</div>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M18 10h24l8 8v36H18z" />
+                    <path d="M42 10v10h10" />
+                    <path d="M24 26l4 4 8-9" />
+                    <path d="M24 38l4 4 8-9" />
+                    <path d="M42 40l10-10 4 4-10 10-6 2z" />
+                  </svg>
+                </div>
               </div>
               <div>
                 <h3>Acuerdo</h3>
@@ -512,7 +572,15 @@ export default function PaginaDePrueba() {
             <div className="step">
               <div className="iconWrap">
                 <span className="pill">Paso 4</span>
-                <div className="icon">$</div>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M32 6l22 9v16c0 14-9 22-22 27C19 53 10 45 10 31V15z" />
+                    <path d="M32 18v28" />
+                    <path d="M40 24c-2-4-14-5-14 2 0 8 16 4 16 13 0 7-13 7-17 2" />
+                    <circle cx="48" cy="48" r="10" />
+                    <path d="M44 48l3 3 6-7" />
+                  </svg>
+                </div>
               </div>
               <div>
                 <h3>Fee de Seguridad</h3>
@@ -525,7 +593,14 @@ export default function PaginaDePrueba() {
             <div className="step">
               <div className="iconWrap">
                 <span className="pill">Paso 5</span>
-                <div className="icon">✎</div>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M18 8h28l8 8v40H18z" />
+                    <path d="M46 8v10h10" />
+                    <path d="M26 44c3-8 7-8 8 0 1 6 6 4 9-1" />
+                    <path d="M37 31l13-13 5 5-13 13-8 3z" />
+                  </svg>
+                </div>
               </div>
               <div>
                 <h3>Firma Digital</h3>
@@ -538,7 +613,12 @@ export default function PaginaDePrueba() {
 
           <div className="trust">
             <div className="trustItem">
-              <div className="trustIcon">✓</div>
+              <div className="trustIcon">
+                <svg viewBox="0 0 64 64">
+                  <path d="M32 6l22 9v16c0 14-9 22-22 27C19 53 10 45 10 31V15z" />
+                  <path d="M22 32l7 7 14-17" />
+                </svg>
+              </div>
               <div>
                 <h3>Testigo Digital</h3>
                 <p>Registro inalterable de toda la trazabilidad y acuerdos entre partes.</p>
@@ -546,7 +626,14 @@ export default function PaginaDePrueba() {
             </div>
 
             <div className="trustItem">
-              <div className="trustIcon">✓</div>
+              <div className="trustIcon">
+                <svg viewBox="0 0 64 64">
+                  <circle cx="30" cy="23" r="11" />
+                  <path d="M12 54c3-13 11-20 18-20s15 7 18 20" />
+                  <circle cx="48" cy="46" r="10" />
+                  <path d="M44 46l3 3 6-7" />
+                </svg>
+              </div>
               <div>
                 <h3>Identidad Verificada</h3>
                 <p>Tecnología que confirma quién sos y garantiza acuerdos válidos.</p>
