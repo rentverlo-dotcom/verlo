@@ -501,6 +501,17 @@ export default function PaginaDePrueba() {
               </div>
             </div>
           </div>
+          <div className="videoBlock">
+  <video
+    className="demoVideo"
+    src="https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Video%202026-06-14%20at%2001.15.23.mp4"
+    autoPlay
+    muted
+    loop
+    playsInline
+    controls
+  />
+</div>
         </section>
 
         <section className="infoCard">
