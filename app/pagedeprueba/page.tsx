@@ -674,7 +674,7 @@ export default function PaginaDePrueba() {
               Seguinos en Instagram para convertirte en uno de los miembros fundadores
               de Verlo y enterarte de los beneficios que estamos pensando para vos.
             </p>
-            <a className="instagram" href="https://instagram.com" target="_blank">
+            <a className="instagram" href="https://www.instagram.com/verlo_alquileres/" target="_blank">
               ◎ Seguir en Instagram
             </a>
           </div>
