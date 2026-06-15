@@ -717,26 +717,24 @@ export default function PaginaDePrueba() {
                 <div className="row">
                   <select required defaultValue="">
                     <option value="" disabled>
-                      ¿Qué perfil sos?
+                      ¿Cómo vas a usar Verlo?
                     </option>
                     <option>Propietario</option>
                     <option>Inquilino</option>
-                    <option>Martillero / gestor</option>
                     <option>Otro</option>
                   </select>
 
                   <select required defaultValue="">
                     <option value="" disabled>
-                      ¿Qué necesitás?
+                      ¿Qué queres hacer?
                     </option>
-                    <option>Estoy por firmar un contrato</option>
-                    <option>Quiero renovar un contrato</option>
-                    <option>Quiero validar identidad</option>
-                    <option>Solo quiero enterarme</option>
+                    <option>⁠Firmar un nuevo alquiler</option>
+                    <option>⁠Renovar un contrato existente</option>
+                    <option>Explotar Verlo</option>
                   </select>
                 </div>
 
-                <button className="submit">Quiero acceso anticipado</button>
+                <button className="submit">¡Quiero cuidar mi dinero!</button>
               </form>
 
               <div className="mini">
