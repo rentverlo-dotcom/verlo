@@ -704,11 +704,10 @@ export default function PaginaDePrueba() {
         <section className="formCard" id="acceso">
           {!sent ? (
             <>
-              <h2>Entrá al acceso anticipado</h2>
+              <h2>Verlo cambiará el mercado inmobiliario en LATAM</h2>
               <p>
-                Estamos abriendo la primera versión para propietarios, inquilinos y
-                operadores que necesiten formalizar contratos directos.
-              </p>
+               ¡Sumate! Estamos preparando beneficios especiales para miembros fundadores.
+               </p>
 
               <form onSubmit={handleSubmit}>
                 <input required placeholder="Nombre y apellido" />
