@@ -737,10 +737,9 @@ export default function PaginaDePrueba() {
                 <button className="submit">¡Quiero cuidar mi dinero!</button>
               </form>
 
-              {/*<div className="mini">
-                Los primeros usuarios podrán probar Verlo sin costo durante la etapa
-                inicial.
-              </div>*/}
+              <div className="mini">
+                Vas a ser parte de un cambio sin precedentes. ¿Estás listo?
+              </div>
             </>
           ) : (
             <div className="success">
