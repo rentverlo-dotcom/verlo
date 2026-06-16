@@ -513,6 +513,12 @@ export default function PaginaDePrueba() {
           .row {
             grid-template-columns: 1fr;
           }
+          .error {
+  margin-top: 8px;
+  color: #b00020;
+  font-size: 13px;
+  font-weight: 800;
+}
         }
       `}</style>
 
@@ -738,12 +744,12 @@ export default function PaginaDePrueba() {
                </p>
 
               <form onSubmit={handleSubmit}>
-                <input required placeholder="Nombre y apellido" />
-                <input required type="email" placeholder="Email" />
-                <input required placeholder="WhatsApp" />
+                <input required name="full_name" placeholder="Nombre y apellido" />
+                <input required name="email" type="email" placeholder="Email" />
+                <input required name="phone" placeholder="WhatsApp" />
 
                 <div className="row">
-                  <select required defaultValue="">
+                 <select required name="role" defaultValue="">
                     <option value="" disabled>
                       ¿Cómo vas a usar Verlo?
                     </option>
@@ -752,7 +758,7 @@ export default function PaginaDePrueba() {
                     <option>Otro</option>
                   </select>
 
-                  <select required defaultValue="">
+                  <select required name="need" defaultValue="">
                     <option value="" disabled>
                       ¿Qué queres hacer?
                     </option>
@@ -762,7 +768,10 @@ export default function PaginaDePrueba() {
                   </select>
                 </div>
 
-                <button className="submit">¡Quiero cuidar mi dinero!</button>
+                <button className="submit" disabled={loading}>
+                {loading ? "Guardando..." : "Quiero acceso anticipado"}
+                </button>
+                {error && <div className="error">{error}</div>}
               </form>
 
               <div className="mini">
