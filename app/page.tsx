@@ -1,1104 +1,841 @@
 "use client"
 
-import Link from "next/link"
-import VerloBrand from "@/components/VerloBrand"
+import Script from "next/script"
+import { FormEvent, useState } from "react"
 
-declare global {
-  interface Window {
-    fbq?: (...args: any[]) => void
+const logoUrl =
+  "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-14%20at%2016.35.42.jpeg"
+
+const videoUrl =
+  "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Video%202026-06-14%20at%2001.15.23.mp4"
+
+const turnstileSiteKey = "0x4AAAAAADl-B9jtsFOfDTOS"
+
+const waitlistEndpoint =
+  "https://bmgrpcqrdvwculrisasi.supabase.co/functions/v1/submit-waitlist"
+
+export default function PaginaDePrueba() {
+  const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+
+    const formData = new FormData(e.currentTarget)
+
+    const payload = {
+      full_name: String(formData.get("full_name") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      phone: String(formData.get("phone") || "").trim(),
+      role: String(formData.get("role") || "").trim(),
+      need: String(formData.get("need") || "").trim(),
+      turnstile_token: String(formData.get("cf-turnstile-response") || "").trim(),
+    }
+
+    try {
+      const res = await fetch(waitlistEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok || !data?.ok) {
+        setError(data?.error || "No pudimos guardar tus datos. Probá de nuevo.")
+        return
+      }
+
+      setSent(true)
+    } catch (err) {
+      console.error(err)
+      setError("No pudimos guardar tus datos. Probá de nuevo.")
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
-function trackMetaEvent(eventName: string, params?: Record<string, string>) {
-  if (typeof window !== "undefined" && typeof window.fbq === "function") {
-    window.fbq("trackCustom", eventName, params)
-  }
-}
-
-export default function HomePage() {
   return (
-    <main className="verlo-root">
+    <main className="page">
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        async
+        defer
+      />
 
-      <style jsx global>{`
-        :root {
-          --pink: #f2a8a9;
-          --pink-dark: #c37986;
-          --black: #050002;
-          --cream: #efefea;
-          --soft: #f2ebec;
-          --blue: #74bedc;
-          --yellow: #e7c776;
+      <style jsx>{`
+        .page {
+          min-height: 100vh;
+          background: #ffffff;
+          color: #050505;
+          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+            sans-serif;
         }
 
-        * {
-          box-sizing: border-box;
-        }
-
-        html {
-          scroll-behavior: smooth;
-        }
-
-        body {
-          margin: 0;
-          background: var(--soft);
-          color: var(--black);
-        }
-
-
-        .verlo-root {
-  min-height: 100vh;
-  background: var(--soft);
-  color: var(--black);
-}
-
-        .verlo-page {
-          overflow: hidden;
-        }
-
-        .container {
-          width: min(1160px, calc(100% - 40px));
-          margin: 0 auto;
-        }
-
-        .nav {
+        .siteHeader {
           position: sticky;
           top: 0;
-          z-index: 50;
-          backdrop-filter: blur(18px);
-          background: rgba(242, 235, 236, 0.78);
-          border-bottom: 1px solid rgba(5, 0, 2, 0.08);
+          z-index: 100;
+          width: 100%;
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(14px);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
-        .nav-inner {
-          height: 76px;
+        .siteHeaderInner {
+          width: min(760px, calc(100% - 34px));
+          height: 82px;
+          margin: 0 auto;
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          gap: 24px;
+          justify-content: center;
         }
 
-        .brand {
-          display: inline-flex;
-          align-items: center;
-          gap: 12px;
-          text-decoration: none;
-          color: var(--black);
-          font-weight: 950;
-          letter-spacing: -0.05em;
-          font-size: 28px;
-          line-height: 1;
+        .headerLogo {
+          width: 230px;
+          height: auto;
+          display: block;
         }
 
-        .mark {
-          width: 34px;
-          height: 28px;
-          position: relative;
-          display: inline-block;
-        }
-
-        .mark::before,
-        .mark::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          width: 21px;
-          height: 28px;
-          border: 6px solid var(--black);
-          border-radius: 999px;
-          background: transparent;
-        }
-
-        .mark::before {
-          left: 0;
-        }
-
-        .mark::after {
-          right: 0;
-        }
-
-        .mark span {
-          position: absolute;
-          left: 50%;
-          top: 4px;
-          transform: translateX(-50%);
-          width: 10px;
-          height: 20px;
-          border-radius: 999px;
-          background: var(--pink);
-          z-index: 2;
-        }
-
-        .nav-links {
-          display: flex;
-          align-items: center;
-          gap: 18px;
-          font-size: 14px;
-        }
-
-        .nav-links a {
-          color: rgba(5, 0, 2, 0.72);
-          text-decoration: none;
-          font-weight: 700;
-        }
-
-        .nav-cta {
-          padding: 10px 18px;
-          border-radius: 999px;
-          background: var(--black);
-          color: white !important;
+        .wrap {
+          width: min(760px, calc(100% - 34px));
+          margin: 0 auto;
+          padding: 26px 0 70px;
         }
 
         .hero {
-          position: relative;
-          padding: 88px 0 80px;
-        }
-
-        .hero-grid {
-          display: grid;
-          grid-template-columns: 1.02fr 0.98fr;
-          gap: 64px;
-          align-items: center;
-        }
-
-        .eyebrow {
-          width: fit-content;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 9px 13px;
-          border: 1px solid rgba(5, 0, 2, 0.12);
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.42);
-          font-size: 13px;
-          font-weight: 800;
-          color: rgba(5, 0, 2, 0.72);
-        }
-
-       .hero h1 {
-  margin: 22px 0 0;
-  font-size: clamp(54px, 7.4vw, 104px);
-  line-height: 0.96;
-  letter-spacing: -0.055em;
-  font-weight: 950;
-  max-width: 820px;
-}
-
-.hero h1 em {
-  font-family: Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.035em;
-}
-
-        .hero p {
-          margin: 28px 0 0;
-          max-width: 620px;
-          font-size: 21px;
-          line-height: 1.45;
-          color: rgba(5, 0, 2, 0.68);
-        }
-
-        .hero-actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 14px;
-          margin-top: 34px;
-        }
-
-        .btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 54px;
-          padding: 0 24px;
-          border-radius: 999px;
-          border: 1px solid rgba(5, 0, 2, 0.12);
-          text-decoration: none;
-          font-size: 16px;
-          font-weight: 900;
-          transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
-          cursor: pointer;
-        }
-
-        .btn:hover {
-          transform: translateY(-2px);
-        }
-
-        .btn-primary {
-          background: var(--black);
-          color: white;
-          box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
-        }
-
-        .btn-secondary {
-          background: white;
-          color: var(--black);
-        }
-
-        .trust-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          margin-top: 26px;
-        }
-
-        .pill {
-          padding: 9px 12px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.54);
-          border: 1px solid rgba(5, 0, 2, 0.08);
-          color: rgba(5, 0, 2, 0.7);
-          font-weight: 750;
-          font-size: 13px;
-        }
-
-        .phone-wrap {
-          position: relative;
-          min-height: 620px;
-          display: grid;
-          place-items: center;
-        }
-
-        .hero-video-wrap {
-  position: relative;
-  min-height: 640px;
-  display: grid;
-  place-items: center;
-}
-
-.hero-video-frame {
-  position: relative;
-  width: min(420px, 84vw);
-  aspect-ratio: 390 / 760;
-  border: 10px solid var(--black);
-  border-radius: 48px;
-  overflow: hidden;
-  background: #fbf8f5;
-  box-shadow: 0 30px 90px rgba(5, 0, 2, 0.28);
-  z-index: 2;
-}
-
-.hero-video-frame iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-  transform: scale(1);
-  transform-origin: center;
-}
-
-.hero-video-glow {
-  position: absolute;
-  width: 520px;
-  height: 520px;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 30% 35%, rgba(242, 168, 169, 0.85), transparent 30%),
-    radial-gradient(circle at 76% 72%, rgba(116, 190, 220, 0.55), transparent 28%),
-    radial-gradient(circle at 78% 22%, rgba(231, 199, 118, 0.42), transparent 24%);
-  filter: blur(8px);
-  opacity: 0.9;
-  z-index: 1;
-}
-
-@media (max-width: 620px) {
-  .hero-video-wrap {
-    min-height: 560px;
-  }
-
-  .hero-video-frame {
-    width: min(340px, 90vw);
-  }
-}
-
-        .flower-bg {
-          position: absolute;
-          inset: 22px 0 0;
-          border-radius: 46% 54% 48% 52%;
-          background:
-            radial-gradient(circle at 25% 28%, rgba(242, 168, 169, 0.95) 0 11%, transparent 12%),
-            radial-gradient(circle at 72% 34%, rgba(231, 199, 118, 0.95) 0 10%, transparent 11%),
-            radial-gradient(circle at 36% 72%, rgba(195, 121, 134, 0.8) 0 13%, transparent 14%),
-            radial-gradient(circle at 75% 76%, rgba(116, 190, 220, 0.75) 0 11%, transparent 12%),
-            linear-gradient(135deg, #f7d6d7, #f2ebec);
-          filter: saturate(1.05);
-        }
-
-        .phone {
-          position: relative;
-          width: min(340px, 78vw);
-          min-height: 610px;
-          border-radius: 42px;
-          background: #f8f5f1;
-          border: 10px solid #050002;
-          box-shadow: 0 28px 80px rgba(5, 0, 2, 0.22);
-          overflow: hidden;
-        }
-
-        .phone-top {
-          height: 64px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 22px;
-          font-size: 12px;
-          font-weight: 900;
-        }
-
-        .mini-logo {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          font-size: 18px;
-          font-weight: 950;
-          letter-spacing: -0.05em;
-        }
-
-        .mini-mark {
-          width: 18px;
-          height: 15px;
-          position: relative;
-        }
-
-        .mini-mark::before,
-        .mini-mark::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          width: 11px;
-          height: 15px;
-          border: 3px solid var(--black);
-          border-radius: 999px;
-        }
-
-        .mini-mark::before {
-          left: 0;
-        }
-
-        .mini-mark::after {
-          right: 0;
-        }
-
-        .phone-card {
-          margin: 10px 18px 0;
-          height: 410px;
-          border-radius: 30px;
-          overflow: hidden;
-          position: relative;
-          background:
-            linear-gradient(to bottom, rgba(5, 0, 2, 0) 35%, rgba(5, 0, 2, 0.82)),
-            url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=900&auto=format&fit=crop");
-          background-size: cover;
-          background-position: center;
-        }
-
-        .phone-card-content {
-          position: absolute;
-          left: 20px;
-          right: 20px;
-          bottom: 18px;
-          color: white;
-        }
-
-        .phone-card-content h3 {
+          text-align: center;
+          padding: 0 !important;
           margin: 0;
-          font-size: 28px;
+        }
+
+        h1 {
+          margin: 0;
+          font-size: clamp(34px, 6vw, 54px);
           line-height: 1;
+          letter-spacing: -0.055em;
+          font-weight: 950;
+        }
+
+        .saving {
+          margin: 8px 0 28px;
+          font-size: clamp(24px, 4vw, 36px);
+          line-height: 1.05;
           letter-spacing: -0.04em;
-        }
-
-        .match-badge {
-          width: fit-content;
-          margin-top: 10px;
-          padding: 8px 10px;
-          border-radius: 999px;
-          background: var(--pink);
-          color: var(--black);
-          font-size: 12px;
-          font-weight: 950;
-        }
-
-        .phone-actions {
-          display: flex;
-          justify-content: center;
-          gap: 14px;
-          margin-top: 22px;
-        }
-
-        .round-action {
-          width: 58px;
-          height: 58px;
-          border-radius: 999px;
-          border: 1px solid rgba(5, 0, 2, 0.08);
-          background: white;
-          display: grid;
-          place-items: center;
-          font-size: 24px;
-          box-shadow: 0 14px 30px rgba(5, 0, 2, 0.08);
-        }
-
-        .round-action.like {
-          background: var(--pink);
-        }
-
-        .section {
-          padding: 92px 0;
-        }
-
-        .section-header {
-          max-width: 760px;
-          margin-bottom: 42px;
-        }
-
-        .kicker {
-          margin: 0 0 14px;
-          text-transform: uppercase;
-          letter-spacing: 0.14em;
-          font-size: 12px;
-          font-weight: 950;
-          color: var(--pink-dark);
-        }
-
-        .section-title {
-          margin: 0;
-          font-size: clamp(40px, 5.5vw, 76px);
-          line-height: 0.95;
-          letter-spacing: -0.075em;
-          font-weight: 950;
-        }
-
-        .section-title em {
-          font-family: Georgia, "Times New Roman", serif;
-          font-weight: 400;
-          font-style: italic;
-        }
-
-        .section-copy {
-          margin: 18px 0 0;
-          font-size: 19px;
-          line-height: 1.55;
-          color: rgba(5, 0, 2, 0.68);
-        }
-
-        .split-cards {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 22px;
-        }
-
-        .role-card {
-          padding: 34px;
-          border-radius: 34px;
-          background: rgba(255, 255, 255, 0.58);
-          border: 1px solid rgba(5, 0, 2, 0.08);
-          min-height: 360px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .role-card::after {
-          content: "";
-          position: absolute;
-          right: -80px;
-          top: -80px;
-          width: 210px;
-          height: 210px;
-          border-radius: 999px;
-          background: rgba(242, 168, 169, 0.42);
-        }
-
-        .role-card.blue::after {
-          background: rgba(116, 190, 220, 0.34);
-        }
-
-        .role-card h3 {
-          margin: 0;
-          font-size: 34px;
-          letter-spacing: -0.05em;
-          line-height: 1;
-        }
-
-        .role-card p {
-          margin: 16px 0 0;
-          font-size: 17px;
-          line-height: 1.45;
-          color: rgba(5, 0, 2, 0.68);
-          max-width: 430px;
-        }
-
-        .role-list {
-          display: grid;
-          gap: 10px;
-          margin: 26px 0 0;
-          padding: 0;
-          list-style: none;
-        }
-
-        .role-list li {
-          font-size: 15px;
-          font-weight: 800;
-          color: rgba(5, 0, 2, 0.76);
+          font-weight: 500;
         }
 
         .steps {
+          width: min(520px, 100%);
+          margin: 0 auto;
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 18px;
+          gap: 22px;
         }
 
         .step {
-          padding: 28px;
-          border-radius: 30px;
-          background: var(--black);
-          color: white;
-          min-height: 255px;
-          position: relative;
+          display: grid;
+          grid-template-columns: 116px 1fr;
+          gap: 24px;
+          align-items: center;
+          text-align: left;
         }
 
-        .step:nth-child(2) {
-          background: var(--pink-dark);
+        .iconWrap {
+          display: grid;
+          justify-items: center;
+          gap: 8px;
         }
 
-        .step:nth-child(3) {
-          background: #fff;
-          color: var(--black);
-        }
-
-        .step:nth-child(4) {
-          background: var(--pink);
-          color: var(--black);
-        }
-
-        .step-number {
-          width: 38px;
-          height: 38px;
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 72px;
+          height: 26px;
+          padding: 0 12px;
           border-radius: 999px;
+          background: #20d466;
+          color: white;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .icon {
+          width: 88px;
+          height: 88px;
+          border: 3px solid #050505;
+          border-radius: 22px;
           display: grid;
           place-items: center;
-          background: rgba(255, 255, 255, 0.18);
-          font-weight: 950;
-          margin-bottom: 42px;
+          background: white;
+          line-height: 1;
         }
 
-        .step:nth-child(3) .step-number,
-        .step:nth-child(4) .step-number {
-          background: rgba(5, 0, 2, 0.1);
+        .icon svg {
+          width: 54px;
+          height: 54px;
+          stroke: #20d466;
+          stroke-width: 2.5;
+          fill: none;
+          stroke-linecap: round;
+          stroke-linejoin: round;
         }
 
         .step h3 {
-          margin: 0;
-          font-size: 24px;
+          margin: 0 0 8px;
+          font-size: 25px;
           line-height: 1;
           letter-spacing: -0.04em;
+          font-weight: 950;
         }
 
         .step p {
-          margin: 14px 0 0;
-          line-height: 1.45;
-          opacity: 0.78;
+          margin: 0;
+          font-size: 15px;
+          line-height: 1.25;
+          color: rgba(0, 0, 0, 0.74);
+          font-weight: 500;
         }
 
-        .proof {
-          border-radius: 42px;
-          background: #050002;
-          color: white;
-          padding: 64px;
+        .trust {
+          margin: 36px auto 28px;
+          width: min(610px, 100%);
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 36px;
+          gap: 22px;
           align-items: center;
         }
 
-        .proof h2 {
-          margin: 0;
-          font-size: clamp(42px, 5vw, 76px);
-          line-height: 0.95;
-          letter-spacing: -0.075em;
-        }
-
-        .proof p {
-          margin: 18px 0 0;
-          color: rgba(255, 255, 255, 0.72);
-          font-size: 18px;
-          line-height: 1.55;
-        }
-
-        .proof-grid {
+        .trustItem {
           display: grid;
-          gap: 14px;
-        }
-
-        .proof-item {
-          padding: 18px;
-          border-radius: 22px;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .proof-item strong {
-          display: block;
-          font-size: 18px;
-          margin-bottom: 6px;
-        }
-
-        .cta {
-          text-align: center;
-          padding: 110px 0 120px;
-        }
-
-        .cta-card {
-          border-radius: 48px;
-          padding: 70px 36px;
-          background:
-            radial-gradient(circle at 20% 30%, rgba(242, 168, 169, 0.78), transparent 30%),
-            radial-gradient(circle at 78% 35%, rgba(231, 199, 118, 0.55), transparent 26%),
-            rgba(255, 255, 255, 0.58);
-          border: 1px solid rgba(5, 0, 2, 0.08);
-        }
-
-        .cta h2 {
-          margin: 0 auto;
-          max-width: 820px;
-          font-size: clamp(46px, 6vw, 88px);
-          line-height: 0.92;
-          letter-spacing: -0.08em;
-        }
-
-        .cta p {
-          margin: 22px auto 0;
-          max-width: 620px;
-          color: rgba(5, 0, 2, 0.68);
-          font-size: 19px;
-          line-height: 1.5;
-        }
-
-        .footer {
-          padding: 42px 0;
-          border-top: 1px solid rgba(5, 0, 2, 0.1);
-        }
-
-        .footer-inner {
-          display: flex;
-          justify-content: space-between;
-          gap: 24px;
+          grid-template-columns: 86px 1fr;
+          gap: 16px;
           align-items: center;
-          color: rgba(5, 0, 2, 0.58);
-          font-size: 14px;
+          text-align: left;
         }
 
-        .footer a {
-          color: rgba(5, 0, 2, 0.7);
+        .trustIcon {
+          width: 82px;
+          height: 82px;
+          border: 4px solid #050505;
+          border-radius: 28px;
+          display: grid;
+          place-items: center;
+        }
+
+        .trustIcon svg {
+          width: 54px;
+          height: 54px;
+          stroke: #20d466;
+          stroke-width: 3;
+          fill: none;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .trustItem h3 {
+          margin: 0 0 5px;
+          font-size: 22px;
+          line-height: 0.96;
+          letter-spacing: -0.04em;
+          font-weight: 950;
+        }
+
+        .trustItem p {
+          margin: 0;
+          color: rgba(0, 0, 0, 0.62);
+          font-size: 13px;
+          line-height: 1.25;
+          font-weight: 600;
+        }
+
+        .videoBlock {
+          width: min(620px, 100%);
+          margin: 30px auto 0;
+          border-radius: 24px;
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: #000;
+          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.14);
+        }
+
+        .demoVideo {
+          width: 100%;
+          height: auto;
+          display: block;
+        }
+
+        .infoCard {
+          margin-top: 32px;
+          border: 1px solid rgba(0, 0, 0, 0.16);
+          border-radius: 18px;
+          padding: 28px;
+          display: grid;
+          grid-template-columns: 1.08fr 0.92fr;
+          gap: 28px;
+          align-items: center;
+          background: #fff;
+        }
+
+        .infoCard h2 {
+          margin: 0 0 12px;
+          font-size: 25px;
+          line-height: 1.05;
+          letter-spacing: -0.04em;
+          font-weight: 950;
+        }
+
+        .infoCard p {
+          margin: 0;
+          font-size: 15px;
+          line-height: 1.35;
+          color: rgba(0, 0, 0, 0.78);
+        }
+
+        .infoCard strong {
+          display: block;
+          margin-top: 18px;
+          font-size: 20px;
+          line-height: 1.1;
+          letter-spacing: -0.035em;
+        }
+
+        .followBox {
+          position: relative;
+          padding-left: 28px;
+        }
+
+        .divider {
+          width: 1px;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.18);
+          position: absolute;
+          left: 0;
+          top: 0;
+        }
+
+        .followBox p {
+          font-size: 14px;
+          font-weight: 750;
+        }
+
+        .instagram {
+          margin-top: 18px;
+          height: 52px;
+          border-radius: 13px;
+          border: 2px solid #20d466;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 0 24px;
+          color: #050505;
           text-decoration: none;
+          font-weight: 950;
+        }
+
+        .launch {
+          margin-top: 14px;
+          border: 2px solid #20d466;
+          border-radius: 16px;
+          padding: 18px 20px;
+          display: grid;
+          grid-template-columns: 64px 1fr auto;
+          gap: 16px;
+          align-items: center;
+          background: rgba(32, 212, 102, 0.03);
+        }
+
+        .rocket {
+          width: 58px;
+          height: 58px;
+          border-radius: 999px;
+          background: rgba(32, 212, 102, 0.12);
+          display: grid;
+          place-items: center;
+          font-size: 32px;
+        }
+
+        .launch h3 {
+          margin: 0 0 5px;
+          font-size: 18px;
+          letter-spacing: -0.03em;
+          line-height: 1.05;
+          font-weight: 950;
+        }
+
+        .launch p {
+          margin: 0;
+          font-size: 14px;
+          line-height: 1.28;
+          color: rgba(0, 0, 0, 0.68);
+          font-weight: 600;
+        }
+
+        .launchBtn {
+          height: 42px;
+          padding: 0 22px;
+          border-radius: 999px;
+          background: #20d466;
+          color: white;
+          border: 0;
+          font-weight: 950;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+
+        .formCard {
+          width: min(520px, 100%);
+          margin: 14px auto 0;
+          border: 1px solid rgba(0, 0, 0, 0.16);
+          border-radius: 20px;
+          padding: 24px;
+          background: #fff;
+        }
+
+        .formCard h2 {
+          margin: 0;
+          font-size: 28px;
+          line-height: 1;
+          letter-spacing: -0.045em;
+          font-weight: 950;
+        }
+
+        .formCard p {
+          margin: 10px 0 18px;
+          font-size: 15px;
+          line-height: 1.35;
+          color: rgba(0, 0, 0, 0.6);
+          font-weight: 500;
+        }
+
+        form {
+          display: grid;
+          gap: 9px;
+        }
+
+        input,
+        select {
+          height: 40px;
+          width: 100%;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          border-radius: 10px;
+          padding: 0 12px;
+          font-size: 13px;
+          outline: none;
+          background: white;
+          color: #050505;
+        }
+
+        input:focus,
+        select:focus {
+          border-color: #20d466;
+          box-shadow: 0 0 0 3px rgba(32, 212, 102, 0.14);
+        }
+
+        .row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 9px;
+        }
+
+        .turnstileWrap {
+          margin-top: 6px;
+          min-height: 65px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .submit {
+          margin-top: 4px;
+          height: 48px;
+          border: 0;
+          border-radius: 999px;
+          background: #20d466;
+          color: #06140a;
+          font-weight: 950;
+          cursor: pointer;
+        }
+
+        .submit:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .mini {
+          margin-top: 10px;
+          font-size: 12px;
+          color: rgba(0, 0, 0, 0.46);
+        }
+
+        .success {
+          padding: 18px;
+          border-radius: 14px;
+          border: 2px solid #20d466;
+          background: rgba(32, 212, 102, 0.08);
+          color: #087b35;
+          font-weight: 950;
+          line-height: 1.35;
+        }
+
+        .error {
+          margin-top: 8px;
+          color: #b00020;
+          font-size: 13px;
           font-weight: 800;
         }
 
-        @media (max-width: 980px) {
-          .hero-grid,
-          .proof {
+        @media (max-width: 720px) {
+          .siteHeaderInner {
+            height: 74px;
+          }
+
+          .headerLogo {
+            width: 180px;
+          }
+
+          .wrap {
+            width: min(100% - 28px, 760px);
+            padding: 22px 0 70px;
+          }
+
+          .step {
+            grid-template-columns: 92px 1fr;
+            gap: 16px;
+          }
+
+          .icon {
+            width: 74px;
+            height: 74px;
+          }
+
+          .icon svg {
+            width: 45px;
+            height: 45px;
+          }
+
+          .trust,
+          .infoCard,
+          .launch {
             grid-template-columns: 1fr;
           }
 
-          .phone-wrap {
-            min-height: 560px;
+          .trustItem {
+            grid-template-columns: 76px 1fr;
           }
 
-          .steps {
-            grid-template-columns: repeat(2, 1fr);
+          .trustIcon {
+            width: 72px;
+            height: 72px;
           }
 
-          .split-cards {
-            grid-template-columns: 1fr;
+          .trustIcon svg {
+            width: 46px;
+            height: 46px;
           }
 
-          .nav-links a:not(.nav-cta) {
+          .followBox {
+            padding-left: 0;
+          }
+
+          .divider {
             display: none;
           }
-        }
 
-        @media (max-width: 620px) {
-          .container {
-            width: min(100% - 28px, 1160px);
-          }
-
-          .nav-inner {
-            height: 66px;
-          }
-
-          .brand {
-            font-size: 24px;
-          }
-
-          .hero {
-            padding: 58px 0 54px;
-          }
-
-          .hero p {
-            font-size: 18px;
-          }
-
-          .hero-actions {
-            flex-direction: column;
-          }
-
-          .btn {
+          .launchBtn {
             width: 100%;
           }
 
-          .phone {
-            width: 300px;
-            min-height: 545px;
-          }
-
-          .phone-card {
-            height: 360px;
-          }
-
-          .steps {
+          .row {
             grid-template-columns: 1fr;
-          }
-
-          .proof {
-            padding: 34px;
-            border-radius: 32px;
-          }
-
-          .footer-inner {
-            flex-direction: column;
-            align-items: flex-start;
           }
         }
       `}</style>
 
- <div className="verlo-page">
-        <header className="nav">
-          <div className="container nav-inner">
-           <VerloBrand width={112} />
+      <header className="siteHeader">
+        <div className="siteHeaderInner">
+          <img src={logoUrl} alt="Verlo" className="headerLogo" />
+        </div>
+      </header>
 
-            <nav className="nav-links">
-              <a href="#como-funciona">Cómo funciona</a>
-              <a href="#seguridad">Seguridad</a>
-              <a
-                href="#sumate"
-                className="nav-cta"
-                onClick={() =>
-                  trackMetaEvent("CTA_Sumate_Click", {
-                    location: "header",
-                    destination: "#sumate",
-                  })
-                }
-              >
-                Sumate
-              </a>
-            </nav>
-          </div>
-        </header>
+      <div className="wrap">
+        <section className="hero">
+          <h1>Más fácil, rápido y seguro</h1>
+          <div className="saving">Ahorrá hasta un 95%</div>
 
-             <section className="hero">
-          <div className="container hero-grid">
-            <div>
-              {/*<div className="eyebrow">
-                Alquiler directo entre personas reales
-              </div>*/}
-
-              <h1>
-                Alquilá directo, <em>seguro y sin comisión.</em>
-              </h1>
-
-              <p>
-                En Verlo conectás directo con la otra parte, validás identidad y avanzás hacia un contrato digital más simple, seguro y económico.
-              </p>
-
-              <div className="hero-actions">
-                <Link
-                  className="btn btn-primary"
-                  href="/login?role=owner&next=%2Fpropietario%2Fpublicar-v2"
-                  onClick={() =>
-                    trackMetaEvent("CTA_PublicarPropiedad_Click", {
-                      location: "hero",
-                      destination: "/propietario/publicar-v2",
-                    })
-                  }
-                >
-                  Publicar mi propiedad
-                </Link>
-
-                <Link
-                  className="btn btn-secondary"
-                  href="/buscar"
-                  onClick={() =>
-                    trackMetaEvent("CTA_BuscarAlquiler_Click", {
-                      location: "hero",
-                      destination: "/buscar",
-                    })
-                  }
-                >
-                  Busco alquilar
-                </Link>
-              </div>
-
-              <div className="trust-row">
-                <span className="pill">Sin comisión inmobiliaria</span>
-                <span className="pill">Identidad validada</span>
-                <span className="pill">Contrato digital</span>
-                <span className="pill">App disponible próximamente</span>
-                <span className="pill">Primeros usuarios sin costo</span>
-              </div>
-            </div>
-
-            <div className="hero-video-wrap" aria-hidden="true">
-              <div className="hero-video-glow" />
-
-              <div className="hero-video-frame">
-                <iframe
-                  src="/mockup-lab?key=verlo-demo-2026"
-                  title="Video demo Verlo"
-                  loading="eager"
-                  allow="autoplay"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-    <section className="section" id="sumate">
-          <div className="container">
-            <div className="section-header">
-              <p className="kicker">Validación inicial</p>
-              <h2 className="section-title">
-                Sumate al primer grupo de <em>Verlo.</em>
-              </h2>
-              <p className="section-copy">
-                Estamos reuniendo propietarios e inquilinos para validar la primera red
-                de alquiler directo, sin intermediarios y con contrato digital.
-              </p>
-            </div>
-
-            <div className="split-cards">
-              <div className="role-card">
-                <div>
-                  <h3>Soy propietario</h3>
-                  <p>
-                    Publicá tu propiedad, recibí inquilinos compatibles y avanzá solo
-                    cuando haya una señal real.
-                  </p>
-
-                  <ul className="role-list">
-                    <li>✓ Cargá tu propiedad gratis</li>
-                    <li>✓ Recibí interesados compatibles</li>
-                    <li>✓ Coordiná visitas dentro del flujo</li>
-                  </ul>
+          <div className="steps">
+            <div className="step">
+              <div className="iconWrap">
+                <span className="pill">Paso 1</span>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M26 38l12-12" />
+                    <path d="M36 18h10v10" />
+                    <path d="M38 26l8-8" />
+                    <path d="M25 20l-8 8c-5 5-5 13 0 18s13 5 18 0l6-6" />
+                    <path d="M39 44l8-8c5-5 5-13 0-18s-13-5-18 0l-6 6" />
+                  </svg>
                 </div>
-
-              <div style={{ marginTop: 28 }}>
-  <Link
-    className="btn btn-primary"
-   href="/login?role=owner&next=%2Fpropietario%2Fpublicar-v2"
-    onClick={() =>
-      trackMetaEvent("CTA_PublicarPropiedad_Click", {
-        location: "sumate_propietario_card",
-        destination: "/propietario/publicar-v2",
-      })
-    }
-  >
-    Publicar propiedad
-  </Link>
-</div>
               </div>
-<div className="role-card blue">
-                <div>
-                  <h3>Soy inquilino</h3>
-                  <p>
-                    Contanos qué buscás y entrá a la lista para recibir propiedades
-                    compatibles cuando abramos la prueba.
-                  </p>
-
-                  <ul className="role-list">
-                    <li>✓ Buscá por zona y presupuesto</li>
-                    <li>✓ Matcheá con propiedades reales</li>
-                    <li>✓ Firmá con más seguridad</li>
-                  </ul>
-                </div>
-
-               <div style={{ marginTop: 28 }}>
-  <Link
-    className="btn btn-secondary"
-    href="/buscar"
-    onClick={() =>
-      trackMetaEvent("CTA_BuscarAlquiler_Click", {
-        location: "sumate_inquilino_card",
-        destination: "/buscar",
-      })
-    }
-  >
-    Quiero alquilar
-  </Link>
-</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="section" id="como-funciona">
-          <div className="container">
-            <div className="section-header">
-              <p className="kicker">Cómo funciona</p>
-              <h2 className="section-title">
-                Del like al contrato, <em>sin vueltas.</em>
-              </h2>
-            </div>
-
-            <div className="steps">
-              <div className="step">
-                <div className="step-number">1</div>
-                <h3>Cargan su perfil</h3>
-                <p>
-                  Propietarios publican. Inquilinos cuentan qué buscan, dónde y con qué presupuesto.
-                </p>
-              </div>
-
-              <div className="step">
-                <div className="step-number">2</div>
-                <h3>Hay match</h3>
-                <p>
-                  Cuando ambas partes muestran interés, Verlo habilita el siguiente paso.
-                </p>
-              </div>
-
-              <div className="step">
-                <div className="step-number">3</div>
-                <h3>Visita y acuerdo</h3>
-                <p>
-                  Coordinan visita, conversan condiciones y dejan asentados los términos importantes.
-                </p>
-              </div>
-
-              <div className="step">
-                <div className="step-number">4</div>
-                <h3>Firma digital</h3>
-                <p>
-                  Con la información completa, se genera el contrato y ambas partes firman.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="section" id="seguridad">
-          <div className="container">
-            <div className="proof">
               <div>
-                <p className="kicker">Confianza</p>
-                <h2>Más simple que una inmobiliaria. Más seguro que arreglar solo.</h2>
+                <h3>Invitación</h3>
+                <p>Creá un link único para invitar a la otra parte a Verlo.</p>
+              </div>
+            </div>
+
+            <div className="step">
+              <div className="iconWrap">
+                <span className="pill">Paso 2</span>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M18 28c0-9 6-16 14-16s14 7 14 16" />
+                    <path d="M20 31c0 11 5 19 12 19s12-8 12-19" />
+                    <path d="M26 31h.1" />
+                    <path d="M38 31h.1" />
+                    <path d="M27 40c3 3 7 3 10 0" />
+                    <path d="M12 22v-8h8" />
+                    <path d="M44 14h8v8" />
+                    <path d="M12 42v8h8" />
+                    <path d="M44 50h8v-8" />
+                    <rect x="40" y="36" width="16" height="16" rx="3" />
+                    <path d="M44 36v-4a4 4 0 018 0v4" />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h3>Verlo ID</h3>
                 <p>
-                  Verlo no desbloquea el contacto real sin validar identidad. El contrato se
-                  construye con la información que cada parte carga durante el proceso.
+                  Validación biométrica y video selfie en segundos para garantizar
+                  identidad real.
                 </p>
               </div>
+            </div>
 
-              <div className="proof-grid">
-                <div className="proof-item">
-                  <strong>Identidad validada</strong>
-                  <span>Antes de avanzar a contacto, visita o firma.</span>
+            <div className="step">
+              <div className="iconWrap">
+                <span className="pill">Paso 3</span>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M18 10h24l8 8v36H18z" />
+                    <path d="M42 10v10h10" />
+                    <path d="M24 26l4 4 8-9" />
+                    <path d="M24 38l4 4 8-9" />
+                    <path d="M42 40l10-10 4 4-10 10-6 2z" />
+                  </svg>
                 </div>
+              </div>
+              <div>
+                <h3>Acuerdo</h3>
+                <p>
+                  Cargá condiciones básicas como precio, duración y servicios de forma
+                  simple.
+                </p>
+              </div>
+            </div>
 
-                <div className="proof-item">
-                  <strong>Información estructurada</strong>
-                  <span>Precio, depósito, duración y condiciones quedan claros.</span>
+            <div className="step">
+              <div className="iconWrap">
+                <span className="pill">Paso 4</span>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M32 6l22 9v16c0 14-9 22-22 27C19 53 10 45 10 31V15z" />
+                    <path d="M32 18v28" />
+                    <path d="M40 24c-2-4-14-5-14 2 0 8 16 4 16 13 0 7-13 7-17 2" />
+                    <circle cx="48" cy="48" r="10" />
+                    <path d="M44 48l3 3 6-7" />
+                  </svg>
                 </div>
+              </div>
+              <div>
+                <h3>Fee de Seguridad</h3>
+                <p>
+                  Pago de USD 69 por cada parte para activar la tecnología de Verlo.
+                </p>
+              </div>
+            </div>
 
-                <div className="proof-item">
-                  <strong>Contrato digital</strong>
-                  <span>La firma ocurre cuando ambas partes ya cerraron el acuerdo.</span>
+            <div className="step">
+              <div className="iconWrap">
+                <span className="pill">Paso 5</span>
+                <div className="icon">
+                  <svg viewBox="0 0 64 64">
+                    <path d="M18 8h28l8 8v40H18z" />
+                    <path d="M46 8v10h10" />
+                    <path d="M26 44c3-8 7-8 8 0 1 6 6 4 9-1" />
+                    <path d="M37 31l13-13 5 5-13 13-8 3z" />
+                  </svg>
                 </div>
+              </div>
+              <div>
+                <h3>Firma Digital</h3>
+                <p>
+                  Firmá el contrato digital para cerrar la operación de forma definitiva.
+                </p>
               </div>
             </div>
           </div>
+
+          <div className="trust">
+            <div className="trustItem">
+              <div className="trustIcon">
+                <svg viewBox="0 0 64 64">
+                  <path d="M32 6l22 9v16c0 14-9 22-22 27C19 53 10 45 10 31V15z" />
+                  <path d="M22 32l7 7 14-17" />
+                </svg>
+              </div>
+              <div>
+                <h3>Testigo Digital</h3>
+                <p>Registro inalterable de toda la trazabilidad y acuerdos entre partes.</p>
+              </div>
+            </div>
+
+            <div className="trustItem">
+              <div className="trustIcon">
+                <svg viewBox="0 0 64 64">
+                  <circle cx="30" cy="23" r="11" />
+                  <path d="M12 54c3-13 11-20 18-20s15 7 18 20" />
+                  <circle cx="48" cy="46" r="10" />
+                  <path d="M44 46l3 3 6-7" />
+                </svg>
+              </div>
+              <div>
+                <h3>Identidad Verificada</h3>
+                <p>Tecnología que confirma quién sos y garantiza acuerdos válidos.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="videoBlock">
+            <video
+              className="demoVideo"
+              src={videoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
+            />
+          </div>
         </section>
 
-        <section className="cta">
-          <div className="container">
-            <div className="cta-card">
-              <h2>El alquiler directo también puede sentirse bien.</h2>
+        <section className="infoCard">
+          <div>
+            <h2>¡Dejá de regalar miles de dólares en comisiones inmobiliarias!</h2>
+            <p>
+              Verlo te permite cerrar un nuevo alquiler o renovarlo, con identidad
+              validada, firma digital y trazabilidad de punta a punta.
+            </p>
+            <strong>
+              Ahora que conoces Verlo…
+              <br />
+              ¿Por qué pagarías mucho más, por mucho menos?
+            </strong>
+          </div>
+
+          <div className="followBox">
+            <div className="divider" />
+            <p>
+              Seguinos en Instagram para convertirte en uno de los miembros fundadores
+              de Verlo y enterarte de los beneficios que estamos pensando para vos.
+            </p>
+            <a
+              className="instagram"
+              href="https://www.instagram.com/verlo_alquileres/"
+              target="_blank"
+            >
+              ◎ Seguir en Instagram
+            </a>
+          </div>
+        </section>
+
+        <section className="launch">
+          <div className="rocket">🚀</div>
+          <div>
+            <h3>¡Estamos preparando el lanzamiento de Verlo!</h3>
+            <p>
+              Registrate y accedé primero a la forma más simple y segura de cerrar o
+              renovar un alquiler.
+            </p>
+          </div>
+          <button
+            className="launchBtn"
+            onClick={() =>
+              document
+                .getElementById("acceso")
+                ?.scrollIntoView({ behavior: "smooth", block: "center" })
+            }
+          >
+            ¡Quiero cuidar mi dinero!
+          </button>
+        </section>
+
+        <section className="formCard" id="acceso">
+          {!sent ? (
+            <>
+              <h2>Verlo cambiará el mercado inmobiliario en LATAM</h2>
               <p>
-                Sumate a Verlo y ayudanos a validar una forma más simple, segura y humana
-                de alquilar.
+                ¡Sumate! Estamos preparando beneficios especiales para miembros
+                fundadores.
               </p>
 
-              <div className="hero-actions" style={{ justifyContent: "center" }}>
-                <Link
-                  className="btn btn-primary"
-                  href="/login?role=owner&next=%2Fpropietario%2Fpublicar-v2"
-                  onClick={() =>
-                    trackMetaEvent("CTA_PublicarPropiedad_Click", {
-                      location: "final_cta",
-                      destination: "/propietario/publicar-v2",
-                    })
-                  }
-                >
-  Publicar propiedad
-</Link>
-               <Link
-                 className="btn btn-secondary"
-                 href="/buscar"
-                 onClick={() =>
-                   trackMetaEvent("CTA_BuscarAlquiler_Click", {
-                     location: "final_cta",
-                     destination: "/buscar",
-                   })
-                 }
-               >
-  Busco alquilar
-</Link>
+              <form onSubmit={handleSubmit}>
+                <input required name="full_name" placeholder="Nombre y apellido" />
+                <input required name="email" type="email" placeholder="Email" />
+                <input required name="phone" placeholder="WhatsApp" />
+
+                <div className="row">
+                  <select required name="role" defaultValue="">
+                    <option value="" disabled>
+                      ¿Cómo vas a usar Verlo?
+                    </option>
+                    <option>Propietario</option>
+                    <option>Inquilino</option>
+                    <option>Otro</option>
+                  </select>
+
+                  <select required name="need" defaultValue="">
+                    <option value="" disabled>
+                      ¿Qué queres hacer?
+                    </option>
+                    <option>Firmar un nuevo alquiler</option>
+                    <option>Renovar un contrato existente</option>
+                    <option>Conocer Verlo</option>
+                  </select>
+                </div>
+
+                <div className="turnstileWrap">
+                  <div
+                    className="cf-turnstile"
+                    data-sitekey={turnstileSiteKey}
+                    data-theme="light"
+                  />
+                </div>
+
+                <button className="submit" disabled={loading}>
+                  {loading ? "Guardando..." : "Quiero acceso anticipado"}
+                </button>
+
+                {error && <div className="error">{error}</div>}
+              </form>
+
+              <div className="mini">
+                Vas a ser parte de un cambio sin precedentes. ¿Estás listo?
               </div>
+            </>
+          ) : (
+            <div className="success">
+              Listo. Quedaste anotado para el acceso anticipado de Verlo.
             </div>
-          </div>
+          )}
         </section>
-
-        <footer className="footer">
-          <div className="container footer-inner">
-           <VerloBrand width={96} />
-
-            <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-              <Link
-                href="/terminos"
-                onClick={() =>
-                  trackMetaEvent("CTA_Terminos_Click", {
-                    location: "footer",
-                    destination: "/terminos",
-                  })
-                }
-              >
-                Términos
-              </Link>
-              <Link
-                href="/privacidad"
-                onClick={() =>
-                  trackMetaEvent("CTA_Privacidad_Click", {
-                    location: "footer",
-                    destination: "/privacidad",
-                  })
-                }
-              >
-                Privacidad
-              </Link>
-              <Link
-                href="/contacto"
-                onClick={() =>
-                  trackMetaEvent("CTA_Contacto_Click", {
-                    location: "footer",
-                    destination: "/contacto",
-                  })
-                }
-              >
-                Contacto
-              </Link>
-            </div>
-          </div>
-        </footer>
       </div>
     </main>
   )
 }
+
