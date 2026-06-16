@@ -1,8 +1,6 @@
 "use client"
 
 import { FormEvent, useState } from "react"
-import { supabase } from "@/lib/supabase/client"
-
 
 const logoUrl =
   "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-14%20at%2016.35.42.jpeg"
@@ -16,33 +14,44 @@ export default function PaginaDePrueba() {
   const [error, setError] = useState("")
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-  e.preventDefault()
-  setError("")
-  setLoading(true)
+    e.preventDefault()
+    setError("")
+    setLoading(true)
 
-  const formData = new FormData(e.currentTarget)
+    const formData = new FormData(e.currentTarget)
 
-  const payload = {
-    full_name: String(formData.get("full_name") || "").trim(),
-    email: String(formData.get("email") || "").trim(),
-    phone: String(formData.get("phone") || "").trim(),
-    role: String(formData.get("role") || "").trim(),
-    need: String(formData.get("need") || "").trim(),
-    source: "pagedeprueba",
+    const payload = {
+      full_name: String(formData.get("full_name") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      phone: String(formData.get("phone") || "").trim(),
+      role: String(formData.get("role") || "").trim(),
+      need: String(formData.get("need") || "").trim(),
+    }
+
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok || !data?.ok) {
+        setError(data?.error || "No pudimos guardar tus datos. Probá de nuevo.")
+        return
+      }
+
+      setSent(true)
+    } catch (err) {
+      console.error(err)
+      setError("No pudimos guardar tus datos. Probá de nuevo.")
+    } finally {
+      setLoading(false)
+    }
   }
-
-  const { error } = await supabase.from("waitlist_leads").insert(payload)
-
-  setLoading(false)
-
-  if (error) {
-    setError("No pudimos guardar tus datos. Probá de nuevo.")
-    console.error(error)
-    return
-  }
-
-  setSent(true)
-}
 
   return (
     <main className="page">
@@ -433,6 +442,11 @@ export default function PaginaDePrueba() {
           cursor: pointer;
         }
 
+        .submit:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
         .mini {
           margin-top: 10px;
           font-size: 12px;
@@ -447,6 +461,13 @@ export default function PaginaDePrueba() {
           color: #087b35;
           font-weight: 950;
           line-height: 1.35;
+        }
+
+        .error {
+          margin-top: 8px;
+          color: #b00020;
+          font-size: 13px;
+          font-weight: 800;
         }
 
         @media (max-width: 720px) {
@@ -513,12 +534,6 @@ export default function PaginaDePrueba() {
           .row {
             grid-template-columns: 1fr;
           }
-          .error {
-  margin-top: 8px;
-  color: #b00020;
-  font-size: 13px;
-  font-weight: 800;
-}
         }
       `}</style>
 
@@ -708,7 +723,11 @@ export default function PaginaDePrueba() {
               Seguinos en Instagram para convertirte en uno de los miembros fundadores
               de Verlo y enterarte de los beneficios que estamos pensando para vos.
             </p>
-            <a className="instagram" href="https://www.instagram.com/verlo_alquileres/" target="_blank">
+            <a
+              className="instagram"
+              href="https://www.instagram.com/verlo_alquileres/"
+              target="_blank"
+            >
               ◎ Seguir en Instagram
             </a>
           </div>
@@ -731,7 +750,7 @@ export default function PaginaDePrueba() {
                 ?.scrollIntoView({ behavior: "smooth", block: "center" })
             }
           >
-           ¡Quiero cuidar mi dinero!
+            ¡Quiero cuidar mi dinero!
           </button>
         </section>
 
@@ -740,8 +759,9 @@ export default function PaginaDePrueba() {
             <>
               <h2>Verlo cambiará el mercado inmobiliario en LATAM</h2>
               <p>
-               ¡Sumate! Estamos preparando beneficios especiales para miembros fundadores.
-               </p>
+                ¡Sumate! Estamos preparando beneficios especiales para miembros
+                fundadores.
+              </p>
 
               <form onSubmit={handleSubmit}>
                 <input required name="full_name" placeholder="Nombre y apellido" />
@@ -749,7 +769,7 @@ export default function PaginaDePrueba() {
                 <input required name="phone" placeholder="WhatsApp" />
 
                 <div className="row">
-                 <select required name="role" defaultValue="">
+                  <select required name="role" defaultValue="">
                     <option value="" disabled>
                       ¿Cómo vas a usar Verlo?
                     </option>
@@ -762,15 +782,16 @@ export default function PaginaDePrueba() {
                     <option value="" disabled>
                       ¿Qué queres hacer?
                     </option>
-                    <option>⁠Firmar un nuevo alquiler</option>
-                    <option>⁠Renovar un contrato existente</option>
+                    <option>Firmar un nuevo alquiler</option>
+                    <option>Renovar un contrato existente</option>
                     <option>Conocer Verlo</option>
                   </select>
                 </div>
 
                 <button className="submit" disabled={loading}>
-                {loading ? "Guardando..." : "Quiero acceso anticipado"}
+                  {loading ? "Guardando..." : "Quiero acceso anticipado"}
                 </button>
+
                 {error && <div className="error">{error}</div>}
               </form>
 
@@ -788,3 +809,4 @@ export default function PaginaDePrueba() {
     </main>
   )
 }
+
