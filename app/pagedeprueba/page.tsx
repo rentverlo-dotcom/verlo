@@ -496,7 +496,7 @@ export default function PaginaDePrueba() {
 
       <div className="wrap">
         <section className="hero">
-          <h1>Alquilá fácil, rápido y seguro</h1>
+          <h1>Más fácil, rápido y seguro</h1>
           <div className="saving">Ahorrá hasta un 95%</div>
 
           <div className="steps">
@@ -697,7 +697,7 @@ export default function PaginaDePrueba() {
                 ?.scrollIntoView({ behavior: "smooth", block: "center" })
             }
           >
-            Quiero acceso anticipado
+           ¡Quiero cuidar mi dinero!
           </button>
         </section>
 
