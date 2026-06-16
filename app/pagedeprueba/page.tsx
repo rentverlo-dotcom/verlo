@@ -730,7 +730,7 @@ export default function PaginaDePrueba() {
                     </option>
                     <option>⁠Firmar un nuevo alquiler</option>
                     <option>⁠Renovar un contrato existente</option>
-                    <option>Explotar Verlo</option>
+                    <option>Explorar Verlo</option>
                   </select>
                 </div>
 
