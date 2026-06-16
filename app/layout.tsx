@@ -1,12 +1,39 @@
 import './globals.css'
 import Script from 'next/script'
 
+const ogImageUrl =
+  'https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-16%20at%2013.16.16.jpeg'
+
 export const metadata = {
   title: 'VERLO',
   description: 'Alquiler directo, seguro y sin comisión.',
   icons: {
-  icon: "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-16%20at%2013.16.16.jpeg",
-},
+    icon: ogImageUrl,
+    shortcut: ogImageUrl,
+    apple: ogImageUrl,
+  },
+  openGraph: {
+    title: 'VERLO',
+    description: 'Alquiler directo, seguro y sin comisión.',
+    url: 'https://verlo.lat',
+    siteName: 'VERLO',
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: 'VERLO',
+      },
+    ],
+    locale: 'es_AR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'VERLO',
+    description: 'Alquiler directo, seguro y sin comisión.',
+    images: [ogImageUrl],
+  },
 }
 
 const META_PIXEL_ID = '1467553351441050'
