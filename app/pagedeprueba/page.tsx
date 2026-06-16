@@ -1,6 +1,8 @@
 "use client"
 
 import { FormEvent, useState } from "react"
+import { supabase } from "@/lib/supabase/client"
+
 
 const logoUrl =
   "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-14%20at%2016.35.42.jpeg"
@@ -10,11 +12,37 @@ const videoUrl =
 
 export default function PaginaDePrueba() {
   const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setSent(true)
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  e.preventDefault()
+  setError("")
+  setLoading(true)
+
+  const formData = new FormData(e.currentTarget)
+
+  const payload = {
+    full_name: String(formData.get("full_name") || "").trim(),
+    email: String(formData.get("email") || "").trim(),
+    phone: String(formData.get("phone") || "").trim(),
+    role: String(formData.get("role") || "").trim(),
+    need: String(formData.get("need") || "").trim(),
+    source: "pagedeprueba",
   }
+
+  const { error } = await supabase.from("waitlist_leads").insert(payload)
+
+  setLoading(false)
+
+  if (error) {
+    setError("No pudimos guardar tus datos. Probá de nuevo.")
+    console.error(error)
+    return
+  }
+
+  setSent(true)
+}
 
   return (
     <main className="page">
