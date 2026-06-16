@@ -5,8 +5,8 @@ export const metadata = {
   title: 'VERLO',
   description: 'Alquiler directo, seguro y sin comisión.',
   icons: {
-    icon: '/logo-verlo.png',
-  },
+  icon: "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-16%20at%2013.16.16.jpeg",
+},
 }
 
 const META_PIXEL_ID = '1467553351441050'
