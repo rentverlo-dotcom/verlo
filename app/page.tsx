@@ -555,6 +555,167 @@ export default function PaginaDePrueba() {
           .row {
             grid-template-columns: 1fr;
           }
+          .infoCard {
+  margin-top: 32px;
+  border: 2px solid rgba(32, 212, 102, 0.7);
+  border-radius: 24px;
+  padding: 34px 40px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 34px;
+  align-items: center;
+  background: #fff;
+}
+
+.infoText h2 {
+  margin: 0 0 22px;
+  font-size: clamp(34px, 5vw, 50px);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+}
+
+.infoText p {
+  margin: 0 0 26px;
+  font-size: clamp(19px, 2.5vw, 27px);
+  line-height: 1.16;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 500;
+}
+
+.blackHighlight {
+  display: inline-block;
+  background: #050505;
+  color: #ffffff;
+  padding: 2px 8px 4px;
+  font-size: clamp(25px, 3.5vw, 36px);
+  line-height: 1;
+  letter-spacing: -0.045em;
+  font-weight: 950;
+  margin-bottom: 6px;
+}
+
+.infoText strong {
+  display: block;
+  color: #35b864;
+  font-size: clamp(27px, 4vw, 39px);
+  line-height: 1.03;
+  letter-spacing: -0.045em;
+  font-weight: 950;
+}
+
+.phoneMockup {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 370px;
+}
+
+.greenCircle {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 999px;
+  background: rgba(32, 212, 102, 0.14);
+}
+
+.phone {
+  position: relative;
+  z-index: 2;
+  width: 215px;
+  min-height: 360px;
+  border: 9px solid #050505;
+  border-radius: 38px;
+  background: #ffffff;
+  padding: 46px 22px 24px;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+.notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 86px;
+  height: 22px;
+  transform: translateX(-50%);
+  background: #050505;
+  border-radius: 0 0 16px 16px;
+}
+
+.phoneLogo {
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.05em;
+}
+
+.phoneLogo span {
+  color: #20d466;
+}
+
+.phone ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.phone li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 13px;
+  line-height: 1.1;
+  font-weight: 850;
+}
+
+.phone li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #20d466;
+  color: white;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.price {
+  margin-top: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 5px;
+  color: #20d466;
+  font-weight: 950;
+}
+
+.price span {
+  font-size: 52px;
+  line-height: 0.85;
+}
+
+.price small {
+  color: #050505;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.priceNote {
+  margin-top: 7px;
+  text-align: center;
+  font-size: 10px;
+  color: #050505;
+  font-weight: 850;
+}
         }
       `}</style>
 
