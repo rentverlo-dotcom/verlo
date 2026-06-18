@@ -724,35 +724,52 @@ export default function PaginaDePrueba() {
           </div>
         </section>
 
-        <section className="infoCard">
-          <div>
-            <h2>¡Dejá de regalar miles de dólares en comisiones inmobiliarias!</h2>
-            <p>
-              Verlo te permite cerrar un nuevo alquiler o renovarlo, con identidad
-              validada, firma digital y trazabilidad de punta a punta.
-            </p>
-            <strong>
-              Ahora que conoces Verlo…
-              <br />
-              ¿Por qué pagarías mucho más, por mucho menos?
-            </strong>
-          </div>
+     <section className="infoCard">
+  <div className="infoText">
+    <h2>¡Dejá de regalar miles de dólares en comisiones inmobiliarias!</h2>
 
-          <div className="followBox">
-            <div className="divider" />
-            <p>
-              Seguinos en Instagram para convertirte en uno de los miembros fundadores
-              de Verlo y enterarte de los beneficios que estamos pensando para vos.
-            </p>
-            <a
-              className="instagram"
-              href="https://www.instagram.com/verlo_alquileres/"
-              target="_blank"
-            >
-              ◎ Seguir en Instagram
-            </a>
-          </div>
-        </section>
+    <p>
+      Verlo te permite cerrar un nuevo alquiler o renovarlo, con identidad
+      validada, firma digital y trazabilidad de punta a punta.
+    </p>
+
+    <div className="blackHighlight">Ahora que conocés Verlo...</div>
+
+    <strong>
+      ¿Por qué pagarías mucho más,
+      <br />
+      por mucho menos?
+    </strong>
+  </div>
+
+  <div className="phoneMockup">
+    <div className="greenCircle" />
+
+    <div className="phone">
+      <div className="notch" />
+      <div className="phoneLogo">
+        <span>V</span>erlo
+      </div>
+
+      <ul>
+        <li>Identidad validada</li>
+        <li>Firma digital</li>
+        <li>Trazabilidad completa</li>
+        <li>Sin intermediarios</li>
+        <li>Almacenamiento seguro</li>
+        <li>Auditoría de cada instancia</li>
+        <li>Soporte especializado</li>
+      </ul>
+
+      <div className="price">
+        <span>69</span>
+        <small>USD</small>
+      </div>
+
+      <div className="priceNote">Costo total del servicio</div>
+    </div>
+  </div>
+</section>
 
         <section className="launch">
           <div className="rocket">🚀</div>
