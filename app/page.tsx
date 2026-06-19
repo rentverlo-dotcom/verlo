@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useEffect, useState } from "react"
+import { FormEvent, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 
 const logoUrl =
@@ -9,7 +9,6 @@ const logoUrl =
 const videoUrl =
   "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Video%202026-06-14%20at%2001.15.23.mp4"
 
-const waitlistEndpoint = "/api/verlo-waitlist"
 const pendingLeadStorageKey = "verlo_pending_waitlist_lead"
 
 type PendingLead = {
@@ -28,100 +27,24 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+function normalizePhone(phone: string) {
+  return phone.replace(/[^\d+]/g, "")
+}
+
+function isValidPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "")
+  return digits.length >= 8 && digits.length <= 15
+}
+
+function isValidFullName(name: string) {
+  const parts = name.trim().split(/\s+/)
+  return name.length >= 5 && parts.length >= 2
+}
+
 export default function Home() {
-  const [sent, setSent] = useState(false)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [checkingSession, setCheckingSession] = useState(true)
   const [error, setError] = useState("")
-
-  async function saveLeadWithSession(lead: PendingLead) {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession()
-
-    if (sessionError || !session?.access_token) {
-      throw new Error("Necesitás confirmar el email para completar el registro.")
-    }
-
-    const sessionEmail = clean(session.user.email).toLowerCase()
-    const leadEmail = clean(lead.email).toLowerCase()
-
-    if (!sessionEmail || sessionEmail !== leadEmail) {
-      throw new Error("El email confirmado no coincide con el email del formulario.")
-    }
-
-    const res = await fetch(waitlistEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(lead),
-    })
-
-    const data = await res.json().catch(() => null)
-
-    if (!res.ok || !data?.ok) {
-      throw new Error(data?.error || "No pudimos guardar tus datos. Probá de nuevo.")
-    }
-
-    localStorage.removeItem(pendingLeadStorageKey)
-    setSent(true)
-    setMagicLinkSent(false)
-    setError("")
-  }
-
-  useEffect(() => {
-    let mounted = true
-
-    async function completePendingLeadIfVerified() {
-      try {
-        const storedLead = localStorage.getItem(pendingLeadStorageKey)
-
-        if (!storedLead) {
-          return
-        }
-
-        const lead = JSON.parse(storedLead) as PendingLead
-
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        if (!session?.access_token) {
-          return
-        }
-
-        if (clean(session.user.email).toLowerCase() !== clean(lead.email).toLowerCase()) {
-          return
-        }
-
-        await saveLeadWithSession(lead)
-      } catch (err) {
-        console.error(err)
-
-        if (mounted) {
-          if (err instanceof Error) {
-            setError(err.message)
-          } else {
-            setError("No pudimos completar el registro. Probá de nuevo.")
-          }
-        }
-      } finally {
-        if (mounted) {
-          setCheckingSession(false)
-        }
-      }
-    }
-
-    completePendingLeadIfVerified()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -134,24 +57,24 @@ export default function Home() {
     const lead: PendingLead = {
       full_name: clean(formData.get("full_name")),
       email: clean(formData.get("email")).toLowerCase(),
-      phone: clean(formData.get("phone")),
+      phone: normalizePhone(clean(formData.get("phone"))),
       role: clean(formData.get("role")),
       need: clean(formData.get("need")),
     }
 
     try {
-      if (!lead.full_name || lead.full_name.length < 2) {
-        setError("Ingresá tu nombre y apellido.")
+      if (!isValidFullName(lead.full_name)) {
+        setError("Ingresá nombre y apellido reales.")
         return
       }
 
       if (!lead.email || !isValidEmail(lead.email)) {
-        setError("Ingresá un email válido.")
+        setError("Ingresá un email real y válido.")
         return
       }
 
-      if (!lead.phone || lead.phone.length < 6) {
-        setError("Ingresá un WhatsApp válido.")
+      if (!lead.phone || !isValidPhone(lead.phone)) {
+        setError("Ingresá un WhatsApp real con código de área.")
         return
       }
 
@@ -167,7 +90,7 @@ export default function Home() {
 
       localStorage.setItem(pendingLeadStorageKey, JSON.stringify(lead))
 
-      const redirectTo = `${window.location.origin}/`
+      const redirectTo = `${window.location.origin}/success`
 
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: lead.email,
@@ -182,7 +105,6 @@ export default function Home() {
       }
 
       setMagicLinkSent(true)
-      setSent(false)
     } catch (err) {
       console.error(err)
 
@@ -639,17 +561,17 @@ export default function Home() {
 
         form {
           display: grid;
-          gap: 9px;
+          gap: 10px;
         }
 
         input,
         select {
-          height: 40px;
+          height: 44px;
           width: 100%;
           border: 1px solid rgba(0, 0, 0, 0.14);
-          border-radius: 10px;
-          padding: 0 12px;
-          font-size: 13px;
+          border-radius: 12px;
+          padding: 0 13px;
+          font-size: 14px;
           outline: none;
           background: white;
           color: #050505;
@@ -664,12 +586,12 @@ export default function Home() {
         .row {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 9px;
+          gap: 10px;
         }
 
         .submit {
-          margin-top: 94px;
-          height: 48px;
+          margin-top: 10px;
+          height: 52px;
           border: 0;
           border-radius: 999px;
           background: #20d466;
@@ -687,16 +609,6 @@ export default function Home() {
           margin-top: 10px;
           font-size: 12px;
           color: rgba(0, 0, 0, 0.46);
-        }
-
-        .success {
-          padding: 18px;
-          border-radius: 14px;
-          border: 2px solid #20d466;
-          background: rgba(32, 212, 102, 0.08);
-          color: #087b35;
-          font-weight: 950;
-          line-height: 1.35;
         }
 
         .magicBox {
@@ -787,10 +699,6 @@ export default function Home() {
 
           .row {
             grid-template-columns: 1fr;
-          }
-
-          .submit {
-            margin-top: 60px;
           }
         }
       `}</style>
@@ -1030,16 +938,7 @@ export default function Home() {
         </section>
 
         <section className="formCard" id="acceso">
-          {checkingSession ? (
-            <div className="magicBox">
-              <strong>Verificando acceso...</strong>
-              Estamos revisando si ya confirmaste tu email.
-            </div>
-          ) : sent ? (
-            <div className="success">
-              Listo. Quedaste anotado para el acceso anticipado de Verlo.
-            </div>
-          ) : magicLinkSent ? (
+          {magicLinkSent ? (
             <div className="magicBox">
               <strong>Te enviamos un email de confirmación.</strong>
               Abrí tu correo y tocá el link para completar el registro. Cuando vuelvas a
@@ -1054,9 +953,30 @@ export default function Home() {
               </p>
 
               <form onSubmit={handleSubmit}>
-                <input required name="full_name" placeholder="Nombre y apellido" />
-                <input required name="email" type="email" placeholder="Email" />
-                <input required name="phone" placeholder="WhatsApp" />
+                <input
+                  required
+                  name="full_name"
+                  minLength={5}
+                  autoComplete="name"
+                  placeholder="Nombre y apellido"
+                />
+
+                <input
+                  required
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Email"
+                />
+
+                <input
+                  required
+                  name="phone"
+                  type="tel"
+                  minLength={8}
+                  autoComplete="tel"
+                  placeholder="WhatsApp con código de área"
+                />
 
                 <div className="row">
                   <select required name="role" defaultValue="">
