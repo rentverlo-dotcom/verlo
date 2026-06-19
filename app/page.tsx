@@ -1,7 +1,7 @@
 "use client"
 
 import Script from "next/script"
-import { FormEvent, useState } from "react"
+import { FormEvent, useEffect, useRef, useState } from "react"
 
 const logoUrl =
   "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-14%20at%2016.35.42.jpeg"
@@ -13,28 +13,115 @@ const turnstileSiteKey = "0x4AAAAAADl-B9jtsFOfDTOS"
 
 const waitlistEndpoint = "/api/verlo-waitlist"
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        element: HTMLElement,
+        options: {
+          sitekey: string
+          theme?: string
+          execution?: string
+          callback?: (token: string) => void
+          "error-callback"?: () => void
+          "expired-callback"?: () => void
+        }
+      ) => string
+      execute: (widgetId: string) => void
+      reset: (widgetId: string) => void
+    }
+  }
+}
+
 export default function PaginaDePrueba() {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null)
+  const turnstileWidgetIdRef = useRef<string | null>(null)
+  const turnstileResolveRef = useRef<((token: string) => void) | null>(null)
+  const turnstileRejectRef = useRef<((error: Error) => void) | null>(null)
+
+  function renderTurnstile() {
+    if (typeof window === "undefined") return
+    if (!window.turnstile) return
+    if (!turnstileContainerRef.current) return
+    if (turnstileWidgetIdRef.current) return
+
+    turnstileWidgetIdRef.current = window.turnstile.render(
+      turnstileContainerRef.current,
+      {
+        sitekey: turnstileSiteKey,
+        theme: "light",
+        execution: "execute",
+        callback: (token: string) => {
+          turnstileResolveRef.current?.(token)
+          turnstileResolveRef.current = null
+          turnstileRejectRef.current = null
+        },
+        "error-callback": () => {
+          turnstileRejectRef.current?.(
+            new Error("No pudimos validar la seguridad. Probá de nuevo.")
+          )
+          turnstileResolveRef.current = null
+          turnstileRejectRef.current = null
+        },
+        "expired-callback": () => {
+          turnstileRejectRef.current?.(
+            new Error("La validación expiró. Probá de nuevo.")
+          )
+          turnstileResolveRef.current = null
+          turnstileRejectRef.current = null
+        },
+      }
+    )
+  }
+
+  useEffect(() => {
+    renderTurnstile()
+  }, [])
+
+  async function getTurnstileToken() {
+    return new Promise<string>((resolve, reject) => {
+      if (typeof window === "undefined") {
+        reject(new Error("No pudimos validar la seguridad. Probá de nuevo."))
+        return
+      }
+
+      if (!window.turnstile || !turnstileWidgetIdRef.current) {
+        reject(new Error("La validación de seguridad todavía no cargó. Probá de nuevo."))
+        return
+      }
+
+      turnstileResolveRef.current = resolve
+      turnstileRejectRef.current = reject
+
+      window.turnstile.reset(turnstileWidgetIdRef.current)
+      window.turnstile.execute(turnstileWidgetIdRef.current)
+    })
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError("")
     setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-
-    const payload = {
-      full_name: String(formData.get("full_name") || "").trim(),
-      email: String(formData.get("email") || "").trim(),
-      phone: String(formData.get("phone") || "").trim(),
-      role: String(formData.get("role") || "").trim(),
-      need: String(formData.get("need") || "").trim(),
-      turnstile_token: String(formData.get("cf-turnstile-response") || "").trim(),
-    }
+    const form = e.currentTarget
+    const formData = new FormData(form)
 
     try {
+      const turnstileToken = await getTurnstileToken()
+
+      const payload = {
+        full_name: String(formData.get("full_name") || "").trim(),
+        email: String(formData.get("email") || "").trim(),
+        phone: String(formData.get("phone") || "").trim(),
+        role: String(formData.get("role") || "").trim(),
+        need: String(formData.get("need") || "").trim(),
+        turnstile_token: turnstileToken,
+      }
+
       const res = await fetch(waitlistEndpoint, {
         method: "POST",
         headers: {
@@ -47,13 +134,27 @@ export default function PaginaDePrueba() {
 
       if (!res.ok || !data?.ok) {
         setError(data?.error || "No pudimos guardar tus datos. Probá de nuevo.")
+
+        if (typeof window !== "undefined" && window.turnstile && turnstileWidgetIdRef.current) {
+          window.turnstile.reset(turnstileWidgetIdRef.current)
+        }
+
         return
       }
 
       setSent(true)
     } catch (err) {
       console.error(err)
-      setError("No pudimos guardar tus datos. Probá de nuevo.")
+
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError("No pudimos guardar tus datos. Probá de nuevo.")
+      }
+
+      if (typeof window !== "undefined" && window.turnstile && turnstileWidgetIdRef.current) {
+        window.turnstile.reset(turnstileWidgetIdRef.current)
+      }
     } finally {
       setLoading(false)
     }
@@ -65,591 +166,596 @@ export default function PaginaDePrueba() {
         src="https://challenges.cloudflare.com/turnstile/v0/api.js"
         async
         defer
+        onLoad={renderTurnstile}
       />
 
-   <style jsx>{`
-  .page {
-    min-height: 100vh;
-    background: #ffffff;
-    color: #050505;
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-      sans-serif;
-  }
-
-  .siteHeader {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.94);
-    backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  }
-
-  .siteHeaderInner {
-    width: min(760px, calc(100% - 34px));
-    height: 82px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .headerLogo {
-    width: 230px;
-    height: auto;
-    display: block;
-  }
-
-  .wrap {
-    width: min(760px, calc(100% - 34px));
-    margin: 0 auto;
-    padding: 26px 0 70px;
-  }
-
-  .hero {
-    text-align: center;
-    padding: 0 !important;
-    margin: 0;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: clamp(34px, 6vw, 54px);
-    line-height: 1;
-    letter-spacing: -0.055em;
-    font-weight: 950;
-  }
-
-  .saving {
-    margin: 8px 0 28px;
-    font-size: clamp(24px, 4vw, 36px);
-    line-height: 1.05;
-    letter-spacing: -0.04em;
-    font-weight: 500;
-  }
-
-  .steps {
-    width: min(520px, 100%);
-    margin: 0 auto;
-    display: grid;
-    gap: 22px;
-  }
-
-  .step {
-    display: grid;
-    grid-template-columns: 116px 1fr;
-    gap: 24px;
-    align-items: center;
-    text-align: left;
-  }
-
-  .iconWrap {
-    display: grid;
-    justify-items: center;
-    gap: 8px;
-  }
-
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 72px;
-    height: 26px;
-    padding: 0 12px;
-    border-radius: 999px;
-    background: #20d466;
-    color: white;
-    font-size: 13px;
-    font-weight: 950;
-  }
-
-  .icon {
-    width: 88px;
-    height: 88px;
-    border: 3px solid #050505;
-    border-radius: 22px;
-    display: grid;
-    place-items: center;
-    background: white;
-    line-height: 1;
-  }
-
-  .icon svg {
-    width: 54px;
-    height: 54px;
-    stroke: #20d466;
-    stroke-width: 2.5;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .step h3 {
-    margin: 0 0 8px;
-    font-size: 25px;
-    line-height: 1;
-    letter-spacing: -0.04em;
-    font-weight: 950;
-  }
-
-  .step p {
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.25;
-    color: rgba(0, 0, 0, 0.74);
-    font-weight: 500;
-  }
-
-  .trust {
-    margin: 36px auto 28px;
-    width: min(610px, 100%);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 22px;
-    align-items: center;
-  }
-
-  .trustItem {
-    display: grid;
-    grid-template-columns: 86px 1fr;
-    gap: 16px;
-    align-items: center;
-    text-align: left;
-  }
-
-  .trustIcon {
-    width: 82px;
-    height: 82px;
-    border: 4px solid #050505;
-    border-radius: 28px;
-    display: grid;
-    place-items: center;
-  }
-
-  .trustIcon svg {
-    width: 54px;
-    height: 54px;
-    stroke: #20d466;
-    stroke-width: 3;
-    fill: none;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .trustItem h3 {
-    margin: 0 0 5px;
-    font-size: 22px;
-    line-height: 0.96;
-    letter-spacing: -0.04em;
-    font-weight: 950;
-  }
-
-  .trustItem p {
-    margin: 0;
-    color: rgba(0, 0, 0, 0.62);
-    font-size: 13px;
-    line-height: 1.25;
-    font-weight: 600;
-  }
-
-  .videoBlock {
-    width: min(620px, 100%);
-    margin: 30px auto 0;
-    border-radius: 24px;
-    overflow: hidden;
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    background: #000;
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.14);
-  }
-
-  .demoVideo {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  .infoCard {
-    margin-top: 32px;
-    border: 2px solid rgba(32, 212, 102, 0.7);
-    border-radius: 24px;
-    padding: 34px 40px;
-    display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 34px;
-    align-items: center;
-    background: #fff;
-  }
-
-  .infoText h2 {
-    margin: 0 0 22px;
-    font-size: clamp(34px, 5vw, 50px);
-    line-height: 0.98;
-    letter-spacing: -0.055em;
-    font-weight: 950;
-  }
-
-  .infoText p {
-    margin: 0 0 26px;
-    font-size: clamp(19px, 2.5vw, 27px);
-    line-height: 1.16;
-    color: rgba(0, 0, 0, 0.88);
-    font-weight: 500;
-  }
-
-  .blackHighlight {
-    display: inline-block;
-    background: #050505;
-    color: #ffffff;
-    padding: 2px 8px 4px;
-    font-size: clamp(25px, 3.5vw, 36px);
-    line-height: 1;
-    letter-spacing: -0.045em;
-    font-weight: 950;
-    margin-bottom: 6px;
-  }
-
-  .infoText strong {
-    display: block;
-    color: #35b864;
-    font-size: clamp(27px, 4vw, 39px);
-    line-height: 1.03;
-    letter-spacing: -0.045em;
-    font-weight: 950;
-  }
-
-  .phoneMockup {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 370px;
-  }
-
-  .greenCircle {
-    position: absolute;
-    width: 300px;
-    height: 300px;
-    border-radius: 999px;
-    background: rgba(32, 212, 102, 0.14);
-  }
-
-  .phone {
-    position: relative;
-    z-index: 2;
-    width: 215px;
-    min-height: 360px;
-    border: 9px solid #050505;
-    border-radius: 38px;
-    background: #ffffff;
-    padding: 46px 22px 24px;
-    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
-  }
-
-  .notch {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 86px;
-    height: 22px;
-    transform: translateX(-50%);
-    background: #050505;
-    border-radius: 0 0 16px 16px;
-  }
-
-  .phoneLogo {
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: 34px;
-    line-height: 1;
-    font-weight: 950;
-    letter-spacing: -0.05em;
-  }
-
-  .phoneLogo span {
-    color: #20d466;
-  }
-
-  .phone ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 10px;
-  }
-
-  .phone li {
-    position: relative;
-    padding-left: 26px;
-    font-size: 13px;
-    line-height: 1.1;
-    font-weight: 850;
-  }
-
-  .phone li::before {
-    content: "✓";
-    position: absolute;
-    left: 0;
-    top: -2px;
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: #20d466;
-    color: white;
-    display: grid;
-    place-items: center;
-    font-size: 13px;
-    font-weight: 950;
-  }
-
-  .price {
-    margin-top: 28px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    gap: 5px;
-    color: #20d466;
-    font-weight: 950;
-  }
-
-  .price span {
-    font-size: 52px;
-    line-height: 0.85;
-  }
-
-  .price small {
-    color: #050505;
-    font-size: 17px;
-    font-weight: 950;
-  }
-
-  .priceNote {
-    margin-top: 7px;
-    text-align: center;
-    font-size: 10px;
-    color: #050505;
-    font-weight: 850;
-  }
-
-  .launch {
-    margin-top: 14px;
-    border: 2px solid #20d466;
-    border-radius: 16px;
-    padding: 18px 20px;
-    display: grid;
-    grid-template-columns: 64px 1fr auto;
-    gap: 16px;
-    align-items: center;
-    background: rgba(32, 212, 102, 0.03);
-  }
-
-  .rocket {
-    width: 58px;
-    height: 58px;
-    border-radius: 999px;
-    background: rgba(32, 212, 102, 0.12);
-    display: grid;
-    place-items: center;
-    font-size: 32px;
-  }
-
-  .launch h3 {
-    margin: 0 0 5px;
-    font-size: 18px;
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-    font-weight: 950;
-  }
-
-  .launch p {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.28;
-    color: rgba(0, 0, 0, 0.68);
-    font-weight: 600;
-  }
-
-  .launchBtn {
-    height: 42px;
-    padding: 0 22px;
-    border-radius: 999px;
-    background: #20d466;
-    color: white;
-    border: 0;
-    font-weight: 950;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-
-  .formCard {
-    width: min(520px, 100%);
-    margin: 14px auto 0;
-    border: 1px solid rgba(0, 0, 0, 0.16);
-    border-radius: 20px;
-    padding: 24px;
-    background: #fff;
-  }
-
-  .formCard h2 {
-    margin: 0;
-    font-size: 28px;
-    line-height: 1;
-    letter-spacing: -0.045em;
-    font-weight: 950;
-  }
-
-  .formCard p {
-    margin: 10px 0 18px;
-    font-size: 15px;
-    line-height: 1.35;
-    color: rgba(0, 0, 0, 0.6);
-    font-weight: 500;
-  }
-
-  form {
-    display: grid;
-    gap: 9px;
-  }
-
-  input,
-  select {
-    height: 40px;
-    width: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.14);
-    border-radius: 10px;
-    padding: 0 12px;
-    font-size: 13px;
-    outline: none;
-    background: white;
-    color: #050505;
-  }
-
-  input:focus,
-  select:focus {
-    border-color: #20d466;
-    box-shadow: 0 0 0 3px rgba(32, 212, 102, 0.14);
-  }
-
-  .row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 9px;
-  }
-
-  .turnstileWrap {
-    margin-top: 6px;
-    min-height: 65px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .submit {
-    margin-top: 4px;
-    height: 48px;
-    border: 0;
-    border-radius: 999px;
-    background: #20d466;
-    color: #06140a;
-    font-weight: 950;
-    cursor: pointer;
-  }
-
-  .submit:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-
-  .mini {
-    margin-top: 10px;
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.46);
-  }
-
-  .success {
-    padding: 18px;
-    border-radius: 14px;
-    border: 2px solid #20d466;
-    background: rgba(32, 212, 102, 0.08);
-    color: #087b35;
-    font-weight: 950;
-    line-height: 1.35;
-  }
-
-  .error {
-    margin-top: 8px;
-    color: #b00020;
-    font-size: 13px;
-    font-weight: 800;
-  }
-
-  @media (max-width: 720px) {
-    .siteHeaderInner {
-      height: 74px;
-    }
-
-    .headerLogo {
-      width: 180px;
-    }
-
-    .wrap {
-      width: min(100% - 28px, 760px);
-      padding: 22px 0 70px;
-    }
-
-    .step {
-      grid-template-columns: 92px 1fr;
-      gap: 16px;
-    }
-
-    .icon {
-      width: 74px;
-      height: 74px;
-    }
-
-    .icon svg {
-      width: 45px;
-      height: 45px;
-    }
-
-    .trust,
-    .infoCard,
-    .launch {
-      grid-template-columns: 1fr;
-    }
-
-    .trustItem {
-      grid-template-columns: 76px 1fr;
-    }
-
-    .trustIcon {
-      width: 72px;
-      height: 72px;
-    }
-
-    .trustIcon svg {
-      width: 46px;
-      height: 46px;
-    }
-
-    .infoCard {
-      padding: 28px 22px;
-      gap: 24px;
-    }
-
-    .phoneMockup {
-      min-height: 360px;
-    }
-
-    .launchBtn {
-      width: 100%;
-    }
-
-    .row {
-      grid-template-columns: 1fr;
-    }
-  }
-`}</style>
+      <style jsx>{`
+        .page {
+          min-height: 100vh;
+          background: #ffffff;
+          color: #050505;
+          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+            sans-serif;
+        }
+
+        .siteHeader {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          width: 100%;
+          background: rgba(255, 255, 255, 0.94);
+          backdrop-filter: blur(14px);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .siteHeaderInner {
+          width: min(760px, calc(100% - 34px));
+          height: 82px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .headerLogo {
+          width: 230px;
+          height: auto;
+          display: block;
+        }
+
+        .wrap {
+          width: min(760px, calc(100% - 34px));
+          margin: 0 auto;
+          padding: 26px 0 70px;
+        }
+
+        .hero {
+          text-align: center;
+          padding: 0 !important;
+          margin: 0;
+        }
+
+        h1 {
+          margin: 0;
+          font-size: clamp(34px, 6vw, 54px);
+          line-height: 1;
+          letter-spacing: -0.055em;
+          font-weight: 950;
+        }
+
+        .saving {
+          margin: 8px 0 28px;
+          font-size: clamp(24px, 4vw, 36px);
+          line-height: 1.05;
+          letter-spacing: -0.04em;
+          font-weight: 500;
+        }
+
+        .steps {
+          width: min(520px, 100%);
+          margin: 0 auto;
+          display: grid;
+          gap: 22px;
+        }
+
+        .step {
+          display: grid;
+          grid-template-columns: 116px 1fr;
+          gap: 24px;
+          align-items: center;
+          text-align: left;
+        }
+
+        .iconWrap {
+          display: grid;
+          justify-items: center;
+          gap: 8px;
+        }
+
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 72px;
+          height: 26px;
+          padding: 0 12px;
+          border-radius: 999px;
+          background: #20d466;
+          color: white;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .icon {
+          width: 88px;
+          height: 88px;
+          border: 3px solid #050505;
+          border-radius: 22px;
+          display: grid;
+          place-items: center;
+          background: white;
+          line-height: 1;
+        }
+
+        .icon svg {
+          width: 54px;
+          height: 54px;
+          stroke: #20d466;
+          stroke-width: 2.5;
+          fill: none;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .step h3 {
+          margin: 0 0 8px;
+          font-size: 25px;
+          line-height: 1;
+          letter-spacing: -0.04em;
+          font-weight: 950;
+        }
+
+        .step p {
+          margin: 0;
+          font-size: 15px;
+          line-height: 1.25;
+          color: rgba(0, 0, 0, 0.74);
+          font-weight: 500;
+        }
+
+        .trust {
+          margin: 36px auto 28px;
+          width: min(610px, 100%);
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 22px;
+          align-items: center;
+        }
+
+        .trustItem {
+          display: grid;
+          grid-template-columns: 86px 1fr;
+          gap: 16px;
+          align-items: center;
+          text-align: left;
+        }
+
+        .trustIcon {
+          width: 82px;
+          height: 82px;
+          border: 4px solid #050505;
+          border-radius: 28px;
+          display: grid;
+          place-items: center;
+        }
+
+        .trustIcon svg {
+          width: 54px;
+          height: 54px;
+          stroke: #20d466;
+          stroke-width: 3;
+          fill: none;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .trustItem h3 {
+          margin: 0 0 5px;
+          font-size: 22px;
+          line-height: 0.96;
+          letter-spacing: -0.04em;
+          font-weight: 950;
+        }
+
+        .trustItem p {
+          margin: 0;
+          color: rgba(0, 0, 0, 0.62);
+          font-size: 13px;
+          line-height: 1.25;
+          font-weight: 600;
+        }
+
+        .videoBlock {
+          width: min(620px, 100%);
+          margin: 30px auto 0;
+          border-radius: 24px;
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: #000;
+          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.14);
+        }
+
+        .demoVideo {
+          width: 100%;
+          height: auto;
+          display: block;
+        }
+
+        .infoCard {
+          margin-top: 32px;
+          border: 2px solid rgba(32, 212, 102, 0.7);
+          border-radius: 24px;
+          padding: 34px 40px;
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 34px;
+          align-items: center;
+          background: #fff;
+        }
+
+        .infoText h2 {
+          margin: 0 0 22px;
+          font-size: clamp(34px, 5vw, 50px);
+          line-height: 0.98;
+          letter-spacing: -0.055em;
+          font-weight: 950;
+        }
+
+        .infoText p {
+          margin: 0 0 26px;
+          font-size: clamp(19px, 2.5vw, 27px);
+          line-height: 1.16;
+          color: rgba(0, 0, 0, 0.88);
+          font-weight: 500;
+        }
+
+        .blackHighlight {
+          display: inline-block;
+          background: #050505;
+          color: #ffffff;
+          padding: 2px 8px 4px;
+          font-size: clamp(25px, 3.5vw, 36px);
+          line-height: 1;
+          letter-spacing: -0.045em;
+          font-weight: 950;
+          margin-bottom: 6px;
+        }
+
+        .infoText strong {
+          display: block;
+          color: #35b864;
+          font-size: clamp(27px, 4vw, 39px);
+          line-height: 1.03;
+          letter-spacing: -0.045em;
+          font-weight: 950;
+        }
+
+        .phoneMockup {
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 370px;
+        }
+
+        .greenCircle {
+          position: absolute;
+          width: 300px;
+          height: 300px;
+          border-radius: 999px;
+          background: rgba(32, 212, 102, 0.14);
+        }
+
+        .phone {
+          position: relative;
+          z-index: 2;
+          width: 215px;
+          min-height: 360px;
+          border: 9px solid #050505;
+          border-radius: 38px;
+          background: #ffffff;
+          padding: 46px 22px 24px;
+          box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+        }
+
+        .notch {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          width: 86px;
+          height: 22px;
+          transform: translateX(-50%);
+          background: #050505;
+          border-radius: 0 0 16px 16px;
+        }
+
+        .phoneLogo {
+          margin-bottom: 20px;
+          text-align: center;
+          font-size: 34px;
+          line-height: 1;
+          font-weight: 950;
+          letter-spacing: -0.05em;
+        }
+
+        .phoneLogo span {
+          color: #20d466;
+        }
+
+        .phone ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: grid;
+          gap: 10px;
+        }
+
+        .phone li {
+          position: relative;
+          padding-left: 26px;
+          font-size: 13px;
+          line-height: 1.1;
+          font-weight: 850;
+        }
+
+        .phone li::before {
+          content: "✓";
+          position: absolute;
+          left: 0;
+          top: -2px;
+          width: 18px;
+          height: 18px;
+          border-radius: 999px;
+          background: #20d466;
+          color: white;
+          display: grid;
+          place-items: center;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .price {
+          margin-top: 28px;
+          display: flex;
+          justify-content: center;
+          align-items: flex-end;
+          gap: 5px;
+          color: #20d466;
+          font-weight: 950;
+        }
+
+        .price span {
+          font-size: 52px;
+          line-height: 0.85;
+        }
+
+        .price small {
+          color: #050505;
+          font-size: 17px;
+          font-weight: 950;
+        }
+
+        .priceNote {
+          margin-top: 7px;
+          text-align: center;
+          font-size: 10px;
+          color: #050505;
+          font-weight: 850;
+        }
+
+        .launch {
+          margin-top: 14px;
+          border: 2px solid #20d466;
+          border-radius: 16px;
+          padding: 18px 20px;
+          display: grid;
+          grid-template-columns: 64px 1fr auto;
+          gap: 16px;
+          align-items: center;
+          background: rgba(32, 212, 102, 0.03);
+        }
+
+        .rocket {
+          width: 58px;
+          height: 58px;
+          border-radius: 999px;
+          background: rgba(32, 212, 102, 0.12);
+          display: grid;
+          place-items: center;
+          font-size: 32px;
+        }
+
+        .launch h3 {
+          margin: 0 0 5px;
+          font-size: 18px;
+          letter-spacing: -0.03em;
+          line-height: 1.05;
+          font-weight: 950;
+        }
+
+        .launch p {
+          margin: 0;
+          font-size: 14px;
+          line-height: 1.28;
+          color: rgba(0, 0, 0, 0.68);
+          font-weight: 600;
+        }
+
+        .launchBtn {
+          height: 42px;
+          padding: 0 22px;
+          border-radius: 999px;
+          background: #20d466;
+          color: white;
+          border: 0;
+          font-weight: 950;
+          white-space: nowrap;
+          cursor: pointer;
+        }
+
+        .formCard {
+          width: min(520px, 100%);
+          margin: 14px auto 0;
+          border: 1px solid rgba(0, 0, 0, 0.16);
+          border-radius: 20px;
+          padding: 24px;
+          background: #fff;
+        }
+
+        .formCard h2 {
+          margin: 0;
+          font-size: 28px;
+          line-height: 1;
+          letter-spacing: -0.045em;
+          font-weight: 950;
+        }
+
+        .formCard p {
+          margin: 10px 0 18px;
+          font-size: 15px;
+          line-height: 1.35;
+          color: rgba(0, 0, 0, 0.6);
+          font-weight: 500;
+        }
+
+        form {
+          display: grid;
+          gap: 9px;
+        }
+
+        input,
+        select {
+          height: 40px;
+          width: 100%;
+          border: 1px solid rgba(0, 0, 0, 0.14);
+          border-radius: 10px;
+          padding: 0 12px;
+          font-size: 13px;
+          outline: none;
+          background: white;
+          color: #050505;
+        }
+
+        input:focus,
+        select:focus {
+          border-color: #20d466;
+          box-shadow: 0 0 0 3px rgba(32, 212, 102, 0.14);
+        }
+
+        .row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 9px;
+        }
+
+        .turnstileWrap {
+          margin-top: 6px;
+          min-height: 65px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .turnstileWidget {
+          min-height: 65px;
+        }
+
+        .submit {
+          margin-top: 4px;
+          height: 48px;
+          border: 0;
+          border-radius: 999px;
+          background: #20d466;
+          color: #06140a;
+          font-weight: 950;
+          cursor: pointer;
+        }
+
+        .submit:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .mini {
+          margin-top: 10px;
+          font-size: 12px;
+          color: rgba(0, 0, 0, 0.46);
+        }
+
+        .success {
+          padding: 18px;
+          border-radius: 14px;
+          border: 2px solid #20d466;
+          background: rgba(32, 212, 102, 0.08);
+          color: #087b35;
+          font-weight: 950;
+          line-height: 1.35;
+        }
+
+        .error {
+          margin-top: 8px;
+          color: #b00020;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        @media (max-width: 720px) {
+          .siteHeaderInner {
+            height: 74px;
+          }
+
+          .headerLogo {
+            width: 180px;
+          }
+
+          .wrap {
+            width: min(100% - 28px, 760px);
+            padding: 22px 0 70px;
+          }
+
+          .step {
+            grid-template-columns: 92px 1fr;
+            gap: 16px;
+          }
+
+          .icon {
+            width: 74px;
+            height: 74px;
+          }
+
+          .icon svg {
+            width: 45px;
+            height: 45px;
+          }
+
+          .trust,
+          .infoCard,
+          .launch {
+            grid-template-columns: 1fr;
+          }
+
+          .trustItem {
+            grid-template-columns: 76px 1fr;
+          }
+
+          .trustIcon {
+            width: 72px;
+            height: 72px;
+          }
+
+          .trustIcon svg {
+            width: 46px;
+            height: 46px;
+          }
+
+          .infoCard {
+            padding: 28px 22px;
+            gap: 24px;
+          }
+
+          .phoneMockup {
+            min-height: 360px;
+          }
+
+          .launchBtn {
+            width: 100%;
+          }
+
+          .row {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
 
       <header className="siteHeader">
         <div className="siteHeaderInner">
@@ -817,52 +923,52 @@ export default function PaginaDePrueba() {
           </div>
         </section>
 
-     <section className="infoCard">
-  <div className="infoText">
-    <h2>¡Dejá de regalar miles de dólares en comisiones inmobiliarias!</h2>
+        <section className="infoCard">
+          <div className="infoText">
+            <h2>¡Dejá de regalar miles de dólares en comisiones inmobiliarias!</h2>
 
-    <p>
-      Verlo te permite cerrar un nuevo alquiler o renovarlo, con identidad
-      validada, firma digital y trazabilidad de punta a punta.
-    </p>
+            <p>
+              Verlo te permite cerrar un nuevo alquiler o renovarlo, con identidad
+              validada, firma digital y trazabilidad de punta a punta.
+            </p>
 
-    <div className="blackHighlight">Ahora que conocés Verlo...</div>
+            <div className="blackHighlight">Ahora que conocés Verlo...</div>
 
-    <strong>
-      ¿Por qué pagarías mucho más,
-      <br />
-      por mucho menos?
-    </strong>
-  </div>
+            <strong>
+              ¿Por qué pagarías mucho más,
+              <br />
+              por mucho menos?
+            </strong>
+          </div>
 
-  <div className="phoneMockup">
-    <div className="greenCircle" />
+          <div className="phoneMockup">
+            <div className="greenCircle" />
 
-    <div className="phone">
-      <div className="notch" />
-      <div className="phoneLogo">
-        <span>V</span>erlo
-      </div>
+            <div className="phone">
+              <div className="notch" />
+              <div className="phoneLogo">
+                <span>V</span>erlo
+              </div>
 
-      <ul>
-        <li>Identidad validada</li>
-        <li>Firma digital</li>
-        <li>Trazabilidad completa</li>
-        <li>Sin intermediarios</li>
-        <li>Almacenamiento seguro</li>
-        <li>Auditoría de cada instancia</li>
-        <li>Soporte especializado</li>
-      </ul>
+              <ul>
+                <li>Identidad validada</li>
+                <li>Firma digital</li>
+                <li>Trazabilidad completa</li>
+                <li>Sin intermediarios</li>
+                <li>Almacenamiento seguro</li>
+                <li>Auditoría de cada instancia</li>
+                <li>Soporte especializado</li>
+              </ul>
 
-      <div className="price">
-        <span>69</span>
-        <small>USD</small>
-      </div>
+              <div className="price">
+                <span>69</span>
+                <small>USD</small>
+              </div>
 
-      <div className="priceNote">Costo total del servicio</div>
-    </div>
-  </div>
-</section>
+              <div className="priceNote">Costo total del servicio</div>
+            </div>
+          </div>
+        </section>
 
         <section className="launch">
           <div className="rocket">🚀</div>
@@ -920,12 +1026,7 @@ export default function PaginaDePrueba() {
                 </div>
 
                 <div className="turnstileWrap">
-                  <div
-                    className="cf-turnstile"
-                    data-sitekey={turnstileSiteKey}
-                    data-theme="light"
-                    data-execution="execute"
-                  />
+                  <div ref={turnstileContainerRef} className="turnstileWidget" />
                 </div>
 
                 <button className="submit" disabled={loading}>
