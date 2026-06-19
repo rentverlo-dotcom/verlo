@@ -384,9 +384,12 @@ export default function SuccessPage() {
         ) : status === "success" ? (
           <>
             <div className="badge">✓</div>
-            <h1>
-              Listo, ya sos parte de <span className="green">Verlo</span>
-            </h1>
+           <h1>
+  Listo, ya sos parte de{" "}
+  <span className="brandWord">
+    <span>V</span>erlo
+  </span>
+</h1>
             <p>{message}</p>
 
             <div className="actions">
