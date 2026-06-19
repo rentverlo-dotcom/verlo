@@ -118,6 +118,29 @@ export default function SuccessPage() {
           overflow: hidden;
           position: relative;
         }
+        .brandWord {
+  color: #050505;
+  font-weight: 950;
+  letter-spacing: -0.06em;
+}
+
+.brandWord span {
+  color: #20d466;
+}
+        .successButton {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: #20d466 !important;
+  background-color: #20d466 !important;
+  color: #06140a !important;
+  text-decoration: none !important;
+  font-weight: 950;
+  border: 0 !important;
+}
 
         .confetti {
           position: absolute;
