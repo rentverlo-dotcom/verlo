@@ -112,6 +112,12 @@ export default function Home() {
       }
 
       setMagicLinkSent(true)
+      if (typeof window !== "undefined" && window.fbq) {
+  window.fbq("trackCustom", "MagicLinkSent", {
+    content_name: "Verlo acceso anticipado",
+    source: "home",
+  })
+}
     } catch (err) {
       console.error(err)
 
