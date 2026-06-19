@@ -11,8 +11,7 @@ const videoUrl =
 
 const turnstileSiteKey = "0x4AAAAAADl-B9jtsFOfDTOS"
 
-const waitlistEndpoint =
-  "https://bmgrpcqrdvwculrisasi.supabase.co/functions/v1/submit-waitlist"
+const waitlistEndpoint = "/api/verlo-waitlist"
 
 export default function PaginaDePrueba() {
   const [sent, setSent] = useState(false)
