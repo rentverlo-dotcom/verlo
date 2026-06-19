@@ -924,6 +924,7 @@ export default function PaginaDePrueba() {
                     className="cf-turnstile"
                     data-sitekey={turnstileSiteKey}
                     data-theme="light"
+                    data-execution="execute"
                   />
                 </div>
 
