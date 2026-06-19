@@ -393,9 +393,18 @@ export default function SuccessPage() {
             <p>{message}</p>
 
             <div className="actions">
-              <Link className="button" href="/">
-                Volver al inicio
-              </Link>
+             <Link
+  className="successButton"
+  href="/"
+  style={{
+    background: "#20d466",
+    backgroundColor: "#20d466",
+    color: "#06140a",
+    textDecoration: "none",
+  }}
+>
+  Volver al inicio
+</Link>
             </div>
 
             <div className="small">
