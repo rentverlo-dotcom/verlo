@@ -1,7 +1,7 @@
 "use client"
 
-import Script from "next/script"
-import { FormEvent, useEffect, useRef, useState } from "react"
+import { FormEvent, useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase/client"
 
 const logoUrl =
   "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-14%20at%2016.35.42.jpeg"
@@ -9,98 +9,119 @@ const logoUrl =
 const videoUrl =
   "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Video%202026-06-14%20at%2001.15.23.mp4"
 
-const turnstileSiteKey = "0x4AAAAAADl-B9jtsFOfDTOS"
-
 const waitlistEndpoint = "/api/verlo-waitlist"
+const pendingLeadStorageKey = "verlo_pending_waitlist_lead"
 
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (
-        element: HTMLElement,
-        options: {
-          sitekey: string
-          theme?: string
-          execution?: string
-          callback?: (token: string) => void
-          "error-callback"?: () => void
-          "expired-callback"?: () => void
-        }
-      ) => string
-      execute: (widgetId: string) => void
-      reset: (widgetId: string) => void
-    }
-  }
+type PendingLead = {
+  full_name: string
+  email: string
+  phone: string
+  role: string
+  need: string
 }
 
-export default function PaginaDePrueba() {
+function clean(value: unknown) {
+  return String(value || "").trim()
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+export default function Home() {
   const [sent, setSent] = useState(false)
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
   const [error, setError] = useState("")
 
-  const turnstileContainerRef = useRef<HTMLDivElement | null>(null)
-  const turnstileWidgetIdRef = useRef<string | null>(null)
-  const turnstileResolveRef = useRef<((token: string) => void) | null>(null)
-  const turnstileRejectRef = useRef<((error: Error) => void) | null>(null)
+  async function saveLeadWithSession(lead: PendingLead) {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
 
-  function renderTurnstile() {
-    if (typeof window === "undefined") return
-    if (!window.turnstile) return
-    if (!turnstileContainerRef.current) return
-    if (turnstileWidgetIdRef.current) return
+    if (sessionError || !session?.access_token) {
+      throw new Error("Necesitás confirmar el email para completar el registro.")
+    }
 
-    turnstileWidgetIdRef.current = window.turnstile.render(
-      turnstileContainerRef.current,
-      {
-        sitekey: turnstileSiteKey,
-        theme: "light",
-        execution: "execute",
-        callback: (token: string) => {
-          turnstileResolveRef.current?.(token)
-          turnstileResolveRef.current = null
-          turnstileRejectRef.current = null
-        },
-        "error-callback": () => {
-          turnstileRejectRef.current?.(
-            new Error("No pudimos validar la seguridad. Probá de nuevo.")
-          )
-          turnstileResolveRef.current = null
-          turnstileRejectRef.current = null
-        },
-        "expired-callback": () => {
-          turnstileRejectRef.current?.(
-            new Error("La validación expiró. Probá de nuevo.")
-          )
-          turnstileResolveRef.current = null
-          turnstileRejectRef.current = null
-        },
-      }
-    )
+    const sessionEmail = clean(session.user.email).toLowerCase()
+    const leadEmail = clean(lead.email).toLowerCase()
+
+    if (!sessionEmail || sessionEmail !== leadEmail) {
+      throw new Error("El email confirmado no coincide con el email del formulario.")
+    }
+
+    const res = await fetch(waitlistEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(lead),
+    })
+
+    const data = await res.json().catch(() => null)
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || "No pudimos guardar tus datos. Probá de nuevo.")
+    }
+
+    localStorage.removeItem(pendingLeadStorageKey)
+    setSent(true)
+    setMagicLinkSent(false)
+    setError("")
   }
 
   useEffect(() => {
-    renderTurnstile()
+    let mounted = true
+
+    async function completePendingLeadIfVerified() {
+      try {
+        const storedLead = localStorage.getItem(pendingLeadStorageKey)
+
+        if (!storedLead) {
+          return
+        }
+
+        const lead = JSON.parse(storedLead) as PendingLead
+
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (!session?.access_token) {
+          return
+        }
+
+        if (clean(session.user.email).toLowerCase() !== clean(lead.email).toLowerCase()) {
+          return
+        }
+
+        await saveLeadWithSession(lead)
+      } catch (err) {
+        console.error(err)
+
+        if (mounted) {
+          if (err instanceof Error) {
+            setError(err.message)
+          } else {
+            setError("No pudimos completar el registro. Probá de nuevo.")
+          }
+        }
+      } finally {
+        if (mounted) {
+          setCheckingSession(false)
+        }
+      }
+    }
+
+    completePendingLeadIfVerified()
+
+    return () => {
+      mounted = false
+    }
   }, [])
-
-  async function getTurnstileToken() {
-    return new Promise<string>((resolve, reject) => {
-      if (typeof window === "undefined") {
-        reject(new Error("No pudimos validar la seguridad. Probá de nuevo."))
-        return
-      }
-
-      if (!window.turnstile || !turnstileWidgetIdRef.current) {
-        reject(new Error("La validación de seguridad todavía no cargó. Probá de nuevo."))
-        return
-      }
-
-      turnstileResolveRef.current = resolve
-      turnstileRejectRef.current = reject
-
-      window.turnstile.reset(turnstileWidgetIdRef.current)
-      window.turnstile.execute(turnstileWidgetIdRef.current)
-    })
-  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -110,50 +131,65 @@ export default function PaginaDePrueba() {
     const form = e.currentTarget
     const formData = new FormData(form)
 
+    const lead: PendingLead = {
+      full_name: clean(formData.get("full_name")),
+      email: clean(formData.get("email")).toLowerCase(),
+      phone: clean(formData.get("phone")),
+      role: clean(formData.get("role")),
+      need: clean(formData.get("need")),
+    }
+
     try {
-      const turnstileToken = await getTurnstileToken()
-
-      const payload = {
-        full_name: String(formData.get("full_name") || "").trim(),
-        email: String(formData.get("email") || "").trim(),
-        phone: String(formData.get("phone") || "").trim(),
-        role: String(formData.get("role") || "").trim(),
-        need: String(formData.get("need") || "").trim(),
-        turnstile_token: turnstileToken,
-      }
-
-      const res = await fetch(waitlistEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok || !data?.ok) {
-        setError(data?.error || "No pudimos guardar tus datos. Probá de nuevo.")
-
-        if (typeof window !== "undefined" && window.turnstile && turnstileWidgetIdRef.current) {
-          window.turnstile.reset(turnstileWidgetIdRef.current)
-        }
-
+      if (!lead.full_name || lead.full_name.length < 2) {
+        setError("Ingresá tu nombre y apellido.")
         return
       }
 
-      setSent(true)
+      if (!lead.email || !isValidEmail(lead.email)) {
+        setError("Ingresá un email válido.")
+        return
+      }
+
+      if (!lead.phone || lead.phone.length < 6) {
+        setError("Ingresá un WhatsApp válido.")
+        return
+      }
+
+      if (!lead.role) {
+        setError("Elegí cómo vas a usar Verlo.")
+        return
+      }
+
+      if (!lead.need) {
+        setError("Elegí qué querés hacer.")
+        return
+      }
+
+      localStorage.setItem(pendingLeadStorageKey, JSON.stringify(lead))
+
+      const redirectTo = `${window.location.origin}/`
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: lead.email,
+        options: {
+          emailRedirectTo: redirectTo,
+          shouldCreateUser: true,
+        },
+      })
+
+      if (otpError) {
+        throw new Error(otpError.message || "No pudimos enviarte el email de acceso.")
+      }
+
+      setMagicLinkSent(true)
+      setSent(false)
     } catch (err) {
       console.error(err)
 
       if (err instanceof Error) {
         setError(err.message)
       } else {
-        setError("No pudimos guardar tus datos. Probá de nuevo.")
-      }
-
-      if (typeof window !== "undefined" && window.turnstile && turnstileWidgetIdRef.current) {
-        window.turnstile.reset(turnstileWidgetIdRef.current)
+        setError("No pudimos iniciar el registro. Probá de nuevo.")
       }
     } finally {
       setLoading(false)
@@ -162,13 +198,6 @@ export default function PaginaDePrueba() {
 
   return (
     <main className="page">
-      <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-        async
-        defer
-        onLoad={renderTurnstile}
-      />
-
       <style jsx>{`
         .page {
           min-height: 100vh;
@@ -638,20 +667,8 @@ export default function PaginaDePrueba() {
           gap: 9px;
         }
 
-        .turnstileWrap {
-          margin-top: 6px;
-          min-height: 65px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .turnstileWidget {
-          min-height: 65px;
-        }
-
         .submit {
-          margin-top: 4px;
+          margin-top: 94px;
           height: 48px;
           border: 0;
           border-radius: 999px;
@@ -680,6 +697,23 @@ export default function PaginaDePrueba() {
           color: #087b35;
           font-weight: 950;
           line-height: 1.35;
+        }
+
+        .magicBox {
+          padding: 18px;
+          border-radius: 14px;
+          border: 2px solid #20d466;
+          background: rgba(32, 212, 102, 0.08);
+          color: #087b35;
+          font-weight: 850;
+          line-height: 1.35;
+        }
+
+        .magicBox strong {
+          display: block;
+          margin-bottom: 6px;
+          font-size: 18px;
+          color: #050505;
         }
 
         .error {
@@ -753,6 +787,10 @@ export default function PaginaDePrueba() {
 
           .row {
             grid-template-columns: 1fr;
+          }
+
+          .submit {
+            margin-top: 60px;
           }
         }
       `}</style>
@@ -992,7 +1030,22 @@ export default function PaginaDePrueba() {
         </section>
 
         <section className="formCard" id="acceso">
-          {!sent ? (
+          {checkingSession ? (
+            <div className="magicBox">
+              <strong>Verificando acceso...</strong>
+              Estamos revisando si ya confirmaste tu email.
+            </div>
+          ) : sent ? (
+            <div className="success">
+              Listo. Quedaste anotado para el acceso anticipado de Verlo.
+            </div>
+          ) : magicLinkSent ? (
+            <div className="magicBox">
+              <strong>Te enviamos un email de confirmación.</strong>
+              Abrí tu correo y tocá el link para completar el registro. Cuando vuelvas a
+              Verlo, tus datos se guardan automáticamente.
+            </div>
+          ) : (
             <>
               <h2>Verlo cambiará el mercado inmobiliario en LATAM</h2>
               <p>
@@ -1017,7 +1070,7 @@ export default function PaginaDePrueba() {
 
                   <select required name="need" defaultValue="">
                     <option value="" disabled>
-                      ¿Qué queres hacer?
+                      ¿Qué querés hacer?
                     </option>
                     <option>Firmar un nuevo alquiler</option>
                     <option>Renovar un contrato existente</option>
@@ -1025,12 +1078,8 @@ export default function PaginaDePrueba() {
                   </select>
                 </div>
 
-                <div className="turnstileWrap">
-                  <div ref={turnstileContainerRef} className="turnstileWidget" />
-                </div>
-
                 <button className="submit" disabled={loading}>
-                  {loading ? "Guardando..." : "Quiero acceso anticipado"}
+                  {loading ? "Enviando email..." : "Quiero acceso anticipado"}
                 </button>
 
                 {error && <div className="error">{error}</div>}
@@ -1040,14 +1089,9 @@ export default function PaginaDePrueba() {
                 Vas a ser parte de un cambio sin precedentes. ¿Estás listo?
               </div>
             </>
-          ) : (
-            <div className="success">
-              Listo. Quedaste anotado para el acceso anticipado de Verlo.
-            </div>
           )}
         </section>
       </div>
     </main>
   )
 }
-
