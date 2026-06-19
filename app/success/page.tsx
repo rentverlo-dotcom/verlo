@@ -73,6 +73,12 @@ export default function SuccessPage() {
 
         if (mounted) {
           setStatus("success")
+          if (typeof window !== "undefined" && window.fbq) {
+  window.fbq("track", "Lead", {
+    content_name: "Verlo acceso anticipado confirmado",
+    source: "success_magic_link",
+  })
+}
           setMessage(
             "Hemos tomado tus datos correctamente. Te vamos a escribir cuando Verlo esté listo para el lanzamiento."
           )
