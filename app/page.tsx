@@ -9,7 +9,7 @@ const logoUrl =
 const videoUrl =
   "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Video%202026-06-14%20at%2001.15.23.mp4"
 
-const pendingLeadStorageKey = "verlo_pending_waitlist_lead"
+const pendingLeadStorageKey = "verlo_pending_user_data"
 
 type PendingLead = {
   full_name: string
@@ -97,6 +97,13 @@ export default function Home() {
         options: {
           emailRedirectTo: redirectTo,
           shouldCreateUser: true,
+          data: {
+            full_name: lead.full_name,
+            phone: lead.phone,
+            role: lead.role,
+            need: lead.need,
+            source: "home_magic_link",
+          },
         },
       })
 
@@ -942,7 +949,7 @@ export default function Home() {
             <div className="magicBox">
               <strong>Te enviamos un email de confirmación.</strong>
               Abrí tu correo y tocá el link para completar el registro. Cuando vuelvas a
-              Verlo, tus datos se guardan automáticamente.
+              Verlo, tus datos quedan guardados en tu usuario.
             </div>
           ) : (
             <>
