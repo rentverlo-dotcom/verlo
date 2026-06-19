@@ -307,19 +307,25 @@ export default function SuccessPage() {
           flex-wrap: wrap;
         }
 
-        .button {
-          min-height: 46px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0 22px;
-          border-radius: 999px;
-          background: #20d466;
-          color: #06140a;
-          text-decoration: none;
-          font-weight: 950;
-        }
+       .button {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: #20d466 !important;
+  color: #06140a !important;
+  text-decoration: none !important;
+  font-weight: 950;
+}
 
+.button:visited,
+.button:hover,
+.button:active {
+  background: #20d466 !important;
+  color: #06140a !important;
+}
         .buttonSecondary {
           min-height: 46px;
           display: inline-flex;
