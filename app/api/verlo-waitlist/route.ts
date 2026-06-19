@@ -5,8 +5,22 @@ function clean(value: unknown) {
   return String(value || "").trim()
 }
 
+function normalizePhone(phone: string) {
+  return phone.replace(/[^\d+]/g, "")
+}
+
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+function isValidPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "")
+  return digits.length >= 8 && digits.length <= 15
+}
+
+function isValidFullName(name: string) {
+  const parts = name.trim().split(/\s+/)
+  return name.length >= 5 && parts.length >= 2
 }
 
 export async function GET() {
@@ -61,13 +75,13 @@ export async function POST(req: NextRequest) {
 
     const full_name = clean(body.full_name)
     const email = clean(body.email).toLowerCase()
-    const phone = clean(body.phone)
+    const phone = normalizePhone(clean(body.phone))
     const role = clean(body.role)
     const need = clean(body.need)
 
-    if (!full_name || full_name.length < 2) {
+    if (!isValidFullName(full_name)) {
       return NextResponse.json(
-        { ok: false, error: "Nombre inválido" },
+        { ok: false, error: "Nombre y apellido inválidos" },
         { status: 400 }
       )
     }
@@ -86,7 +100,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (!phone || phone.length < 6) {
+    if (!phone || !isValidPhone(phone)) {
       return NextResponse.json(
         { ok: false, error: "WhatsApp inválido" },
         { status: 400 }
