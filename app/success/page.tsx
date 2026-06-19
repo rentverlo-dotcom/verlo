@@ -7,8 +7,7 @@ import { supabase } from "@/lib/supabase/client"
 const logoUrl =
   "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-14%20at%2016.35.42.jpeg"
 
-const waitlistEndpoint = "/api/verlo-waitlist"
-const pendingLeadStorageKey = "verlo_pending_waitlist_lead"
+const pendingLeadStorageKey = "verlo_pending_user_data"
 
 type PendingLead = {
   full_name: string
@@ -44,7 +43,7 @@ export default function SuccessPage() {
           error: sessionError,
         } = await supabase.auth.getSession()
 
-        if (sessionError || !session?.access_token) {
+        if (sessionError || !session?.user) {
           throw new Error("No pudimos confirmar tu email. Abrí nuevamente el link del correo.")
         }
 
@@ -55,19 +54,19 @@ export default function SuccessPage() {
           throw new Error("El email confirmado no coincide con el email del formulario.")
         }
 
-        const res = await fetch(waitlistEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: {
+            full_name: lead.full_name,
+            phone: lead.phone,
+            role: lead.role,
+            need: lead.need,
+            source: "home_magic_link",
+            registered_at: new Date().toISOString(),
           },
-          body: JSON.stringify(lead),
         })
 
-        const data = await res.json().catch(() => null)
-
-        if (!res.ok || !data?.ok) {
-          throw new Error(data?.error || "No pudimos guardar tus datos. Probá de nuevo.")
+        if (updateError) {
+          throw new Error(updateError.message || "No pudimos guardar tus datos.")
         }
 
         localStorage.removeItem(pendingLeadStorageKey)
@@ -307,25 +306,26 @@ export default function SuccessPage() {
           flex-wrap: wrap;
         }
 
-       .button {
-  min-height: 46px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 22px;
-  border-radius: 999px;
-  background: #20d466 !important;
-  color: #06140a !important;
-  text-decoration: none !important;
-  font-weight: 950;
-}
+        .button {
+          min-height: 46px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 22px;
+          border-radius: 999px;
+          background: #20d466 !important;
+          color: #06140a !important;
+          text-decoration: none !important;
+          font-weight: 950;
+        }
 
-.button:visited,
-.button:hover,
-.button:active {
-  background: #20d466 !important;
-  color: #06140a !important;
-}
+        .button:visited,
+        .button:hover,
+        .button:active {
+          background: #20d466 !important;
+          color: #06140a !important;
+        }
+
         .buttonSecondary {
           min-height: 46px;
           display: inline-flex;
@@ -396,7 +396,7 @@ export default function SuccessPage() {
             </div>
 
             <div className="small">
-              Guardamos tu solicitud de acceso anticipado de forma segura.
+              Guardamos tus datos dentro de tu usuario verificado.
             </div>
           </>
         ) : (
