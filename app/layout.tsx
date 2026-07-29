@@ -2,7 +2,7 @@ import './globals.css'
 import Script from 'next/script'
 
 const ogImageUrl =
-  'https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-16%20at%2013.16.16.jpeg'
+'https://pub-804525ac911240ab845e611b752528e4.r2.dev/logo%20verlo.png'
 
 export const metadata = {
   title: 'VERLO',
