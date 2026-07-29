@@ -593,6 +593,25 @@ export default function TestCaptacionPage() {
             flex-direction: column;
             align-items: flex-start;
           }
+          
+          .hero-video-frame {
+  position: relative;
+  width: min(420px, 84vw);
+  aspect-ratio: 390 / 760;
+  border: 10px solid var(--black);
+  border-radius: 48px;
+  overflow: hidden;
+  background: #fbf8f5;
+  box-shadow: 0 30px 90px rgba(5, 0, 2, 0.28);
+  z-index: 2;
+}
+
+.hero-video-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
         }
       `}</style>
 
@@ -640,15 +659,14 @@ export default function TestCaptacionPage() {
             <div className="phone-wrap" aria-hidden="true">
               <div className="hero-video-glow" />
 
-              <div className="mock-card">
-                <div className="mock-top">
-                  <VerloBrand width={92} />
-                  <div className="mock-dots">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </div>
+              <div className="hero-video-frame">
+  <iframe
+    src="/mockup-lab?key=verlo-demo-2026"
+    title="Video demo Verlo"
+    loading="eager"
+    allow="autoplay"
+  />
+</div>
 
                 <div className="mock-pill">Prueba privada</div>
 
