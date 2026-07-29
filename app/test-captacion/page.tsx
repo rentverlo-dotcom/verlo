@@ -136,7 +136,7 @@ export default function TestCaptacionPage() {
 
   return (
     <main className="verlo-root">
-      <style jsx global>{`
+     <style jsx>{`
         :root {
           --pink: #f2a8a9;
           --pink-dark: #c37986;
