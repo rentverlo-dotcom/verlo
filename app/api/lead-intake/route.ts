@@ -21,6 +21,74 @@ function isValidPhone(phone: string) {
   return digits.length >= 8 && digits.length <= 15
 }
 
+function getLeadTags(data: {
+  role: string
+  intent: string
+  availability_status?: string | null
+  move_timing?: string | null
+  renewal_role?: string | null
+}) {
+  const tags = new Set<string>()
+
+  tags.add("verlo_lead")
+  tags.add("verlo_test_captacion")
+
+  if (data.role === "owner") tags.add("verlo_owner")
+  if (data.role === "tenant") tags.add("verlo_tenant")
+  if (data.role === "both") {
+    tags.add("verlo_owner")
+    tags.add("verlo_tenant")
+  }
+
+  if (data.intent === "owner_new_listing") tags.add("verlo_owner_new_listing")
+  if (data.intent === "tenant_search") tags.add("verlo_tenant_search")
+  if (data.intent === "contract_renewal") tags.add("verlo_contract_renewal")
+
+  if (data.availability_status === "Disponible ahora") tags.add("owner_available_now")
+  if (data.availability_status === "Disponible pronto") tags.add("owner_available_soon")
+  if (data.availability_status === "Estoy evaluando alquilar") tags.add("owner_evaluating")
+
+  if (data.move_timing === "Estoy buscando ahora") tags.add("tenant_searching_now")
+  if (data.move_timing === "Me quiero mudar en 1-3 meses") tags.add("tenant_move_1_3_months")
+  if (data.move_timing === "Solo quiero enterarme de novedades") tags.add("tenant_news_only")
+
+  if (data.intent === "contract_renewal" && data.renewal_role === "owner") tags.add("renewal_owner")
+  if (data.intent === "contract_renewal" && data.renewal_role === "tenant") tags.add("renewal_tenant")
+
+  return Array.from(tags)
+}
+
+async function sendToGhlWebhook(payload: Record<string, unknown>) {
+  const webhookUrl = process.env.GHL_LEAD_WEBHOOK_URL
+
+  if (!webhookUrl) {
+    return { ok: false, skipped: true, error: "Falta GHL_LEAD_WEBHOOK_URL" }
+  }
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "")
+      return { ok: false, skipped: false, error: `GHL ${res.status}: ${text}` }
+    }
+
+    return { ok: true, skipped: false, error: null }
+  } catch (err) {
+    return {
+      ok: false,
+      skipped: false,
+      error: err instanceof Error ? err.message : "Error enviando a GHL",
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -40,6 +108,20 @@ export async function POST(req: NextRequest) {
     const phone = normalizePhone(clean(body.phone))
     const role = clean(body.role)
     const intent = clean(body.intent)
+
+    const zone = clean(body.zone) || null
+    const property_type = clean(body.property_type) || null
+    const availability_status = clean(body.availability_status) || null
+    const approx_price = clean(body.approx_price) || null
+
+    const desired_property_type = clean(body.desired_property_type) || null
+    const budget_range = clean(body.budget_range) || null
+    const move_timing = clean(body.move_timing) || null
+
+    const renewal_role = clean(body.renewal_role) || null
+    const contract_expiration = clean(body.contract_expiration) || null
+    const other_party_status = clean(body.other_party_status) || null
+    const renewal_need = clean(body.renewal_need) || null
 
     if (full_name.length < 3) {
       return NextResponse.json(
@@ -76,6 +158,36 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const tags = getLeadTags({
+      role,
+      intent,
+      availability_status,
+      move_timing,
+      renewal_role,
+    })
+
+    const leadPayload = {
+      full_name,
+      email,
+      phone,
+      role,
+      intent,
+      zone,
+      property_type,
+      availability_status,
+      approx_price,
+      desired_property_type,
+      budget_range,
+      move_timing,
+      renewal_role,
+      contract_expiration,
+      other_party_status,
+      renewal_need,
+      source: "test_captacion",
+      tags,
+      metadata: body.metadata || null,
+    }
+
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         persistSession: false,
@@ -89,23 +201,22 @@ export async function POST(req: NextRequest) {
       phone,
       role,
       intent,
-
-      zone: clean(body.zone) || null,
-      property_type: clean(body.property_type) || null,
-      availability_status: clean(body.availability_status) || null,
-      approx_price: clean(body.approx_price) || null,
-
-      desired_property_type: clean(body.desired_property_type) || null,
-      budget_range: clean(body.budget_range) || null,
-      move_timing: clean(body.move_timing) || null,
-
-      renewal_role: clean(body.renewal_role) || null,
-      contract_expiration: clean(body.contract_expiration) || null,
-      other_party_status: clean(body.other_party_status) || null,
-      renewal_need: clean(body.renewal_need) || null,
-
+      zone,
+      property_type,
+      availability_status,
+      approx_price,
+      desired_property_type,
+      budget_range,
+      move_timing,
+      renewal_role,
+      contract_expiration,
+      other_party_status,
+      renewal_need,
       source: "test_captacion",
-      metadata: body.metadata || null,
+      metadata: {
+        ...(body.metadata || {}),
+        tags,
+      },
     })
 
     if (error) {
@@ -117,7 +228,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ ok: true })
+    const ghl = await sendToGhlWebhook(leadPayload)
+
+    if (!ghl.ok) {
+      console.error("ghl webhook error:", ghl.error)
+    }
+
+    return NextResponse.json({ ok: true, ghl })
   } catch (err) {
     console.error("lead_intake api error:", err)
 
