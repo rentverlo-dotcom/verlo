@@ -29,6 +29,439 @@ const pathConfig = {
   },
 } as const
 
+const styles = `
+  .verlo-root {
+    --pink: #f2a8a9;
+    --pink-dark: #c37986;
+    --black: #050002;
+    --soft: #f2ebec;
+    --blue: #74bedc;
+    --yellow: #e7c776;
+    min-height: 100vh;
+    background: var(--soft);
+    color: var(--black);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .verlo-root * {
+    box-sizing: border-box;
+  }
+
+  .container {
+    width: min(1160px, calc(100% - 40px));
+    margin: 0 auto;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(18px);
+    background: rgba(242, 235, 236, 0.78);
+    border-bottom: 1px solid rgba(5, 0, 2, 0.08);
+  }
+
+  .nav-inner {
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 14px;
+  }
+
+  .nav-links a {
+    color: rgba(5, 0, 2, 0.72);
+    text-decoration: none;
+    font-weight: 800;
+  }
+
+  .nav-cta {
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--black);
+    color: white !important;
+  }
+
+  .hero {
+    position: relative;
+    padding: 88px 0 80px;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.02fr 0.98fr;
+    gap: 64px;
+    align-items: center;
+  }
+
+  .hero h1 {
+    margin: 22px 0 0;
+    font-size: clamp(54px, 7.4vw, 104px);
+    line-height: 0.96;
+    letter-spacing: -0.055em;
+    font-weight: 950;
+    max-width: 820px;
+  }
+
+  .hero h1 em {
+    font-family: Georgia, "Times New Roman", serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.035em;
+  }
+
+  .hero p {
+    margin: 28px 0 0;
+    max-width: 620px;
+    font-size: 21px;
+    line-height: 1.45;
+    color: rgba(5, 0, 2, 0.68);
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 34px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 54px;
+    padding: 0 24px;
+    border-radius: 999px;
+    border: 1px solid rgba(5, 0, 2, 0.12);
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 900;
+    transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    cursor: pointer;
+  }
+
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+
+  .btn-primary {
+    background: var(--black);
+    color: white;
+    box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--black);
+  }
+
+  .trust-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 26px;
+  }
+
+  .pill {
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.54);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    color: rgba(5, 0, 2, 0.7);
+    font-weight: 750;
+    font-size: 13px;
+  }
+
+  .hero-video-wrap {
+    position: relative;
+    min-height: 640px;
+    display: grid;
+    place-items: center;
+  }
+
+  .hero-video-frame {
+    position: relative;
+    width: min(420px, 84vw);
+    aspect-ratio: 390 / 760;
+    border: 10px solid var(--black);
+    border-radius: 48px;
+    overflow: hidden;
+    background: #fbf8f5;
+    box-shadow: 0 30px 90px rgba(5, 0, 2, 0.28);
+    z-index: 2;
+  }
+
+  .hero-video-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  .hero-video-glow {
+    position: absolute;
+    width: 520px;
+    height: 520px;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 30% 35%, rgba(242, 168, 169, 0.85), transparent 30%),
+      radial-gradient(circle at 76% 72%, rgba(116, 190, 220, 0.55), transparent 28%),
+      radial-gradient(circle at 78% 22%, rgba(231, 199, 118, 0.42), transparent 24%);
+    filter: blur(8px);
+    opacity: 0.9;
+    z-index: 1;
+  }
+
+  .section {
+    padding: 92px 0;
+  }
+
+  .section-header {
+    max-width: 760px;
+    margin-bottom: 42px;
+  }
+
+  .kicker {
+    margin: 0 0 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 12px;
+    font-weight: 950;
+    color: var(--pink-dark);
+  }
+
+  .section-title {
+    margin: 0;
+    font-size: clamp(40px, 5.5vw, 76px);
+    line-height: 0.95;
+    letter-spacing: -0.075em;
+    font-weight: 950;
+  }
+
+  .section-title em {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .section-copy {
+    margin: 18px 0 0;
+    font-size: 19px;
+    line-height: 1.55;
+    color: rgba(5, 0, 2, 0.68);
+  }
+
+  .path-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+
+  .path-card {
+    padding: 28px;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.58);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    cursor: pointer;
+    text-align: left;
+    color: var(--black);
+    transition: 160ms ease;
+  }
+
+  .path-card.active {
+    background: var(--black);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
+  }
+
+  .path-card strong {
+    display: block;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  .path-card span {
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0.72;
+  }
+
+  .form-card {
+    border-radius: 42px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    box-shadow: 0 28px 80px rgba(5, 0, 2, 0.08);
+  }
+
+  .form-head h3 {
+    margin: 0;
+    font-size: clamp(36px, 4vw, 58px);
+    line-height: 0.95;
+    letter-spacing: -0.075em;
+    font-weight: 950;
+  }
+
+  .form-head p {
+    margin: 14px 0 0;
+    color: rgba(5, 0, 2, 0.64);
+    line-height: 1.5;
+    font-size: 17px;
+  }
+
+  .form {
+    margin-top: 30px;
+    display: grid;
+    gap: 14px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .input,
+  .select {
+    width: 100%;
+    min-height: 56px;
+    border: 1px solid rgba(5, 0, 2, 0.12);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.86);
+    padding: 0 16px;
+    color: var(--black);
+    font-size: 15px;
+    outline: none;
+  }
+
+  .input:focus,
+  .select:focus {
+    border-color: var(--pink-dark);
+    box-shadow: 0 0 0 5px rgba(195, 121, 134, 0.12);
+    background: white;
+  }
+
+  .submit {
+    min-height: 58px;
+    border-radius: 999px;
+    border: 1px solid rgba(5, 0, 2, 0.12);
+    background: var(--black);
+    color: white;
+    font-size: 16px;
+    font-weight: 950;
+    cursor: pointer;
+    box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
+  }
+
+  .submit:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .error,
+  .success {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    font-weight: 850;
+  }
+
+  .error {
+    background: rgba(195, 121, 134, 0.14);
+    color: #7f2435;
+  }
+
+  .success {
+    background: rgba(116, 190, 220, 0.16);
+    color: #255a6d;
+  }
+
+  .footer {
+    padding: 42px 0;
+    border-top: 1px solid rgba(5, 0, 2, 0.1);
+  }
+
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    align-items: center;
+    color: rgba(5, 0, 2, 0.58);
+    font-size: 14px;
+  }
+
+  @media (max-width: 980px) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .path-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .container {
+      width: min(100% - 28px, 1160px);
+    }
+
+    .nav-inner {
+      height: 66px;
+    }
+
+    .hero {
+      padding: 58px 0 54px;
+    }
+
+    .hero p {
+      font-size: 18px;
+    }
+
+    .hero-actions {
+      flex-direction: column;
+    }
+
+    .btn {
+      width: 100%;
+    }
+
+    .hero-video-wrap {
+      min-height: 560px;
+    }
+
+    .hero-video-frame {
+      width: min(340px, 90vw);
+    }
+
+    .row {
+      grid-template-columns: 1fr;
+    }
+
+    .form-card {
+      padding: 28px;
+      border-radius: 32px;
+    }
+
+    .footer-inner {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+`
+
 function trackMetaEvent(eventName: string, params?: Record<string, string>) {
   if (typeof window !== "undefined") {
     const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq
@@ -47,6 +480,13 @@ export default function TestCaptacionPage() {
 
   const selected = pathConfig[path]
 
+  function choosePath(nextPath: Path) {
+    setPath(nextPath)
+    setError("")
+    setSuccess("")
+    trackMetaEvent("Lead_Intake_Path_Click", { path: nextPath })
+  }
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -60,29 +500,22 @@ export default function TestCaptacionPage() {
       full_name: String(formData.get("full_name") || "").trim(),
       email: String(formData.get("email") || "").trim(),
       phone: String(formData.get("phone") || "").trim(),
-
       role:
         path === "renewal"
           ? String(formData.get("renewal_role") || "both").trim()
           : selected.role,
-
       intent: selected.intent,
-
       zone: String(formData.get("zone") || "").trim(),
-
       property_type: String(formData.get("property_type") || "").trim(),
       availability_status: String(formData.get("availability_status") || "").trim(),
       approx_price: String(formData.get("approx_price") || "").trim(),
-
       desired_property_type: String(formData.get("desired_property_type") || "").trim(),
       budget_range: String(formData.get("budget_range") || "").trim(),
       move_timing: String(formData.get("move_timing") || "").trim(),
-
       renewal_role: String(formData.get("renewal_role") || "").trim(),
       contract_expiration: String(formData.get("contract_expiration") || "").trim(),
       other_party_status: String(formData.get("other_party_status") || "").trim(),
       renewal_need: String(formData.get("renewal_need") || "").trim(),
-
       metadata: {
         path,
         page: "test_captacion",
@@ -136,484 +569,7 @@ export default function TestCaptacionPage() {
 
   return (
     <main className="verlo-root">
-     <style jsx>{`
-        :root {
-          --pink: #f2a8a9;
-          --pink-dark: #c37986;
-          --black: #050002;
-          --cream: #efefea;
-          --soft: #f2ebec;
-          --blue: #74bedc;
-          --yellow: #e7c776;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-
-        html {
-          scroll-behavior: smooth;
-        }
-
-        body {
-          margin: 0;
-          background: var(--soft);
-          color: var(--black);
-        }
-
-        .verlo-root {
-          min-height: 100vh;
-          background: var(--soft);
-          color: var(--black);
-          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-            sans-serif;
-        }
-
-        .container {
-          width: min(1160px, calc(100% - 40px));
-          margin: 0 auto;
-        }
-
-        .nav {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          backdrop-filter: blur(18px);
-          background: rgba(242, 235, 236, 0.78);
-          border-bottom: 1px solid rgba(5, 0, 2, 0.08);
-        }
-
-        .nav-inner {
-          height: 76px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 24px;
-        }
-
-        .nav-links {
-          display: flex;
-          align-items: center;
-          gap: 18px;
-          font-size: 14px;
-        }
-
-        .nav-links a {
-          color: rgba(5, 0, 2, 0.72);
-          text-decoration: none;
-          font-weight: 700;
-        }
-
-        .nav-cta {
-          padding: 10px 18px;
-          border-radius: 999px;
-          background: var(--black);
-          color: white !important;
-        }
-
-        .hero {
-          position: relative;
-          padding: 88px 0 64px;
-        }
-
-        .hero-grid {
-          display: grid;
-          grid-template-columns: 1.02fr 0.98fr;
-          gap: 64px;
-          align-items: center;
-        }
-
-        .hero h1 {
-          margin: 22px 0 0;
-          font-size: clamp(54px, 7.4vw, 104px);
-          line-height: 0.96;
-          letter-spacing: -0.055em;
-          font-weight: 950;
-          max-width: 820px;
-        }
-
-        .hero h1 em {
-          font-family: Georgia, "Times New Roman", serif;
-          font-style: italic;
-          font-weight: 400;
-          letter-spacing: -0.035em;
-        }
-
-        .hero p {
-          margin: 28px 0 0;
-          max-width: 620px;
-          font-size: 21px;
-          line-height: 1.45;
-          color: rgba(5, 0, 2, 0.68);
-        }
-
-        .hero-actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 14px;
-          margin-top: 34px;
-        }
-
-        .btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 54px;
-          padding: 0 24px;
-          border-radius: 999px;
-          border: 1px solid rgba(5, 0, 2, 0.12);
-          text-decoration: none;
-          font-size: 16px;
-          font-weight: 900;
-          transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
-          cursor: pointer;
-        }
-
-        .btn:hover {
-          transform: translateY(-2px);
-        }
-
-        .btn-primary {
-          background: var(--black);
-          color: white;
-          box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
-        }
-
-        .btn-secondary {
-          background: white;
-          color: var(--black);
-        }
-
-        .phone-wrap {
-          position: relative;
-          min-height: 560px;
-          display: grid;
-          place-items: center;
-        }
-
-        .hero-video-glow {
-          position: absolute;
-          width: 520px;
-          height: 520px;
-          border-radius: 999px;
-          background:
-            radial-gradient(circle at 30% 35%, rgba(242, 168, 169, 0.85), transparent 30%),
-            radial-gradient(circle at 76% 72%, rgba(116, 190, 220, 0.55), transparent 28%),
-            radial-gradient(circle at 78% 22%, rgba(231, 199, 118, 0.42), transparent 24%);
-          filter: blur(8px);
-          opacity: 0.9;
-          z-index: 1;
-        }
-
-        .mock-card {
-          position: relative;
-          z-index: 2;
-          width: min(430px, 100%);
-          border-radius: 46px;
-          border: 10px solid var(--black);
-          background: #fbf8f5;
-          box-shadow: 0 30px 90px rgba(5, 0, 2, 0.28);
-          padding: 38px;
-        }
-
-        .mock-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 44px;
-        }
-
-        .mock-dots {
-          display: flex;
-          gap: 8px;
-        }
-
-        .mock-dots span {
-          width: 9px;
-          height: 9px;
-          border-radius: 999px;
-          background: var(--black);
-        }
-
-        .mock-pill {
-          display: inline-flex;
-          width: fit-content;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: rgba(242, 168, 169, 0.35);
-          color: rgba(5, 0, 2, 0.7);
-          font-size: 13px;
-          font-weight: 950;
-        }
-
-        .mock-title {
-          margin: 18px 0 0;
-          font-size: 42px;
-          line-height: 0.92;
-          letter-spacing: -0.06em;
-          font-weight: 950;
-        }
-
-        .mock-copy {
-          margin: 18px 0 0;
-          color: rgba(5, 0, 2, 0.64);
-          font-size: 17px;
-          line-height: 1.4;
-        }
-
-        .section {
-          padding: 86px 0;
-        }
-
-        .section-header {
-          max-width: 760px;
-          margin-bottom: 36px;
-        }
-
-        .kicker {
-          margin: 0 0 14px;
-          text-transform: uppercase;
-          letter-spacing: 0.14em;
-          font-size: 12px;
-          font-weight: 950;
-          color: var(--pink-dark);
-        }
-
-        .section-title {
-          margin: 0;
-          font-size: clamp(40px, 5.5vw, 76px);
-          line-height: 0.95;
-          letter-spacing: -0.075em;
-          font-weight: 950;
-        }
-
-        .section-title em {
-          font-family: Georgia, "Times New Roman", serif;
-          font-weight: 400;
-          font-style: italic;
-        }
-
-        .section-copy {
-          margin: 18px 0 0;
-          font-size: 19px;
-          line-height: 1.55;
-          color: rgba(5, 0, 2, 0.68);
-        }
-
-        .path-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 18px;
-          margin-bottom: 28px;
-        }
-
-        .path-card {
-          padding: 28px;
-          border-radius: 30px;
-          background: rgba(255, 255, 255, 0.58);
-          border: 1px solid rgba(5, 0, 2, 0.08);
-          cursor: pointer;
-          text-align: left;
-          color: var(--black);
-          transition: 160ms ease;
-        }
-
-        .path-card.active {
-          background: var(--black);
-          color: white;
-          transform: translateY(-2px);
-          box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
-        }
-
-        .path-card strong {
-          display: block;
-          font-size: 24px;
-          line-height: 1;
-          letter-spacing: -0.04em;
-        }
-
-        .path-card span {
-          display: block;
-          margin-top: 10px;
-          font-size: 14px;
-          line-height: 1.4;
-          opacity: 0.72;
-        }
-
-        .form-card {
-          border-radius: 42px;
-          padding: 40px;
-          background: rgba(255, 255, 255, 0.72);
-          border: 1px solid rgba(5, 0, 2, 0.08);
-          box-shadow: 0 28px 80px rgba(5, 0, 2, 0.08);
-        }
-
-        .form-head h3 {
-          margin: 0;
-          font-size: clamp(36px, 4vw, 58px);
-          line-height: 0.95;
-          letter-spacing: -0.075em;
-          font-weight: 950;
-        }
-
-        .form-head p {
-          margin: 14px 0 0;
-          color: rgba(5, 0, 2, 0.64);
-          line-height: 1.5;
-          font-size: 17px;
-        }
-
-        .form {
-          margin-top: 30px;
-          display: grid;
-          gap: 14px;
-        }
-
-        .row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 14px;
-        }
-
-        .input,
-        .select {
-          width: 100%;
-          min-height: 56px;
-          border: 1px solid rgba(5, 0, 2, 0.12);
-          border-radius: 18px;
-          background: rgba(255, 255, 255, 0.86);
-          padding: 0 16px;
-          color: var(--black);
-          font-size: 15px;
-          outline: none;
-        }
-
-        .input:focus,
-        .select:focus {
-          border-color: var(--pink-dark);
-          box-shadow: 0 0 0 5px rgba(195, 121, 134, 0.12);
-          background: white;
-        }
-
-        .submit {
-          min-height: 58px;
-          border-radius: 999px;
-          border: 1px solid rgba(5, 0, 2, 0.12);
-          background: var(--black);
-          color: white;
-          font-size: 16px;
-          font-weight: 950;
-          cursor: pointer;
-          box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
-        }
-
-        .submit:disabled {
-          opacity: 0.55;
-          cursor: not-allowed;
-        }
-
-        .error,
-        .success {
-          margin: 0;
-          padding: 14px 16px;
-          border-radius: 18px;
-          font-size: 14px;
-          font-weight: 850;
-        }
-
-        .error {
-          background: rgba(195, 121, 134, 0.14);
-          color: #7f2435;
-        }
-
-        .success {
-          background: rgba(116, 190, 220, 0.16);
-          color: #255a6d;
-        }
-
-        .footer {
-          padding: 42px 0;
-          border-top: 1px solid rgba(5, 0, 2, 0.1);
-        }
-
-        .footer-inner {
-          display: flex;
-          justify-content: space-between;
-          gap: 24px;
-          align-items: center;
-          color: rgba(5, 0, 2, 0.58);
-          font-size: 14px;
-        }
-
-        @media (max-width: 980px) {
-          .hero-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .path-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 620px) {
-          .container {
-            width: min(100% - 28px, 1160px);
-          }
-
-          .nav-inner {
-            height: 66px;
-          }
-
-          .hero {
-            padding: 58px 0 54px;
-          }
-
-          .hero p {
-            font-size: 18px;
-          }
-
-          .hero-actions {
-            flex-direction: column;
-          }
-
-          .btn {
-            width: 100%;
-          }
-
-          .row {
-            grid-template-columns: 1fr;
-          }
-
-          .form-card {
-            padding: 28px;
-            border-radius: 32px;
-          }
-
-          .footer-inner {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .hero-video-frame {
-  position: relative;
-  width: min(420px, 84vw);
-  aspect-ratio: 390 / 760;
-  border: 10px solid var(--black);
-  border-radius: 48px;
-  overflow: hidden;
-  background: #fbf8f5;
-  box-shadow: 0 30px 90px rgba(5, 0, 2, 0.28);
-  z-index: 2;
-}
-
-.hero-video-frame iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-}
-        }
-      `}</style>
+      <style>{styles}</style>
 
       <div className="verlo-page">
         <header className="nav">
@@ -642,41 +598,37 @@ export default function TestCaptacionPage() {
               </p>
 
               <div className="hero-actions">
-                <a className="btn btn-primary" href="#captacion" onClick={() => setPath("owner")}>
+                <a className="btn btn-primary" href="#captacion" onClick={() => choosePath("owner")}>
                   Tengo una propiedad
                 </a>
 
-                <a className="btn btn-secondary" href="#captacion" onClick={() => setPath("tenant")}>
+                <a className="btn btn-secondary" href="#captacion" onClick={() => choosePath("tenant")}>
                   Busco alquilar
                 </a>
 
-                <a className="btn btn-secondary" href="#captacion" onClick={() => setPath("renewal")}>
+                <a className="btn btn-secondary" href="#captacion" onClick={() => choosePath("renewal")}>
                   Quiero renovar
                 </a>
               </div>
+
+              <div className="trust-row">
+                <span className="pill">Sin comisión inmobiliaria</span>
+                <span className="pill">Identidad validada</span>
+                <span className="pill">Contrato digital</span>
+                <span className="pill">App disponible próximamente</span>
+              </div>
             </div>
 
-            <div className="phone-wrap" aria-hidden="true">
+            <div className="hero-video-wrap" aria-hidden="true">
               <div className="hero-video-glow" />
 
               <div className="hero-video-frame">
-  <iframe
-    src="/mockup-lab?key=verlo-demo-2026"
-    title="Video demo Verlo"
-    loading="eager"
-    allow="autoplay"
-  />
-</div>
-
-                <div className="mock-pill">Prueba privada</div>
-
-                <div className="mock-title">
-                  Sumate al primer grupo de Verlo.
-                </div>
-
-                <div className="mock-copy">
-                  Propietarios, inquilinos y renovaciones directas en una misma red.
-                </div>
+                <iframe
+                  src="/mockup-lab?key=verlo-demo-2026"
+                  title="Video demo Verlo"
+                  loading="eager"
+                  allow="autoplay"
+                />
               </div>
             </div>
           </div>
@@ -699,7 +651,7 @@ export default function TestCaptacionPage() {
               <button
                 type="button"
                 className={`path-card ${path === "owner" ? "active" : ""}`}
-                onClick={() => setPath("owner")}
+                onClick={() => choosePath("owner")}
               >
                 <strong>Tengo una propiedad</strong>
                 <span>Registrá interés sin cargar fotos ni publicación completa.</span>
@@ -708,7 +660,7 @@ export default function TestCaptacionPage() {
               <button
                 type="button"
                 className={`path-card ${path === "tenant" ? "active" : ""}`}
-                onClick={() => setPath("tenant")}
+                onClick={() => choosePath("tenant")}
               >
                 <strong>Busco alquilar</strong>
                 <span>Contanos zona, presupuesto y qué tipo de propiedad buscás.</span>
@@ -717,7 +669,7 @@ export default function TestCaptacionPage() {
               <button
                 type="button"
                 className={`path-card ${path === "renewal" ? "active" : ""}`}
-                onClick={() => setPath("renewal")}
+                onClick={() => choosePath("renewal")}
               >
                 <strong>Quiero renovar</strong>
                 <span>Registrá un caso de renovación para ordenarlo con Verlo.</span>
