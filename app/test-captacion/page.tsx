@@ -523,7 +523,7 @@ export default function TestCaptacionPage() {
     }
 
     try {
-      const res = await fetch("/api/lead-intake", {
+      const res = await fetch("/api/intake-ghl", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
