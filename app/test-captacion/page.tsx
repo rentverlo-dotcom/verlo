@@ -569,10 +569,8 @@ useEffect(() => {
     }
 
     try {
-      const eventId =
-  `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
-
-const res = await fetch("/api/ghl-lead-webhook", {
+     
+        const res = await fetch("/api/ghl-lead-webhook", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
