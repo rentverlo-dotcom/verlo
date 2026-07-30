@@ -575,7 +575,7 @@ export default function TestCaptacionPage() {
 
       form.reset()
 
-      setSuccess("Listo. Registramos tus datos. Ahora confirmá tu cuenta para activar Verlo.")
+      setSuccess("Dale click al botón de abajo, y luego al link que te llega por mail para completar la acción.")
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message)
