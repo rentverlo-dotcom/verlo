@@ -613,19 +613,19 @@ useEffect(() => {
 
       if (path === "owner") {
         setSuccess(
-          "Listo. Ya tenemos tus datos. Te vamos a escribir cuando haya interesados compatibles."
+          "Listo. Por favor, revisá tu e-mail para confirmar la acción."
         )
       }
 
       if (path === "tenant") {
         setSuccess(
-          "Listo. Ya sabemos qué estás buscando. Te vamos a avisar cuando haya propiedades compatibles."
+          "Listo. Y Por favor, revisá tu e-mail para confirmar la acción."
         )
       }
 
       if (path === "renewal") {
         setSuccess(
-          "Listo. Ya registramos tu caso de renovación. Te vamos a contactar para ordenar los próximos pasos."
+          "Listo.  Por favor, revisá tu e-mail para confirmar la acción."
         )
       }
     } catch (err) {
