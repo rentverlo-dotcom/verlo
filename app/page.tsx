@@ -389,19 +389,50 @@ const styles = `
     color: #255a6d;
   }
 
-  .footer {
-    padding: 42px 0;
-    border-top: 1px solid rgba(5, 0, 2, 0.1);
-  }
+.footer {
+  padding: 54px 0;
+  border-top: 1px solid rgba(5, 0, 2, 0.1);
+  background: rgba(255, 255, 255, 0.34);
+}
 
-  .footer-inner {
-    display: flex;
-    justify-content: space-between;
-    gap: 24px;
-    align-items: center;
-    color: rgba(5, 0, 2, 0.58);
-    font-size: 14px;
-  }
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  align-items: flex-start;
+  color: rgba(5, 0, 2, 0.58);
+  font-size: 14px;
+}
+
+.footer-brand {
+  display: grid;
+  gap: 12px;
+}
+
+.footer-brand p {
+  margin: 0;
+  max-width: 280px;
+  line-height: 1.45;
+  color: rgba(5, 0, 2, 0.62);
+  font-weight: 700;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 16px 22px;
+}
+
+.footer-links a {
+  color: rgba(5, 0, 2, 0.66);
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.footer-links a:hover {
+  color: var(--black);
+}
 
   @media (max-width: 980px) {
     .hero-grid {
