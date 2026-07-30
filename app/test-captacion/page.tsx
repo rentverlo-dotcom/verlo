@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useEffect, useState } from "react"
+import { CSSProperties, FormEvent, useEffect, useState } from "react"
 import VerloBrand from "@/components/VerloBrand"
 
 type Path = "owner" | "tenant" | "renewal"
@@ -832,12 +832,12 @@ useEffect(() => {
                     </div>
 
                     <div className="row">
-                      <input
-                        className="input"
-                        name="contract_expiration"
-                        placeholder="¿Fecha vencimiento contrato actual?"
-                        required
-                      />
+                    <input
+  className="input"
+  name="contract_expiration"
+  type="date"
+  required
+/>
 
                       <select className="select" name="other_party_status" required defaultValue="">
                         <option value="" disabled>
