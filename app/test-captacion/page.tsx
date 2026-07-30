@@ -777,7 +777,13 @@ useEffect(() => {
               <form className="form" onSubmit={handleSubmit}>
                 <div className="row">
                   <input className="input" name="full_name" placeholder="Nombre y apellido" required />
-                  <input className="input" name="phone" placeholder="WhatsApp" required />
+                  <input
+  className="input"
+  name="phone"
+  placeholder="WhatsApp con característica. Ej: 11 3361 4865"
+  inputMode="tel"
+  required
+/>
                 </div>
 
                 <input className="input" name="email" type="email" placeholder="Email" required />
