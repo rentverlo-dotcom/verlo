@@ -882,7 +882,7 @@ export default function TestCaptacionPage() {
 
                 {magicSent && (
                   <p className="success">
-                    Te enviamos el link mágico. Abrí tu email y tocá el enlace para activar tu cuenta.
+                    Te enviamos un link por mail, hace click en él para finalizar.
                   </p>
                 )}
               </form>
