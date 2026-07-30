@@ -639,6 +639,42 @@ useEffect(() => {
     }
   }
 
+
+async function sendMagicLink() {
+  if (!submittedLead) return
+
+  setMagicLoading(true)
+  setError("")
+
+  try {
+    const res = await fetch("/api/auth/send-magic-link", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(submittedLead),
+    })
+
+    const data = await res.json().catch(() => null)
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || "No pudimos enviar el email")
+    }
+
+    setMagicSent(true)
+    setShowConfetti(true)
+  } catch (err) {
+    if (err instanceof Error) {
+      setError(err.message)
+    } else {
+      setError("No pudimos enviar el email")
+    }
+  } finally {
+    setMagicLoading(false)
+  }
+}
+
+  
   return (
     <main className="verlo-root">
       <style>{styles}</style>
