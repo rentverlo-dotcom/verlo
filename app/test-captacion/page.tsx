@@ -1,6 +1,6 @@
 "use client"
 
-import { CSSProperties, FormEvent, useEffect, useState } from "react"
+import { FormEvent, useState } from "react"
 import VerloBrand from "@/components/VerloBrand"
 
 type Path = "owner" | "tenant" | "renewal"
@@ -403,56 +403,6 @@ const styles = `
     font-size: 14px;
   }
 
-.confetti {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 9999;
-}
-
-.confetti span {
-  position: absolute;
-  top: -24px;
-  left: var(--x);
-  width: var(--size);
-  height: calc(var(--size) * 1.45);
-  border-radius: 3px;
-  background: hsl(var(--hue), 90%, 62%);
-  animation: confetti-fall var(--duration) cubic-bezier(0.17, 0.67, 0.28, 1.01) forwards;
-  animation-delay: var(--delay);
-  opacity: 0.95;
-}
-
-.confetti span:nth-child(3n) {
-  border-radius: 999px;
-}
-
-.confetti span:nth-child(4n) {
-  height: var(--size);
-}
-
-@keyframes confetti-fall {
-  0% {
-    transform: translate3d(0, -30px, 0) rotate(0deg);
-    opacity: 1;
-  }
-
-  35% {
-    transform: translate3d(28px, 34vh, 0) rotate(var(--rotate));
-  }
-
-  70% {
-    transform: translate3d(-22px, 72vh, 0) rotate(calc(var(--rotate) * 1.5));
-    opacity: 1;
-  }
-
-  100% {
-    transform: translate3d(18px, 110vh, 0) rotate(calc(var(--rotate) * 2));
-    opacity: 0;
-  }
-}
-
   @media (max-width: 980px) {
     .hero-grid {
       grid-template-columns: 1fr;
@@ -527,8 +477,7 @@ export default function TestCaptacionPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [showConfetti, setShowConfetti] = useState(false)
-   const [submittedLead, setSubmittedLead] = useState<{
+  const [submittedLead, setSubmittedLead] = useState<{
     email: string
     full_name: string
     phone: string
@@ -537,26 +486,18 @@ export default function TestCaptacionPage() {
     zone: string
     lead_id: string | null
   } | null>(null)
-
   const [magicLoading, setMagicLoading] = useState(false)
   const [magicSent, setMagicSent] = useState(false)
 
-  
-useEffect(() => {
-  if (!showConfetti) return
-
-  const timer = window.setTimeout(() => {
-    setShowConfetti(false)
-  }, 2600)
-
-  return () => window.clearTimeout(timer)
-}, [showConfetti])
   const selected = pathConfig[path]
 
   function choosePath(nextPath: Path) {
     setPath(nextPath)
     setError("")
     setSuccess("")
+    setSubmittedLead(null)
+    setMagicSent(false)
+    setMagicLoading(false)
     trackMetaEvent("Lead_Intake_Path_Click", { path: nextPath })
   }
 
@@ -565,11 +506,13 @@ useEffect(() => {
     setLoading(true)
     setError("")
     setSuccess("")
+    setSubmittedLead(null)
+    setMagicSent(false)
+    setMagicLoading(false)
 
     const form = e.currentTarget
     const formData = new FormData(form)
-    const eventId =
-  `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const eventId = `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
 
     const payload = {
       full_name: String(formData.get("full_name") || "").trim(),
@@ -600,8 +543,7 @@ useEffect(() => {
     }
 
     try {
-     
-        const res = await fetch("/api/ghl-lead-webhook", {
+      const res = await fetch("/api/ghl-lead-webhook", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -616,41 +558,24 @@ useEffect(() => {
       }
 
       setSubmittedLead({
-  email: payload.email,
-  full_name: payload.full_name,
-  phone: payload.phone,
-  role: payload.role,
-  intent: payload.intent,
-  zone: payload.zone || "",
-  lead_id: data.lead_id || null,
-})
-      
+        email: payload.email,
+        full_name: payload.full_name,
+        phone: payload.phone,
+        role: payload.role,
+        intent: payload.intent,
+        zone: payload.zone || "",
+        lead_id: data.lead_id || null,
+      })
+
       trackMetaEvent("Lead_Intake_Submitted", {
         path,
         role: payload.role,
         intent: payload.intent,
       })
 
-           form.reset()
-      setShowConfetti(true)
+      form.reset()
 
-      if (path === "owner") {
-        setSuccess(
-          "Listo. Por favor, revisá tu e-mail para confirmar la acción."
-        )
-      }
-
-      if (path === "tenant") {
-        setSuccess(
-          "Listo. Y Por favor, revisá tu e-mail para confirmar la acción."
-        )
-      }
-
-      if (path === "renewal") {
-        setSuccess(
-          "Listo.  Por favor, revisá tu e-mail para confirmar la acción."
-        )
-      }
+      setSuccess("Listo. Registramos tus datos. Ahora confirmá tu cuenta para activar Verlo.")
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message)
@@ -662,65 +587,43 @@ useEffect(() => {
     }
   }
 
+  async function sendMagicLink() {
+    if (!submittedLead) return
 
-async function sendMagicLink() {
-  if (!submittedLead) return
+    setMagicLoading(true)
+    setError("")
 
-  setMagicLoading(true)
-  setError("")
+    try {
+      const res = await fetch("/api/auth/send-magic-link", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submittedLead),
+      })
 
-  try {
-    const res = await fetch("/api/auth/send-magic-link", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(submittedLead),
-    })
+      const data = await res.json().catch(() => null)
 
-    const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "No pudimos enviar el email")
+      }
 
-    if (!res.ok || !data?.ok) {
-      throw new Error(data?.error || "No pudimos enviar el email")
+      setMagicSent(true)
+      setSuccess("")
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError("No pudimos enviar el email")
+      }
+    } finally {
+      setMagicLoading(false)
     }
-
-    setMagicSent(true)
-    setShowConfetti(true)
-  } catch (err) {
-    if (err instanceof Error) {
-      setError(err.message)
-    } else {
-      setError("No pudimos enviar el email")
-    }
-  } finally {
-    setMagicLoading(false)
   }
-}
 
-  
   return (
     <main className="verlo-root">
       <style>{styles}</style>
-
-      {showConfetti && (
-  <div className="confetti" aria-hidden="true">
-    {Array.from({ length: 90 }).map((_, index) => (
-      <span
-        key={index}
-        style={
-          {
-            "--x": `${Math.random() * 100}%`,
-            "--delay": `${Math.random() * 0.55}s`,
-            "--duration": `${1.9 + Math.random() * 1.4}s`,
-            "--size": `${7 + Math.random() * 8}px`,
-            "--rotate": `${Math.random() * 720}deg`,
-            "--hue": `${Math.random() * 360}`,
-          } as CSSProperties
-        }
-      />
-    ))}
-  </div>
-)}
 
       <div className="verlo-page">
         <header className="nav">
@@ -837,12 +740,12 @@ async function sendMagicLink() {
                 <div className="row">
                   <input className="input" name="full_name" placeholder="Nombre y apellido" required />
                   <input
-  className="input"
-  name="phone"
-  placeholder="WhatsApp con característica. Ej: 11 3361 4865"
-  inputMode="tel"
-  required
-/>
+                    className="input"
+                    name="phone"
+                    placeholder="WhatsApp con característica. Ej: 11 3361 4865"
+                    inputMode="tel"
+                    required
+                  />
                 </div>
 
                 <input className="input" name="email" type="email" placeholder="Email" required />
@@ -927,12 +830,12 @@ async function sendMagicLink() {
                     </div>
 
                     <div className="row">
-                    <input
-  className="input"
-  name="contract_expiration"
-  type="date"
-  required
-/>
+                      <input
+                        className="input"
+                        name="contract_expiration"
+                        type="date"
+                        required
+                      />
 
                       <select className="select" name="other_party_status" required defaultValue="">
                         <option value="" disabled>
@@ -944,41 +847,44 @@ async function sendMagicLink() {
                       </select>
                     </div>
 
-                   <select className="select" name="renewal_need" required defaultValue="">
-  <option value="" disabled>
-    ¿Qué querés lograr con esta renovación?
-  </option>
-  <option>Renovar con condiciones parecidas</option>
-  <option>Actualizar precio y renovar</option>
-  <option>Cambiar plazo del contrato</option>
-  <option>Todavía no lo sé, quiero que me guíen</option>
-</select>
+                    <select className="select" name="renewal_need" required defaultValue="">
+                      <option value="" disabled>
+                        ¿Qué querés lograr con esta renovación?
+                      </option>
+                      <option>Renovar con condiciones parecidas</option>
+                      <option>Actualizar precio y renovar</option>
+                      <option>Cambiar plazo del contrato</option>
+                      <option>Todavía no lo sé, quiero que me guíen</option>
+                    </select>
                   </>
                 )}
 
                 {error && <p className="error">{error}</p>}
-                {success && <p className="success">{success}</p>}
 
-{submittedLead && !magicSent && (
-  <button
-    className="submit"
-    type="button"
-    onClick={sendMagicLink}
-    disabled={magicLoading}
-  >
-    {magicLoading ? "Enviando email..." : "Confirmar mi cuenta por email"}
-  </button>
-)}
+                {success && !magicSent && <p className="success">{success}</p>}
 
-{magicSent && (
-  <p className="success">
-    Te enviamos el link mágico. Abrí tu email y tocá el enlace para activar tu cuenta.
-  </p>
-)}
+                {!submittedLead && (
+                  <button className="submit" type="submit" disabled={loading}>
+                    {loading ? "Guardando..." : selected.button}
+                  </button>
+                )}
 
-                <button className="submit" type="submit" disabled={loading}>
-                  {loading ? "Guardando..." : selected.button}
-                </button>
+                {submittedLead && !magicSent && (
+                  <button
+                    className="submit"
+                    type="button"
+                    onClick={sendMagicLink}
+                    disabled={magicLoading}
+                  >
+                    {magicLoading ? "Enviando email..." : "Confirmar mi cuenta por email"}
+                  </button>
+                )}
+
+                {magicSent && (
+                  <p className="success">
+                    Te enviamos el link mágico. Abrí tu email y tocá el enlace para activar tu cuenta.
+                  </p>
+                )}
               </form>
             </div>
           </div>
