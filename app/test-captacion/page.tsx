@@ -560,18 +560,25 @@ const res = await fetch("/api/ghl-lead-webhook", {
         intent: payload.intent,
       })
 
-      form.reset()
+           form.reset()
+      setShowConfetti(true)
 
       if (path === "owner") {
-        setSuccess("Listo. Ya tenemos tus datos. Te vamos a escribir cuando haya interesados compatibles.")
+        setSuccess(
+          "Listo. Ya tenemos tus datos. Te vamos a escribir cuando haya interesados compatibles."
+        )
       }
 
       if (path === "tenant") {
-        setSuccess("Listo. Ya sabemos qué estás buscando. Te vamos a avisar cuando haya propiedades compatibles.")
+        setSuccess(
+          "Listo. Ya sabemos qué estás buscando. Te vamos a avisar cuando haya propiedades compatibles."
+        )
       }
 
       if (path === "renewal") {
-        setSuccess("Listo. Ya registramos tu caso de renovación. Te vamos a contactar para ordenar los próximos pasos.")
+        setSuccess(
+          "Listo. Ya registramos tu caso de renovación. Te vamos a contactar para ordenar los próximos pasos."
+        )
       }
     } catch (err) {
       if (err instanceof Error) {
