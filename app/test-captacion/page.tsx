@@ -827,7 +827,7 @@ useEffect(() => {
                       <input
                         className="input"
                         name="contract_expiration"
-                        placeholder="Vencimiento aproximado del contrato"
+                        placeholder="¿Cuándo vence el contrato actual? Ej: agosto 2026"
                         required
                       />
 
