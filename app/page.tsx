@@ -935,7 +935,6 @@ export default function TestCaptacionPage() {
     <nav className="footer-links">
       <a href="/terminos">Términos y condiciones</a>
       <a href="/privacidad">Política de privacidad</a>
-      <a href="/legales">Legales</a>
       <a href="mailto:hola@verlo.lat">Contacto</a>
     </nav>
   </div>
