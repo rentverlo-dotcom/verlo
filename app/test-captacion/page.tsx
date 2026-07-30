@@ -626,12 +626,24 @@ useEffect(() => {
       <style>{styles}</style>
 
       {showConfetti && (
-    <div className="confetti" aria-hidden="true">
-      {Array.from({ length: 32 }).map((_, index) => (
-        <span key={index} style={{ "--i": index } as React.CSSProperties} />
-      ))}
-    </div>
-  )} 
+  <div className="confetti" aria-hidden="true">
+    {Array.from({ length: 90 }).map((_, index) => (
+      <span
+        key={index}
+        style={
+          {
+            "--x": `${Math.random() * 100}%`,
+            "--delay": `${Math.random() * 0.55}s`,
+            "--duration": `${1.9 + Math.random() * 1.4}s`,
+            "--size": `${7 + Math.random() * 8}px`,
+            "--rotate": `${Math.random() * 720}deg`,
+            "--hue": `${Math.random() * 360}`,
+          } as CSSProperties
+        }
+      />
+    ))}
+  </div>
+)}
 
       <div className="verlo-page">
         <header className="nav">
