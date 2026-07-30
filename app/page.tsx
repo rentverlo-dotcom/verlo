@@ -890,12 +890,21 @@ export default function TestCaptacionPage() {
           </div>
         </section>
 
-        <footer className="footer">
-          <div className="container footer-inner">
-            <VerloBrand width={86} />
-            <span>Prueba privada de captación · Verlo</span>
-          </div>
-        </footer>
+      <footer className="footer">
+  <div className="container footer-inner">
+    <div className="footer-brand">
+      <VerloBrand width={86} />
+      <p>Alquiler directo, seguro y sin comisión.</p>
+    </div>
+
+    <nav className="footer-links">
+      <a href="/terminos">Términos y condiciones</a>
+      <a href="/privacidad">Política de privacidad</a>
+      <a href="/legales">Legales</a>
+      <a href="mailto:hola@verlo.lat">Contacto</a>
+    </nav>
+  </div>
+</footer>
       </div>
     </main>
   )
