@@ -288,7 +288,12 @@ const header: React.CSSProperties = {
   justifyContent: "space-between",
   gap: 24,
   alignItems: "flex-start",
-  marginBottom: 28,
+  marginBottom: 34,
+  padding: 32,
+  borderRadius: 36,
+  background: "rgba(255,255,255,.72)",
+  border: "1px solid rgba(5,0,2,.08)",
+  boxShadow: "0 22px 70px rgba(5,0,2,.07)",
 }
 
 const eyebrow: React.CSSProperties = {
@@ -302,9 +307,11 @@ const eyebrow: React.CSSProperties = {
 
 const title: React.CSSProperties = {
   margin: "12px 0 0",
-  fontSize: "clamp(44px, 6vw, 78px)",
+  maxWidth: 880,
+  fontSize: "clamp(42px, 5.2vw, 72px)",
   lineHeight: .92,
   letterSpacing: "-.075em",
+  fontWeight: 950,
 }
 
 const subtitle: React.CSSProperties = {
