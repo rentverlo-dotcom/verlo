@@ -210,8 +210,8 @@ export default async function InvestorPage({ searchParams }: { searchParams: Sea
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
     <div style={metric}>
-      <strong>{value}</strong>
-      <span>{label}</span>
+      <strong style={metricValue}>{value}</strong>
+      <span style={metricLabel}>{label}</span>
     </div>
   )
 }
@@ -387,4 +387,21 @@ const locked: React.CSSProperties = {
   display: "grid",
   placeItems: "center",
   textAlign: "center",
+}
+
+const metricValue: React.CSSProperties = {
+  display: "block",
+  fontSize: 34,
+  lineHeight: 1,
+  letterSpacing: "-0.065em",
+  fontWeight: 950,
+}
+
+const metricLabel: React.CSSProperties = {
+  display: "block",
+  marginTop: 10,
+  color: "rgba(5,0,2,.56)",
+  fontSize: 14,
+  lineHeight: 1.25,
+  fontWeight: 850,
 }
