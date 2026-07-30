@@ -477,7 +477,17 @@ export default function TestCaptacionPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [showConfetti, setShowConfetti] = useState(false)
 
+useEffect(() => {
+  if (!showConfetti) return
+
+  const timer = window.setTimeout(() => {
+    setShowConfetti(false)
+  }, 2600)
+
+  return () => window.clearTimeout(timer)
+}, [showConfetti])
   const selected = pathConfig[path]
 
   function choosePath(nextPath: Path) {
