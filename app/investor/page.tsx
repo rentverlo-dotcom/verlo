@@ -333,9 +333,9 @@ const homeLink: React.CSSProperties = {
 
 const grid4: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, 1fr)",
-  gap: 14,
-  marginBottom: 14,
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: 16,
+  marginBottom: 16,
 }
 
 const grid2: React.CSSProperties = {
@@ -346,11 +346,15 @@ const grid2: React.CSSProperties = {
 }
 
 const metric: React.CSSProperties = {
-  padding: 22,
-  borderRadius: 28,
-  background: "rgba(255,255,255,.72)",
+  minHeight: 132,
+  padding: 24,
+  borderRadius: 30,
+  background: "rgba(255,255,255,.78)",
   border: "1px solid rgba(5,0,2,.08)",
   boxShadow: "0 18px 50px rgba(5,0,2,.06)",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
 }
 
 const panel: React.CSSProperties = {
