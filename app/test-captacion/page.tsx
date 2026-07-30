@@ -495,6 +495,8 @@ export default function TestCaptacionPage() {
 
     const form = e.currentTarget
     const formData = new FormData(form)
+    const eventId =
+  `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
 
     const payload = {
       full_name: String(formData.get("full_name") || "").trim(),
