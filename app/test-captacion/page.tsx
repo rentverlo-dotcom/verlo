@@ -877,7 +877,7 @@ useEffect(() => {
 
                       <select className="select" name="other_party_status" required defaultValue="">
                         <option value="" disabled>
-                          ¿La otra parte ya sabe?
+                          ¿Lo sabe ya tu contraparte?
                         </option>
                         <option>Sí, ya lo hablamos</option>
                         <option>Todavía no</option>
@@ -885,16 +885,15 @@ useEffect(() => {
                       </select>
                     </div>
 
-                    <select className="select" name="renewal_need" required defaultValue="">
-                      <option value="" disabled>
-                        Qué necesitás ordenar
-                      </option>
-                      <option>Actualizar precio</option>
-                      <option>Formalizar nuevo plazo</option>
-                      <option>Firmar un nuevo contrato</option>
-                      <option>Dejar todo documentado</option>
-                      <option>Quiero asesoramiento del flujo</option>
-                    </select>
+                   <select className="select" name="renewal_need" required defaultValue="">
+  <option value="" disabled>
+    ¿Qué querés lograr con esta renovación?
+  </option>
+  <option>Renovar con condiciones parecidas</option>
+  <option>Actualizar precio y renovar</option>
+  <option>Cambiar plazo del contrato</option>
+  <option>Todavía no lo sé, quiero que me guíen</option>
+</select>
                   </>
                 )}
 
