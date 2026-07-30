@@ -528,7 +528,20 @@ export default function TestCaptacionPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [showConfetti, setShowConfetti] = useState(false)
+   const [submittedLead, setSubmittedLead] = useState<{
+    email: string
+    full_name: string
+    phone: string
+    role: string
+    intent: string
+    zone: string
+    lead_id: string | null
+  } | null>(null)
 
+  const [magicLoading, setMagicLoading] = useState(false)
+  const [magicSent, setMagicSent] = useState(false)
+
+  
 useEffect(() => {
   if (!showConfetti) return
 
