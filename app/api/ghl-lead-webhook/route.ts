@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { sendMetaCapiLead } from "@/lib/meta/capi"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
