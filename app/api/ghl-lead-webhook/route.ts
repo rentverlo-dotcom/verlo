@@ -293,35 +293,11 @@ export async function POST(req: NextRequest) {
       console.error("meta capi error:", meta.error)
     }
 
-    const auth = await supabaseAdmin.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: "https://verlo.lat/success",
-        data: {
-          full_name,
-          phone,
-          role,
-          intent,
-          zone,
-          source: "test_captacion",
-          lead_id: leadRecord?.id || null,
-        },
-      },
-    })
-
-    if (auth.error) {
-      console.error("magic link error:", auth.error)
-    }
 
     return NextResponse.json({
       ok: true,
       ghl,
       meta,
-      auth: {
-        ok: !auth.error,
-        error: auth.error?.message || null,
-      },
       tags,
       event_id: eventId,
       lead_id: leadRecord?.id || null,
