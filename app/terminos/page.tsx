@@ -336,43 +336,58 @@ const page: CSSProperties = {
 const shell: CSSProperties = {
   width: "min(1120px, calc(100% - 40px))",
   margin: "0 auto",
-  padding: "28px 0 64px",
+  padding: "24px 0 64px",
 }
 
 const header: CSSProperties = {
-  minHeight: 78,
+  minHeight: 92,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 24,
+  padding: "14px 18px",
+  borderRadius: 32,
+  background: "rgba(255,255,255,0.62)",
+  border: "1px solid rgba(5,0,2,0.08)",
+  boxShadow: "0 18px 55px rgba(5,0,2,0.06)",
+  backdropFilter: "blur(18px)",
 }
 
 const brandLink: CSSProperties = {
   color: "inherit",
   textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
 }
 
 const topLinks: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 14,
+  gap: 12,
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
 }
 
 const topLink: CSSProperties = {
-  color: "rgba(5,0,2,0.68)",
+  color: "rgba(5,0,2,0.64)",
   textDecoration: "none",
-  fontWeight: 850,
+  fontWeight: 900,
   fontSize: 14,
+  padding: "11px 15px",
+  borderRadius: 999,
+  background: "rgba(255,255,255,0.54)",
+  border: "1px solid rgba(5,0,2,0.06)",
 }
 
 const topCta: CSSProperties = {
   color: "#fff",
   background: "#050002",
   textDecoration: "none",
-  fontWeight: 900,
+  fontWeight: 950,
   fontSize: 14,
-  padding: "11px 18px",
+  padding: "12px 18px",
   borderRadius: 999,
+  boxShadow: "0 14px 34px rgba(5,0,2,0.16)",
 }
 
 const hero: CSSProperties = {
