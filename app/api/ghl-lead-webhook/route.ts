@@ -215,29 +215,33 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    const { error } = await supabaseAdmin.from("lead_intake").insert({
-      full_name,
-      email,
-      phone,
-      role,
-      intent,
-      zone,
-      property_type,
-      availability_status,
-      approx_price,
-      desired_property_type,
-      budget_range,
-      move_timing,
-      renewal_role,
-      contract_expiration,
-      other_party_status,
-      renewal_need,
-      source: "test_captacion",
-      metadata: {
-        ...(body.metadata || {}),
-        tags,
-      },
-    })
+      const { data: leadRecord, error } = await supabaseAdmin
+      .from("lead_intake")
+      .insert({
+        full_name,
+        email,
+        phone,
+        role,
+        intent,
+        zone,
+        property_type,
+        availability_status,
+        approx_price,
+        desired_property_type,
+        budget_range,
+        move_timing,
+        renewal_role,
+        contract_expiration,
+        other_party_status,
+        renewal_need,
+        source: "test_captacion",
+        metadata: {
+          ...(body.metadata || {}),
+          tags,
+        },
+      })
+      .select("id")
+      .single()
 
     if (error) {
       console.error("ghl lead webhook insert error:", error)
@@ -253,47 +257,75 @@ export async function POST(req: NextRequest) {
     if (!ghl.ok) {
       console.error("ghl webhook error:", ghl.error)
     }
+
     const eventId =
-  clean(body.event_id) ||
-  `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
+      clean(body.event_id) ||
+      `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
 
-const forwardedFor = req.headers.get("x-forwarded-for")
-const clientIpAddress = forwardedFor?.split(",")[0]?.trim() || null
-const clientUserAgent = req.headers.get("user-agent") || null
+    const forwardedFor = req.headers.get("x-forwarded-for")
+    const clientIpAddress = forwardedFor?.split(",")[0]?.trim() || null
+    const clientUserAgent = req.headers.get("user-agent") || null
 
-const fbp = clean(body.fbp) || null
-const fbc = clean(body.fbc) || null
-const eventSourceUrl =
-  clean(body.event_source_url) ||
-  req.headers.get("referer") ||
-  "https://verlo.lat/test-captacion"
+    const fbp = clean(body.fbp) || null
+    const fbc = clean(body.fbc) || null
 
-const meta = await sendMetaCapiLead({
-  eventId,
-  eventSourceUrl,
-  email,
-  phone,
-  fullName: full_name,
-  clientIpAddress,
-  clientUserAgent,
-  fbp,
-  fbc,
-  role,
-  intent,
-  zone,
-})
+    const eventSourceUrl =
+      clean(body.event_source_url) ||
+      req.headers.get("referer") ||
+      "https://verlo.lat/test-captacion"
 
-if (!meta.ok) {
-  console.error("meta capi error:", meta.error)
-}
+    const meta = await sendMetaCapiLead({
+      eventId,
+      eventSourceUrl,
+      email,
+      phone,
+      fullName: full_name,
+      clientIpAddress,
+      clientUserAgent,
+      fbp,
+      fbc,
+      role,
+      intent,
+      zone,
+    })
 
-return NextResponse.json({
-  ok: true,
-  ghl,
-  meta,
-  tags,
-  event_id: eventId,
-})
+    if (!meta.ok) {
+      console.error("meta capi error:", meta.error)
+    }
+
+    const auth = await supabaseAdmin.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: "https://verlo.lat/success",
+        data: {
+          full_name,
+          phone,
+          role,
+          intent,
+          zone,
+          source: "test_captacion",
+          lead_id: leadRecord?.id || null,
+        },
+      },
+    })
+
+    if (auth.error) {
+      console.error("magic link error:", auth.error)
+    }
+
+    return NextResponse.json({
+      ok: true,
+      ghl,
+      meta,
+      auth: {
+        ok: !auth.error,
+        error: auth.error?.message || null,
+      },
+      tags,
+      event_id: eventId,
+      lead_id: leadRecord?.id || null,
+    })
   } catch (err) {
     console.error("ghl lead webhook api error:", err)
 
