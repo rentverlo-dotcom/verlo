@@ -3,14 +3,15 @@
 import { useState } from "react"
 import VerloBrand from "@/components/VerloBrand"
 
-type DemoStep = "matches" | "property" | "chat" | "renewal" | "dashboard"
+type Screen = "home" | "matches" | "property" | "chat" | "renewal" | "profile"
 
-const steps: { id: DemoStep; label: string }[] = [
+const screens: { id: Screen; label: string }[] = [
+  { id: "home", label: "Inicio" },
   { id: "matches", label: "Matches" },
-  { id: "property", label: "Propiedad" },
-  { id: "chat", label: "Contacto" },
-  { id: "renewal", label: "Renovación" },
-  { id: "dashboard", label: "Panel" },
+  { id: "property", label: "Ficha" },
+  { id: "chat", label: "Chat" },
+  { id: "renewal", label: "Renovar" },
+  { id: "profile", label: "Perfil" },
 ]
 
 const styles = `
@@ -23,239 +24,212 @@ const styles = `
     --yellow: #e7c776;
     min-height: 100vh;
     background:
-      radial-gradient(circle at 78% 18%, rgba(242, 168, 169, 0.45), transparent 30%),
-      radial-gradient(circle at 14% 12%, rgba(116, 190, 220, 0.18), transparent 24%),
+      radial-gradient(circle at 82% 18%, rgba(242, 168, 169, 0.48), transparent 28%),
+      radial-gradient(circle at 18% 18%, rgba(116, 190, 220, 0.22), transparent 24%),
+      radial-gradient(circle at 48% 86%, rgba(231, 199, 118, 0.18), transparent 22%),
       var(--soft);
     color: var(--black);
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow-x: hidden;
   }
 
   .demo-root * {
     box-sizing: border-box;
   }
 
-  .container {
-    width: min(1160px, calc(100% - 40px));
+  .demo-shell {
+    min-height: 100vh;
+    width: min(1280px, calc(100% - 40px));
     margin: 0 auto;
-  }
-
-  .nav {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    backdrop-filter: blur(18px);
-    background: rgba(242, 235, 236, 0.78);
-    border-bottom: 1px solid rgba(5, 0, 2, 0.08);
-  }
-
-  .nav-inner {
-    height: 76px;
-    display: flex;
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    gap: 30px;
     align-items: center;
+    padding: 28px 0;
+  }
+
+  .side-panel {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
     justify-content: space-between;
     gap: 24px;
   }
 
-  .nav-links {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .nav-links a {
-    color: rgba(5, 0, 2, 0.68);
-    text-decoration: none;
-    font-weight: 850;
-    font-size: 14px;
-  }
-
-  .nav-cta {
-    padding: 11px 18px;
-    border-radius: 999px;
-    background: var(--black);
-    color: white !important;
-    font-weight: 950 !important;
-  }
-
-  .hero {
-    padding: 72px 0 56px;
-  }
-
-  .hero-grid {
-    display: grid;
-    grid-template-columns: 0.95fr 1.05fr;
-    gap: 58px;
-    align-items: center;
-  }
-
-  .kicker {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    margin: 0 0 18px;
-    padding: 9px 13px;
-    border-radius: 999px;
+  .brand-card,
+  .note-card,
+  .flow-card {
+    border-radius: 30px;
     background: rgba(255, 255, 255, 0.58);
     border: 1px solid rgba(5, 0, 2, 0.08);
-    color: rgba(5, 0, 2, 0.66);
-    font-size: 13px;
-    font-weight: 900;
+    box-shadow: 0 22px 60px rgba(5, 0, 2, 0.07);
+    backdrop-filter: blur(18px);
   }
 
-  .kicker-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--pink-dark);
+  .brand-card {
+    padding: 24px;
   }
 
-  .hero h1 {
-    margin: 0;
-    font-size: clamp(54px, 7.2vw, 102px);
-    line-height: 0.92;
-    letter-spacing: -0.075em;
-    font-weight: 950;
+  .brand-card p {
+    margin: 18px 0 0;
+    color: rgba(5, 0, 2, 0.62);
+    font-size: 14px;
+    line-height: 1.45;
+    font-weight: 750;
   }
 
-  .hero h1 em {
-    display: block;
-    margin-top: 8px;
-    font-family: Georgia, "Times New Roman", serif;
-    font-weight: 400;
-    font-style: italic;
-    letter-spacing: -0.045em;
+  .note-card {
+    padding: 22px;
   }
 
-  .hero-copy {
-    margin: 28px 0 0;
-    max-width: 640px;
-    color: rgba(5, 0, 2, 0.68);
-    font-size: 20px;
-    line-height: 1.52;
-  }
-
-  .hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-top: 34px;
-  }
-
-  .btn {
-    min-height: 54px;
-    padding: 0 22px;
-    border-radius: 999px;
-    border: 1px solid rgba(5, 0, 2, 0.1);
+  .note-card span {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    font-size: 15px;
+    padding: 8px 11px;
+    border-radius: 999px;
+    background: rgba(242, 168, 169, 0.22);
+    color: #8f4e5b;
+    font-size: 12px;
     font-weight: 950;
   }
 
-  .btn-primary {
+  .note-card h1 {
+    margin: 18px 0 0;
+    font-size: 34px;
+    line-height: 0.94;
+    letter-spacing: -0.07em;
+    font-weight: 950;
+  }
+
+  .note-card p {
+    margin: 14px 0 0;
+    color: rgba(5, 0, 2, 0.62);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .flow-card {
+    padding: 18px;
+  }
+
+  .flow-card h2 {
+    margin: 0 0 14px;
+    color: rgba(5, 0, 2, 0.48);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 950;
+  }
+
+  .screen-tabs {
+    display: grid;
+    gap: 9px;
+  }
+
+  .screen-tab {
+    min-height: 46px;
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.58);
+    color: rgba(5, 0, 2, 0.62);
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    text-align: left;
+    padding: 0 16px;
+  }
+
+  .screen-tab.active {
     background: var(--black);
     color: white;
-    box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
   }
 
-  .btn-secondary {
-    background: rgba(255, 255, 255, 0.74);
-    color: var(--black);
-  }
-
-  .demo-stage {
-    position: relative;
-    min-height: 680px;
+  .stage {
     display: grid;
     place-items: center;
+    position: relative;
+    min-height: 760px;
   }
 
-  .phone-glow {
+  .glow {
     position: absolute;
-    width: 540px;
-    height: 540px;
+    width: 720px;
+    height: 720px;
     border-radius: 999px;
     background:
-      radial-gradient(circle at 30% 35%, rgba(242, 168, 169, 0.75), transparent 32%),
-      radial-gradient(circle at 78% 66%, rgba(116, 190, 220, 0.42), transparent 26%),
-      radial-gradient(circle at 74% 22%, rgba(231, 199, 118, 0.35), transparent 24%);
-    filter: blur(12px);
+      radial-gradient(circle at 35% 30%, rgba(242, 168, 169, 0.7), transparent 30%),
+      radial-gradient(circle at 70% 70%, rgba(116, 190, 220, 0.42), transparent 28%),
+      radial-gradient(circle at 72% 24%, rgba(231, 199, 118, 0.32), transparent 24%);
+    filter: blur(14px);
     opacity: 0.9;
   }
 
   .phone {
-    position: relative;
-    width: min(390px, 86vw);
-    min-height: 680px;
-    border: 10px solid var(--black);
-    border-radius: 48px;
+    width: 410px;
+    height: 780px;
+    border: 11px solid var(--black);
+    border-radius: 56px;
     background: #fffaf9;
     overflow: hidden;
-    box-shadow: 0 34px 90px rgba(5, 0, 2, 0.28);
+    position: relative;
+    box-shadow: 0 40px 110px rgba(5, 0, 2, 0.34);
     z-index: 2;
   }
 
-  .phone-notch {
+  .phone::before {
+    content: "";
     position: absolute;
-    top: 12px;
+    top: 13px;
     left: 50%;
     transform: translateX(-50%);
     width: 118px;
-    height: 28px;
-    border-radius: 999px;
+    height: 30px;
     background: var(--black);
-    z-index: 3;
+    border-radius: 999px;
+    z-index: 5;
   }
 
-  .phone-screen {
-    padding: 54px 22px 22px;
+  .screen {
+    min-height: 100%;
+    padding: 58px 22px 20px;
+    background:
+      radial-gradient(circle at 85% 4%, rgba(242, 168, 169, 0.28), transparent 24%),
+      #fffaf9;
   }
 
-  .phone-top {
+  .app-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 18px;
+    gap: 18px;
+    margin-bottom: 22px;
   }
 
-  .menu-dot {
-    width: 6px;
-    height: 6px;
+  .avatar {
+    width: 42px;
+    height: 42px;
     border-radius: 999px;
-    background: var(--black);
-    box-shadow: 10px 0 0 var(--black), 20px 0 0 var(--black);
+    background:
+      linear-gradient(135deg, rgba(242, 168, 169, 0.8), rgba(116, 190, 220, 0.48));
+    border: 2px solid white;
+    box-shadow: 0 8px 22px rgba(5, 0, 2, 0.12);
   }
 
-  .step-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 9px;
-    margin-top: 28px;
-  }
-
-  .step-tab {
-    border: 1px solid rgba(5, 0, 2, 0.1);
+  .icon-btn {
+    width: 42px;
+    height: 42px;
     border-radius: 999px;
-    padding: 10px 13px;
-    background: rgba(255, 255, 255, 0.66);
-    font-weight: 900;
-    color: rgba(5, 0, 2, 0.64);
-    cursor: pointer;
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    background: white;
+    display: grid;
+    place-items: center;
+    font-weight: 950;
   }
 
-  .step-tab.active {
-    background: var(--black);
-    color: white;
-  }
-
-  .pill {
+  .app-kicker {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 7px 10px;
+    padding: 8px 11px;
     border-radius: 999px;
     background: rgba(242, 168, 169, 0.24);
     color: #8f4e5b;
@@ -263,7 +237,7 @@ const styles = `
     font-weight: 950;
   }
 
-  .pill::before {
+  .app-kicker::before {
     content: "";
     width: 7px;
     height: 7px;
@@ -272,28 +246,91 @@ const styles = `
   }
 
   .app-title {
-    margin: 16px 0;
-    font-size: 32px;
-    line-height: 0.96;
-    letter-spacing: -0.065em;
+    margin: 16px 0 0;
+    font-size: 34px;
+    line-height: 0.95;
+    letter-spacing: -0.075em;
     font-weight: 950;
   }
 
+  .app-copy {
+    margin: 10px 0 0;
+    color: rgba(5, 0, 2, 0.58);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .choice-grid {
+    display: grid;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .choice-card {
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 17px;
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 13px;
+    align-items: center;
+    box-shadow: 0 12px 30px rgba(5, 0, 2, 0.06);
+  }
+
+  .choice-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    background: rgba(242, 168, 169, 0.24);
+    display: grid;
+    place-items: center;
+    color: #8f4e5b;
+    font-weight: 950;
+  }
+
+  .choice-card h3 {
+    margin: 0;
+    font-size: 17px;
+    letter-spacing: -0.035em;
+  }
+
+  .choice-card p {
+    margin: 4px 0 0;
+    color: rgba(5, 0, 2, 0.56);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
   .property-card {
-    border-radius: 28px;
+    margin-top: 22px;
+    border-radius: 30px;
+    overflow: hidden;
     background: white;
     border: 1px solid rgba(5, 0, 2, 0.08);
-    box-shadow: 0 18px 40px rgba(5, 0, 2, 0.08);
-    overflow: hidden;
+    box-shadow: 0 22px 50px rgba(5, 0, 2, 0.11);
   }
 
   .property-image {
-    height: 210px;
+    height: 240px;
     background:
-      linear-gradient(135deg, rgba(5, 0, 2, 0.08), rgba(242, 168, 169, 0.16)),
+      linear-gradient(180deg, transparent 48%, rgba(5,0,2,0.5)),
       url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=900&q=80");
     background-size: cover;
     background-position: center;
+    position: relative;
+  }
+
+  .badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    color: rgba(5, 0, 2, 0.72);
+    font-size: 12px;
+    font-weight: 950;
   }
 
   .property-body {
@@ -302,8 +339,8 @@ const styles = `
 
   .property-body h3 {
     margin: 0;
-    font-size: 21px;
-    letter-spacing: -0.04em;
+    font-size: 22px;
+    letter-spacing: -0.05em;
   }
 
   .muted {
@@ -311,9 +348,10 @@ const styles = `
   }
 
   .price {
-    margin-top: 10px;
-    font-size: 20px;
+    margin-top: 12px;
+    font-size: 22px;
     font-weight: 950;
+    letter-spacing: -0.045em;
   }
 
   .swipe-actions {
@@ -323,47 +361,84 @@ const styles = `
     margin-top: 16px;
   }
 
-  .circle-action {
-    min-height: 54px;
+  .round-action {
+    min-height: 58px;
     border-radius: 999px;
     border: 1px solid rgba(5, 0, 2, 0.08);
-    background: rgba(242, 168, 169, 0.22);
-    font-size: 22px;
+    background: rgba(242, 168, 169, 0.2);
+    font-size: 24px;
     font-weight: 950;
   }
 
-  .screen-list {
-    display: grid;
-    gap: 12px;
+  .round-action.dark {
+    background: var(--black);
+    color: white;
   }
 
-  .screen-card {
-    padding: 16px;
+  .detail-image {
+    height: 205px;
+    border-radius: 28px;
+    background:
+      linear-gradient(180deg, transparent 42%, rgba(5,0,2,0.48)),
+      url("https://images.unsplash.com/photo-1560448075-bb485b067938?auto=format&fit=crop&w=900&q=80");
+    background-size: cover;
+    background-position: center;
+    margin-top: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .detail-card {
+    padding: 15px;
     border-radius: 22px;
-    background: rgba(255, 255, 255, 0.78);
+    background: rgba(255, 255, 255, 0.76);
     border: 1px solid rgba(5, 0, 2, 0.08);
+    margin-top: 12px;
   }
 
-  .screen-card h3 {
+  .detail-card h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 16px;
     letter-spacing: -0.035em;
   }
 
-  .screen-card p {
+  .detail-card p {
     margin: 7px 0 0;
-    color: rgba(5, 0, 2, 0.6);
-    font-size: 13px;
+    color: rgba(5, 0, 2, 0.58);
+    font-size: 12px;
     line-height: 1.45;
   }
 
-  .chat {
-    display: grid;
-    gap: 12px;
-    margin-top: 16px;
+  .cta-app {
+    width: 100%;
+    min-height: 56px;
+    border-radius: 999px;
+    border: 0;
+    margin-top: 14px;
+    background: var(--black);
+    color: white;
+    font-size: 15px;
+    font-weight: 950;
   }
 
-  .chat-bubble {
+  .secure-banner {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 20px;
+    background: rgba(242, 168, 169, 0.22);
+    color: #7f4350;
+    font-size: 13px;
+    line-height: 1.35;
+    font-weight: 850;
+  }
+
+  .chat-list {
+    display: grid;
+    gap: 11px;
+    margin-top: 18px;
+  }
+
+  .bubble {
     max-width: 82%;
     padding: 13px 14px;
     border-radius: 18px;
@@ -371,42 +446,59 @@ const styles = `
     line-height: 1.35;
   }
 
-  .chat-bubble.me {
+  .bubble.me {
     justify-self: end;
     background: rgba(242, 168, 169, 0.24);
   }
 
-  .chat-bubble.other {
+  .bubble.other {
     justify-self: start;
-    background: rgba(5, 0, 2, 0.05);
+    background: rgba(5, 0, 2, 0.06);
   }
 
-  .secure-banner {
-    padding: 15px;
-    border-radius: 20px;
-    background: rgba(242, 168, 169, 0.2);
-    color: #7f4350;
+  .message-box {
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 20px;
+    height: 52px;
+    border-radius: 999px;
+    background: white;
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 9px 0 17px;
+    color: rgba(5, 0, 2, 0.42);
     font-size: 13px;
-    font-weight: 850;
-    line-height: 1.4;
   }
 
-  .progress {
+  .send {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
     display: grid;
-    gap: 12px;
-    margin-top: 18px;
+    place-items: center;
+    font-weight: 950;
   }
 
-  .progress-row {
+  .timeline {
     display: grid;
-    grid-template-columns: 28px 1fr;
-    gap: 12px;
-    align-items: start;
+    gap: 14px;
+    margin-top: 22px;
   }
 
-  .progress-dot {
-    width: 28px;
-    height: 28px;
+  .timeline-row {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 12px;
+  }
+
+  .timeline-dot {
+    width: 34px;
+    height: 34px;
     border-radius: 999px;
     background: var(--black);
     color: white;
@@ -416,394 +508,505 @@ const styles = `
     font-weight: 950;
   }
 
-  .progress-row h3 {
-    margin: 0;
-    font-size: 16px;
-  }
-
-  .progress-row p {
-    margin: 4px 0 0;
-    color: rgba(5, 0, 2, 0.58);
-    font-size: 13px;
-    line-height: 1.4;
-  }
-
-  .metric-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 18px;
-  }
-
-  .metric {
-    padding: 16px;
+  .timeline-box {
+    padding: 15px;
     border-radius: 22px;
     background: rgba(255, 255, 255, 0.78);
     border: 1px solid rgba(5, 0, 2, 0.08);
   }
 
-  .metric strong {
-    display: block;
-    font-size: 26px;
-    letter-spacing: -0.055em;
+  .timeline-box h3 {
+    margin: 0;
+    font-size: 16px;
+    letter-spacing: -0.035em;
   }
 
-  .metric span {
-    display: block;
-    margin-top: 4px;
-    color: rgba(5, 0, 2, 0.56);
+  .timeline-box p {
+    margin: 6px 0 0;
+    color: rgba(5, 0, 2, 0.58);
     font-size: 12px;
-    font-weight: 800;
+    line-height: 1.4;
   }
 
-  .feature-band {
-    padding: 48px 0 78px;
+  .profile-card {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    text-align: center;
   }
 
-  .feature-grid {
+  .profile-avatar {
+    width: 86px;
+    height: 86px;
+    border-radius: 999px;
+    background:
+      linear-gradient(135deg, rgba(242, 168, 169, 0.86), rgba(116, 190, 220, 0.48));
+    border: 4px solid white;
+    margin: 0 auto 14px;
+    box-shadow: 0 18px 40px rgba(5, 0, 2, 0.12);
+  }
+
+  .profile-card h3 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: -0.045em;
+  }
+
+  .check-list {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 18px;
+    text-align: left;
+  }
+
+  .check-row {
+    padding: 13px;
+    border-radius: 18px;
+    background: rgba(5, 0, 2, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 850;
+  }
+
+  .status-ok {
+    color: #32785f;
+  }
+
+  .status-pending {
+    color: #9a6a21;
+  }
+
+  .right-panel {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     gap: 14px;
   }
 
-  .feature {
-    padding: 22px;
-    border-radius: 28px;
-    background: rgba(255, 255, 255, 0.62);
+  .mini-stat {
+    padding: 18px;
+    border-radius: 26px;
+    background: rgba(255, 255, 255, 0.58);
     border: 1px solid rgba(5, 0, 2, 0.08);
-    box-shadow: 0 18px 45px rgba(5, 0, 2, 0.06);
+    box-shadow: 0 18px 50px rgba(5, 0, 2, 0.06);
   }
 
-  .feature-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 16px;
+  .mini-stat strong {
+    display: block;
+    font-size: 28px;
+    letter-spacing: -0.06em;
+  }
+
+  .mini-stat span {
+    display: block;
+    margin-top: 4px;
+    color: rgba(5, 0, 2, 0.56);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .bottom-nav {
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 20px;
+    height: 58px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(5, 0, 2, 0.08);
     display: grid;
-    place-items: center;
-    background: rgba(242, 168, 169, 0.22);
-    color: #8f4e5b;
-    font-weight: 950;
-    margin-bottom: 16px;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    box-shadow: 0 12px 34px rgba(5, 0, 2, 0.08);
   }
 
-  .feature h3 {
-    margin: 0;
-    font-size: 19px;
-    letter-spacing: -0.04em;
+  .bottom-nav span {
+    text-align: center;
+    font-size: 10px;
+    color: rgba(5, 0, 2, 0.5);
+    font-weight: 850;
   }
 
-  .feature p {
-    margin: 9px 0 0;
-    color: rgba(5, 0, 2, 0.62);
-    font-size: 14px;
-    line-height: 1.45;
+  .bottom-nav span.active {
+    color: var(--black);
   }
 
-  @media (max-width: 980px) {
-    .hero-grid {
+  @media (max-width: 1120px) {
+    .demo-shell {
       grid-template-columns: 1fr;
+      gap: 24px;
+      padding: 22px 0 44px;
     }
 
-    .demo-stage {
+    .side-panel,
+    .right-panel {
+      width: min(520px, 100%);
+      margin: 0 auto;
+    }
+
+    .stage {
       min-height: auto;
     }
 
-    .feature-grid {
-      grid-template-columns: 1fr 1fr;
+    .brand-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand-card p {
+      margin: 0;
+      max-width: 320px;
+      text-align: right;
     }
   }
 
   @media (max-width: 620px) {
-    .container {
-      width: min(100% - 28px, 1160px);
-    }
-
-    .nav-inner {
-      height: auto;
-      padding: 16px 0;
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    .hero {
-      padding: 48px 0;
-    }
-
-    .hero-actions {
-      flex-direction: column;
-    }
-
-    .btn {
-      width: 100%;
-    }
-
-    .feature-grid {
-      grid-template-columns: 1fr;
+    .demo-shell {
+      width: min(100% - 24px, 1280px);
     }
 
     .phone {
-      min-height: 650px;
+      width: min(390px, 100%);
+      height: 760px;
+    }
+
+    .screen-tabs {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .brand-card {
+      display: grid;
+    }
+
+    .brand-card p {
+      text-align: left;
     }
   }
 `
 
 export default function DemoPage() {
-  const [activeStep, setActiveStep] = useState<DemoStep>("matches")
+  const [screen, setScreen] = useState<Screen>("home")
 
   return (
     <main className="demo-root">
       <style>{styles}</style>
 
-      <header className="nav">
-        <div className="container nav-inner">
-          <a href="/" aria-label="Volver a Verlo">
-            <VerloBrand width={112} />
-          </a>
-
-          <nav className="nav-links">
-            <a href="/">Home</a>
-            <a href="/terminos">Legales</a>
-            <a href="/#captacion" className="nav-cta">
-              Sumate
+      <div className="demo-shell">
+        <aside className="side-panel">
+          <div className="brand-card">
+            <a href="/" aria-label="Volver a Verlo">
+              <VerloBrand width={118} />
             </a>
-          </nav>
-        </div>
-      </header>
+            <p>Mockup navegable de producto. No es otra landing: es la app futura simulada.</p>
+          </div>
 
-      <section className="hero">
-        <div className="container hero-grid">
-          <div>
-            <p className="kicker">
-              <span className="kicker-dot" />
-              Demo navegable para inversión
-            </p>
-
-            <h1>
-              Verlo como <em>producto.</em>
-            </h1>
-
-            <p className="hero-copy">
-              Una simulación de la app para mostrar cómo Verlo puede evolucionar desde captación
-              de leads hacia matching, contacto seguro, renovación y operación medible.
-            </p>
-
-            <div className="hero-actions">
-              <a className="btn btn-primary" href="/#captacion">
-                Probar funnel real
-              </a>
-              <a className="btn btn-secondary" href="/privacidad">
-                Ver privacidad
-              </a>
-            </div>
-
-            <div className="step-tabs" aria-label="Pantallas de demo">
-              {steps.map((step) => (
+          <div className="flow-card">
+            <h2>Pantallas</h2>
+            <div className="screen-tabs">
+              {screens.map((item) => (
                 <button
-                  key={step.id}
+                  key={item.id}
                   type="button"
-                  className={`step-tab ${activeStep === step.id ? "active" : ""}`}
-                  onClick={() => setActiveStep(step.id)}
+                  className={`screen-tab ${screen === item.id ? "active" : ""}`}
+                  onClick={() => setScreen(item.id)}
                 >
-                  {step.label}
+                  {item.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="demo-stage">
-            <div className="phone-glow" />
-            <div className="phone">
-              <div className="phone-notch" />
-              <div className="phone-screen">
-                <div className="phone-top">
-                  <VerloBrand width={82} />
-                  <span className="menu-dot" />
-                </div>
-
-                {activeStep === "matches" && <MatchesScreen />}
-                {activeStep === "property" && <PropertyScreen />}
-                {activeStep === "chat" && <ChatScreen />}
-                {activeStep === "renewal" && <RenewalScreen />}
-                {activeStep === "dashboard" && <DashboardScreen />}
-              </div>
-            </div>
+          <div className="note-card">
+            <span>Investor preview</span>
+            <h1>Verlo como app.</h1>
+            <p>
+              Un prototipo visual para mostrar matching, ficha, contacto seguro, renovación y perfil
+              validado.
+            </p>
           </div>
-        </div>
-      </section>
+        </aside>
 
-      <section className="feature-band">
-        <div className="container feature-grid">
-          <div className="feature">
-            <div className="feature-icon">01</div>
-            <h3>Captación real</h3>
-            <p>La landing trae propietarios, inquilinos y renovaciones a una base ordenada.</p>
+        <section className="stage">
+          <div className="glow" />
+          <div className="phone">
+            {screen === "home" && <HomeScreen setScreen={setScreen} />}
+            {screen === "matches" && <MatchesScreen />}
+            {screen === "property" && <PropertyScreen setScreen={setScreen} />}
+            {screen === "chat" && <ChatScreen />}
+            {screen === "renewal" && <RenewalScreen />}
+            {screen === "profile" && <ProfileScreen />}
           </div>
+        </section>
 
-          <div className="feature">
-            <div className="feature-icon">02</div>
-            <h3>Cuenta validada</h3>
-            <p>El usuario confirma email por magic link después del formulario, sin fricción previa.</p>
+        <aside className="right-panel">
+          <div className="mini-stat">
+            <strong>01</strong>
+            <span>Captación web se convierte en usuario con magic link.</span>
           </div>
 
-          <div className="feature">
-            <div className="feature-icon">03</div>
-            <h3>Producto escalable</h3>
-            <p>El mismo lead puede convertirse en perfil, match, conversación y contrato.</p>
+          <div className="mini-stat">
+            <strong>02</strong>
+            <span>El usuario navega matches y propiedades compatibles.</span>
           </div>
 
-          <div className="feature">
-            <div className="feature-icon">04</div>
-            <h3>Datos para invertir</h3>
-            <p>Supabase y GHL permiten mostrar demanda, zonas, segmentos y calidad de leads.</p>
+          <div className="mini-stat">
+            <strong>03</strong>
+            <span>El contacto ocurre dentro de un entorno más seguro y medible.</span>
           </div>
-        </div>
-      </section>
+
+          <div className="mini-stat">
+            <strong>04</strong>
+            <span>Renovaciones y contratos pasan a ser flujos digitales monetizables.</span>
+          </div>
+        </aside>
+      </div>
     </main>
+  )
+}
+
+function AppTop() {
+  return (
+    <div className="app-top">
+      <VerloBrand width={82} />
+      <div className="avatar" />
+    </div>
+  )
+}
+
+function BottomNav({ active }: { active: Screen }) {
+  return (
+    <div className="bottom-nav">
+      <span className={active === "home" ? "active" : ""}>Inicio</span>
+      <span className={active === "matches" || active === "property" ? "active" : ""}>Matches</span>
+      <span className={active === "chat" ? "active" : ""}>Chat</span>
+      <span className={active === "profile" || active === "renewal" ? "active" : ""}>Perfil</span>
+    </div>
+  )
+}
+
+function HomeScreen({ setScreen }: { setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <AppTop />
+
+      <span className="app-kicker">Cuenta confirmada</span>
+      <h1 className="app-title">Hola, Juan. ¿Qué querés hacer?</h1>
+      <p className="app-copy">Verlo ordena tu alquiler desde el primer contacto hasta el contrato.</p>
+
+      <div className="choice-grid">
+        <button className="choice-card" type="button" onClick={() => setScreen("matches")}>
+          <div className="choice-icon">⌂</div>
+          <div>
+            <h3>Buscar alquiler</h3>
+            <p>Ver propiedades compatibles y contactar directo.</p>
+          </div>
+        </button>
+
+        <button className="choice-card" type="button" onClick={() => setScreen("property")}>
+          <div className="choice-icon">＋</div>
+          <div>
+            <h3>Publicar propiedad</h3>
+            <p>Recibir interesados filtrados y trazables.</p>
+          </div>
+        </button>
+
+        <button className="choice-card" type="button" onClick={() => setScreen("renewal")}>
+          <div className="choice-icon">↻</div>
+          <div>
+            <h3>Renovar contrato</h3>
+            <p>Ordenar fecha, condiciones y próximos pasos.</p>
+          </div>
+        </button>
+      </div>
+
+      <BottomNav active="home" />
+    </div>
   )
 }
 
 function MatchesScreen() {
   return (
-    <>
-      <span className="pill">Matches para vos</span>
-      <h2 className="app-title">Elegí con un swipe</h2>
+    <div className="screen">
+      <AppTop />
+
+      <span className="app-kicker">Matches para vos</span>
+      <h1 className="app-title">Elegí con un swipe</h1>
+      <p className="app-copy">Propiedades compatibles con tu zona, presupuesto y momento de mudanza.</p>
 
       <article className="property-card">
-        <div className="property-image" />
+        <div className="property-image">
+          <span className="badge">Dueña verificada</span>
+        </div>
+
         <div className="property-body">
           <h3>2 ambientes en Palermo</h3>
-          <p className="muted">Dueña verificada · Disponible ahora</p>
+          <p className="muted">Humboldt 1900 · Disponible ahora</p>
           <div className="price">$550.000 / mes</div>
 
           <div className="swipe-actions">
-            <button className="circle-action" type="button">
-              ×
-            </button>
-            <button className="circle-action" type="button">
-              ♥
-            </button>
+            <button className="round-action" type="button">×</button>
+            <button className="round-action dark" type="button">♥</button>
           </div>
         </div>
       </article>
-    </>
+
+      <BottomNav active="matches" />
+    </div>
   )
 }
 
-function PropertyScreen() {
+function PropertyScreen({ setScreen }: { setScreen: (screen: Screen) => void }) {
   return (
-    <>
-      <span className="pill">Propiedad verificada</span>
-      <h2 className="app-title">Todo claro antes de hablar</h2>
+    <div className="screen">
+      <AppTop />
 
-      <div className="screen-list">
-        <div className="screen-card">
-          <h3>Ubicación</h3>
-          <p>Palermo · Cercanía a transporte · Zona con alta demanda.</p>
-        </div>
+      <span className="app-kicker">Ficha clara</span>
+      <h1 className="app-title">Antes de hablar, sabés todo</h1>
 
-        <div className="screen-card">
-          <h3>Condiciones</h3>
-          <p>Precio informado, disponibilidad, tipo de contrato y próximos pasos.</p>
-        </div>
-
-        <div className="screen-card">
-          <h3>Confianza</h3>
-          <p>Perfil de propietario validado y trazabilidad del contacto.</p>
-        </div>
+      <div className="detail-image">
+        <span className="badge">$550.000 / mes</span>
       </div>
-    </>
+
+      <div className="detail-card">
+        <h3>2 ambientes · Palermo</h3>
+        <p>Departamento luminoso, dueño verificado, contrato preparado para avanzar.</p>
+      </div>
+
+      <div className="detail-card">
+        <h3>Condiciones principales</h3>
+        <p>Disponible ahora · Apto pareja · Garantía a validar · Sin comisión inmobiliaria.</p>
+      </div>
+
+      <button className="cta-app" type="button" onClick={() => setScreen("chat")}>
+        Me interesa
+      </button>
+
+      <BottomNav active="property" />
+    </div>
   )
 }
 
 function ChatScreen() {
   return (
-    <>
-      <span className="pill">Contacto directo seguro</span>
-      <h2 className="app-title">Chat con contexto</h2>
+    <div className="screen" style={{ position: "relative" }}>
+      <AppTop />
+
+      <span className="app-kicker">Contacto seguro</span>
+      <h1 className="app-title">Chat con contexto</h1>
 
       <div className="secure-banner">
-        Este contacto viene de un match compatible. Ambas partes tienen datos registrados.
+        Contacto directo habilitado por match compatible. Ambas partes tienen datos registrados.
       </div>
 
-      <div className="chat">
-        <div className="chat-bubble me">Hola, me interesa la propiedad. ¿Podemos coordinar visita?</div>
-        <div className="chat-bubble other">Sí, perfecto. Tengo disponibilidad esta semana.</div>
-        <div className="chat-bubble me">Genial. Verlo me muestra que la propiedad está disponible ahora.</div>
+      <div className="chat-list">
+        <div className="bubble me">Hola, me interesa la propiedad. ¿Podemos coordinar visita?</div>
+        <div className="bubble other">Sí, perfecto. Tengo disponibilidad esta semana.</div>
+        <div className="bubble me">Genial. Verlo me muestra que está disponible ahora.</div>
+        <div className="bubble other">Correcto. Avancemos por acá y queda todo registrado.</div>
       </div>
-    </>
+
+      <div className="message-box">
+        Escribí un mensaje...
+        <span className="send">→</span>
+      </div>
+    </div>
   )
 }
 
 function RenewalScreen() {
   return (
-    <>
-      <span className="pill">Renovación ordenada</span>
-      <h2 className="app-title">Renovar sin perder el hilo</h2>
+    <div className="screen">
+      <AppTop />
 
-      <div className="progress">
-        <div className="progress-row">
-          <div className="progress-dot">1</div>
-          <div>
+      <span className="app-kicker">Renovación</span>
+      <h1 className="app-title">No se pierde el hilo</h1>
+      <p className="app-copy">Fecha, contraparte, objetivo y próximos pasos en un solo flujo.</p>
+
+      <div className="timeline">
+        <div className="timeline-row">
+          <div className="timeline-dot">1</div>
+          <div className="timeline-box">
             <h3>Contrato actual</h3>
-            <p>Vence el 15/09/2026. Ambas partes ya están identificadas.</p>
+            <p>Vence el 15/09/2026. Zona: Vicente López.</p>
           </div>
         </div>
 
-        <div className="progress-row">
-          <div className="progress-dot">2</div>
-          <div>
+        <div className="timeline-row">
+          <div className="timeline-dot">2</div>
+          <div className="timeline-box">
+            <h3>Estado</h3>
+            <p>La otra parte ya sabe. Falta ordenar condiciones.</p>
+          </div>
+        </div>
+
+        <div className="timeline-row">
+          <div className="timeline-dot">3</div>
+          <div className="timeline-box">
             <h3>Objetivo</h3>
             <p>Actualizar precio y renovar con nuevo plazo.</p>
           </div>
         </div>
 
-        <div className="progress-row">
-          <div className="progress-dot">3</div>
-          <div>
+        <div className="timeline-row">
+          <div className="timeline-dot">4</div>
+          <div className="timeline-box">
             <h3>Próximo paso</h3>
-            <p>Enviar resumen, validar condiciones y preparar documentación.</p>
+            <p>Enviar resumen y preparar documentación.</p>
           </div>
         </div>
       </div>
-    </>
+
+      <BottomNav active="renewal" />
+    </div>
   )
 }
 
-function DashboardScreen() {
+function ProfileScreen() {
   return (
-    <>
-      <span className="pill">Panel de operación</span>
-      <h2 className="app-title">Demanda medible</h2>
+    <div className="screen">
+      <AppTop />
 
-      <div className="metric-grid">
-        <div className="metric">
-          <strong>128</strong>
-          <span>Leads captados</span>
-        </div>
+      <span className="app-kicker">Perfil Verlo</span>
+      <h1 className="app-title">Confianza antes del contacto</h1>
 
-        <div className="metric">
-          <strong>42</strong>
-          <span>Propietarios</span>
-        </div>
+      <div className="profile-card">
+        <div className="profile-avatar" />
+        <h3>Juan García</h3>
+        <p className="muted">Inquilino · Buscando en CABA Norte</p>
 
-        <div className="metric">
-          <strong>61</strong>
-          <span>Inquilinos</span>
-        </div>
+        <div className="check-list">
+          <div className="check-row">
+            Email confirmado
+            <span className="status-ok">OK</span>
+          </div>
 
-        <div className="metric">
-          <strong>25</strong>
-          <span>Renovaciones</span>
+          <div className="check-row">
+            WhatsApp registrado
+            <span className="status-ok">OK</span>
+          </div>
+
+          <div className="check-row">
+            Identidad
+            <span className="status-pending">Pendiente</span>
+          </div>
+
+          <div className="check-row">
+            Preferencias de búsqueda
+            <span className="status-ok">OK</span>
+          </div>
         </div>
       </div>
 
-      <div className="screen-card" style={{ marginTop: 14 }}>
-        <h3>Lectura para inversores</h3>
-        <p>
-          El funnel permite medir intención, zona, tipo de usuario, confirmación de cuenta y
-          potencial de monetización.
-        </p>
-      </div>
-    </>
+      <BottomNav active="profile" />
+    </div>
   )
 }
