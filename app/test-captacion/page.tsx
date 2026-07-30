@@ -625,6 +625,14 @@ useEffect(() => {
     <main className="verlo-root">
       <style>{styles}</style>
 
+      {showConfetti && (
+    <div className="confetti" aria-hidden="true">
+      {Array.from({ length: 32 }).map((_, index) => (
+        <span key={index} style={{ "--i": index } as React.CSSProperties} />
+      ))}
+    </div>
+  )} 
+
       <div className="verlo-page">
         <header className="nav">
           <div className="container nav-inner">
