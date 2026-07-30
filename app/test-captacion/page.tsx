@@ -936,6 +936,23 @@ async function sendMagicLink() {
                 {error && <p className="error">{error}</p>}
                 {success && <p className="success">{success}</p>}
 
+{submittedLead && !magicSent && (
+  <button
+    className="submit"
+    type="button"
+    onClick={sendMagicLink}
+    disabled={magicLoading}
+  >
+    {magicLoading ? "Enviando email..." : "Confirmar mi cuenta por email"}
+  </button>
+)}
+
+{magicSent && (
+  <p className="success">
+    Te enviamos el link mágico. Abrí tu email y tocá el enlace para activar tu cuenta.
+  </p>
+)}
+
                 <button className="submit" type="submit" disabled={loading}>
                   {loading ? "Guardando..." : selected.button}
                 </button>
