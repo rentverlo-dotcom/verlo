@@ -459,38 +459,6 @@ const styles = `
       flex-direction: column;
       align-items: flex-start;
     }
-
-    .confetti {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 999;
-}
-
-.confetti span {
-  position: absolute;
-  top: -20px;
-  left: calc((var(--i) * 3.125%) + 1%);
-  width: 10px;
-  height: 16px;
-  border-radius: 4px;
-  background: hsl(calc(var(--i) * 24), 85%, 62%);
-  animation: confetti-fall 2.4s ease-in forwards;
-  animation-delay: calc((var(--i) % 8) * 0.08s);
-}
-
-@keyframes confetti-fall {
-  0% {
-    transform: translateY(-20px) rotate(0deg);
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateY(110vh) rotate(720deg);
-    opacity: 0;
-  }
-}
   }
 `
 
