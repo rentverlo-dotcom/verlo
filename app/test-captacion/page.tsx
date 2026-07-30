@@ -615,6 +615,16 @@ useEffect(() => {
         throw new Error(data?.error || "No pudimos guardar tus datos")
       }
 
+      setSubmittedLead({
+  email: payload.email,
+  full_name: payload.full_name,
+  phone: payload.phone,
+  role: payload.role,
+  intent: payload.intent,
+  zone: payload.zone || "",
+  lead_id: data.lead_id || null,
+})
+      
       trackMetaEvent("Lead_Intake_Submitted", {
         path,
         role: payload.role,
