@@ -451,7 +451,7 @@ export default function SuccessPage() {
               <Link className="button" href="/">
                 Completar de nuevo
               </Link>
-              <a className="buttonSecondary" href="mailto:rentverlo@gmail.com">
+              <a className="buttonSecondary" href="mailto:hola@verlo.lat">
                 Contactar a Verlo
               </a>
             </div>
