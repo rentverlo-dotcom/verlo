@@ -313,7 +313,7 @@ export default function TerminosPage() {
               </p>
               <div style={contactCard}>
                 <strong>Verlo</strong>
-                <span>Contacto: rentverlo@gmail.com</span>
+                <span>Contacto: hola@verlo.lat</span>
                 <span>Sitio web: verlo.lat</span>
                 <span>País: Argentina</span>
               </div>
