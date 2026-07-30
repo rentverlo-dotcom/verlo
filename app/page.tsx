@@ -490,6 +490,10 @@ const styles = `
       flex-direction: column;
       align-items: flex-start;
     }
+
+    .footer-links {
+  justify-content: flex-start;
+}
   }
 `
 
