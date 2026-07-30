@@ -253,12 +253,47 @@ export async function POST(req: NextRequest) {
     if (!ghl.ok) {
       console.error("ghl webhook error:", ghl.error)
     }
+    const eventId =
+  clean(body.event_id) ||
+  `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
 
-    return NextResponse.json({
-      ok: true,
-      ghl,
-      tags,
-    })
+const forwardedFor = req.headers.get("x-forwarded-for")
+const clientIpAddress = forwardedFor?.split(",")[0]?.trim() || null
+const clientUserAgent = req.headers.get("user-agent") || null
+
+const fbp = clean(body.fbp) || null
+const fbc = clean(body.fbc) || null
+const eventSourceUrl =
+  clean(body.event_source_url) ||
+  req.headers.get("referer") ||
+  "https://verlo.lat/test-captacion"
+
+const meta = await sendMetaCapiLead({
+  eventId,
+  eventSourceUrl,
+  email,
+  phone,
+  fullName: full_name,
+  clientIpAddress,
+  clientUserAgent,
+  fbp,
+  fbc,
+  role,
+  intent,
+  zone,
+})
+
+if (!meta.ok) {
+  console.error("meta capi error:", meta.error)
+}
+
+return NextResponse.json({
+  ok: true,
+  ghl,
+  meta,
+  tags,
+  event_id: eventId,
+})
   } catch (err) {
     console.error("ghl lead webhook api error:", err)
 
