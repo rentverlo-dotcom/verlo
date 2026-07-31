@@ -3,711 +3,1036 @@
 import { useState } from "react"
 import VerloBrand from "@/components/VerloBrand"
 
-type Screen = "home" | "matches" | "property" | "chat" | "identity" | "contract" | "signature"
+type Role = "tenant" | "owner" | null
 
-const screens: { id: Screen; label: string }[] = [
-  { id: "home", label: "Inicio" },
-  { id: "matches", label: "Matches" },
-  { id: "property", label: "Ficha" },
-  { id: "chat", label: "Chat" },
-  { id: "identity", label: "Identidad" },
-  { id: "contract", label: "Contrato" },
-  { id: "signature", label: "Firma" },
-]
+type Screen =
+  | "role"
+  | "tenant-search"
+  | "tenant-matches"
+  | "tenant-property"
+  | "tenant-chat"
+  | "tenant-identity"
+  | "tenant-contract"
+  | "tenant-signature"
+  | "owner-property"
+  | "owner-leads"
+  | "owner-lead-profile"
+  | "owner-chat"
+  | "owner-contract"
+  | "owner-signature"
 
 const styles = `
-  .root {
-    --pink:#f2a8a9;
-    --pink-dark:#c37986;
-    --black:#050002;
-    --soft:#f2ebec;
-    --blue:#74bedc;
-    min-height:100vh;
+  .demo-root {
+    --pink: #f2a8a9;
+    --pink-soft: #f9d8dc;
+    --pink-dark: #c37986;
+    --black: #050002;
+    --soft: #f2ebec;
+    --muted: rgba(5,0,2,.58);
+    min-height: 100vh;
     background:
-      radial-gradient(circle at 78% 14%, rgba(242,168,169,.48), transparent 30%),
-      radial-gradient(circle at 14% 18%, rgba(116,190,220,.22), transparent 24%),
+      radial-gradient(circle at 50% 0%, rgba(242,168,169,.46), transparent 34%),
+      radial-gradient(circle at 14% 18%, rgba(116,190,220,.18), transparent 25%),
+      radial-gradient(circle at 84% 90%, rgba(242,168,169,.24), transparent 28%),
       var(--soft);
-    color:var(--black);
-    font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display: grid;
+    place-items: center;
+    padding: 22px;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--black);
   }
 
-  .root * { box-sizing:border-box; }
-
-  .wrap {
-    min-height:100vh;
-    width:min(1180px, calc(100% - 32px));
-    margin:0 auto;
-    display:grid;
-    grid-template-columns:240px 1fr 240px;
-    gap:28px;
-    align-items:center;
-    padding:28px 0;
-  }
-
-  .panel {
-    border-radius:30px;
-    background:rgba(255,255,255,.62);
-    border:1px solid rgba(5,0,2,.08);
-    box-shadow:0 22px 60px rgba(5,0,2,.07);
-    backdrop-filter:blur(18px);
-    padding:20px;
-  }
-
-  .brand p {
-    margin:16px 0 0;
-    color:rgba(5,0,2,.62);
-    font-size:14px;
-    line-height:1.45;
-    font-weight:750;
-  }
-
-  .tabs {
-    display:grid;
-    gap:9px;
-  }
-
-  .tab {
-    min-height:44px;
-    border:1px solid rgba(5,0,2,.08);
-    border-radius:999px;
-    background:rgba(255,255,255,.62);
-    color:rgba(5,0,2,.64);
-    font-weight:900;
-    cursor:pointer;
-    padding:0 15px;
-    text-align:left;
-  }
-
-  .tab.active {
-    background:var(--black);
-    color:white;
-  }
-
-  .side {
-    display:grid;
-    gap:16px;
-  }
-
-  .side h1 {
-    margin:0;
-    font-size:34px;
-    line-height:.94;
-    letter-spacing:-.07em;
-  }
-
-  .side p {
-    margin:0;
-    color:rgba(5,0,2,.62);
-    font-size:14px;
-    line-height:1.5;
-  }
-
-  .stage {
-    min-height:790px;
-    display:grid;
-    place-items:center;
-    position:relative;
-  }
-
-  .glow {
-    position:absolute;
-    width:680px;
-    height:680px;
-    border-radius:999px;
-    background:
-      radial-gradient(circle at 35% 30%, rgba(242,168,169,.72), transparent 31%),
-      radial-gradient(circle at 70% 70%, rgba(116,190,220,.42), transparent 28%);
-    filter:blur(14px);
+  .demo-root * {
+    box-sizing: border-box;
   }
 
   .phone {
-    position:relative;
-    z-index:2;
-    width:410px;
-    height:790px;
-    border:11px solid var(--black);
-    border-radius:56px;
-    background:#fffaf9;
-    overflow:hidden;
-    box-shadow:0 42px 110px rgba(5,0,2,.34);
+    width: min(420px, 100%);
+    height: min(860px, calc(100vh - 44px));
+    min-height: 720px;
+    border: 11px solid var(--black);
+    border-radius: 58px;
+    background: #fffaf9;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 44px 120px rgba(5,0,2,.34);
   }
 
   .phone:before {
-    content:"";
-    position:absolute;
-    top:13px;
-    left:50%;
-    transform:translateX(-50%);
-    width:118px;
-    height:30px;
-    border-radius:999px;
-    background:var(--black);
-    z-index:10;
+    content: "";
+    position: absolute;
+    z-index: 30;
+    top: 13px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 116px;
+    height: 30px;
+    border-radius: 999px;
+    background: var(--black);
   }
 
   .screen {
-    min-height:100%;
-    padding:58px 22px 92px;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    padding: 58px 20px 92px;
     background:
-      radial-gradient(circle at 85% 4%, rgba(242,168,169,.28), transparent 24%),
-      #fffaf9;
-    position:relative;
+      radial-gradient(circle at 90% 0%, rgba(242,168,169,.34), transparent 27%),
+      linear-gradient(180deg, #fffaf9 0%, #fff5f4 100%);
+  }
+
+  .scroll {
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding-bottom: 14px;
+  }
+
+  .scroll::-webkit-scrollbar {
+    display: none;
   }
 
   .top {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
   }
 
   .avatar {
-    width:42px;
-    height:42px;
-    border-radius:999px;
-    background:linear-gradient(135deg, rgba(242,168,169,.9), rgba(116,190,220,.52));
-    border:2px solid white;
-    box-shadow:0 8px 22px rgba(5,0,2,.12);
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(242,168,169,.96), rgba(116,190,220,.52));
+    border: 2px solid white;
+    box-shadow: 0 10px 22px rgba(5,0,2,.12);
+  }
+
+  .back {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(5,0,2,.08);
+    background: white;
+    display: grid;
+    place-items: center;
+    font-weight: 950;
+    cursor: pointer;
   }
 
   .pill {
-    display:inline-flex;
-    gap:7px;
-    align-items:center;
-    padding:8px 11px;
-    border-radius:999px;
-    background:rgba(242,168,169,.24);
-    color:#8f4e5b;
-    font-size:12px;
-    font-weight:950;
+    display: inline-flex;
+    gap: 7px;
+    align-items: center;
+    padding: 8px 11px;
+    border-radius: 999px;
+    background: rgba(242,168,169,.24);
+    color: #8f4e5b;
+    font-size: 12px;
+    font-weight: 950;
   }
 
   .pill:before {
-    content:"";
-    width:7px;
-    height:7px;
-    border-radius:999px;
-    background:var(--pink-dark);
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--pink-dark);
   }
 
   .title {
-    margin:15px 0 0;
-    font-size:34px;
-    line-height:.95;
-    letter-spacing:-.075em;
-    font-weight:950;
+    margin: 15px 0 0;
+    font-size: 35px;
+    line-height: .93;
+    letter-spacing: -.078em;
+    font-weight: 950;
   }
 
   .copy {
-    margin:10px 0 0;
-    color:rgba(5,0,2,.58);
-    font-size:14px;
-    line-height:1.45;
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.45;
   }
 
   .cards {
-    display:grid;
-    gap:12px;
-    margin-top:22px;
+    display: grid;
+    gap: 12px;
+    margin-top: 22px;
   }
 
   .card {
-    border:1px solid rgba(5,0,2,.08);
-    border-radius:24px;
-    background:rgba(255,255,255,.78);
-    padding:16px;
-    box-shadow:0 12px 30px rgba(5,0,2,.06);
+    border: 1px solid rgba(5,0,2,.08);
+    border-radius: 26px;
+    background: rgba(255,255,255,.84);
+    padding: 16px;
+    box-shadow: 0 14px 34px rgba(5,0,2,.06);
   }
 
-  .card h3 {
-    margin:0;
-    font-size:17px;
-    letter-spacing:-.035em;
-  }
-
-  .card p {
-    margin:6px 0 0;
-    color:rgba(5,0,2,.58);
-    font-size:12px;
-    line-height:1.4;
-  }
-
-  .choice {
-    display:grid;
-    grid-template-columns:44px 1fr;
-    gap:13px;
-    align-items:center;
-    width:100%;
-    text-align:left;
-    cursor:pointer;
+  .tap-card {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 14px;
+    align-items: center;
   }
 
   .ico {
-    width:44px;
-    height:44px;
-    border-radius:16px;
-    background:rgba(242,168,169,.24);
-    color:#8f4e5b;
-    display:grid;
-    place-items:center;
-    font-weight:950;
+    width: 48px;
+    height: 48px;
+    border-radius: 17px;
+    background: rgba(242,168,169,.25);
+    color: #8f4e5b;
+    display: grid;
+    place-items: center;
+    font-weight: 950;
+    font-size: 19px;
   }
 
-  .photo {
-    height:225px;
-    border-radius:28px;
-    background:
-      linear-gradient(180deg, transparent 44%, rgba(5,0,2,.56)),
-      url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=900&q=80");
-    background-size:cover;
-    background-position:center;
-    margin-top:20px;
-    position:relative;
-    overflow:hidden;
+  .card h3,
+  .tap-card h3 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.1;
+    letter-spacing: -.04em;
   }
 
-  .badge {
-    position:absolute;
-    top:14px;
-    left:14px;
-    padding:8px 10px;
-    border-radius:999px;
-    background:rgba(255,255,255,.9);
-    font-size:12px;
-    font-weight:950;
+  .card p,
+  .tap-card p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.4;
   }
 
-  .price {
-    margin-top:10px;
-    font-size:23px;
-    font-weight:950;
-    letter-spacing:-.045em;
+  .primary {
+    width: 100%;
+    min-height: 56px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    font-size: 15px;
+    font-weight: 950;
+    cursor: pointer;
+    box-shadow: 0 16px 32px rgba(5,0,2,.18);
   }
 
-  .actions {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-    margin-top:16px;
+  .secondary {
+    width: 100%;
+    min-height: 52px;
+    border: 1px solid rgba(5,0,2,.09);
+    border-radius: 999px;
+    background: rgba(255,255,255,.78);
+    color: var(--black);
+    font-size: 14px;
+    font-weight: 950;
+    cursor: pointer;
   }
 
-  .round {
-    min-height:56px;
-    border-radius:999px;
-    border:1px solid rgba(5,0,2,.08);
-    background:rgba(242,168,169,.2);
-    font-size:23px;
-    font-weight:950;
+  .field {
+    display: grid;
+    gap: 7px;
   }
 
-  .dark {
-    background:var(--black);
-    color:white;
-  }
-
-  .cta {
-    width:100%;
-    min-height:55px;
-    border:0;
-    border-radius:999px;
-    background:var(--black);
-    color:white;
-    margin-top:14px;
-    font-size:15px;
-    font-weight:950;
-  }
-
-  .secure {
-    margin-top:16px;
-    padding:14px;
-    border-radius:20px;
-    background:rgba(242,168,169,.22);
-    color:#7f4350;
-    font-size:13px;
-    line-height:1.35;
-    font-weight:850;
-  }
-
-  .bubble {
-    max-width:82%;
-    padding:13px 14px;
-    border-radius:18px;
-    font-size:14px;
-    line-height:1.35;
-  }
-
-  .me {
-    justify-self:end;
-    background:rgba(242,168,169,.24);
-  }
-
-  .other {
-    justify-self:start;
-    background:rgba(5,0,2,.06);
+  .field label {
+    color: rgba(5,0,2,.56);
+    font-size: 12px;
+    font-weight: 900;
   }
 
   .input {
-    position:absolute;
-    left:22px;
-    right:22px;
-    bottom:22px;
-    height:52px;
-    border-radius:999px;
-    background:white;
-    border:1px solid rgba(5,0,2,.08);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 9px 0 17px;
-    color:rgba(5,0,2,.42);
-    font-size:13px;
+    min-height: 52px;
+    border-radius: 18px;
+    border: 1px solid rgba(5,0,2,.08);
+    background: rgba(255,255,255,.88);
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    color: rgba(5,0,2,.78);
+    font-size: 14px;
+    font-weight: 800;
   }
 
-  .send {
-    width:36px;
-    height:36px;
-    border-radius:999px;
-    background:var(--black);
-    color:white;
-    display:grid;
-    place-items:center;
-    font-weight:950;
+  .photo {
+    height: 244px;
+    border-radius: 30px;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, transparent 42%, rgba(5,0,2,.64)),
+      url("https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=900&q=80");
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 20px 42px rgba(5,0,2,.12);
+  }
+
+  .photo.owner {
+    background:
+      linear-gradient(180deg, transparent 42%, rgba(5,0,2,.64)),
+      url("https://images.unsplash.com/photo-1560448075-bb485b067938?auto=format&fit=crop&w=900&q=80");
+    background-size: cover;
+    background-position: center;
+  }
+
+  .badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.92);
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  .photo-caption {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    color: white;
+  }
+
+  .photo-caption h3 {
+    margin: 0;
+    font-size: 23px;
+    line-height: 1;
+    letter-spacing: -.05em;
+  }
+
+  .photo-caption p {
+    margin: 7px 0 0;
+    font-size: 13px;
+    color: rgba(255,255,255,.78);
+    line-height: 1.35;
+  }
+
+  .price {
+    font-size: 25px;
+    letter-spacing: -.06em;
+    font-weight: 950;
   }
 
   .row {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:14px;
-    padding:13px;
-    border-radius:18px;
-    background:rgba(5,0,2,.04);
-    font-size:13px;
-    font-weight:850;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 19px;
+    background: rgba(5,0,2,.045);
+    font-size: 13px;
+    font-weight: 880;
   }
 
-  .ok { color:#32785f; }
-  .pending { color:#9a6a21; }
+  .ok {
+    color: #25745a;
+    font-weight: 950;
+  }
+
+  .pending {
+    color: #9a6a21;
+    font-weight: 950;
+  }
+
+  .hot {
+    color: #8f4e5b;
+    font-weight: 950;
+  }
+
+  .chat-list {
+    display: grid;
+    gap: 11px;
+    margin-top: 18px;
+  }
+
+  .bubble {
+    max-width: 82%;
+    padding: 13px 14px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .bubble.me {
+    justify-self: end;
+    background: rgba(242,168,169,.27);
+  }
+
+  .bubble.other {
+    justify-self: start;
+    background: rgba(5,0,2,.06);
+  }
+
+  .chat-input {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 22px;
+    height: 52px;
+    border-radius: 999px;
+    background: white;
+    border: 1px solid rgba(5,0,2,.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 9px 0 17px;
+    color: rgba(5,0,2,.42);
+    font-size: 13px;
+  }
+
+  .send {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    display: grid;
+    place-items: center;
+    font-weight: 950;
+  }
 
   .doc {
-    margin-top:18px;
-    border-radius:26px;
-    background:white;
-    border:1px solid rgba(5,0,2,.08);
-    overflow:hidden;
+    margin-top: 18px;
+    border: 1px solid rgba(5,0,2,.08);
+    background: white;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 16px 38px rgba(5,0,2,.07);
   }
 
   .doc-head {
-    padding:16px;
-    background:rgba(242,168,169,.18);
-    border-bottom:1px solid rgba(5,0,2,.08);
+    background: rgba(242,168,169,.2);
+    border-bottom: 1px solid rgba(5,0,2,.08);
+    padding: 16px;
   }
 
   .doc-head strong {
-    display:block;
-    font-size:17px;
-    letter-spacing:-.035em;
+    display: block;
+    font-size: 17px;
+    letter-spacing: -.04em;
+  }
+
+  .doc-head span {
+    display: block;
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
   }
 
   .doc-body {
-    padding:16px;
-    display:grid;
-    gap:10px;
+    padding: 15px;
+    display: grid;
+    gap: 10px;
   }
 
-  .sign-box {
-    height:92px;
-    border-radius:18px;
-    border:1px dashed rgba(5,0,2,.22);
-    background:rgba(255,255,255,.68);
-    display:grid;
-    place-items:center;
-    font-family:Georgia,serif;
-    font-size:28px;
-    font-style:italic;
-    color:rgba(5,0,2,.68);
+  .signature-box {
+    height: 96px;
+    border-radius: 20px;
+    border: 1.5px dashed rgba(5,0,2,.24);
+    background: rgba(255,255,255,.76);
+    display: grid;
+    place-items: center;
+    font-family: Georgia, serif;
+    font-size: 29px;
+    font-style: italic;
+    color: rgba(5,0,2,.68);
+  }
+
+  .success {
+    width: 104px;
+    height: 104px;
+    border-radius: 999px;
+    margin: 34px auto 22px;
+    background: var(--black);
+    color: white;
+    display: grid;
+    place-items: center;
+    font-size: 50px;
+    font-weight: 950;
+    box-shadow: 0 24px 50px rgba(5,0,2,.2);
   }
 
   .bottom {
-    position:absolute;
-    left:22px;
-    right:22px;
-    bottom:20px;
-    height:58px;
-    border-radius:24px;
-    background:rgba(255,255,255,.92);
-    border:1px solid rgba(5,0,2,.08);
-    box-shadow:0 12px 34px rgba(5,0,2,.08);
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    align-items:center;
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 18px;
+    height: 58px;
+    border-radius: 24px;
+    background: rgba(255,255,255,.94);
+    border: 1px solid rgba(5,0,2,.08);
+    box-shadow: 0 12px 34px rgba(5,0,2,.08);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
   }
 
-  .bottom span {
-    text-align:center;
-    font-size:10px;
-    color:rgba(5,0,2,.5);
-    font-weight:850;
+  .bottom button {
+    border: 0;
+    background: transparent;
+    color: rgba(5,0,2,.45);
+    font-size: 10px;
+    font-weight: 900;
+    cursor: pointer;
   }
 
-  .bottom .active { color:var(--black); }
-
-  @media (max-width:1050px) {
-    .wrap { grid-template-columns:1fr; }
-    .stage { min-height:auto; }
-    .side { width:min(520px,100%); margin:0 auto; }
+  .bottom button.active {
+    color: var(--black);
   }
 
-  @media (max-width:540px) {
-    .phone { width:min(390px,100%); height:770px; }
-    .tabs { grid-template-columns:repeat(2,1fr); }
+  @media (max-width: 480px) {
+    .demo-root {
+      padding: 12px;
+    }
+
+    .phone {
+      min-height: 700px;
+      height: calc(100vh - 24px);
+      border-radius: 48px;
+      border-width: 9px;
+    }
+
+    .screen {
+      padding-left: 17px;
+      padding-right: 17px;
+    }
+
+    .title {
+      font-size: 32px;
+    }
   }
 `
 
 export default function DemoPage() {
-  const [screen, setScreen] = useState<Screen>("home")
+  const [role, setRole] = useState<Role>(null)
+  const [screen, setScreen] = useState<Screen>("role")
+
+  function chooseRole(nextRole: Exclude<Role, null>) {
+    setRole(nextRole)
+    setScreen(nextRole === "tenant" ? "tenant-search" : "owner-property")
+  }
+
+  function reset() {
+    setRole(null)
+    setScreen("role")
+  }
 
   return (
-    <main className="root">
+    <main className="demo-root">
       <style>{styles}</style>
 
-      <div className="wrap">
-        <aside className="side">
-          <div className="panel brand">
-            <a href="/" aria-label="Volver a Verlo">
-              <VerloBrand width={118} />
-            </a>
-            <p>Mockup de app futura: matching, chat realtime interno, identidad, contrato y firma digital.</p>
-          </div>
+      <section className="phone" aria-label="Verlo app mockup">
+        {screen === "role" && <RoleScreen chooseRole={chooseRole} />}
 
-          <div className="panel tabs">
-            {screens.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`tab ${screen === item.id ? "active" : ""}`}
-                onClick={() => setScreen(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </aside>
+        {role === "tenant" && screen === "tenant-search" && <TenantSearch reset={reset} setScreen={setScreen} />}
+        {role === "tenant" && screen === "tenant-matches" && <TenantMatches reset={reset} setScreen={setScreen} />}
+        {role === "tenant" && screen === "tenant-property" && <TenantProperty reset={reset} setScreen={setScreen} />}
+        {role === "tenant" && screen === "tenant-chat" && <TenantChat reset={reset} setScreen={setScreen} />}
+        {role === "tenant" && screen === "tenant-identity" && <TenantIdentity reset={reset} setScreen={setScreen} />}
+        {role === "tenant" && screen === "tenant-contract" && <TenantContract reset={reset} setScreen={setScreen} />}
+        {role === "tenant" && screen === "tenant-signature" && <TenantSignature reset={reset} setScreen={setScreen} />}
 
-        <section className="stage">
-          <div className="glow" />
-          <div className="phone">
-            {screen === "home" && <Home setScreen={setScreen} />}
-            {screen === "matches" && <Matches />}
-            {screen === "property" && <Property setScreen={setScreen} />}
-            {screen === "chat" && <Chat />}
-            {screen === "identity" && <Identity />}
-            {screen === "contract" && <Contract />}
-            {screen === "signature" && <Signature />}
-          </div>
-        </section>
-
-        <aside className="side">
-          <div className="panel">
-            <h1>Producto completo.</h1>
-            <p>
-              No es portal. Es flujo: captar, matchear, validar, conversar, documentar y firmar.
-            </p>
-          </div>
-        </aside>
-      </div>
+        {role === "owner" && screen === "owner-property" && <OwnerProperty reset={reset} setScreen={setScreen} />}
+        {role === "owner" && screen === "owner-leads" && <OwnerLeads reset={reset} setScreen={setScreen} />}
+        {role === "owner" && screen === "owner-lead-profile" && <OwnerLeadProfile reset={reset} setScreen={setScreen} />}
+        {role === "owner" && screen === "owner-chat" && <OwnerChat reset={reset} setScreen={setScreen} />}
+        {role === "owner" && screen === "owner-contract" && <OwnerContract reset={reset} setScreen={setScreen} />}
+        {role === "owner" && screen === "owner-signature" && <OwnerSignature reset={reset} setScreen={setScreen} />}
+      </section>
     </main>
   )
 }
 
-function Top() {
+function Top({ reset }: { reset: () => void }) {
   return (
     <div className="top">
+      <button className="back" type="button" onClick={reset}>
+        ←
+      </button>
       <VerloBrand width={82} />
       <div className="avatar" />
     </div>
   )
 }
 
-function Bottom({ active }: { active: string }) {
+function Bottom({
+  active,
+  setScreen,
+  role,
+}: {
+  active: "home" | "match" | "chat" | "docs"
+  setScreen: (screen: Screen) => void
+  role: Exclude<Role, null>
+}) {
   return (
-    <div className="bottom">
-      <span className={active === "home" ? "active" : ""}>Inicio</span>
-      <span className={active === "matches" ? "active" : ""}>Match</span>
-      <span className={active === "chat" ? "active" : ""}>Chat</span>
-      <span className={active === "docs" ? "active" : ""}>Docs</span>
-    </div>
+    <nav className="bottom">
+      <button
+        className={active === "home" ? "active" : ""}
+        type="button"
+        onClick={() => setScreen(role === "tenant" ? "tenant-search" : "owner-property")}
+      >
+        Inicio
+      </button>
+      <button
+        className={active === "match" ? "active" : ""}
+        type="button"
+        onClick={() => setScreen(role === "tenant" ? "tenant-matches" : "owner-leads")}
+      >
+        {role === "tenant" ? "Matches" : "Interesados"}
+      </button>
+      <button
+        className={active === "chat" ? "active" : ""}
+        type="button"
+        onClick={() => setScreen(role === "tenant" ? "tenant-chat" : "owner-chat")}
+      >
+        Chat
+      </button>
+      <button
+        className={active === "docs" ? "active" : ""}
+        type="button"
+        onClick={() => setScreen(role === "tenant" ? "tenant-identity" : "owner-contract")}
+      >
+        Docs
+      </button>
+    </nav>
   )
 }
 
-function Home({ setScreen }: { setScreen: (screen: Screen) => void }) {
+function RoleScreen({ chooseRole }: { chooseRole: (role: "tenant" | "owner") => void }) {
   return (
     <div className="screen">
-      <Top />
-      <span className="pill">Cuenta confirmada</span>
-      <h1 className="title">Hola, Juan. ¿Qué querés hacer?</h1>
-      <p className="copy">Verlo ordena el alquiler desde el primer contacto hasta la firma.</p>
+      <div className="scroll" style={{ display: "grid", alignContent: "center" }}>
+        <div style={{ marginBottom: 28 }}>
+          <VerloBrand width={140} />
+        </div>
 
-      <div className="cards">
-        <button className="card choice" type="button" onClick={() => setScreen("matches")}>
-          <div className="ico">⌂</div>
-          <div><h3>Buscar alquiler</h3><p>Ver propiedades compatibles.</p></div>
-        </button>
+        <span className="pill">App Verlo</span>
+        <h1 className="title">Elegí cómo querés entrar</h1>
+        <p className="copy">
+          Esta demo tiene dos productos: experiencia inquilino y experiencia propietario.
+        </p>
 
-        <button className="card choice" type="button" onClick={() => setScreen("identity")}>
-          <div className="ico">✓</div>
-          <div><h3>Validar identidad</h3><p>Activar confianza para avanzar.</p></div>
-        </button>
+        <div className="cards">
+          <button className="card tap-card" type="button" onClick={() => chooseRole("tenant")}>
+            <div className="ico">⌂</div>
+            <div>
+              <h3>Soy inquilino</h3>
+              <p>Busco propiedad, matcheo, chateo, valido identidad y firmo.</p>
+            </div>
+          </button>
 
-        <button className="card choice" type="button" onClick={() => setScreen("contract")}>
-          <div className="ico">✎</div>
-          <div><h3>Contrato y firma</h3><p>Revisar documento y firmar digitalmente.</p></div>
-        </button>
+          <button className="card tap-card" type="button" onClick={() => chooseRole("owner")}>
+            <div className="ico">＋</div>
+            <div>
+              <h3>Soy propietario</h3>
+              <p>Publico propiedad, recibo interesados validados y envío contrato.</p>
+            </div>
+          </button>
+        </div>
       </div>
-
-      <Bottom active="home" />
     </div>
   )
 }
 
-function Matches() {
+/* INQUILINO */
+
+function TenantSearch({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
   return (
     <div className="screen">
-      <Top />
-      <span className="pill">Match compatible</span>
-      <h1 className="title">Elegí con un swipe</h1>
-      <p className="copy">Propiedades filtradas por zona, presupuesto, timing y confianza.</p>
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Inquilino</span>
+        <h1 className="title">Armá tu búsqueda</h1>
+        <p className="copy">Verlo filtra propiedades compatibles antes de mostrarte matches.</p>
 
-      <div className="photo"><span className="badge">Dueña validada</span></div>
+        <div className="cards">
+          <div className="field">
+            <label>Zona</label>
+            <div className="input">Palermo, Belgrano, Núñez</div>
+          </div>
+          <div className="field">
+            <label>Presupuesto</label>
+            <div className="input">$450.000 – $650.000</div>
+          </div>
+          <div className="field">
+            <label>Fecha de mudanza</label>
+            <div className="input">Dentro de 30 días</div>
+          </div>
+          <div className="field">
+            <label>Tipo de propiedad</label>
+            <div className="input">2 ambientes</div>
+          </div>
 
-      <div className="card">
-        <h3>2 ambientes en Palermo</h3>
-        <p>Humboldt 1900 · Disponible ahora · Contrato listo para revisión.</p>
-        <div className="price">$550.000 / mes</div>
-        <div className="actions">
-          <button className="round" type="button">×</button>
-          <button className="round dark" type="button">♥</button>
+          <button className="primary" type="button" onClick={() => setScreen("tenant-matches")}>
+            Ver matches
+          </button>
         </div>
       </div>
 
-      <Bottom active="matches" />
+      <Bottom active="home" setScreen={setScreen} role="tenant" />
     </div>
   )
 }
 
-function Property({ setScreen }: { setScreen: (screen: Screen) => void }) {
+function TenantMatches({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
   return (
     <div className="screen">
-      <Top />
-      <span className="pill">Ficha clara</span>
-      <h1 className="title">Antes de hablar, sabés todo</h1>
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">3 matches nuevos</span>
+        <h1 className="title">Propiedades compatibles</h1>
 
-      <div className="photo"><span className="badge">$550.000 / mes</span></div>
+        <article className="photo">
+          <span className="badge">Dueña validada</span>
+          <div className="photo-caption">
+            <h3>2 ambientes en Palermo</h3>
+            <p>Disponible ahora · Contrato preparado</p>
+          </div>
+        </article>
 
-      <div className="cards">
-        <div className="card"><h3>Condiciones</h3><p>Disponible ahora · Sin comisión · Garantía a validar.</p></div>
-        <div className="card"><h3>Estado documental</h3><p>Propietaria validada · Contrato borrador generado.</p></div>
+        <div className="card">
+          <div className="price">$550.000 / mes</div>
+          <p>Sin comisión · Garantía a validar · Chat interno habilitado.</p>
+          <button className="primary" type="button" style={{ marginTop: 14 }} onClick={() => setScreen("tenant-property")}>
+            Ver ficha
+          </button>
+        </div>
       </div>
 
-      <button className="cta" type="button" onClick={() => setScreen("chat")}>Iniciar chat interno</button>
-      <Bottom active="matches" />
+      <Bottom active="match" setScreen={setScreen} role="tenant" />
     </div>
   )
 }
 
-function Chat() {
+function TenantProperty({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
   return (
     <div className="screen">
-      <Top />
-      <span className="pill">Realtime interno</span>
-      <h1 className="title">Chat seguro con contexto</h1>
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Ficha clara</span>
+        <h1 className="title">Antes de hablar, sabés todo</h1>
 
-      <div className="secure">Conversación dentro de Verlo. Match, ficha, identidad y contrato quedan conectados.</div>
-
-      <div className="cards">
-        <div className="bubble me">Hola, me interesa avanzar con esta propiedad.</div>
-        <div className="bubble other">Perfecto. Ya tengo identidad validada y contrato borrador.</div>
-        <div className="bubble me">Genial. Reviso condiciones y seguimos por Verlo.</div>
-      </div>
-
-      <div className="input">Escribí un mensaje... <span className="send">→</span></div>
-    </div>
-  )
-}
-
-function Identity() {
-  return (
-    <div className="screen">
-      <Top />
-      <span className="pill">Validación</span>
-      <h1 className="title">Identidad antes del contrato</h1>
-      <p className="copy">El contacto serio necesita perfiles verificables.</p>
-
-      <div className="cards">
-        <div className="row">Email confirmado <span className="ok">OK</span></div>
-        <div className="row">Teléfono registrado <span className="ok">OK</span></div>
-        <div className="row">Documento <span className="pending">Pendiente</span></div>
-        <div className="row">Selfie / prueba de vida <span className="pending">Pendiente</span></div>
-        <div className="row">Perfil apto para firmar <span className="pending">En revisión</span></div>
-      </div>
-
-      <button className="cta" type="button">Validar identidad</button>
-      <Bottom active="docs" />
-    </div>
-  )
-}
-
-function Contract() {
-  return (
-    <div className="screen">
-      <Top />
-      <span className="pill">Contrato digital</span>
-      <h1 className="title">Documento listo para revisar</h1>
-
-      <div className="doc">
-        <div className="doc-head">
-          <strong>Contrato de alquiler</strong>
-          <p className="copy">Borrador generado por Verlo</p>
+        <div className="photo">
+          <span className="badge">$550.000 / mes</span>
+          <div className="photo-caption">
+            <h3>Humboldt 1900</h3>
+            <p>Palermo · 2 ambientes · Disponible</p>
+          </div>
         </div>
 
-        <div className="doc-body">
+        <div className="cards">
           <div className="row">Propietaria <span className="ok">Validada</span></div>
-          <div className="row">Inquilino <span className="ok">Validado</span></div>
-          <div className="row">Precio mensual <span>$550.000</span></div>
-          <div className="row">Plazo <span>24 meses</span></div>
-          <div className="row">Estado <span className="pending">Revisión</span></div>
+          <div className="row">Contrato <span className="pending">Borrador listo</span></div>
+          <div className="row">Comisión <span className="ok">Sin comisión</span></div>
+
+          <button className="primary" type="button" onClick={() => setScreen("tenant-chat")}>
+            Iniciar chat interno
+          </button>
         </div>
       </div>
 
-      <button className="cta" type="button">Enviar a firma</button>
-      <Bottom active="docs" />
+      <Bottom active="match" setScreen={setScreen} role="tenant" />
     </div>
   )
 }
 
-function Signature() {
+function TenantChat({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
   return (
     <div className="screen">
-      <Top />
-      <span className="pill">Firma digital</span>
-      <h1 className="title">Cerrar operación sin fricción</h1>
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Chat realtime interno</span>
+        <h1 className="title">Conversación con contexto</h1>
 
-      <div className="doc">
-        <div className="doc-head">
-          <strong>contrato-alquiler.pdf</strong>
-          <p className="copy">ID operación: VRL-2026-0018</p>
+        <div className="chat-list">
+          <div className="bubble me">Hola, quiero avanzar con la propiedad.</div>
+          <div className="bubble other">Perfecto. Veo que tu búsqueda encaja con las condiciones.</div>
+          <div className="bubble other">Para avanzar, Verlo te pide validar identidad.</div>
+          <div className="bubble me">Dale, lo hago ahora.</div>
         </div>
 
-        <div className="doc-body">
-          <div className="row">Propietaria <span className="ok">Firmado</span></div>
-          <div className="row">Inquilino <span className="pending">Pendiente</span></div>
-          <div className="row">Hash documento <span>9F3A…82D</span></div>
-          <div className="sign-box">Firmar acá</div>
+        <button className="secondary" type="button" style={{ marginTop: 18 }} onClick={() => setScreen("tenant-identity")}>
+          Validar identidad
+        </button>
+      </div>
+
+      <div className="chat-input">
+        Escribí un mensaje...
+        <span className="send">→</span>
+      </div>
+    </div>
+  )
+}
+
+function TenantIdentity({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Identidad</span>
+        <h1 className="title">Perfil apto para contrato</h1>
+
+        <div className="cards">
+          <div className="row">Email confirmado <span className="ok">OK</span></div>
+          <div className="row">Teléfono registrado <span className="ok">OK</span></div>
+          <div className="row">Documento <span className="ok">OK</span></div>
+          <div className="row">Selfie / prueba de vida <span className="ok">OK</span></div>
+          <div className="row">Apto para firmar <span className="ok">Aprobado</span></div>
+
+          <button className="primary" type="button" onClick={() => setScreen("tenant-contract")}>
+            Revisar contrato
+          </button>
         </div>
       </div>
 
-      <button className="cta" type="button">Firmar documento</button>
-      <Bottom active="docs" />
+      <Bottom active="docs" setScreen={setScreen} role="tenant" />
+    </div>
+  )
+}
+
+function TenantContract({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Contrato digital</span>
+        <h1 className="title">Documento listo para revisar</h1>
+
+        <div className="doc">
+          <div className="doc-head">
+            <strong>Contrato de alquiler</strong>
+            <span>VRL-2026-0018 · Borrador generado por Verlo</span>
+          </div>
+          <div className="doc-body">
+            <div className="row">Propietaria <span className="ok">Validada</span></div>
+            <div className="row">Inquilino <span className="ok">Validado</span></div>
+            <div className="row">Precio mensual <span>$550.000</span></div>
+            <div className="row">Plazo <span>24 meses</span></div>
+          </div>
+        </div>
+
+        <button className="primary" type="button" style={{ marginTop: 16 }} onClick={() => setScreen("tenant-signature")}>
+          Ir a firma
+        </button>
+      </div>
+
+      <Bottom active="docs" setScreen={setScreen} role="tenant" />
+    </div>
+  )
+}
+
+function TenantSignature({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <div className="scroll" style={{ display: "grid", alignContent: "center", textAlign: "center" }}>
+        <Top reset={reset} />
+        <div className="success">✓</div>
+        <span className="pill" style={{ margin: "0 auto" }}>Firma digital</span>
+        <h1 className="title">Contrato firmado</h1>
+        <p className="copy">La operación queda registrada con identidad, chat interno y documento conectado.</p>
+      </div>
+
+      <Bottom active="docs" setScreen={setScreen} role="tenant" />
+    </div>
+  )
+}
+
+/* PROPIETARIO */
+
+function OwnerProperty({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Propietario</span>
+        <h1 className="title">Tu propiedad lista para recibir interesados</h1>
+
+        <div className="photo owner">
+          <span className="badge">Publicada</span>
+          <div className="photo-caption">
+            <h3>2 ambientes en Palermo</h3>
+            <p>$550.000 · Disponible ahora</p>
+          </div>
+        </div>
+
+        <div className="cards">
+          <div className="row">Estado <span className="ok">Activa</span></div>
+          <div className="row">Interesados <span className="hot">7 nuevos</span></div>
+          <div className="row">Contrato <span className="pending">Borrador listo</span></div>
+
+          <button className="primary" type="button" onClick={() => setScreen("owner-leads")}>
+            Ver interesados
+          </button>
+        </div>
+      </div>
+
+      <Bottom active="home" setScreen={setScreen} role="owner" />
+    </div>
+  )
+}
+
+function OwnerLeads({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Interesados filtrados</span>
+        <h1 className="title">Elegí con más contexto</h1>
+
+        <div className="cards">
+          <button className="card tap-card" type="button" onClick={() => setScreen("owner-lead-profile")}>
+            <div className="ico">JM</div>
+            <div>
+              <h3>Juan García</h3>
+              <p>Presupuesto compatible · Mudanza en 30 días · Identidad aprobada.</p>
+            </div>
+          </button>
+
+          <div className="card tap-card">
+            <div className="ico">ML</div>
+            <div>
+              <h3>Martina López</h3>
+              <p>Presupuesto compatible · Perfil incompleto · Documento pendiente.</p>
+            </div>
+          </div>
+
+          <div className="card tap-card">
+            <div className="ico">AR</div>
+            <div>
+              <h3>Agustín Ruiz</h3>
+              <p>Consulta nueva · Falta validación · Match medio.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Bottom active="match" setScreen={setScreen} role="owner" />
+    </div>
+  )
+}
+
+function OwnerLeadProfile({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Perfil interesado</span>
+        <h1 className="title">Antes de hablar, ves señales reales</h1>
+
+        <div className="cards">
+          <div className="card">
+            <h3>Juan García</h3>
+            <p>Busca 2 ambientes en Palermo/Núñez. Presupuesto compatible.</p>
+          </div>
+
+          <div className="row">Email <span className="ok">Confirmado</span></div>
+          <div className="row">Documento <span className="ok">Validado</span></div>
+          <div className="row">Timing <span className="hot">Mudanza 30 días</span></div>
+          <div className="row">Match score <span className="ok">92%</span></div>
+
+          <button className="primary" type="button" onClick={() => setScreen("owner-chat")}>
+            Abrir chat interno
+          </button>
+        </div>
+      </div>
+
+      <Bottom active="match" setScreen={setScreen} role="owner" />
+    </div>
+  )
+}
+
+function OwnerChat({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Chat realtime interno</span>
+        <h1 className="title">Conversación trazable</h1>
+
+        <div className="chat-list">
+          <div className="bubble other">Hola, me interesa avanzar con la propiedad.</div>
+          <div className="bubble me">Perfecto. Veo tu perfil validado y presupuesto compatible.</div>
+          <div className="bubble me">Te envío el contrato borrador para revisar.</div>
+          <div className="bubble other">Dale, lo reviso dentro de Verlo.</div>
+        </div>
+
+        <button className="secondary" type="button" style={{ marginTop: 18 }} onClick={() => setScreen("owner-contract")}>
+          Generar contrato
+        </button>
+      </div>
+
+      <div className="chat-input">
+        Escribí un mensaje...
+        <span className="send">→</span>
+      </div>
+    </div>
+  )
+}
+
+function OwnerContract({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Contrato</span>
+        <h1 className="title">Prepará documento para firma</h1>
+
+        <div className="doc">
+          <div className="doc-head">
+            <strong>Contrato de alquiler</strong>
+            <span>Propiedad Palermo · Interesado Juan García</span>
+          </div>
+          <div className="doc-body">
+            <div className="row">Propietaria <span className="ok">Validada</span></div>
+            <div className="row">Inquilino <span className="ok">Validado</span></div>
+            <div className="row">Precio mensual <span>$550.000</span></div>
+            <div className="row">Estado <span className="pending">Listo para firma</span></div>
+          </div>
+        </div>
+
+        <button className="primary" type="button" style={{ marginTop: 16 }} onClick={() => setScreen("owner-signature")}>
+          Enviar a firma digital
+        </button>
+      </div>
+
+      <Bottom active="docs" setScreen={setScreen} role="owner" />
+    </div>
+  )
+}
+
+function OwnerSignature({ reset, setScreen }: { reset: () => void; setScreen: (screen: Screen) => void }) {
+  return (
+    <div className="screen">
+      <div className="scroll">
+        <Top reset={reset} />
+        <span className="pill">Firma digital</span>
+        <h1 className="title">Seguimiento de firmas</h1>
+
+        <div className="doc">
+          <div className="doc-head">
+            <strong>contrato-alquiler.pdf</strong>
+            <span>Hash 9F3A…82D · VRL-2026-0018</span>
+          </div>
+          <div className="doc-body">
+            <div className="row">Propietaria <span className="ok">Firmado</span></div>
+            <div className="row">Inquilino <span className="pending">Pendiente</span></div>
+            <div className="signature-box">Esperando firma</div>
+          </div>
+        </div>
+
+        <button className="primary" type="button" style={{ marginTop: 16 }}>
+          Enviar recordatorio interno
+        </button>
+      </div>
+
+      <Bottom active="docs" setScreen={setScreen} role="owner" />
     </div>
   )
 }
