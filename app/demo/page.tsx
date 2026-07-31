@@ -492,12 +492,12 @@ const styles = `
       padding: 12px;
     }
 
-    .phone {
-      min-height: 700px;
-      height: calc(100vh - 24px);
-      border-radius: 48px;
-      border-width: 9px;
-    }
+  .phone {
+  min-height: 660px;
+  height: calc(100vh - 24px);
+  border-radius: 48px;
+  border-width: 9px;
+}
 
     .screen {
       padding-left: 17px;
