@@ -46,10 +46,10 @@ const styles = `
     box-sizing: border-box;
   }
 
-  .phone {
-    width: min(420px, 100%);
-    height: min(860px, calc(100vh - 44px));
-    min-height: 720px;
+ .phone {
+  width: min(460px, 100%);
+  height: min(760px, calc(100vh - 28px));
+  min-height: 660px;
     border: 11px solid var(--black);
     border-radius: 58px;
     background: #fffaf9;
@@ -71,22 +71,22 @@ const styles = `
     background: var(--black);
   }
 
-  .screen {
-    height: 100%;
-    position: relative;
-    overflow: hidden;
-    padding: 58px 20px 92px;
+ .screen {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  padding: 54px 20px 72px;
     background:
       radial-gradient(circle at 90% 0%, rgba(242,168,169,.34), transparent 27%),
       linear-gradient(180deg, #fffaf9 0%, #fff5f4 100%);
   }
 
-  .scroll {
-    height: 100%;
-    overflow-y: auto;
-    scrollbar-width: none;
-    padding-bottom: 14px;
-  }
+.scroll {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding-bottom: 28px;
+}
 
   .scroll::-webkit-scrollbar {
     display: none;
