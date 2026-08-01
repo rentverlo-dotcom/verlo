@@ -112,7 +112,6 @@ export async function sendMetaCapiLead(input: MetaCapiLeadInput) {
   value: 1,
   currency: "ARS",
       },
-    ],
   }
 
   if (testEventCode) {
