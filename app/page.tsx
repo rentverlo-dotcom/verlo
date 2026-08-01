@@ -524,7 +524,16 @@ function trackMetaLead(eventId: string, params?: Record<string, string>) {
   const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq
 
   if (typeof fbq === "function") {
-    fbq("track", "Lead", params || {}, { eventID: eventId })
+    fbq(
+      "track",
+      "Lead",
+      {
+        value: 500,
+        currency: "ARS",
+        ...(params || {}),
+      },
+      { eventID: eventId }
+    )
   }
 }
 
