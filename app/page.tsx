@@ -497,6 +497,37 @@ const styles = `
   }
 `
 
+function getCookie(name: string) {
+  if (typeof document === "undefined") return ""
+
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1] || ""
+}
+
+function getMetaFbc() {
+  if (typeof window === "undefined") return ""
+
+  const cookieFbc = getCookie("_fbc")
+  if (cookieFbc) return cookieFbc
+
+  const fbclid = new URLSearchParams(window.location.search).get("fbclid")
+  if (!fbclid) return ""
+
+  return `fb.1.${Date.now()}.${fbclid}`
+}
+
+function trackMetaLead(eventId: string, params?: Record<string, string>) {
+  if (typeof window === "undefined") return
+
+  const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq
+
+  if (typeof fbq === "function") {
+    fbq("track", "Lead", params || {}, { eventID: eventId })
+  }
+}
+
 function trackMetaEvent(eventName: string, params?: Record<string, string>) {
   if (typeof window !== "undefined") {
     const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq
