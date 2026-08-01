@@ -104,12 +104,13 @@ export async function sendMetaCapiLead(input: MetaCapiLeadInput) {
         action_source: "website",
         event_source_url: input.eventSourceUrl || "https://verlo.lat/test-captacion",
         user_data: userData,
-        custom_data: {
-          content_name: "verlo_test_captacion",
-          content_category: input.role || "unknown",
-          lead_type: input.intent || "unknown",
-          zone: input.zone || undefined,
-        },
+    custom_data: {
+  content_name: "verlo_home_lead",
+  content_category: input.role || "unknown",
+  lead_type: input.intent || "unknown",
+  zone: input.zone || undefined,
+  value: 1,
+  currency: "ARS",
       },
     ],
   }
