@@ -111,8 +111,10 @@ export async function sendMetaCapiLead(input: MetaCapiLeadInput) {
   zone: input.zone || undefined,
   value: 1,
   currency: "ARS",
-      },
-  }
+     },
+    },
+  ],
+}
 
   if (testEventCode) {
     body.test_event_code = testEventCode
