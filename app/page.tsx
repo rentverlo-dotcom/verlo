@@ -600,9 +600,11 @@ export default function TestCaptacionPage() {
       contract_expiration: String(formData.get("contract_expiration") || "").trim(),
       other_party_status: String(formData.get("other_party_status") || "").trim(),
       renewal_need: String(formData.get("renewal_need") || "").trim(),
-      event_id: eventId,
-      event_source_url: window.location.href,
-      metadata: {
+     event_id: eventId,
+event_source_url: window.location.href,
+fbp: getCookie("_fbp"),
+fbc: getMetaFbc(),
+metadata: {
         path,
         page: "test_captacion",
       },
@@ -633,11 +635,11 @@ export default function TestCaptacionPage() {
         lead_id: data.lead_id || null,
       })
 
-      trackMetaEvent("Lead_Intake_Submitted", {
-        path,
-        role: payload.role,
-        intent: payload.intent,
-      })
+     trackMetaLead(eventId, {
+  path,
+  role: payload.role,
+  intent: payload.intent,
+})
 
       form.reset()
 
