@@ -1,9 +1,46 @@
 "use client"
 
-import { useState } from "react"
+import { FormEvent, useMemo, useState } from "react"
 import VerloBrand from "@/components/VerloBrand"
 
 type Path = "tenant" | "owner" | "renewal"
+
+const NEIGHBORHOODS = [
+  "Vicente López",
+  "Olivos",
+  "Florida",
+  "La Lucila",
+  "Martínez",
+  "Núñez",
+  "Belgrano",
+  "Palermo",
+  "Colegiales",
+  "Saavedra",
+]
+
+const pathConfig = {
+  tenant: {
+    title: "Busco alquilar",
+    subtitle: "Marcá los barrios donde buscarías y completá tu presupuesto.",
+    role: "tenant",
+    intent: "tenant_search",
+    button: "Cargar mi búsqueda",
+  },
+  owner: {
+    title: "Tengo una propiedad",
+    subtitle: "Decinos en qué barrio está, qué tipo es y a qué precio se alquilaría.",
+    role: "owner",
+    intent: "owner_new_listing",
+    button: "Dejar mis datos",
+  },
+  renewal: {
+    title: "Quiero renovar",
+    subtitle: "Contanos el barrio, cuándo vence y qué necesitás resolver.",
+    role: "both",
+    intent: "contract_renewal",
+    button: "Quiero renovar",
+  },
+} as const
 
 const styles = `
   .test-root {
@@ -33,7 +70,7 @@ const styles = `
     top: 0;
     z-index: 50;
     backdrop-filter: blur(18px);
-    background: rgba(242, 235, 236, 0.78);
+    background: rgba(242, 235, 236, 0.82);
     border-bottom: 1px solid rgba(5, 0, 2, 0.08);
   }
 
@@ -173,7 +210,8 @@ const styles = `
     z-index: 1;
   }
 
-  .phone-frame {
+  .phone-frame,
+  .mini-phone {
     position: relative;
     width: min(420px, 84vw);
     aspect-ratio: 390 / 760;
@@ -183,6 +221,12 @@ const styles = `
     background: #fbf8f5;
     box-shadow: 0 30px 90px rgba(5, 0, 2, 0.28);
     z-index: 2;
+  }
+
+  .mini-phone {
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 26px 76px rgba(5, 0, 2, 0.18);
   }
 
   .phone-top {
@@ -195,12 +239,21 @@ const styles = `
     border-bottom: 1px solid rgba(5, 0, 2, 0.06);
   }
 
+  .mini-phone .phone-top {
+    height: 68px;
+    padding: 0 22px;
+  }
+
   .phone-brand {
     font-family: Georgia, "Times New Roman", serif;
     font-size: 31px;
     font-style: italic;
     font-weight: 800;
     letter-spacing: -0.055em;
+  }
+
+  .mini-phone .phone-brand {
+    font-size: 28px;
   }
 
   .dots {
@@ -223,6 +276,13 @@ const styles = `
       radial-gradient(circle at 84% 90%, rgba(116, 190, 220, 0.20), transparent 28%),
       #fbf8f5;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mini-phone .phone-screen {
+    height: calc(100% - 68px);
+    padding: 18px 20px 22px;
   }
 
   .phone-label {
@@ -252,6 +312,12 @@ const styles = `
     line-height: 0.9;
     letter-spacing: -0.075em;
     font-weight: 950;
+    min-height: 76px;
+  }
+
+  .mini-phone .phone-title {
+    font-size: 34px;
+    min-height: 68px;
   }
 
   .phone-copy {
@@ -260,10 +326,15 @@ const styles = `
     font-size: 15px;
     line-height: 1.42;
     font-weight: 650;
+    min-height: 64px;
+  }
+
+  .mini-phone .phone-copy {
+    min-height: 64px;
   }
 
   .phone-card {
-    margin-top: 22px;
+    margin-top: 18px;
     border-radius: 28px;
     background: rgba(255, 255, 255, 0.78);
     border: 1px solid rgba(5, 0, 2, 0.08);
@@ -299,41 +370,13 @@ const styles = `
   .phone-button {
     width: 100%;
     min-height: 54px;
-    margin-top: 22px;
+    margin-top: auto;
     border: 0;
     border-radius: 999px;
     background: var(--black);
     color: white;
     font-size: 15px;
     font-weight: 950;
-  }
-
-  .mini-phone {
-    width: 100%;
-    aspect-ratio: 390 / 760;
-    border: 10px solid var(--black);
-    border-radius: 48px;
-    overflow: hidden;
-    background: #fbf8f5;
-    box-shadow: 0 30px 90px rgba(5, 0, 2, 0.18);
-  }
-
-  .mini-phone .phone-top {
-    height: 68px;
-    padding: 0 22px;
-  }
-
-  .mini-phone .phone-brand {
-    font-size: 28px;
-  }
-
-  .mini-phone .phone-screen {
-    height: calc(100% - 68px);
-    padding: 18px 20px 22px;
-  }
-
-  .mini-phone .phone-title {
-    font-size: 34px;
   }
 
   .section {
@@ -385,6 +428,7 @@ const styles = `
   .mock-item {
     display: grid;
     gap: 24px;
+    align-content: start;
   }
 
   .mock-copy h3 {
@@ -505,6 +549,50 @@ const styles = `
     outline: none;
   }
 
+  .input:focus,
+  .select:focus {
+    border-color: var(--pink-dark);
+    box-shadow: 0 0 0 5px rgba(195, 121, 134, 0.12);
+    background: white;
+  }
+
+  .neighborhood-box {
+    border: 1px solid rgba(5, 0, 2, 0.12);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 18px;
+  }
+
+  .neighborhood-box strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .neighborhood-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .check-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: white;
+    border: 1px solid rgba(5, 0, 2, 0.1);
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .check-pill input {
+    accent-color: var(--black);
+  }
+
   .submit {
     min-height: 58px;
     border-radius: 999px;
@@ -515,6 +603,30 @@ const styles = `
     font-weight: 950;
     cursor: pointer;
     box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
+  }
+
+  .submit:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .error,
+  .success {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    font-weight: 850;
+  }
+
+  .error {
+    background: rgba(195, 121, 134, 0.14);
+    color: #7f2435;
+  }
+
+  .success {
+    background: rgba(116, 190, 220, 0.16);
+    color: #255a6d;
   }
 
   .footer {
@@ -620,7 +732,8 @@ const styles = `
     }
 
     .path-grid,
-    .row {
+    .row,
+    .neighborhood-grid {
       grid-template-columns: 1fr;
     }
 
@@ -640,23 +753,54 @@ const styles = `
   }
 `
 
-const pathConfig = {
-  tenant: {
-    title: "Busco alquilar",
-    subtitle: "Decinos zona, presupuesto y cuándo querés mudarte.",
-    button: "Cargar mi búsqueda",
-  },
-  owner: {
-    title: "Tengo una propiedad",
-    subtitle: "Dejanos tus datos. No tenés que subir fotos ni publicar nada todavía.",
-    button: "Dejar mis datos",
-  },
-  renewal: {
-    title: "Quiero renovar",
-    subtitle: "Contanos cuándo vence el contrato y qué necesitás resolver.",
-    button: "Quiero renovar",
-  },
-} as const
+function getCookie(name: string) {
+  if (typeof document === "undefined") return ""
+
+  return (
+    document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${name}=`))
+      ?.split("=")[1] || ""
+  )
+}
+
+function getMetaFbc() {
+  if (typeof window === "undefined") return ""
+
+  const cookieFbc = getCookie("_fbc")
+  if (cookieFbc) return cookieFbc
+
+  const fbclid = new URLSearchParams(window.location.search).get("fbclid")
+  if (!fbclid) return ""
+
+  return `fb.1.${Date.now()}.${fbclid}`
+}
+
+function trackMetaLead(eventId: string, params?: Record<string, string>) {
+  if (typeof window === "undefined") return
+
+  const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq
+
+  if (typeof fbq === "function") {
+    fbq(
+      "track",
+      "Lead",
+      {
+        value: 500,
+        currency: "ARS",
+        ...(params || {}),
+      },
+      { eventID: eventId }
+    )
+  }
+}
+
+function normalizeNeighborhoods(values: string[]) {
+  return values
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(", ")
+}
 
 function Dots() {
   return (
@@ -724,10 +868,10 @@ function HeroPhone() {
         <PhoneContent
           badge="Alquiler directo"
           title="Menos comisión. Más control."
-          copy="Verlo prioriza datos útiles: zona, presupuesto, fecha de mudanza y compatibilidad."
+          copy="Verlo ordena datos reales para matchear inquilinos y propietarios por barrio."
           button="Empezar"
           rows={[
-            { label: "Zona", value: "CABA Norte" },
+            { label: "Barrio", value: "Olivos" },
             { label: "Tipo", value: "2 ambientes" },
             { label: "Presupuesto", value: "$650k" },
             { label: "Estado", value: "Match posible" },
@@ -738,24 +882,20 @@ function HeroPhone() {
   )
 }
 
-function MiniPhone({
-  type,
-}: {
-  type: Path
-}) {
+function MiniPhone({ type }: { type: Path }) {
   if (type === "tenant") {
     return (
       <div className="mini-phone">
         <PhoneContent
           badge="Búsqueda activa"
           title="Buscá sin comisión"
-          copy="Cargá tu búsqueda y te avisamos si aparece algo compatible."
+          copy="Marcá los barrios donde vivirías y tu presupuesto real."
           button="Cargar búsqueda"
           rows={[
-            { label: "Zona", value: "Vicente López" },
+            { label: "Barrios", value: "Olivos + Núñez" },
+            { label: "Tipo", value: "2 ambientes" },
             { label: "Presupuesto", value: "$500k - $700k" },
             { label: "Mudanza", value: "30 días" },
-            { label: "Estado", value: "Match posible" },
           ]}
         />
       </div>
@@ -768,13 +908,13 @@ function MiniPhone({
         <PhoneContent
           badge="Propietario"
           title="Dejá tus datos"
-          copy="No tenés que subir fotos ni publicar nada todavía."
+          copy="Barrio, tipo, precio y disponibilidad. Sin fotos todavía."
           button="Dejar datos"
           rows={[
-            { label: "Fotos", value: "No requeridas" },
-            { label: "Zona", value: "A definir" },
-            { label: "Disponibilidad", value: "Pronto" },
-            { label: "Interés", value: "Inquilinos" },
+            { label: "Barrio", value: "Vicente López" },
+            { label: "Tipo", value: "Departamento" },
+            { label: "Precio", value: "$650k" },
+            { label: "Disponible", value: "Pronto" },
           ]}
         />
       </div>
@@ -789,9 +929,9 @@ function MiniPhone({
         copy="Ordená el contrato directo, rápido y con firma digital."
         button="Renovar"
         rows={[
+          { label: "Barrio", value: "Belgrano" },
           { label: "Contrato", value: "Por vencer" },
           { label: "Partes", value: "Ambas" },
-          { label: "Proceso", value: "Ordenado" },
           { label: "Firma", value: "Digital" },
         ]}
       />
@@ -801,7 +941,118 @@ function MiniPhone({
 
 export default function PageDePrueba() {
   const [path, setPath] = useState<Path>("tenant")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+
   const selected = pathConfig[path]
+
+  const submitLabel = useMemo(() => {
+    if (loading) return "Guardando..."
+    return selected.button
+  }, [loading, selected.button])
+
+  function choosePath(nextPath: Path) {
+    setPath(nextPath)
+    setError("")
+    setSuccess("")
+  }
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+
+    setLoading(true)
+    setError("")
+    setSuccess("")
+
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    const eventId = `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
+
+    const tenantNeighborhoods = formData.getAll("tenant_neighborhoods").map(String)
+    const tenantNeighborhoodsText = normalizeNeighborhoods(tenantNeighborhoods)
+
+    if (path === "tenant" && tenantNeighborhoods.length === 0) {
+      setError("Elegí al menos un barrio donde buscarías alquilar.")
+      setLoading(false)
+      return
+    }
+
+    const ownerNeighborhood = String(formData.get("owner_neighborhood") || "").trim()
+    const renewalNeighborhood = String(formData.get("renewal_neighborhood") || "").trim()
+
+    const zone =
+      path === "tenant"
+        ? tenantNeighborhoodsText
+        : path === "owner"
+          ? ownerNeighborhood
+          : renewalNeighborhood
+
+    const payload = {
+      full_name: String(formData.get("full_name") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      phone: String(formData.get("phone") || "").trim(),
+      role:
+        path === "renewal"
+          ? String(formData.get("renewal_role") || "both").trim()
+          : selected.role,
+      intent: selected.intent,
+      zone,
+      property_type: String(formData.get("property_type") || "").trim(),
+      availability_status: String(formData.get("availability_status") || "").trim(),
+      approx_price: String(formData.get("approx_price") || "").trim(),
+      desired_property_type: String(formData.get("desired_property_type") || "").trim(),
+      budget_range: String(formData.get("budget_range") || "").trim(),
+      move_timing: String(formData.get("move_timing") || "").trim(),
+      renewal_role: String(formData.get("renewal_role") || "").trim(),
+      contract_expiration: String(formData.get("contract_expiration") || "").trim(),
+      other_party_status: String(formData.get("other_party_status") || "").trim(),
+      renewal_need: String(formData.get("renewal_need") || "").trim(),
+      event_id: eventId,
+      event_source_url: window.location.href,
+      fbp: getCookie("_fbp"),
+      fbc: getMetaFbc(),
+      metadata: {
+        path,
+        page: "pagedeprueba",
+        tenant_neighborhoods: tenantNeighborhoods,
+        neighborhood: zone,
+      },
+    }
+
+    try {
+      const res = await fetch("/api/ghl-lead-webhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "No pudimos guardar tus datos")
+      }
+
+      trackMetaLead(eventId, {
+        path,
+        role: payload.role,
+        intent: payload.intent,
+      })
+
+      form.reset()
+      setSuccess("Listo. Guardamos tus datos y te vamos a contactar por WhatsApp.")
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError("No pudimos guardar tus datos")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <main className="test-root">
@@ -828,15 +1079,15 @@ export default function PageDePrueba() {
             </h1>
 
             <p>
-              Cargá lo que estás buscando y avanzá con más información, menos vueltas
-              y sin pagar una comisión inmobiliaria enorme.
+              Cargá barrios, presupuesto y fecha de mudanza. Verlo usa esos datos para
+              acercarte propiedades compatibles sin pagar una comisión inmobiliaria enorme.
             </p>
 
             <div className="hero-actions">
               <a
                 className="btn btn-primary"
                 href="#sumate"
-                onClick={() => setPath("tenant")}
+                onClick={() => choosePath("tenant")}
               >
                 Busco alquilar
               </a>
@@ -844,7 +1095,7 @@ export default function PageDePrueba() {
               <a
                 className="btn btn-secondary"
                 href="#sumate"
-                onClick={() => setPath("owner")}
+                onClick={() => choosePath("owner")}
               >
                 Tengo una propiedad
               </a>
@@ -852,7 +1103,7 @@ export default function PageDePrueba() {
               <a
                 className="btn btn-secondary"
                 href="#sumate"
-                onClick={() => setPath("renewal")}
+                onClick={() => choosePath("renewal")}
               >
                 Quiero renovar
               </a>
@@ -860,9 +1111,9 @@ export default function PageDePrueba() {
 
             <div className="trust-row">
               <span className="pill">Sin comisión inmobiliaria</span>
+              <span className="pill">Matching por barrio</span>
               <span className="pill">Más simple</span>
               <span className="pill">Más seguro</span>
-              <span className="pill">Contrato digital</span>
             </div>
           </div>
 
@@ -876,12 +1127,12 @@ export default function PageDePrueba() {
             <p className="kicker">Elegí tu camino</p>
 
             <h2 className="section-title">
-              Verlo se adapta a <em>tu situación.</em>
+              Datos simples para <em>matchear mejor.</em>
             </h2>
 
             <p className="section-copy">
-              Buscás alquilar, tenés una propiedad o necesitás renovar. Entrás por
-              el camino correcto y dejamos los datos ordenados desde el primer paso.
+              Inquilinos dicen en qué barrios vivirían. Propietarios dicen en qué barrio
+              tienen la propiedad. Con eso empezamos a ordenar la demanda real.
             </p>
           </div>
 
@@ -890,12 +1141,12 @@ export default function PageDePrueba() {
               <MiniPhone type="tenant" />
 
               <div className="mock-copy">
-                <h3>Buscá alquiler directo</h3>
+                <h3>Buscá por barrios</h3>
                 <p>
-                  Decinos zona, presupuesto y fecha de mudanza. Te avisamos si aparece
-                  una propiedad compatible.
+                  Marcá más de un barrio si te sirve. Así podemos matchearte con propiedades
+                  compatibles aunque no estén en tu primera opción.
                 </p>
-                <a href="#sumate" onClick={() => setPath("tenant")}>
+                <a href="#sumate" onClick={() => choosePath("tenant")}>
                   Busco alquilar
                 </a>
               </div>
@@ -907,10 +1158,10 @@ export default function PageDePrueba() {
               <div className="mock-copy">
                 <h3>Tenés una propiedad</h3>
                 <p>
-                  Dejanos tus datos. No tenés que subir fotos ni publicar nada todavía.
-                  Primero vemos disponibilidad e interés.
+                  Dejanos barrio, tipo, precio y disponibilidad. No tenés que subir fotos ni
+                  publicar nada todavía.
                 </p>
-                <a href="#sumate" onClick={() => setPath("owner")}>
+                <a href="#sumate" onClick={() => choosePath("owner")}>
                   Tengo una propiedad
                 </a>
               </div>
@@ -922,10 +1173,9 @@ export default function PageDePrueba() {
               <div className="mock-copy">
                 <h3>Renová sin comisión</h3>
                 <p>
-                  Ordená la renovación directo, rápido y sin costos inmobiliarios de
-                  renovación.
+                  Ordená la renovación directo, rápido y sin costos inmobiliarios de renovación.
                 </p>
-                <a href="#sumate" onClick={() => setPath("renewal")}>
+                <a href="#sumate" onClick={() => choosePath("renewal")}>
                   Quiero renovar
                 </a>
               </div>
@@ -945,7 +1195,7 @@ export default function PageDePrueba() {
               </h2>
 
               <p className="section-copy">
-                Elegí tu caso y completá lo mínimo para entender qué necesitás.
+                Todos los campos son necesarios para poder ordenar y matchear bien.
               </p>
             </div>
 
@@ -953,28 +1203,28 @@ export default function PageDePrueba() {
               <button
                 type="button"
                 className={`path-card ${path === "tenant" ? "active" : ""}`}
-                onClick={() => setPath("tenant")}
+                onClick={() => choosePath("tenant")}
               >
                 <strong>Busco alquilar</strong>
-                <span>Zona, presupuesto y fecha de mudanza.</span>
+                <span>Barrios, presupuesto y fecha de mudanza.</span>
               </button>
 
               <button
                 type="button"
                 className={`path-card ${path === "owner" ? "active" : ""}`}
-                onClick={() => setPath("owner")}
+                onClick={() => choosePath("owner")}
               >
                 <strong>Tengo una propiedad</strong>
-                <span>Solo tus datos. Sin fotos todavía.</span>
+                <span>Barrio, tipo, precio y disponibilidad.</span>
               </button>
 
               <button
                 type="button"
                 className={`path-card ${path === "renewal" ? "active" : ""}`}
-                onClick={() => setPath("renewal")}
+                onClick={() => choosePath("renewal")}
               >
                 <strong>Quiero renovar</strong>
-                <span>Contrato, partes y vencimiento.</span>
+                <span>Barrio, contrato, partes y vencimiento.</span>
               </button>
             </div>
 
@@ -983,25 +1233,41 @@ export default function PageDePrueba() {
               <p>{selected.subtitle}</p>
             </div>
 
-            <form className="form">
+            <form className="form" onSubmit={handleSubmit}>
               <div className="row">
-                <input className="input" name="full_name" placeholder="Nombre y apellido" />
+                <input className="input" name="full_name" placeholder="Nombre y apellido" required />
                 <input
                   className="input"
                   name="phone"
                   placeholder="WhatsApp con característica. Ej: 11 3361 4865"
                   inputMode="tel"
+                  required
                 />
               </div>
 
-              <input className="input" name="email" type="email" placeholder="Email" />
+              <input className="input" name="email" type="email" placeholder="Email" required />
 
               {path === "tenant" && (
                 <>
-                  <div className="row">
-                    <input className="input" name="zone" placeholder="Zona donde buscás" />
+                  <div className="neighborhood-box">
+                    <strong>Barrios donde buscarías alquilar</strong>
 
-                    <select className="select" name="desired_property_type" defaultValue="">
+                    <div className="neighborhood-grid">
+                      {NEIGHBORHOODS.map((neighborhood) => (
+                        <label className="check-pill" key={neighborhood}>
+                          <input
+                            type="checkbox"
+                            name="tenant_neighborhoods"
+                            value={neighborhood}
+                          />
+                          {neighborhood}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="row">
+                    <select className="select" name="desired_property_type" required defaultValue="">
                       <option value="" disabled>
                         Tipo de propiedad
                       </option>
@@ -1011,29 +1277,39 @@ export default function PageDePrueba() {
                       <option>Habitación</option>
                       <option>Otro</option>
                     </select>
+
+                    <input
+                      className="input"
+                      name="budget_range"
+                      placeholder="Presupuesto mensual máximo"
+                      required
+                    />
                   </div>
 
-                  <div className="row">
-                    <input className="input" name="budget_range" placeholder="Presupuesto aproximado" />
-
-                    <select className="select" name="move_timing" defaultValue="">
-                      <option value="" disabled>
-                        Cuándo querés mudarte
-                      </option>
-                      <option>Estoy buscando ahora</option>
-                      <option>Me quiero mudar en 1-3 meses</option>
-                      <option>Solo quiero enterarme de novedades</option>
-                    </select>
-                  </div>
+                  <select className="select" name="move_timing" required defaultValue="">
+                    <option value="" disabled>
+                      Cuándo querés mudarte
+                    </option>
+                    <option>Estoy buscando ahora</option>
+                    <option>Me quiero mudar en 1-3 meses</option>
+                    <option>Me quiero mudar más adelante</option>
+                  </select>
                 </>
               )}
 
               {path === "owner" && (
                 <>
                   <div className="row">
-                    <input className="input" name="zone" placeholder="Zona de la propiedad" />
+                    <select className="select" name="owner_neighborhood" required defaultValue="">
+                      <option value="" disabled>
+                        Barrio donde está la propiedad
+                      </option>
+                      {NEIGHBORHOODS.map((neighborhood) => (
+                        <option key={neighborhood}>{neighborhood}</option>
+                      ))}
+                    </select>
 
-                    <select className="select" name="property_type" defaultValue="">
+                    <select className="select" name="property_type" required defaultValue="">
                       <option value="" disabled>
                         Tipo de propiedad
                       </option>
@@ -1047,7 +1323,14 @@ export default function PageDePrueba() {
                   </div>
 
                   <div className="row">
-                    <select className="select" name="availability_status" defaultValue="">
+                    <input
+                      className="input"
+                      name="approx_price"
+                      placeholder="Precio mensual esperado"
+                      required
+                    />
+
+                    <select className="select" name="availability_status" required defaultValue="">
                       <option value="" disabled>
                         Disponibilidad
                       </option>
@@ -1055,8 +1338,6 @@ export default function PageDePrueba() {
                       <option>Disponible pronto</option>
                       <option>Estoy evaluando alquilar</option>
                     </select>
-
-                    <input className="input" name="approx_price" placeholder="Precio aproximado opcional" />
                   </div>
                 </>
               )}
@@ -1064,7 +1345,7 @@ export default function PageDePrueba() {
               {path === "renewal" && (
                 <>
                   <div className="row">
-                    <select className="select" name="renewal_role" defaultValue="">
+                    <select className="select" name="renewal_role" required defaultValue="">
                       <option value="" disabled>
                         En la renovación soy...
                       </option>
@@ -1072,7 +1353,14 @@ export default function PageDePrueba() {
                       <option value="tenant">Inquilino</option>
                     </select>
 
-                    <input className="input" name="zone" placeholder="Zona de la propiedad" />
+                    <select className="select" name="renewal_neighborhood" required defaultValue="">
+                      <option value="" disabled>
+                        Barrio de la propiedad
+                      </option>
+                      {NEIGHBORHOODS.map((neighborhood) => (
+                        <option key={neighborhood}>{neighborhood}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="row">
@@ -1080,9 +1368,10 @@ export default function PageDePrueba() {
                       className="input"
                       name="contract_expiration"
                       type="date"
+                      required
                     />
 
-                    <select className="select" name="other_party_status" defaultValue="">
+                    <select className="select" name="other_party_status" required defaultValue="">
                       <option value="" disabled>
                         ¿Lo sabe ya tu contraparte?
                       </option>
@@ -1092,7 +1381,7 @@ export default function PageDePrueba() {
                     </select>
                   </div>
 
-                  <select className="select" name="renewal_need" defaultValue="">
+                  <select className="select" name="renewal_need" required defaultValue="">
                     <option value="" disabled>
                       ¿Qué querés lograr con esta renovación?
                     </option>
@@ -1104,8 +1393,11 @@ export default function PageDePrueba() {
                 </>
               )}
 
-              <button className="submit" type="button">
-                {selected.button}
+              {error && <p className="error">{error}</p>}
+              {success && <p className="success">{success}</p>}
+
+              <button className="submit" type="submit" disabled={loading}>
+                {submitLabel}
               </button>
             </form>
           </div>
