@@ -1,1033 +1,790 @@
 "use client"
 
-import { FormEvent, useState } from "react"
-import { supabase } from "@/lib/supabase/client"
+import { useState } from "react"
+import VerloBrand from "@/components/VerloBrand"
 
+type Path = "tenant" | "owner" | "renewal"
 
-const logoUrl =
-  "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-14%20at%2016.35.42.jpeg"
+const styles = `
+  .test-root {
+    --pink: #f2a8a9;
+    --pink-dark: #c37986;
+    --black: #050002;
+    --soft: #f2ebec;
+    --white: #fffaf9;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 72% 16%, rgba(242, 168, 169, 0.34), transparent 34%),
+      linear-gradient(180deg, #f8f0f1 0%, #f2ebec 48%, #fffaf9 100%);
+    color: var(--black);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
 
-const videoUrl =
-  "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Video%202026-06-14%20at%2001.15.23.mp4"
+  .test-header {
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 clamp(22px, 6vw, 86px);
+    border-bottom: 1px solid rgba(5, 0, 2, 0.08);
+    background: rgba(255, 250, 249, 0.62);
+    backdrop-filter: blur(18px);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
 
-const pendingLeadStorageKey = "verlo_pending_user_data"
+  .test-nav {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 15px;
+    font-weight: 900;
+  }
 
-type PendingLead = {
-  full_name: string
-  email: string
-  phone: string
-  role: string
-  need: string
-}
+  .test-nav a {
+    color: rgba(5, 0, 2, 0.68);
+    text-decoration: none;
+  }
 
-function clean(value: unknown) {
-  return String(value || "").trim()
-}
+  .pill-btn {
+    border: 0;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    padding: 15px 22px;
+    font-weight: 950;
+    font-size: 15px;
+    cursor: pointer;
+    box-shadow: 0 14px 35px rgba(5, 0, 2, 0.18);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
+  .hero {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: clamp(28px, 5vw, 76px);
+    padding: clamp(54px, 8vw, 96px) clamp(22px, 6vw, 86px) clamp(42px, 7vw, 86px);
+    align-items: center;
+  }
 
-function normalizePhone(phone: string) {
-  return phone.replace(/[^\d+]/g, "")
-}
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 13px;
+    border-radius: 999px;
+    background: rgba(242, 168, 169, 0.28);
+    color: rgba(5, 0, 2, 0.72);
+    font-weight: 950;
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
 
-function isValidPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "")
-  return digits.length >= 8 && digits.length <= 15
-}
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--pink-dark);
+  }
 
-function isValidFullName(name: string) {
-  const parts = name.trim().split(/\s+/)
-  return name.length >= 5 && parts.length >= 2
-}
+  h1 {
+    margin: 0;
+    font-size: clamp(58px, 9vw, 132px);
+    line-height: 0.84;
+    letter-spacing: -0.085em;
+    font-weight: 1000;
+  }
 
-export default function Home() {
-  const [magicLinkSent, setMagicLinkSent] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  h1 em {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 500;
+    letter-spacing: -0.075em;
+  }
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+  .hero p {
+    margin: 30px 0 0;
+    max-width: 660px;
+    color: rgba(5, 0, 2, 0.68);
+    font-size: clamp(19px, 2.1vw, 25px);
+    line-height: 1.35;
+    font-weight: 650;
+  }
 
-    const form = e.currentTarget
-    const formData = new FormData(form)
+  .hero-actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 34px;
+  }
 
-    const lead: PendingLead = {
-      full_name: clean(formData.get("full_name")),
-      email: clean(formData.get("email")).toLowerCase(),
-      phone: normalizePhone(clean(formData.get("phone"))),
-      role: clean(formData.get("role")),
-      need: clean(formData.get("need")),
+  .ghost-btn {
+    border: 1px solid rgba(5, 0, 2, 0.12);
+    background: rgba(255, 255, 255, 0.68);
+    color: var(--black);
+    border-radius: 999px;
+    padding: 15px 22px;
+    font-size: 15px;
+    font-weight: 950;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .phone-shell {
+    width: min(460px, 100%);
+    justify-self: center;
+    border: 12px solid var(--black);
+    border-radius: 58px;
+    background: var(--white);
+    box-shadow: 0 38px 90px rgba(5, 0, 2, 0.18);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .phone-top {
+    height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 26px;
+    border-bottom: 1px solid rgba(5, 0, 2, 0.08);
+  }
+
+  .mini-brand {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 800;
+    font-style: italic;
+    font-size: 30px;
+  }
+
+  .dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .dots span {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--black);
+  }
+
+  .phone-body {
+    padding: 28px;
+    min-height: 520px;
+  }
+
+  .tag {
+    display: inline-flex;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(242, 168, 169, 0.22);
+    color: var(--pink-dark);
+    font-weight: 950;
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+
+  .phone-title {
+    font-size: 42px;
+    line-height: 0.95;
+    letter-spacing: -0.065em;
+    font-weight: 1000;
+    margin: 0 0 12px;
+  }
+
+  .phone-copy {
+    color: rgba(5, 0, 2, 0.58);
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 24px;
+  }
+
+  .mock-card {
+    border-radius: 28px;
+    background: linear-gradient(180deg, #fff, #f6fbff);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    padding: 20px;
+    margin-top: 14px;
+    box-shadow: 0 18px 45px rgba(5, 0, 2, 0.07);
+  }
+
+  .mock-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(5, 0, 2, 0.07);
+    font-weight: 850;
+  }
+
+  .mock-row:last-child {
+    border-bottom: 0;
+  }
+
+  .muted {
+    color: rgba(5, 0, 2, 0.48);
+    font-weight: 750;
+  }
+
+  .section {
+    padding: clamp(46px, 7vw, 86px) clamp(22px, 6vw, 86px);
+  }
+
+  .section-head {
+    max-width: 860px;
+    margin-bottom: 32px;
+  }
+
+  .section h2 {
+    margin: 0;
+    font-size: clamp(42px, 6vw, 84px);
+    line-height: 0.92;
+    letter-spacing: -0.075em;
+    font-weight: 1000;
+  }
+
+  .section h2 em {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 500;
+  }
+
+  .section-head p {
+    color: rgba(5, 0, 2, 0.62);
+    font-size: 20px;
+    line-height: 1.42;
+    font-weight: 650;
+    margin: 18px 0 0;
+  }
+
+  .paths {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .path-card {
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 38px;
+    padding: 22px;
+    box-shadow: 0 22px 60px rgba(5, 0, 2, 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .visual {
+    border-radius: 30px;
+    background: var(--soft);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    padding: 18px;
+    min-height: 310px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .visual:before {
+    content: "";
+    position: absolute;
+    inset: auto -30% -45% -30%;
+    height: 190px;
+    border-radius: 999px;
+    background: rgba(242, 168, 169, 0.35);
+    filter: blur(10px);
+  }
+
+  .visual-inner {
+    position: relative;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.76);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    border-radius: 26px;
+    padding: 18px;
+  }
+
+  .visual-title {
+    font-size: 28px;
+    line-height: 1;
+    letter-spacing: -0.055em;
+    font-weight: 1000;
+    margin: 10px 0 18px;
+  }
+
+  .chip {
+    display: inline-flex;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(242, 168, 169, 0.24);
+    color: var(--pink-dark);
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  .bars {
+    display: grid;
+    gap: 10px;
+  }
+
+  .bar {
+    height: 13px;
+    border-radius: 999px;
+    background: rgba(5, 0, 2, 0.10);
+  }
+
+  .bar.w80 { width: 80%; }
+  .bar.w65 { width: 65%; }
+  .bar.w45 { width: 45%; }
+  .bar.w92 { width: 92%; }
+  .bar.w70 { width: 70%; }
+
+  .path-card h3 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.055em;
+    font-weight: 1000;
+  }
+
+  .path-card p {
+    margin: 0;
+    color: rgba(5, 0, 2, 0.62);
+    font-weight: 650;
+    line-height: 1.42;
+    font-size: 16px;
+  }
+
+  .path-card button {
+    margin-top: auto;
+    border: 0;
+    border-radius: 999px;
+    min-height: 54px;
+    padding: 0 20px;
+    background: var(--black);
+    color: white;
+    font-weight: 950;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .form-wrap {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 28px;
+    align-items: start;
+  }
+
+  .form-panel {
+    border-radius: 40px;
+    background: rgba(255, 255, 255, 0.76);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    padding: 28px;
+    box-shadow: 0 22px 60px rgba(5, 0, 2, 0.07);
+  }
+
+  .choice-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .choice-tabs button {
+    border: 1px solid rgba(5, 0, 2, 0.10);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--black);
+    min-height: 48px;
+    font-weight: 950;
+    cursor: pointer;
+  }
+
+  .choice-tabs button.active {
+    background: var(--black);
+    color: white;
+  }
+
+  .grid-form {
+    display: grid;
+    gap: 12px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .input, .select {
+    width: 100%;
+    border: 1px solid rgba(5, 0, 2, 0.10);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    padding: 16px 17px;
+    font-size: 15px;
+    font-weight: 750;
+    color: var(--black);
+    outline: none;
+  }
+
+  .submit {
+    min-height: 58px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    font-size: 16px;
+    font-weight: 1000;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  .fine {
+    color: rgba(5, 0, 2, 0.52);
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 650;
+  }
+
+  @media (max-width: 980px) {
+    .hero, .form-wrap {
+      grid-template-columns: 1fr;
     }
 
-    try {
-      if (!isValidFullName(lead.full_name)) {
-        setError("Ingresá nombre y apellido reales.")
-        return
-      }
+    .paths {
+      grid-template-columns: 1fr;
+    }
 
-      if (!lead.email || !isValidEmail(lead.email)) {
-        setError("Ingresá un email real y válido.")
-        return
-      }
+    .phone-shell {
+      display: none;
+    }
 
-      if (!lead.phone || !isValidPhone(lead.phone)) {
-        setError("Ingresá un WhatsApp real con código de área.")
-        return
-      }
-
-      if (!lead.role) {
-        setError("Elegí cómo vas a usar Verlo.")
-        return
-      }
-
-      if (!lead.need) {
-        setError("Elegí qué querés hacer.")
-        return
-      }
-
-      localStorage.setItem(pendingLeadStorageKey, JSON.stringify(lead))
-
-      const redirectTo = `${window.location.origin}/success`
-
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: lead.email,
-        options: {
-          emailRedirectTo: redirectTo,
-          shouldCreateUser: true,
-          data: {
-            full_name: lead.full_name,
-            phone: lead.phone,
-            role: lead.role,
-            need: lead.need,
-            source: "home_magic_link",
-          },
-        },
-      })
-
-      if (otpError) {
-        throw new Error(otpError.message || "No pudimos enviarte el email de acceso.")
-      }
-
-      setMagicLinkSent(true)
-      if (typeof window !== "undefined" && window.fbq) {
-  window.fbq("trackCustom", "MagicLinkSent", {
-    content_name: "Verlo acceso anticipado",
-    source: "home",
-  })
-}
-    } catch (err) {
-      console.error(err)
-
-      if (err instanceof Error) {
-        setError(err.message)
-      } else {
-        setError("No pudimos iniciar el registro. Probá de nuevo.")
-      }
-    } finally {
-      setLoading(false)
+    .test-nav a {
+      display: none;
     }
   }
 
-  return (
-    <main className="page">
-      <style jsx>{`
-        .page {
-          min-height: 100vh;
-          background: #ffffff;
-          color: #050505;
-          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-            sans-serif;
-        }
-
-        .siteHeader {
-          position: sticky;
-          top: 0;
-          z-index: 100;
-          width: 100%;
-          background: rgba(255, 255, 255, 0.94);
-          backdrop-filter: blur(14px);
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-        }
-
-        .siteHeaderInner {
-          width: min(760px, calc(100% - 34px));
-          height: 82px;
-          margin: 0 auto;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .headerLogo {
-          width: 230px;
-          height: auto;
-          display: block;
-        }
-
-        .wrap {
-          width: min(760px, calc(100% - 34px));
-          margin: 0 auto;
-          padding: 26px 0 70px;
-        }
-
-        .hero {
-          text-align: center;
-          padding: 0 !important;
-          margin: 0;
-        }
-
-        h1 {
-          margin: 0;
-          font-size: clamp(34px, 6vw, 54px);
-          line-height: 1;
-          letter-spacing: -0.055em;
-          font-weight: 950;
-        }
-
-        .saving {
-          margin: 8px 0 28px;
-          font-size: clamp(24px, 4vw, 36px);
-          line-height: 1.05;
-          letter-spacing: -0.04em;
-          font-weight: 500;
-        }
-
-        .steps {
-          width: min(520px, 100%);
-          margin: 0 auto;
-          display: grid;
-          gap: 22px;
-        }
-
-        .step {
-          display: grid;
-          grid-template-columns: 116px 1fr;
-          gap: 24px;
-          align-items: center;
-          text-align: left;
-        }
-
-        .iconWrap {
-          display: grid;
-          justify-items: center;
-          gap: 8px;
-        }
-
-        .pill {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 72px;
-          height: 26px;
-          padding: 0 12px;
-          border-radius: 999px;
-          background: #20d466;
-          color: white;
-          font-size: 13px;
-          font-weight: 950;
-        }
-
-        .icon {
-          width: 88px;
-          height: 88px;
-          border: 3px solid #050505;
-          border-radius: 22px;
-          display: grid;
-          place-items: center;
-          background: white;
-          line-height: 1;
-        }
-
-        .icon svg {
-          width: 54px;
-          height: 54px;
-          stroke: #20d466;
-          stroke-width: 2.5;
-          fill: none;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-        }
-
-        .step h3 {
-          margin: 0 0 8px;
-          font-size: 25px;
-          line-height: 1;
-          letter-spacing: -0.04em;
-          font-weight: 950;
-        }
-
-        .step p {
-          margin: 0;
-          font-size: 15px;
-          line-height: 1.25;
-          color: rgba(0, 0, 0, 0.74);
-          font-weight: 500;
-        }
-
-        .trust {
-          margin: 36px auto 28px;
-          width: min(610px, 100%);
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 22px;
-          align-items: center;
-        }
-
-        .trustItem {
-          display: grid;
-          grid-template-columns: 86px 1fr;
-          gap: 16px;
-          align-items: center;
-          text-align: left;
-        }
-
-        .trustIcon {
-          width: 82px;
-          height: 82px;
-          border: 4px solid #050505;
-          border-radius: 28px;
-          display: grid;
-          place-items: center;
-        }
-
-        .trustIcon svg {
-          width: 54px;
-          height: 54px;
-          stroke: #20d466;
-          stroke-width: 3;
-          fill: none;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-        }
-
-        .trustItem h3 {
-          margin: 0 0 5px;
-          font-size: 22px;
-          line-height: 0.96;
-          letter-spacing: -0.04em;
-          font-weight: 950;
-        }
-
-        .trustItem p {
-          margin: 0;
-          color: rgba(0, 0, 0, 0.62);
-          font-size: 13px;
-          line-height: 1.25;
-          font-weight: 600;
-        }
-
-        .videoBlock {
-          width: min(620px, 100%);
-          margin: 30px auto 0;
-          border-radius: 24px;
-          overflow: hidden;
-          border: 1px solid rgba(0, 0, 0, 0.12);
-          background: #000;
-          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.14);
-        }
-
-        .demoVideo {
-          width: 100%;
-          height: auto;
-          display: block;
-        }
-
-        .infoCard {
-          margin-top: 32px;
-          border: 2px solid rgba(32, 212, 102, 0.7);
-          border-radius: 24px;
-          padding: 34px 40px;
-          display: grid;
-          grid-template-columns: 1.15fr 0.85fr;
-          gap: 34px;
-          align-items: center;
-          background: #fff;
-        }
-
-        .infoText h2 {
-          margin: 0 0 22px;
-          font-size: clamp(34px, 5vw, 50px);
-          line-height: 0.98;
-          letter-spacing: -0.055em;
-          font-weight: 950;
-        }
-
-        .infoText p {
-          margin: 0 0 26px;
-          font-size: clamp(19px, 2.5vw, 27px);
-          line-height: 1.16;
-          color: rgba(0, 0, 0, 0.88);
-          font-weight: 500;
-        }
-
-        .blackHighlight {
-          display: inline-block;
-          background: #050505;
-          color: #ffffff;
-          padding: 2px 8px 4px;
-          font-size: clamp(25px, 3.5vw, 36px);
-          line-height: 1;
-          letter-spacing: -0.045em;
-          font-weight: 950;
-          margin-bottom: 6px;
-        }
-
-        .infoText strong {
-          display: block;
-          color: #35b864;
-          font-size: clamp(27px, 4vw, 39px);
-          line-height: 1.03;
-          letter-spacing: -0.045em;
-          font-weight: 950;
-        }
-
-        .phoneMockup {
-          position: relative;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          min-height: 370px;
-        }
-
-        .greenCircle {
-          position: absolute;
-          width: 300px;
-          height: 300px;
-          border-radius: 999px;
-          background: rgba(32, 212, 102, 0.14);
-        }
-
-        .phone {
-          position: relative;
-          z-index: 2;
-          width: 215px;
-          min-height: 360px;
-          border: 9px solid #050505;
-          border-radius: 38px;
-          background: #ffffff;
-          padding: 46px 22px 24px;
-          box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
-        }
-
-        .notch {
-          position: absolute;
-          top: 0;
-          left: 50%;
-          width: 86px;
-          height: 22px;
-          transform: translateX(-50%);
-          background: #050505;
-          border-radius: 0 0 16px 16px;
-        }
-
-        .phoneLogo {
-          margin-bottom: 20px;
-          text-align: center;
-          font-size: 34px;
-          line-height: 1;
-          font-weight: 950;
-          letter-spacing: -0.05em;
-        }
-
-        .phoneLogo span {
-          color: #20d466;
-        }
-
-        .phone ul {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-          display: grid;
-          gap: 10px;
-        }
-
-        .phone li {
-          position: relative;
-          padding-left: 26px;
-          font-size: 13px;
-          line-height: 1.1;
-          font-weight: 850;
-        }
-
-        .phone li::before {
-          content: "✓";
-          position: absolute;
-          left: 0;
-          top: -2px;
-          width: 18px;
-          height: 18px;
-          border-radius: 999px;
-          background: #20d466;
-          color: white;
-          display: grid;
-          place-items: center;
-          font-size: 13px;
-          font-weight: 950;
-        }
-
-        .price {
-          margin-top: 28px;
-          display: flex;
-          justify-content: center;
-          align-items: flex-end;
-          gap: 5px;
-          color: #20d466;
-          font-weight: 950;
-        }
-
-        .price span {
-          font-size: 52px;
-          line-height: 0.85;
-        }
-
-        .price small {
-          color: #050505;
-          font-size: 17px;
-          font-weight: 950;
-        }
-
-        .priceNote {
-          margin-top: 7px;
-          text-align: center;
-          font-size: 10px;
-          color: #050505;
-          font-weight: 850;
-        }
-
-        .launch {
-          margin-top: 14px;
-          border: 2px solid #20d466;
-          border-radius: 16px;
-          padding: 18px 20px;
-          display: grid;
-          grid-template-columns: 64px 1fr auto;
-          gap: 16px;
-          align-items: center;
-          background: rgba(32, 212, 102, 0.03);
-        }
-
-        .rocket {
-          width: 58px;
-          height: 58px;
-          border-radius: 999px;
-          background: rgba(32, 212, 102, 0.12);
-          display: grid;
-          place-items: center;
-          font-size: 32px;
-        }
-
-        .launch h3 {
-          margin: 0 0 5px;
-          font-size: 18px;
-          letter-spacing: -0.03em;
-          line-height: 1.05;
-          font-weight: 950;
-        }
-
-        .launch p {
-          margin: 0;
-          font-size: 14px;
-          line-height: 1.28;
-          color: rgba(0, 0, 0, 0.68);
-          font-weight: 600;
-        }
-
-        .launchBtn {
-          height: 42px;
-          padding: 0 22px;
-          border-radius: 999px;
-          background: #20d466;
-          color: white;
-          border: 0;
-          font-weight: 950;
-          white-space: nowrap;
-          cursor: pointer;
-        }
-
-        .formCard {
-          width: min(520px, 100%);
-          margin: 14px auto 0;
-          border: 1px solid rgba(0, 0, 0, 0.16);
-          border-radius: 20px;
-          padding: 24px;
-          background: #fff;
-        }
-
-        .formCard h2 {
-          margin: 0;
-          font-size: 28px;
-          line-height: 1;
-          letter-spacing: -0.045em;
-          font-weight: 950;
-        }
-
-        .formCard p {
-          margin: 10px 0 18px;
-          font-size: 15px;
-          line-height: 1.35;
-          color: rgba(0, 0, 0, 0.6);
-          font-weight: 500;
-        }
-
-        form {
-          display: grid;
-          gap: 10px;
-        }
-
-        input,
-        select {
-          height: 44px;
-          width: 100%;
-          border: 1px solid rgba(0, 0, 0, 0.14);
-          border-radius: 12px;
-          padding: 0 13px;
-          font-size: 14px;
-          outline: none;
-          background: white;
-          color: #050505;
-        }
-
-        input:focus,
-        select:focus {
-          border-color: #20d466;
-          box-shadow: 0 0 0 3px rgba(32, 212, 102, 0.14);
-        }
-
-        .row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-
-        .submit {
-          margin-top: 10px;
-          height: 52px;
-          border: 0;
-          border-radius: 999px;
-          background: #20d466;
-          color: #06140a;
-          font-weight: 950;
-          cursor: pointer;
-        }
-
-        .submit:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        .mini {
-          margin-top: 10px;
-          font-size: 12px;
-          color: rgba(0, 0, 0, 0.46);
-        }
-
-        .magicBox {
-          padding: 18px;
-          border-radius: 14px;
-          border: 2px solid #20d466;
-          background: rgba(32, 212, 102, 0.08);
-          color: #087b35;
-          font-weight: 850;
-          line-height: 1.35;
-        }
-
-        .magicBox strong {
-          display: block;
-          margin-bottom: 6px;
-          font-size: 18px;
-          color: #050505;
-        }
-
-        .error {
-          margin-top: 8px;
-          color: #b00020;
-          font-size: 13px;
-          font-weight: 800;
-        }
-
-        @media (max-width: 720px) {
-          .siteHeaderInner {
-            height: 74px;
-          }
-
-          .headerLogo {
-            width: 180px;
-          }
-
-          .wrap {
-            width: min(100% - 28px, 760px);
-            padding: 22px 0 70px;
-          }
-
-          .step {
-            grid-template-columns: 92px 1fr;
-            gap: 16px;
-          }
-
-          .icon {
-            width: 74px;
-            height: 74px;
-          }
-
-          .icon svg {
-            width: 45px;
-            height: 45px;
-          }
-
-          .trust,
-          .infoCard,
-          .launch {
-            grid-template-columns: 1fr;
-          }
-
-          .trustItem {
-            grid-template-columns: 76px 1fr;
-          }
-
-          .trustIcon {
-            width: 72px;
-            height: 72px;
-          }
-
-          .trustIcon svg {
-            width: 46px;
-            height: 46px;
-          }
-
-          .infoCard {
-            padding: 28px 22px;
-            gap: 24px;
-          }
-
-          .phoneMockup {
-            min-height: 360px;
-          }
-
-          .launchBtn {
-            width: 100%;
-          }
-
-          .row {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-
-      <header className="siteHeader">
-        <div className="siteHeaderInner">
-          <img src={logoUrl} alt="Verlo" className="headerLogo" />
+  @media (max-width: 620px) {
+    .test-header {
+      height: 82px;
+    }
+
+    .grid-2, .choice-tabs {
+      grid-template-columns: 1fr;
+    }
+
+    h1 {
+      font-size: 64px;
+    }
+  }
+`
+
+function MiniMock({ type }: { type: Path }) {
+  if (type === "tenant") {
+    return (
+      <div className="visual">
+        <div className="visual-inner">
+          <span className="chip">Búsqueda activa</span>
+          <div className="visual-title">Match de alquiler</div>
+          <div className="mock-card">
+            <div className="mock-row">
+              <span className="muted">Zona</span>
+              <span>Vicente López</span>
+            </div>
+            <div className="mock-row">
+              <span className="muted">Presupuesto</span>
+              <span>$500k - $700k</span>
+            </div>
+            <div className="mock-row">
+              <span className="muted">Mudanza</span>
+              <span>Próximos 30 días</span>
+            </div>
+          </div>
         </div>
-      </header>
-
-      <div className="wrap">
-        <section className="hero">
-          <h1>Más fácil, rápido y seguro</h1>
-          <div className="saving">Ahorrá hasta un 95%</div>
-
-          <div className="steps">
-            <div className="step">
-              <div className="iconWrap">
-                <span className="pill">Paso 1</span>
-                <div className="icon">
-                  <svg viewBox="0 0 64 64">
-                    <path d="M26 38l12-12" />
-                    <path d="M36 18h10v10" />
-                    <path d="M38 26l8-8" />
-                    <path d="M25 20l-8 8c-5 5-5 13 0 18s13 5 18 0l6-6" />
-                    <path d="M39 44l8-8c5-5 5-13 0-18s-13-5-18 0l-6 6" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h3>Invitación</h3>
-                <p>Creá un link único para invitar a la otra parte a Verlo.</p>
-              </div>
-            </div>
-
-            <div className="step">
-              <div className="iconWrap">
-                <span className="pill">Paso 2</span>
-                <div className="icon">
-                  <svg viewBox="0 0 64 64">
-                    <path d="M18 28c0-9 6-16 14-16s14 7 14 16" />
-                    <path d="M20 31c0 11 5 19 12 19s12-8 12-19" />
-                    <path d="M26 31h.1" />
-                    <path d="M38 31h.1" />
-                    <path d="M27 40c3 3 7 3 10 0" />
-                    <path d="M12 22v-8h8" />
-                    <path d="M44 14h8v8" />
-                    <path d="M12 42v8h8" />
-                    <path d="M44 50h8v-8" />
-                    <rect x="40" y="36" width="16" height="16" rx="3" />
-                    <path d="M44 36v-4a4 4 0 018 0v4" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h3>Verlo ID</h3>
-                <p>
-                  Validación biométrica y video selfie en segundos para garantizar
-                  identidad real.
-                </p>
-              </div>
-            </div>
-
-            <div className="step">
-              <div className="iconWrap">
-                <span className="pill">Paso 3</span>
-                <div className="icon">
-                  <svg viewBox="0 0 64 64">
-                    <path d="M18 10h24l8 8v36H18z" />
-                    <path d="M42 10v10h10" />
-                    <path d="M24 26l4 4 8-9" />
-                    <path d="M24 38l4 4 8-9" />
-                    <path d="M42 40l10-10 4 4-10 10-6 2z" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h3>Acuerdo</h3>
-                <p>
-                  Cargá condiciones básicas como precio, duración y servicios de forma
-                  simple.
-                </p>
-              </div>
-            </div>
-
-            <div className="step">
-              <div className="iconWrap">
-                <span className="pill">Paso 4</span>
-                <div className="icon">
-                  <svg viewBox="0 0 64 64">
-                    <path d="M32 6l22 9v16c0 14-9 22-22 27C19 53 10 45 10 31V15z" />
-                    <path d="M32 18v28" />
-                    <path d="M40 24c-2-4-14-5-14 2 0 8 16 4 16 13 0 7-13 7-17 2" />
-                    <circle cx="48" cy="48" r="10" />
-                    <path d="M44 48l3 3 6-7" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h3>Fee de Seguridad</h3>
-                <p>
-                  Pago de USD 69 por cada parte para activar la tecnología de Verlo.
-                </p>
-              </div>
-            </div>
-
-            <div className="step">
-              <div className="iconWrap">
-                <span className="pill">Paso 5</span>
-                <div className="icon">
-                  <svg viewBox="0 0 64 64">
-                    <path d="M18 8h28l8 8v40H18z" />
-                    <path d="M46 8v10h10" />
-                    <path d="M26 44c3-8 7-8 8 0 1 6 6 4 9-1" />
-                    <path d="M37 31l13-13 5 5-13 13-8 3z" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h3>Firma Digital</h3>
-                <p>
-                  Firmá el contrato digital para cerrar la operación de forma definitiva.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="trust">
-            <div className="trustItem">
-              <div className="trustIcon">
-                <svg viewBox="0 0 64 64">
-                  <path d="M32 6l22 9v16c0 14-9 22-22 27C19 53 10 45 10 31V15z" />
-                  <path d="M22 32l7 7 14-17" />
-                </svg>
-              </div>
-              <div>
-                <h3>Testigo Digital</h3>
-                <p>Registro inalterable de toda la trazabilidad y acuerdos entre partes.</p>
-              </div>
-            </div>
-
-            <div className="trustItem">
-              <div className="trustIcon">
-                <svg viewBox="0 0 64 64">
-                  <circle cx="30" cy="23" r="11" />
-                  <path d="M12 54c3-13 11-20 18-20s15 7 18 20" />
-                  <circle cx="48" cy="46" r="10" />
-                  <path d="M44 46l3 3 6-7" />
-                </svg>
-              </div>
-              <div>
-                <h3>Identidad Verificada</h3>
-                <p>Tecnología que confirma quién sos y garantiza acuerdos válidos.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="videoBlock">
-            <video
-              className="demoVideo"
-              src={videoUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls
-            />
-          </div>
-        </section>
-
-        <section className="infoCard">
-          <div className="infoText">
-            <h2>¡Dejá de regalar miles de dólares en comisiones inmobiliarias!</h2>
-
-            <p>
-              Verlo te permite cerrar un nuevo alquiler o renovarlo, con identidad
-              validada, firma digital y trazabilidad de punta a punta.
-            </p>
-
-            <div className="blackHighlight">Ahora que conocés Verlo...</div>
-
-            <strong>
-              ¿Por qué pagarías mucho más,
-              <br />
-              por mucho menos?
-            </strong>
-          </div>
-
-          <div className="phoneMockup">
-            <div className="greenCircle" />
-
-            <div className="phone">
-              <div className="notch" />
-              <div className="phoneLogo">
-                <span>V</span>erlo
-              </div>
-
-              <ul>
-                <li>Identidad validada</li>
-                <li>Firma digital</li>
-                <li>Trazabilidad completa</li>
-                <li>Sin intermediarios</li>
-                <li>Almacenamiento seguro</li>
-                <li>Auditoría de cada instancia</li>
-                <li>Soporte especializado</li>
-              </ul>
-
-              <div className="price">
-                <span>69</span>
-                <small>USD</small>
-              </div>
-
-              <div className="priceNote">Costo total del servicio</div>
-            </div>
-          </div>
-        </section>
-
-        <section className="launch">
-          <div className="rocket">🚀</div>
-          <div>
-            <h3>¡Estamos preparando el lanzamiento de Verlo!</h3>
-            <p>
-              Registrate y accedé primero a la forma más simple y segura de cerrar o
-              renovar un alquiler.
-            </p>
-          </div>
-          <button
-            className="launchBtn"
-            onClick={() =>
-              document
-                .getElementById("acceso")
-                ?.scrollIntoView({ behavior: "smooth", block: "center" })
-            }
-          >
-            ¡Quiero cuidar mi dinero!
-          </button>
-        </section>
-
-        <section className="formCard" id="acceso">
-          {magicLinkSent ? (
-            <div className="magicBox">
-              <strong>Te enviamos un email de confirmación.</strong>
-              Abrí tu correo y tocá el link para completar el registro. Cuando vuelvas a
-              Verlo, tus datos quedan guardados en tu usuario.
-            </div>
-          ) : (
-            <>
-              <h2>Verlo cambiará el mercado inmobiliario en LATAM</h2>
-              <p>
-                ¡Sumate! Estamos preparando beneficios especiales para miembros
-                fundadores.
-              </p>
-
-              <form onSubmit={handleSubmit}>
-                <input
-                  required
-                  name="full_name"
-                  minLength={5}
-                  autoComplete="name"
-                  placeholder="Nombre y apellido"
-                />
-
-                <input
-                  required
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="Email"
-                />
-
-                <input
-                  required
-                  name="phone"
-                  type="tel"
-                  minLength={8}
-                  autoComplete="tel"
-                  placeholder="WhatsApp con código de área"
-                />
-
-                <div className="row">
-                  <select required name="role" defaultValue="">
-                    <option value="" disabled>
-                      ¿Cómo vas a usar Verlo?
-                    </option>
-                    <option>Propietario</option>
-                    <option>Inquilino</option>
-                    <option>Otro</option>
-                  </select>
-
-                  <select required name="need" defaultValue="">
-                    <option value="" disabled>
-                      ¿Qué querés hacer?
-                    </option>
-                    <option>Firmar un nuevo alquiler</option>
-                    <option>Renovar un contrato existente</option>
-                    <option>Conocer Verlo</option>
-                  </select>
-                </div>
-
-                <button className="submit" disabled={loading}>
-                  {loading ? "Enviando email..." : "Quiero acceso anticipado"}
-                </button>
-
-                {error && <div className="error">{error}</div>}
-              </form>
-
-              <div className="mini">
-                Vas a ser parte de un cambio sin precedentes. ¿Estás listo?
-              </div>
-            </>
-          )}
-        </section>
       </div>
-    </main>
+    )
+  }
+
+  if (type === "owner") {
+    return (
+      <div className="visual">
+        <div className="visual-inner">
+          <span className="chip">Propietario</span>
+          <div className="visual-title">Sin publicar todavía</div>
+          <div className="mock-card">
+            <div className="mock-row">
+              <span className="muted">Datos</span>
+              <span>Contacto recibido</span>
+            </div>
+            <div className="mock-row">
+              <span className="muted">Fotos</span>
+              <span>No requeridas</span>
+            </div>
+            <div className="mock-row">
+              <span className="muted">Interés</span>
+              <span>Inquilinos compatibles</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="visual">
+      <div className="visual-inner">
+        <span className="chip">Renovación</span>
+        <div className="visual-title">Contrato ordenado</div>
+        <div className="mock-card">
+          <div className="mock-row">
+            <span className="muted">Vencimiento</span>
+            <span>Por confirmar</span>
+          </div>
+          <div className="mock-row">
+            <span className="muted">Partes</span>
+            <span>Propietario + inquilino</span>
+          </div>
+          <div className="mock-row">
+            <span className="muted">Firma</span>
+            <span>Digital</span>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
+export default function Pagedeprueba() {
+  const [path, setPath] = useState<Path>("tenant")
 
+  return (
+    <main className="test-root">
+      <style>{styles}</style>
+
+      <header className="test-header">
+        <VerloBrand width={178} />
+        <nav className="test-nav">
+          <a href="#caminos">Qué querés hacer</a>
+          <a className="pill-btn" href="#sumate">
+            Sumate
+          </a>
+        </nav>
+      </header>
+
+      <section className="hero">
+        <div>
+          <div className="eyebrow">
+            <span className="dot" />
+            Alquiler directo, más simple y más barato
+          </div>
+
+          <h1>
+            Alquilá directo, <em>seguro y sin comisión.</em>
+          </h1>
+
+          <p>
+            Cargá tu búsqueda, dejá tus datos o empezá una renovación. Verlo ordena la conexión
+            entre inquilinos y propietarios para avanzar sin vueltas.
+          </p>
+
+          <div className="hero-actions">
+            <a className="pill-btn" href="#sumate" onClick={() => setPath("tenant")}>
+              Busco alquilar
+            </a>
+            <a className="ghost-btn" href="#sumate" onClick={() => setPath("owner")}>
+              Tengo una propiedad
+            </a>
+            <a className="ghost-btn" href="#sumate" onClick={() => setPath("renewal")}>
+              Quiero renovar
+            </a>
+          </div>
+        </div>
+
+        <div className="phone-shell">
+          <div className="phone-top">
+            <div className="mini-brand">verlo</div>
+            <div className="dots">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+
+          <div className="phone-body">
+            <span className="tag">Búsqueda activa</span>
+            <div className="phone-title">Menos comisión. Más control.</div>
+            <div className="phone-copy">
+              Verlo prioriza datos útiles: zona, presupuesto, fecha de mudanza y compatibilidad.
+            </div>
+
+            <div className="mock-card">
+              <div className="mock-row">
+                <span className="muted">Zona</span>
+                <span>CABA Norte</span>
+              </div>
+              <div className="mock-row">
+                <span className="muted">Tipo</span>
+                <span>2 ambientes</span>
+              </div>
+              <div className="mock-row">
+                <span className="muted">Estado</span>
+                <span>Match posible</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section" id="caminos">
+        <div className="section-head">
+          <h2>
+            Un flujo para <em>cada caso.</em>
+          </h2>
+          <p>
+            No todos llegan por el mismo problema. Inquilinos, propietarios y renovadores necesitan
+            mensajes distintos y datos distintos.
+          </p>
+        </div>
+
+        <div className="paths">
+          <article className="path-card">
+            <MiniMock type="tenant" />
+            <h3>Busco alquilar</h3>
+            <p>
+              Cargá zona, presupuesto y fecha de mudanza. Te avisamos si aparece una propiedad
+              compatible para avanzar directo.
+            </p>
+            <button onClick={() => setPath("tenant")}>Busco alquilar</button>
+          </article>
+
+          <article className="path-card">
+            <MiniMock type="owner" />
+            <h3>Tengo una propiedad</h3>
+            <p>
+              Dejanos tus datos. No tenés que subir fotos ni publicar nada todavía. Primero vemos
+              disponibilidad y compatibilidad.
+            </p>
+            <button onClick={() => setPath("owner")}>Tengo una propiedad</button>
+          </article>
+
+          <article className="path-card">
+            <MiniMock type="renewal" />
+            <h3>Quiero renovar</h3>
+            <p>
+              Ordená una renovación directa, rápida y segura, sin costos inmobiliarios de renovación.
+            </p>
+            <button onClick={() => setPath("renewal")}>Quiero renovar</button>
+          </article>
+        </div>
+      </section>
+
+      <section className="section" id="sumate">
+        <div className="form-wrap">
+          <div className="section-head">
+            <h2>
+              Sumate a <em>Verlo.</em>
+            </h2>
+            <p>
+              Dejanos los datos mínimos para entender tu caso. Si buscás alquilar, lo más importante
+              es zona, presupuesto y fecha de mudanza.
+            </p>
+          </div>
+
+          <form className="form-panel">
+            <div className="choice-tabs">
+              <button
+                type="button"
+                className={path === "tenant" ? "active" : ""}
+                onClick={() => setPath("tenant")}
+              >
+                Busco alquilar
+              </button>
+              <button
+                type="button"
+                className={path === "owner" ? "active" : ""}
+                onClick={() => setPath("owner")}
+              >
+                Tengo propiedad
+              </button>
+              <button
+                type="button"
+                className={path === "renewal" ? "active" : ""}
+                onClick={() => setPath("renewal")}
+              >
+                Renovar
+              </button>
+            </div>
+
+            <div className="grid-form">
+              <div className="grid-2">
+                <input className="input" placeholder="Nombre completo" />
+                <input className="input" placeholder="WhatsApp" />
+              </div>
+
+              <input className="input" placeholder="Email" />
+
+              {path === "tenant" && (
+                <>
+                  <div className="grid-2">
+                    <input className="input" placeholder="Zona donde querés alquilar" />
+                    <input className="input" placeholder="Presupuesto mensual aproximado" />
+                  </div>
+                  <select className="select">
+                    <option>Cuándo querés mudarte?</option>
+                    <option>Ahora / urgente</option>
+                    <option>En 1 a 3 meses</option>
+                    <option>Más adelante</option>
+                  </select>
+                </>
+              )}
+
+              {path === "owner" && (
+                <>
+                  <div className="grid-2">
+                    <input className="input" placeholder="Zona de la propiedad" />
+                    <select className="select">
+                      <option>Disponibilidad</option>
+                      <option>Disponible ahora</option>
+                      <option>Disponible pronto</option>
+                      <option>Estoy evaluando</option>
+                    </select>
+                  </div>
+                  <p className="fine">
+                    No tenés que subir fotos ni publicar nada todavía. Solo necesitamos tus datos
+                    para contactarte.
+                  </p>
+                </>
+              )}
+
+              {path === "renewal" && (
+                <>
+                  <div className="grid-2">
+                    <select className="select">
+                      <option>Soy...</option>
+                      <option>Inquilino</option>
+                      <option>Propietario</option>
+                    </select>
+                    <input className="input" placeholder="Cuándo vence el contrato?" />
+                  </div>
+                  <input className="input" placeholder="Qué necesitás resolver?" />
+                </>
+              )}
+
+              <button className="submit" type="button">
+                Enviar datos
+              </button>
+
+              <p className="fine">
+                Esta página es una prueba visual. Después conectamos este formulario al flujo real
+                de Verlo.
+              </p>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  )
+}
