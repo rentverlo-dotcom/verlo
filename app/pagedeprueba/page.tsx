@@ -734,29 +734,9 @@ metadata: {
 
 
           <nav className="nav-links">
-  <a
-    href="#sumate"
-    onClick={() => choosePath("tenant")}
-  >
-    Alquilar
-  </a>
-
-  <a
-    href="#sumate"
-    onClick={() => choosePath("owner")}
-  >
-    Publicar
-  </a>
-
-  <a
-    href="#sumate"
-    onClick={() => choosePath("renewal")}
-  >
-    Renovar
-  </a>
 
   <a href="#sumate" className="nav-cta">
-    Sumate
+   Alquilar - Publicar - Renovar
   </a>
 </nav>
             
