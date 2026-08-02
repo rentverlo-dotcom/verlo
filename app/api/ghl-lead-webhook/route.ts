@@ -96,11 +96,15 @@ function getLeadTags(data: {
   availability_status?: string | null
   move_timing?: string | null
   renewal_role?: string | null
+  source?: string | null
 }) {
   const tags = new Set<string>()
 
   tags.add("verlo_lead")
-  tags.add("verlo_test_captacion")
+
+  if (data.source === "pagedeprueba") tags.add("verlo_pagedeprueba")
+  if (data.source === "verlo_home") tags.add("verlo_home")
+  if (data.source === "test_captacion") tags.add("verlo_test_captacion")
 
   if (data.role === "owner") tags.add("verlo_owner")
   if (data.role === "tenant") tags.add("verlo_tenant")
@@ -119,6 +123,7 @@ function getLeadTags(data: {
 
   if (data.move_timing === "Estoy buscando ahora") tags.add("tenant_searching_now")
   if (data.move_timing === "Me quiero mudar en 1-3 meses") tags.add("tenant_move_1_3_months")
+  if (data.move_timing === "Me quiero mudar más adelante") tags.add("tenant_move_later")
   if (data.move_timing === "Solo quiero enterarme de novedades") tags.add("tenant_news_only")
 
   if (data.intent === "contract_renewal" && data.renewal_role === "owner") tags.add("renewal_owner")
@@ -189,56 +194,58 @@ export async function POST(req: NextRequest) {
       )
     }
 
-const body = await req.json()
-const metadata = body.metadata || {}
+    const body = await req.json()
+    const metadata = body.metadata || {}
 
-const full_name = clean(body.full_name)
-const email = clean(body.email).toLowerCase()
-const phone_raw = clean(body.phone)
-const phone_normalized = normalizePhone(phone_raw)
-const phone = phone_normalized
+    const full_name = clean(body.full_name)
+    const email = clean(body.email).toLowerCase()
 
-const role = clean(body.role)
-const intent = clean(body.intent)
+    const phone_raw = clean(body.phone)
+    const phone_normalized = normalizePhone(phone_raw)
+    const phone = phone_normalized
+
+    const role = clean(body.role)
+    const intent = clean(body.intent)
 
     const zone = clean(body.zone) || null
+
     const property_type = clean(body.property_type) || null
+    const property_rooms = clean(body.property_rooms || metadata.property_rooms) || null
     const availability_status = clean(body.availability_status) || null
     const approx_price = clean(body.approx_price) || null
+    const approx_price_number = parseMoney(
+      clean(body.approx_price_number || approx_price || metadata.approx_price_number)
+    )
 
     const desired_property_type = clean(body.desired_property_type) || null
+    const desired_rooms = clean(body.desired_rooms || metadata.desired_rooms) || null
     const budget_range = clean(body.budget_range) || null
+    const budget_max = parseMoney(clean(body.budget_max || budget_range || metadata.budget_max))
     const move_timing = clean(body.move_timing) || null
 
     const renewal_role = clean(body.renewal_role) || null
     const contract_expiration = clean(body.contract_expiration) || null
     const other_party_status = clean(body.other_party_status) || null
     const renewal_need = clean(body.renewal_need) || null
-    const area_macro = clean(body.area_macro || metadata.tenant_area_label || metadata.area_macro) || null
 
-const neighborhood_labels =
-  toStringArray(body.neighborhood_labels).length > 0
-    ? toStringArray(body.neighborhood_labels)
-    : toStringArray(metadata.tenant_neighborhoods)
+    const source = clean(body.source || metadata.page) || "verlo_home"
 
-const neighborhood_slugs =
-  toStringArray(body.neighborhood_slugs).length > 0
-    ? toStringArray(body.neighborhood_slugs)
-    : neighborhood_labels.map(normalizeText)
+    const area_macro =
+      clean(body.area_macro || metadata.tenant_area_label || metadata.area_macro) || null
 
-const neighborhood_slug =
-  clean(body.neighborhood_slug || metadata.neighborhood_slug) ||
-  (zone ? normalizeText(zone) : null)
+    const neighborhood_labels =
+      toStringArray(body.neighborhood_labels).length > 0
+        ? toStringArray(body.neighborhood_labels)
+        : toStringArray(metadata.tenant_neighborhoods)
 
-const desired_rooms = clean(body.desired_rooms || metadata.desired_rooms) || null
-const property_rooms = clean(body.property_rooms || metadata.property_rooms) || null
+    const neighborhood_slugs =
+      toStringArray(body.neighborhood_slugs).length > 0
+        ? toStringArray(body.neighborhood_slugs)
+        : neighborhood_labels.map(normalizeText)
 
-const budget_max = parseMoney(clean(body.budget_max || budget_range || metadata.budget_max))
-const approx_price_number = parseMoney(
-  clean(body.approx_price_number || approx_price || metadata.approx_price_number)
-)
-
-const source = clean(body.source || metadata.page) || "verlo_home"
+    const neighborhood_slug =
+      clean(body.neighborhood_slug || metadata.neighborhood_slug) ||
+      (zone ? normalizeText(zone) : null)
 
     if (full_name.length < 3) {
       return NextResponse.json(
@@ -281,28 +288,55 @@ const source = clean(body.source || metadata.page) || "verlo_home"
       availability_status,
       move_timing,
       renewal_role,
+      source,
     })
+
+    const normalizedMetadata = {
+      ...metadata,
+      tags,
+      source,
+      phone_raw,
+      phone_normalized,
+      area_macro,
+      neighborhood_labels,
+      neighborhood_slugs,
+      neighborhood_slug,
+      desired_rooms,
+      property_rooms,
+      budget_max,
+      approx_price_number,
+    }
 
     const leadPayload = {
       full_name,
       email,
       phone,
+      phone_raw,
+      phone_normalized,
       role,
       intent,
       zone,
+      area_macro,
+      neighborhood_labels,
+      neighborhood_slugs,
+      neighborhood_slug,
       property_type,
+      property_rooms,
       availability_status,
       approx_price,
+      approx_price_number,
       desired_property_type,
+      desired_rooms,
       budget_range,
+      budget_max,
       move_timing,
       renewal_role,
       contract_expiration,
       other_party_status,
       renewal_need,
-      source: "test_captacion",
+      source,
       tags,
-      metadata: body.metadata || null,
+      metadata: normalizedMetadata,
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
@@ -312,30 +346,37 @@ const source = clean(body.source || metadata.page) || "verlo_home"
       },
     })
 
-      const { data: leadRecord, error } = await supabaseAdmin
+    const { data: leadRecord, error } = await supabaseAdmin
       .from("lead_intake")
       .insert({
         full_name,
         email,
         phone,
+        phone_raw,
+        phone_normalized,
         role,
         intent,
         zone,
+        area_macro,
+        neighborhood_labels,
+        neighborhood_slugs,
+        neighborhood_slug,
         property_type,
+        property_rooms,
         availability_status,
         approx_price,
+        approx_price_number,
         desired_property_type,
+        desired_rooms,
         budget_range,
+        budget_max,
         move_timing,
         renewal_role,
         contract_expiration,
         other_party_status,
         renewal_need,
-        source: "test_captacion",
-        metadata: {
-          ...(body.metadata || {}),
-          tags,
-        },
+        source,
+        metadata: normalizedMetadata,
       })
       .select("id")
       .single()
@@ -369,7 +410,7 @@ const source = clean(body.source || metadata.page) || "verlo_home"
     const eventSourceUrl =
       clean(body.event_source_url) ||
       req.headers.get("referer") ||
-      "https://verlo.lat/test-captacion"
+      "https://verlo.lat"
 
     const meta = await sendMetaCapiLead({
       eventId,
@@ -389,7 +430,6 @@ const source = clean(body.source || metadata.page) || "verlo_home"
     if (!meta.ok) {
       console.error("meta capi error:", meta.error)
     }
-
 
     return NextResponse.json({
       ok: true,
