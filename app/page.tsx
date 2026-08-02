@@ -1358,50 +1358,113 @@ neighborhood_slug: normalizeText(zone),
             </p>
           </div>
 
+
           <div className="mock-grid">
-            <article className="mock-item">
-              <MiniPhone type="tenant" />
+  <article
+    className="mock-item"
+    role="button"
+    tabIndex={0}
+    onClick={() => {
+      choosePath("tenant")
+      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
+    }}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        choosePath("tenant")
+        document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
+      }
+    }}
+  >
+    <MiniPhone type="tenant" />
 
-              <div className="mock-copy">
-                <h3>Buscá por barrios</h3>
-                <p>
-                  Marcá más de un barrio si te sirve. Así podemos matchearte con propiedades
-                  compatibles aunque no estén en tu primera opción.
-                </p>
-                <a href="#sumate" onClick={() => choosePath("tenant")}>
-                  Busco alquilar
-                </a>
-              </div>
-            </article>
+    <div className="mock-copy">
+      <h3>Buscá por barrios</h3>
+      <p>
+        Marcá más de un barrio si te sirve. Así podemos matchearte con propiedades
+        compatibles aunque no estén en tu primera opción.
+      </p>
+      <a
+        href="#sumate"
+        onClick={(e) => {
+          e.stopPropagation()
+          choosePath("tenant")
+        }}
+      >
+        Busco alquilar
+      </a>
+    </div>
+  </article>
 
-            <article className="mock-item">
-              <MiniPhone type="owner" />
+  <article
+    className="mock-item"
+    role="button"
+    tabIndex={0}
+    onClick={() => {
+      choosePath("owner")
+      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
+    }}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        choosePath("owner")
+        document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
+      }
+    }}
+  >
+    <MiniPhone type="owner" />
 
-              <div className="mock-copy">
-                <h3>Tenés una propiedad</h3>
-                <p>
-                  Dejanos barrio, tipo, precio y disponibilidad. No tenés que subir fotos ni
-                  publicar nada todavía.
-                </p>
-                <a href="#sumate" onClick={() => choosePath("owner")}>
-                  Tengo una propiedad
-                </a>
-              </div>
-            </article>
+    <div className="mock-copy">
+      <h3>Tenés una propiedad</h3>
+      <p>
+        Dejanos barrio, tipo, precio y disponibilidad. No tenés que subir fotos ni
+        publicar nada todavía.
+      </p>
+      <a
+        href="#sumate"
+        onClick={(e) => {
+          e.stopPropagation()
+          choosePath("owner")
+        }}
+      >
+        Tengo una propiedad
+      </a>
+    </div>
+  </article>
 
-            <article className="mock-item">
-              <MiniPhone type="renewal" />
+  <article
+    className="mock-item"
+    role="button"
+    tabIndex={0}
+    onClick={() => {
+      choosePath("renewal")
+      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
+    }}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        choosePath("renewal")
+        document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
+      }
+    }}
+  >
+    <MiniPhone type="renewal" />
 
-              <div className="mock-copy">
-                <h3>Renová sin comisión</h3>
-                <p>
-                  Ordená la renovación directo, rápido y sin costos inmobiliarios de renovación.
-                </p>
-                <a href="#sumate" onClick={() => choosePath("renewal")}>
-                  Quiero renovar
-                </a>
-              </div>
-            </article>
+    <div className="mock-copy">
+      <h3>Renová sin comisión</h3>
+      <p>
+        Ordená la renovación directo, rápido y sin costos inmobiliarios de renovación.
+      </p>
+      <a
+        href="#sumate"
+        onClick={(e) => {
+          e.stopPropagation()
+          choosePath("renewal")
+        }}
+      >
+        Quiero renovar
+      </a>
+    </div>
+  </article>
+</div>
+          
           </div>
         </div>
       </section>
