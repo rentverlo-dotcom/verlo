@@ -718,54 +718,60 @@ const styles = `
     margin-top: 12px;
   }
 
-.neighborhood-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  max-height: 300px;
-  overflow-y: auto;
-  padding-right: 6px;
-}
+  .neighborhood-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
 
-.check-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 8px 12px;
-  border-radius: 18px;
-  background: white;
-  border: 1px solid rgba(5, 0, 2, 0.1);
-  font-size: 14px;
-  line-height: 1.15;
-  font-weight: 800;
-  cursor: pointer;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.check-pill input {
-
+  .check-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 18px;
+    background: white;
+    border: 1px solid rgba(5, 0, 2, 0.1);
+    font-size: 14px;
+    line-height: 1.15;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 
   .check-pill input {
+    flex: 0 0 auto;
     accent-color: var(--black);
   }
 
   .submit {
+    width: 100%;
     min-height: 58px;
+    border: 0;
     border-radius: 999px;
-    border: 1px solid rgba(5, 0, 2, 0.12);
     background: var(--black);
     color: white;
     font-size: 16px;
     font-weight: 950;
     cursor: pointer;
     box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .submit:hover {
+    transform: translateY(-1px);
   }
 
   .submit:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+    transform: none;
   }
 
   .error,
@@ -827,32 +833,6 @@ const styles = `
     text-decoration: none;
     font-weight: 800;
   }
-
-.submit {
-  width: 100%;
-  min-height: 58px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--black);
-  color: white;
-  font-size: 16px;
-  font-weight: 950;
-  cursor: pointer;
-  box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.submit:hover {
-  transform: translateY(-1px);
-}
-
-.submit:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-}
-
 
   @media (max-width: 1060px) {
     .hero-grid {
@@ -1535,66 +1515,57 @@ neighborhood_slug: normalizeText(zone),
               {path === "owner" && (
                 <>
                   <div className="row">
-  <select className="select" name="owner_neighborhood" required defaultValue="">
-    <option value="" disabled>
-      Barrio donde está la propiedad
-    </option>
-   {ALL_NEIGHBORHOODS.map((neighborhood) => (
-  <option key={neighborhood}>{neighborhood}</option>
-))}
-<option>Otro</option>
-  </select>
+                    <select className="select" name="owner_neighborhood" required defaultValue="">
+                      <option value="" disabled>
+                        Barrio donde está la propiedad
+                      </option>
+                      {ALL_NEIGHBORHOODS.map((neighborhood) => (
+                        <option key={neighborhood}>{neighborhood}</option>
+                      ))}
+                      <option>Otro</option>
+                    </select>
 
-  <select className="select" name="property_type" required defaultValue="">
-    <option value="" disabled>
-      Tipo de propiedad
-    </option>
-    <option>Departamento</option>
-    <option>Casa</option>
-    <option>PH</option>
-    <option>Local</option>
-    <option>Oficina</option>
-    <option>Otro</option>
-  </select>
-</div>
-
-<div className="row">
-  <select className="select" name="property_rooms" required defaultValue="">
-    <option value="" disabled>
-      Ambientes de la propiedad
-    </option>
-    <option>Monoambiente</option>
-    <option>2 ambientes</option>
-    <option>3 ambientes</option>
-    <option>4 ambientes</option>
-    <option>5 o más ambientes</option>
-  </select>
-
-  <input
-    className="input"
-    name="approx_price"
-    placeholder="Precio mensual esperado"
-    required
-  />
-</div>
+                    <select className="select" name="property_type" required defaultValue="">
+                      <option value="" disabled>
+                        Tipo de propiedad
+                      </option>
+                      <option>Departamento</option>
+                      <option>Casa</option>
+                      <option>PH</option>
+                      <option>Local</option>
+                      <option>Oficina</option>
+                      <option>Otro</option>
+                    </select>
+                  </div>
 
                   <div className="row">
+                    <select className="select" name="property_rooms" required defaultValue="">
+                      <option value="" disabled>
+                        Ambientes de la propiedad
+                      </option>
+                      <option>Monoambiente</option>
+                      <option>2 ambientes</option>
+                      <option>3 ambientes</option>
+                      <option>4 ambientes</option>
+                      <option>5 o más ambientes</option>
+                    </select>
+
                     <input
                       className="input"
                       name="approx_price"
                       placeholder="Precio mensual esperado"
                       required
                     />
-
-                    <select className="select" name="availability_status" required defaultValue="">
-                      <option value="" disabled>
-                        Disponibilidad
-                      </option>
-                      <option>Disponible ahora</option>
-                      <option>Disponible pronto</option>
-                      <option>Estoy evaluando alquilar</option>
-                    </select>
                   </div>
+
+                  <select className="select" name="availability_status" required defaultValue="">
+                    <option value="" disabled>
+                      Disponibilidad
+                    </option>
+                    <option>Disponible ahora</option>
+                    <option>Disponible pronto</option>
+                    <option>Estoy evaluando alquilar</option>
+                  </select>
                 </>
               )}
 
@@ -1678,3 +1649,4 @@ neighborhood_slug: normalizeText(zone),
   </main> 
   )
 }
+
