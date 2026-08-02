@@ -828,6 +828,32 @@ const styles = `
     font-weight: 800;
   }
 
+.submit {
+  width: 100%;
+  min-height: 58px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--black);
+  color: white;
+  font-size: 16px;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.submit:hover {
+  transform: translateY(-1px);
+}
+
+.submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
   @media (max-width: 1060px) {
     .hero-grid {
       grid-template-columns: 1fr;
