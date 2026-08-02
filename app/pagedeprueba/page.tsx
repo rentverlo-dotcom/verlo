@@ -720,26 +720,32 @@ const styles = `
 
 .neighborhood-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  max-height: 260px;
+  max-height: 300px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding-right: 6px;
 }
 
-  .check-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 42px;
-    padding: 0 12px;
-    border-radius: 999px;
-    background: white;
-    border: 1px solid rgba(5, 0, 2, 0.1);
-    font-size: 14px;
-    font-weight: 800;
-    cursor: pointer;
-  }
+.check-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 18px;
+  background: white;
+  border: 1px solid rgba(5, 0, 2, 0.1);
+  font-size: 14px;
+  line-height: 1.15;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.check-pill input {
+
 
   .check-pill input {
     accent-color: var(--black);
