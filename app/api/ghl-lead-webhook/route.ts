@@ -132,6 +132,47 @@ function getLeadTags(data: {
   return Array.from(tags)
 }
 
+function isPropertyTypeCompatible(tenantType: string | null, ownerType: string | null) {
+  if (!tenantType || !ownerType) return true
+  return normalizeText(tenantType) === normalizeText(ownerType)
+}
+
+function isRoomsCompatible(tenantRooms: string | null, ownerRooms: string | null) {
+  if (!tenantRooms || !ownerRooms) return true
+  return normalizeText(tenantRooms) === normalizeText(ownerRooms)
+}
+
+function isPriceCompatible(budgetMax: number | null, ownerPrice: number | null) {
+  if (!budgetMax || !ownerPrice) return true
+  return ownerPrice <= budgetMax
+}
+
+function isNeighborhoodCompatible(data: {
+  tenantNeighborhoodSlugs: string[]
+  ownerNeighborhoodSlug: string | null
+}) {
+  if (!data.ownerNeighborhoodSlug) return false
+  if (data.tenantNeighborhoodSlugs.length === 0) return false
+
+  return data.tenantNeighborhoodSlugs.includes(data.ownerNeighborhoodSlug)
+}
+
+function calculateMatchScore(data: {
+  neighborhoodOk: boolean
+  typeOk: boolean
+  roomsOk: boolean
+  priceOk: boolean
+}) {
+  let score = 0
+
+  if (data.neighborhoodOk) score += 40
+  if (data.typeOk) score += 20
+  if (data.roomsOk) score += 20
+  if (data.priceOk) score += 20
+
+  return score
+}
+
 async function sendToGhlWebhook(payload: Record<string, unknown>) {
   const webhookUrl = process.env.GHL_LEAD_WEBHOOK_URL
 
@@ -175,6 +216,246 @@ async function sendToGhlWebhook(payload: Record<string, unknown>) {
   }
 }
 
+async function createLeadMatches({
+  supabaseAdmin,
+  lead,
+}: {
+  supabaseAdmin: ReturnType<typeof createClient>
+  lead: {
+    id: string
+    role: string
+    intent: string
+    neighborhood_slugs: string[]
+    neighborhood_slug: string | null
+    desired_property_type: string | null
+    property_type: string | null
+    desired_rooms: string | null
+    property_rooms: string | null
+    budget_max: number | null
+    approx_price_number: number | null
+  }
+}) {
+  if (lead.intent !== "tenant_search" && lead.intent !== "owner_new_listing") {
+    return {
+      ok: true,
+      created: 0,
+      skipped: true,
+    }
+  }
+
+  if (lead.intent === "tenant_search") {
+    const { data: ownerLeads, error } = await supabaseAdmin
+      .from("lead_intake")
+      .select(
+        "id, neighborhood_slug, property_type, property_rooms, approx_price_number, intent"
+      )
+      .eq("intent", "owner_new_listing")
+      .order("created_at", { ascending: false })
+      .limit(500)
+
+    if (error) {
+      console.error("lead match owner search error:", error)
+      return {
+        ok: false,
+        created: 0,
+        skipped: false,
+        error: error.message,
+      }
+    }
+
+    const matches =
+      ownerLeads
+        ?.map((ownerLead) => {
+          const neighborhoodOk = isNeighborhoodCompatible({
+            tenantNeighborhoodSlugs: lead.neighborhood_slugs,
+            ownerNeighborhoodSlug: ownerLead.neighborhood_slug,
+          })
+
+          const typeOk = isPropertyTypeCompatible(
+            lead.desired_property_type,
+            ownerLead.property_type
+          )
+
+          const roomsOk = isRoomsCompatible(lead.desired_rooms, ownerLead.property_rooms)
+
+          const priceOk = isPriceCompatible(
+            lead.budget_max,
+            ownerLead.approx_price_number
+          )
+
+          const score = calculateMatchScore({
+            neighborhoodOk,
+            typeOk,
+            roomsOk,
+            priceOk,
+          })
+
+          return {
+            tenant_lead_id: lead.id,
+            owner_lead_id: ownerLead.id,
+            status: "new",
+            score,
+            reasons: {
+              neighborhood_ok: neighborhoodOk,
+              type_ok: typeOk,
+              rooms_ok: roomsOk,
+              price_ok: priceOk,
+              tenant_neighborhood_slugs: lead.neighborhood_slugs,
+              owner_neighborhood_slug: ownerLead.neighborhood_slug,
+              tenant_type: lead.desired_property_type,
+              owner_type: ownerLead.property_type,
+              tenant_rooms: lead.desired_rooms,
+              owner_rooms: ownerLead.property_rooms,
+              tenant_budget_max: lead.budget_max,
+              owner_price: ownerLead.approx_price_number,
+            },
+          }
+        })
+        .filter((match) => match.score >= 60) || []
+
+    if (matches.length === 0) {
+      return {
+        ok: true,
+        created: 0,
+        skipped: false,
+      }
+    }
+
+    const { error: insertError } = await supabaseAdmin
+      .from("lead_matches")
+      .upsert(matches, {
+        onConflict: "tenant_lead_id,owner_lead_id",
+        ignoreDuplicates: true,
+      })
+
+    if (insertError) {
+      console.error("lead match insert error:", insertError)
+      return {
+        ok: false,
+        created: 0,
+        skipped: false,
+        error: insertError.message,
+      }
+    }
+
+    return {
+      ok: true,
+      created: matches.length,
+      skipped: false,
+    }
+  }
+
+  if (lead.intent === "owner_new_listing") {
+    const { data: tenantLeads, error } = await supabaseAdmin
+      .from("lead_intake")
+      .select(
+        "id, neighborhood_slugs, desired_property_type, desired_rooms, budget_max, intent"
+      )
+      .eq("intent", "tenant_search")
+      .order("created_at", { ascending: false })
+      .limit(500)
+
+    if (error) {
+      console.error("lead match tenant search error:", error)
+      return {
+        ok: false,
+        created: 0,
+        skipped: false,
+        error: error.message,
+      }
+    }
+
+    const matches =
+      tenantLeads
+        ?.map((tenantLead) => {
+          const tenantNeighborhoodSlugs = toStringArray(tenantLead.neighborhood_slugs)
+
+          const neighborhoodOk = isNeighborhoodCompatible({
+            tenantNeighborhoodSlugs,
+            ownerNeighborhoodSlug: lead.neighborhood_slug,
+          })
+
+          const typeOk = isPropertyTypeCompatible(
+            tenantLead.desired_property_type,
+            lead.property_type
+          )
+
+          const roomsOk = isRoomsCompatible(tenantLead.desired_rooms, lead.property_rooms)
+
+          const priceOk = isPriceCompatible(
+            tenantLead.budget_max,
+            lead.approx_price_number
+          )
+
+          const score = calculateMatchScore({
+            neighborhoodOk,
+            typeOk,
+            roomsOk,
+            priceOk,
+          })
+
+          return {
+            tenant_lead_id: tenantLead.id,
+            owner_lead_id: lead.id,
+            status: "new",
+            score,
+            reasons: {
+              neighborhood_ok: neighborhoodOk,
+              type_ok: typeOk,
+              rooms_ok: roomsOk,
+              price_ok: priceOk,
+              tenant_neighborhood_slugs: tenantNeighborhoodSlugs,
+              owner_neighborhood_slug: lead.neighborhood_slug,
+              tenant_type: tenantLead.desired_property_type,
+              owner_type: lead.property_type,
+              tenant_rooms: tenantLead.desired_rooms,
+              owner_rooms: lead.property_rooms,
+              tenant_budget_max: tenantLead.budget_max,
+              owner_price: lead.approx_price_number,
+            },
+          }
+        })
+        .filter((match) => match.score >= 60) || []
+
+    if (matches.length === 0) {
+      return {
+        ok: true,
+        created: 0,
+        skipped: false,
+      }
+    }
+
+    const { error: insertError } = await supabaseAdmin
+      .from("lead_matches")
+      .upsert(matches, {
+        onConflict: "tenant_lead_id,owner_lead_id",
+        ignoreDuplicates: true,
+      })
+
+    if (insertError) {
+      console.error("lead match insert error:", insertError)
+      return {
+        ok: false,
+        created: 0,
+        skipped: false,
+        error: insertError.message,
+      }
+    }
+
+    return {
+      ok: true,
+      created: matches.length,
+      skipped: false,
+    }
+  }
+
+  return {
+    ok: true,
+    created: 0,
+    skipped: true,
+  }
+}
+
 export async function GET() {
   return NextResponse.json({
     ok: true,
@@ -196,6 +477,15 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const metadata = body.metadata || {}
+
+    const honeypot = clean(body.website)
+
+    if (honeypot) {
+      return NextResponse.json({
+        ok: true,
+        bot_filtered: true,
+      })
+    }
 
     const full_name = clean(body.full_name)
     const email = clean(body.email).toLowerCase()
@@ -280,6 +570,117 @@ export async function POST(req: NextRequest) {
         { ok: false, error: "Intención inválida" },
         { status: 400 }
       )
+    }
+
+    if (intent === "tenant_search") {
+      if (neighborhood_slugs.length === 0) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí al menos un barrio donde buscarías alquilar" },
+          { status: 400 }
+        )
+      }
+
+      if (!desired_property_type) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí el tipo de propiedad que buscás" },
+          { status: 400 }
+        )
+      }
+
+      if (!desired_rooms) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí los ambientes que buscás" },
+          { status: 400 }
+        )
+      }
+
+      if (!budget_range && !budget_max) {
+        return NextResponse.json(
+          { ok: false, error: "Ingresá tu presupuesto mensual máximo" },
+          { status: 400 }
+        )
+      }
+
+      if (!move_timing) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí cuándo querés mudarte" },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (intent === "owner_new_listing") {
+      if (!neighborhood_slug) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí el barrio de la propiedad" },
+          { status: 400 }
+        )
+      }
+
+      if (!property_type) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí el tipo de propiedad" },
+          { status: 400 }
+        )
+      }
+
+      if (!property_rooms) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí los ambientes de la propiedad" },
+          { status: 400 }
+        )
+      }
+
+      if (!approx_price && !approx_price_number) {
+        return NextResponse.json(
+          { ok: false, error: "Ingresá el precio mensual esperado" },
+          { status: 400 }
+        )
+      }
+
+      if (!availability_status) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí la disponibilidad de la propiedad" },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (intent === "contract_renewal") {
+      if (!neighborhood_slug) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí el barrio de la propiedad" },
+          { status: 400 }
+        )
+      }
+
+      if (!renewal_role) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí si sos propietario o inquilino" },
+          { status: 400 }
+        )
+      }
+
+      if (!contract_expiration) {
+        return NextResponse.json(
+          { ok: false, error: "Ingresá la fecha de vencimiento del contrato" },
+          { status: 400 }
+        )
+      }
+
+      if (!other_party_status) {
+        return NextResponse.json(
+          { ok: false, error: "Indicá si ya lo hablaste con la otra parte" },
+          { status: 400 }
+        )
+      }
+
+      if (!renewal_need) {
+        return NextResponse.json(
+          { ok: false, error: "Elegí qué querés lograr con la renovación" },
+          { status: 400 }
+        )
+      }
     }
 
     const tags = getLeadTags({
@@ -390,7 +791,32 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const ghl = await sendToGhlWebhook(leadPayload)
+    const matchResult = await createLeadMatches({
+      supabaseAdmin,
+      lead: {
+        id: leadRecord.id,
+        role,
+        intent,
+        neighborhood_slugs,
+        neighborhood_slug,
+        desired_property_type,
+        property_type,
+        desired_rooms,
+        property_rooms,
+        budget_max,
+        approx_price_number,
+      },
+    })
+
+    if (!matchResult.ok) {
+      console.error("lead matching error:", matchResult)
+    }
+
+    const ghl = await sendToGhlWebhook({
+      ...leadPayload,
+      lead_id: leadRecord.id,
+      match_result: matchResult,
+    })
 
     if (!ghl.ok) {
       console.error("ghl webhook error:", ghl.error)
@@ -436,6 +862,7 @@ export async function POST(req: NextRequest) {
       ghl,
       meta,
       tags,
+      match_result: matchResult,
       event_id: eventId,
       lead_id: leadRecord?.id || null,
     })
