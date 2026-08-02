@@ -1,36 +1,169 @@
 "use client"
 
-import { FormEvent, useState } from "react"
+import { FormEvent, useMemo, useState } from "react"
 import VerloBrand from "@/components/VerloBrand"
 
-type Path = "owner" | "tenant" | "renewal"
+type Path = "tenant" | "owner" | "renewal"
+
+const AREA_GROUPS = {
+  caba: {
+    label: "CABA",
+    neighborhoods: [
+      "Agronomía",
+      "Almagro",
+      "Balvanera",
+      "Barracas",
+      "Belgrano",
+      "Boedo",
+      "Caballito",
+      "Chacarita",
+      "Coghlan",
+      "Colegiales",
+      "Constitución",
+      "Flores",
+      "Floresta",
+      "La Boca",
+      "Liniers",
+      "Mataderos",
+      "Monserrat",
+      "Monte Castro",
+      "Nueva Pompeya",
+      "Núñez",
+      "Palermo",
+      "Parque Avellaneda",
+      "Parque Chacabuco",
+      "Parque Chas",
+      "Parque Patricios",
+      "Paternal",
+      "Puerto Madero",
+      "Recoleta",
+      "Retiro",
+      "Saavedra",
+      "San Cristóbal",
+      "San Nicolás",
+      "San Telmo",
+      "Vélez Sarsfield",
+      "Versalles",
+      "Villa Crespo",
+      "Villa Devoto",
+      "Villa General Mitre",
+      "Villa Lugano",
+      "Villa Luro",
+      "Villa Ortúzar",
+      "Villa Pueyrredón",
+      "Villa Real",
+      "Villa Riachuelo",
+      "Villa Santa Rita",
+      "Villa Soldati",
+      "Villa Urquiza",
+    ],
+  },
+  gba_norte: {
+    label: "GBA Norte",
+    neighborhoods: [
+      "Vicente López",
+      "Olivos",
+      "Florida",
+      "La Lucila",
+      "Munro",
+      "Villa Martelli",
+      "Carapachay",
+      "San Isidro",
+      "Martínez",
+      "Acassuso",
+      "Beccar",
+      "Boulogne",
+      "Victoria",
+      "San Fernando",
+      "Tigre",
+      "Don Torcuato",
+      "Pacheco",
+      "Benavídez",
+      "Pilar",
+      "Escobar",
+    ],
+  },
+  gba_oeste: {
+    label: "GBA Oeste",
+    neighborhoods: [
+      "Ramos Mejía",
+      "Haedo",
+      "Morón",
+      "Castelar",
+      "Ituzaingó",
+      "Hurlingham",
+      "Villa Tesei",
+      "Ciudadela",
+      "Liniers Oeste",
+      "San Justo",
+      "Lomas del Mirador",
+      "Merlo",
+      "Moreno",
+    ],
+  },
+  gba_sur: {
+    label: "GBA Sur",
+    neighborhoods: [
+      "Avellaneda",
+      "Wilde",
+      "Quilmes",
+      "Bernal",
+      "Lanús",
+      "Lomas de Zamora",
+      "Banfield",
+      "Temperley",
+      "Adrogué",
+      "Burzaco",
+      "Florencio Varela",
+      "Berazategui",
+      "Ezeiza",
+      "Monte Grande",
+    ],
+  },
+} as const
+
+const ALL_NEIGHBORHOODS = Object.values(AREA_GROUPS).flatMap(
+  (group) => group.neighborhoods
+)
+
+type AreaKey = keyof typeof AREA_GROUPS
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
 
 const pathConfig = {
-  owner: {
-    title: "Tengo una propiedad",
-    subtitle: "Dejanos tus datos y te avisamos cuando haya interesados compatibles.",
-    role: "owner",
-    intent: "owner_new_listing",
-    button: "Quiero recibir interesados",
-  },
   tenant: {
     title: "Busco alquilar",
-    subtitle: "Contanos qué buscás y te avisamos cuando haya propiedades compatibles.",
+    subtitle: "Marcá los barrios donde buscarías y completá tu presupuesto.",
     role: "tenant",
     intent: "tenant_search",
-    button: "Quiero recibir opciones",
+    button: "Cargar mi búsqueda",
+  },
+  owner: {
+    title: "Tengo una propiedad",
+    subtitle: "Decinos en qué barrio está, qué tipo es y a qué precio se alquilaría.",
+    role: "owner",
+    intent: "owner_new_listing",
+    button: "Dejar mis datos",
   },
   renewal: {
-    title: "Quiero renovar mi contrato",
-    subtitle: "Registrá tu caso y te contactamos para ordenar la renovación.",
+    title: "Quiero renovar",
+    subtitle: "Contanos el barrio, cuándo vence y qué necesitás resolver.",
     role: "both",
     intent: "contract_renewal",
-    button: "Quiero renovar con Verlo",
+    button: "Quiero renovar",
   },
 } as const
 
 const styles = `
-  .verlo-root {
+  .test-root {
     --pink: #f2a8a9;
     --pink-dark: #c37986;
     --black: #050002;
@@ -43,7 +176,7 @@ const styles = `
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 
-  .verlo-root * {
+  .test-root * {
     box-sizing: border-box;
   }
 
@@ -57,7 +190,7 @@ const styles = `
     top: 0;
     z-index: 50;
     backdrop-filter: blur(18px);
-    background: rgba(242, 235, 236, 0.78);
+    background: rgba(242, 235, 236, 0.82);
     border-bottom: 1px solid rgba(5, 0, 2, 0.08);
   }
 
@@ -79,7 +212,7 @@ const styles = `
   .nav-links a {
     color: rgba(5, 0, 2, 0.72);
     text-decoration: none;
-    font-weight: 800;
+    font-weight: 900;
   }
 
   .nav-cta {
@@ -87,11 +220,13 @@ const styles = `
     border-radius: 999px;
     background: var(--black);
     color: white !important;
+    min-width: 92px;
+    text-align: center;
   }
 
   .hero {
     position: relative;
-    padding: 88px 0 80px;
+    padding: 88px 0 78px;
   }
 
   .hero-grid {
@@ -142,13 +277,8 @@ const styles = `
     border: 1px solid rgba(5, 0, 2, 0.12);
     text-decoration: none;
     font-size: 16px;
-    font-weight: 900;
-    transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    font-weight: 950;
     cursor: pointer;
-  }
-
-  .btn:hover {
-    transform: translateY(-2px);
   }
 
   .btn-primary {
@@ -175,37 +305,18 @@ const styles = `
     background: rgba(255, 255, 255, 0.54);
     border: 1px solid rgba(5, 0, 2, 0.08);
     color: rgba(5, 0, 2, 0.7);
-    font-weight: 750;
+    font-weight: 800;
     font-size: 13px;
   }
 
-  .hero-video-wrap {
+  .phone-wrap {
     position: relative;
     min-height: 640px;
     display: grid;
     place-items: center;
   }
 
-  .hero-video-frame {
-    position: relative;
-    width: min(420px, 84vw);
-    aspect-ratio: 390 / 760;
-    border: 10px solid var(--black);
-    border-radius: 48px;
-    overflow: hidden;
-    background: #fbf8f5;
-    box-shadow: 0 30px 90px rgba(5, 0, 2, 0.28);
-    z-index: 2;
-  }
-
-  .hero-video-frame iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    display: block;
-  }
-
-  .hero-video-glow {
+  .phone-glow {
     position: absolute;
     width: 520px;
     height: 520px;
@@ -219,13 +330,182 @@ const styles = `
     z-index: 1;
   }
 
+  .phone-frame,
+  .mini-phone {
+    position: relative;
+    width: min(420px, 84vw);
+    aspect-ratio: 390 / 760;
+    border: 10px solid var(--black);
+    border-radius: 48px;
+    overflow: hidden;
+    background: #fbf8f5;
+    box-shadow: 0 30px 90px rgba(5, 0, 2, 0.28);
+    z-index: 2;
+  }
+
+  .mini-phone {
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 26px 76px rgba(5, 0, 2, 0.18);
+  }
+
+  .phone-top {
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 26px;
+    background: #fbf8f5;
+    border-bottom: 1px solid rgba(5, 0, 2, 0.06);
+  }
+
+  .mini-phone .phone-top {
+    height: 68px;
+    padding: 0 22px;
+  }
+
+  .phone-brand {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 31px;
+    font-style: italic;
+    font-weight: 800;
+    letter-spacing: -0.055em;
+  }
+
+  .mini-phone .phone-brand {
+    font-size: 28px;
+  }
+
+  .dots {
+    display: flex;
+    gap: 7px;
+  }
+
+  .dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--black);
+  }
+
+  .phone-screen {
+    height: calc(100% - 76px);
+    padding: 18px 22px 24px;
+    background:
+      radial-gradient(circle at 20% 18%, rgba(242, 168, 169, 0.28), transparent 28%),
+      radial-gradient(circle at 84% 90%, rgba(116, 190, 220, 0.20), transparent 28%),
+      #fbf8f5;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mini-phone .phone-screen {
+    height: calc(100% - 68px);
+    padding: 18px 20px 22px;
+  }
+
+  .phone-label {
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    border-radius: 999px;
+    background: rgba(242, 168, 169, 0.28);
+    color: rgba(5, 0, 2, 0.74);
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--pink-dark);
+    box-shadow: 0 0 0 5px rgba(195, 121, 134, 0.16);
+  }
+
+  .phone-title {
+    margin: 16px 0 0;
+    font-size: 38px;
+    line-height: 0.9;
+    letter-spacing: -0.075em;
+    font-weight: 950;
+    min-height: 76px;
+  }
+
+  .mini-phone .phone-title {
+    font-size: 34px;
+    min-height: 68px;
+  }
+
+  .phone-copy {
+    margin: 14px 0 0;
+    color: rgba(5, 0, 2, 0.62);
+    font-size: 15px;
+    line-height: 1.42;
+    font-weight: 650;
+    min-height: 64px;
+  }
+
+  .mini-phone .phone-copy {
+    min-height: 64px;
+  }
+
+  .phone-card {
+    margin-top: 18px;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    padding: 18px;
+    box-shadow: 0 18px 45px rgba(5, 0, 2, 0.08);
+  }
+
+  .phone-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(5, 0, 2, 0.08);
+  }
+
+  .phone-row:last-child {
+    border-bottom: 0;
+  }
+
+  .phone-row span {
+    color: rgba(5, 0, 2, 0.48);
+    font-size: 13px;
+    font-weight: 850;
+  }
+
+  .phone-row strong {
+    color: var(--black);
+    text-align: right;
+    font-size: 15px;
+    font-weight: 950;
+  }
+
+  .phone-button {
+    width: 100%;
+    min-height: 54px;
+    margin-top: auto;
+    border: 0;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    font-size: 15px;
+    font-weight: 950;
+  }
+
   .section {
-    padding: 92px 0;
+    padding: 86px 0;
   }
 
   .section-header {
-    max-width: 760px;
-    margin-bottom: 42px;
+    max-width: 790px;
+    margin-bottom: 46px;
   }
 
   .kicker {
@@ -258,17 +538,69 @@ const styles = `
     color: rgba(5, 0, 2, 0.68);
   }
 
+  .mock-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 26px;
+    align-items: start;
+  }
+
+  .mock-item {
+    display: grid;
+    gap: 24px;
+    align-content: start;
+  }
+
+  .mock-copy h3 {
+    margin: 0;
+    font-size: 34px;
+    line-height: 0.95;
+    letter-spacing: -0.065em;
+    font-weight: 950;
+  }
+
+  .mock-copy p {
+    margin: 12px 0 0;
+    color: rgba(5, 0, 2, 0.66);
+    font-size: 16px;
+    line-height: 1.45;
+    font-weight: 700;
+  }
+
+  .mock-copy a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 18px;
+    min-height: 50px;
+    padding: 0 20px;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 950;
+  }
+
+  .form-card {
+    border-radius: 42px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(5, 0, 2, 0.08);
+    box-shadow: 0 28px 80px rgba(5, 0, 2, 0.08);
+  }
+
   .path-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
+    gap: 14px;
     margin-bottom: 28px;
   }
 
   .path-card {
-    padding: 28px;
-    border-radius: 30px;
-    background: rgba(255, 255, 255, 0.58);
+    padding: 22px;
+    border-radius: 26px;
+    background: rgba(255, 255, 255, 0.62);
     border: 1px solid rgba(5, 0, 2, 0.08);
     cursor: pointer;
     text-align: left;
@@ -279,31 +611,22 @@ const styles = `
   .path-card.active {
     background: var(--black);
     color: white;
-    transform: translateY(-2px);
     box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
   }
 
   .path-card strong {
     display: block;
-    font-size: 24px;
+    font-size: 23px;
     line-height: 1;
     letter-spacing: -0.04em;
   }
 
   .path-card span {
     display: block;
-    margin-top: 10px;
+    margin-top: 9px;
     font-size: 14px;
-    line-height: 1.4;
+    line-height: 1.35;
     opacity: 0.72;
-  }
-
-  .form-card {
-    border-radius: 42px;
-    padding: 40px;
-    background: rgba(255, 255, 255, 0.72);
-    border: 1px solid rgba(5, 0, 2, 0.08);
-    box-shadow: 0 28px 80px rgba(5, 0, 2, 0.08);
   }
 
   .form-head h3 {
@@ -353,21 +676,102 @@ const styles = `
     background: white;
   }
 
-  .submit {
-    min-height: 58px;
-    border-radius: 999px;
+  .neighborhood-box {
     border: 1px solid rgba(5, 0, 2, 0.12);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 18px;
+  }
+
+  .neighborhood-box strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .area-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-bottom: 14px;
+  }
+
+  .area-tab {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(5, 0, 2, 0.1);
+    background: white;
+    color: var(--black);
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .area-tab.active {
+    background: var(--black);
+    color: white;
+    box-shadow: 0 12px 28px rgba(5, 0, 2, 0.14);
+  }
+
+  .other-neighborhood {
+    margin-top: 12px;
+  }
+
+  .neighborhood-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+
+  .check-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 18px;
+    background: white;
+    border: 1px solid rgba(5, 0, 2, 0.1);
+    font-size: 14px;
+    line-height: 1.15;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .check-pill input {
+    flex: 0 0 auto;
+    accent-color: var(--black);
+  }
+
+  .submit {
+    width: 100%;
+    min-height: 58px;
+    border: 0;
+    border-radius: 999px;
     background: var(--black);
     color: white;
     font-size: 16px;
     font-weight: 950;
     cursor: pointer;
     box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .submit:hover {
+    transform: translateY(-1px);
   }
 
   .submit:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+    transform: none;
   }
 
   .error,
@@ -389,68 +793,73 @@ const styles = `
     color: #255a6d;
   }
 
-.footer {
-  padding: 54px 0;
-  border-top: 1px solid rgba(5, 0, 2, 0.1);
-  background: rgba(255, 255, 255, 0.34);
-}
+  .footer {
+    padding: 54px 0;
+    border-top: 1px solid rgba(5, 0, 2, 0.1);
+    background: rgba(255, 255, 255, 0.34);
+  }
 
-.footer-inner {
-  display: flex;
-  justify-content: space-between;
-  gap: 32px;
-  align-items: flex-start;
-  color: rgba(5, 0, 2, 0.58);
-  font-size: 14px;
-}
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    gap: 32px;
+    align-items: flex-start;
+    color: rgba(5, 0, 2, 0.58);
+    font-size: 14px;
+  }
 
-.footer-brand {
-  display: grid;
-  gap: 12px;
-}
+  .footer-brand {
+    display: grid;
+    gap: 12px;
+  }
 
-.footer-brand p {
-  margin: 0;
-  max-width: 280px;
-  line-height: 1.45;
-  color: rgba(5, 0, 2, 0.62);
-  font-weight: 700;
-}
+  .footer-brand p {
+    margin: 0;
+    max-width: 280px;
+    line-height: 1.45;
+    color: rgba(5, 0, 2, 0.62);
+    font-weight: 700;
+  }
 
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 16px 22px;
-}
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 16px 22px;
+  }
 
-.footer-links a {
-  color: rgba(5, 0, 2, 0.66);
-  text-decoration: none;
-  font-weight: 800;
-}
+  .footer-links a {
+    color: rgba(5, 0, 2, 0.66);
+    text-decoration: none;
+    font-weight: 800;
+  }
 
-.footer-links a:hover {
-  color: var(--black);
-}
-
-  @media (max-width: 980px) {
+  @media (max-width: 1060px) {
     .hero-grid {
       grid-template-columns: 1fr;
     }
 
-    .path-grid {
+    .mock-grid {
       grid-template-columns: 1fr;
+    }
+
+    .mock-item {
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      align-items: center;
     }
   }
 
-  @media (max-width: 620px) {
+  @media (max-width: 760px) {
     .container {
       width: min(100% - 28px, 1160px);
     }
 
     .nav-inner {
       height: 66px;
+    }
+
+    .nav-links a:not(.nav-cta) {
+      display: none;
     }
 
     .hero {
@@ -469,15 +878,26 @@ const styles = `
       width: 100%;
     }
 
-    .hero-video-wrap {
+    .phone-wrap {
       min-height: 560px;
     }
 
-    .hero-video-frame {
+    .phone-frame {
       width: min(340px, 90vw);
     }
 
-    .row {
+    .mock-item {
+      grid-template-columns: 1fr;
+    }
+
+    .mini-phone {
+      max-width: 340px;
+      margin: 0 auto;
+    }
+
+    .path-grid,
+    .row,
+    .neighborhood-grid {
       grid-template-columns: 1fr;
     }
 
@@ -492,18 +912,20 @@ const styles = `
     }
 
     .footer-links {
-  justify-content: flex-start;
-}
+      justify-content: flex-start;
+    }
   }
 `
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return ""
 
-  return document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`))
-    ?.split("=")[1] || ""
+  return (
+    document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${name}=`))
+      ?.split("=")[1] || ""
+  )
 }
 
 function getMetaFbc() {
@@ -537,57 +959,210 @@ function trackMetaLead(eventId: string, params?: Record<string, string>) {
   }
 }
 
-function trackMetaEvent(eventName: string, params?: Record<string, string>) {
-  if (typeof window !== "undefined") {
-    const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq
+function normalizeNeighborhoods(values: string[], otherValue?: string) {
+  const cleanValues = values.map((value) => value.trim()).filter(Boolean)
 
-    if (typeof fbq === "function") {
-      fbq("trackCustom", eventName, params)
-    }
+  const other = otherValue?.trim()
+  if (other) cleanValues.push(other)
+
+  return {
+    labels: cleanValues,
+    text: cleanValues.join(", "),
+    slugs: cleanValues.map(normalizeText),
   }
 }
 
-export default function TestCaptacionPage() {
-  const [path, setPath] = useState<Path>("owner")
+function Dots() {
+  return (
+    <div className="dots">
+      <span />
+      <span />
+      <span />
+    </div>
+  )
+}
+
+function PhoneContent({
+  badge,
+  title,
+  copy,
+  rows,
+  button,
+}: {
+  badge: string
+  title: string
+  copy: string
+  rows: { label: string; value: string }[]
+  button: string
+}) {
+  return (
+    <>
+      <div className="phone-top">
+        <div className="phone-brand">verlo</div>
+        <Dots />
+      </div>
+
+      <div className="phone-screen">
+        <div className="phone-label">
+          <span className="dot" />
+          {badge}
+        </div>
+
+        <h3 className="phone-title">{title}</h3>
+
+        <p className="phone-copy">{copy}</p>
+
+        <div className="phone-card">
+          {rows.map((row) => (
+            <div className="phone-row" key={row.label}>
+              <span>{row.label}</span>
+              <strong>{row.value}</strong>
+            </div>
+          ))}
+        </div>
+
+        <button className="phone-button" type="button">
+          {button}
+        </button>
+      </div>
+    </>
+  )
+}
+
+function HeroPhone() {
+  return (
+    <div className="phone-wrap" aria-hidden="true">
+      <div className="phone-glow" />
+
+      <div className="phone-frame">
+        <PhoneContent
+          badge="Alquiler directo"
+          title="Menos comisión. Más control."
+          copy="Verlo ordena datos reales para matchear inquilinos y propietarios por barrio."
+          button="Empezar"
+          rows={[
+            { label: "Barrio", value: "Olivos" },
+            { label: "Tipo", value: "2 ambientes" },
+            { label: "Presupuesto", value: "$650k" },
+            { label: "Estado", value: "Match posible" },
+          ]}
+        />
+      </div>
+    </div>
+  )
+}
+
+function MiniPhone({ type }: { type: Path }) {
+  if (type === "tenant") {
+    return (
+      <div className="mini-phone">
+        <PhoneContent
+          badge="Búsqueda activa"
+          title="Buscá sin comisión"
+          copy="Marcá los barrios donde vivirías y tu presupuesto real."
+          button="Cargar búsqueda"
+          rows={[
+            { label: "Barrios", value: "Olivos + Núñez" },
+            { label: "Tipo", value: "2 ambientes" },
+            { label: "Presupuesto", value: "$500k - $700k" },
+            { label: "Mudanza", value: "30 días" },
+          ]}
+        />
+      </div>
+    )
+  }
+
+  if (type === "owner") {
+    return (
+      <div className="mini-phone">
+        <PhoneContent
+          badge="Propietario"
+          title="Dejá tus datos"
+          copy="Barrio, tipo, precio y disponibilidad. Sin fotos todavía."
+          button="Dejar datos"
+          rows={[
+            { label: "Barrio", value: "Vicente López" },
+            { label: "Tipo", value: "Departamento" },
+            { label: "Precio", value: "$650k" },
+            { label: "Disponible", value: "Pronto" },
+          ]}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="mini-phone">
+      <PhoneContent
+        badge="Renovación"
+        title="Renová sin comisión"
+        copy="Ordená el contrato directo, rápido y con firma digital."
+        button="Renovar"
+        rows={[
+          { label: "Barrio", value: "Belgrano" },
+          { label: "Contrato", value: "Por vencer" },
+          { label: "Partes", value: "Ambas" },
+          { label: "Firma", value: "Digital" },
+        ]}
+      />
+    </div>
+  )
+}
+
+export default function PageDePrueba() {
+  const [path, setPath] = useState<Path>("tenant")
+  const [selectedArea, setSelectedArea] = useState<AreaKey>("caba")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [submittedLead, setSubmittedLead] = useState<{
-    email: string
-    full_name: string
-    phone: string
-    role: string
-    intent: string
-    zone: string
-    lead_id: string | null
-  } | null>(null)
-  const [magicLoading, setMagicLoading] = useState(false)
-  const [magicSent, setMagicSent] = useState(false)
 
   const selected = pathConfig[path]
+
+  const submitLabel = useMemo(() => {
+    if (loading) return "Guardando..."
+    return selected.button
+  }, [loading, selected.button])
 
   function choosePath(nextPath: Path) {
     setPath(nextPath)
     setError("")
     setSuccess("")
-    setSubmittedLead(null)
-    setMagicSent(false)
-    setMagicLoading(false)
-    trackMetaEvent("Lead_Intake_Path_Click", { path: nextPath })
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
     setLoading(true)
     setError("")
     setSuccess("")
-    setSubmittedLead(null)
-    setMagicSent(false)
-    setMagicLoading(false)
 
     const form = e.currentTarget
     const formData = new FormData(form)
     const eventId = `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
+
+   const tenantNeighborhoods = formData.getAll("tenant_neighborhoods").map(String)
+const tenantOtherNeighborhood = String(formData.get("tenant_other_neighborhood") || "").trim()
+
+const normalizedTenantNeighborhoods = normalizeNeighborhoods(
+  tenantNeighborhoods,
+  tenantOtherNeighborhood
+)
+
+if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
+  setError("Elegí al menos un barrio o escribí otra zona donde buscarías alquilar.")
+  setLoading(false)
+  return
+}
+
+    const ownerNeighborhood = String(formData.get("owner_neighborhood") || "").trim()
+    const renewalNeighborhood = String(formData.get("renewal_neighborhood") || "").trim()
+
+   const zone =
+  path === "tenant"
+    ? normalizedTenantNeighborhoods.text
+    : path === "owner"
+      ? ownerNeighborhood
+      : renewalNeighborhood
 
     const payload = {
       full_name: String(formData.get("full_name") || "").trim(),
@@ -598,24 +1173,33 @@ export default function TestCaptacionPage() {
           ? String(formData.get("renewal_role") || "both").trim()
           : selected.role,
       intent: selected.intent,
-      zone: String(formData.get("zone") || "").trim(),
+      zone,
       property_type: String(formData.get("property_type") || "").trim(),
+      property_rooms: String(formData.get("property_rooms") || "").trim(),
       availability_status: String(formData.get("availability_status") || "").trim(),
       approx_price: String(formData.get("approx_price") || "").trim(),
       desired_property_type: String(formData.get("desired_property_type") || "").trim(),
+      desired_rooms: String(formData.get("desired_rooms") || "").trim(),
       budget_range: String(formData.get("budget_range") || "").trim(),
       move_timing: String(formData.get("move_timing") || "").trim(),
       renewal_role: String(formData.get("renewal_role") || "").trim(),
       contract_expiration: String(formData.get("contract_expiration") || "").trim(),
       other_party_status: String(formData.get("other_party_status") || "").trim(),
       renewal_need: String(formData.get("renewal_need") || "").trim(),
-     event_id: eventId,
-event_source_url: window.location.href,
-fbp: getCookie("_fbp"),
-fbc: getMetaFbc(),
-metadata: {
+      event_id: eventId,
+      event_source_url: window.location.href,
+      fbp: getCookie("_fbp"),
+      fbc: getMetaFbc(),
+      metadata: {
         path,
-        page: "test_captacion",
+        page: "pagedeprueba",
+       tenant_area: selectedArea,
+tenant_area_label: AREA_GROUPS[selectedArea].label,
+tenant_neighborhoods: normalizedTenantNeighborhoods.labels,
+tenant_neighborhood_slugs: normalizedTenantNeighborhoods.slugs,
+tenant_other_neighborhood: tenantOtherNeighborhood,
+neighborhood: zone,
+neighborhood_slug: normalizeText(zone),
       },
     }
 
@@ -634,25 +1218,14 @@ metadata: {
         throw new Error(data?.error || "No pudimos guardar tus datos")
       }
 
-      setSubmittedLead({
-        email: payload.email,
-        full_name: payload.full_name,
-        phone: payload.phone,
+      trackMetaLead(eventId, {
+        path,
         role: payload.role,
         intent: payload.intent,
-        zone: payload.zone || "",
-        lead_id: data.lead_id || null,
       })
 
-     trackMetaLead(eventId, {
-  path,
-  role: payload.role,
-  intent: payload.intent,
-})
-
       form.reset()
-
-      setSuccess("Dale click al botón de abajo, y luego al link que te llega por mail para completar la acción.")
+      setSuccess("Listo. Guardamos tus datos y te vamos a contactar por WhatsApp.")
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message)
@@ -664,137 +1237,168 @@ metadata: {
     }
   }
 
-  async function sendMagicLink() {
-    if (!submittedLead) return
-
-    setMagicLoading(true)
-    setError("")
-
-    try {
-      const res = await fetch("/api/auth/send-magic-link", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submittedLead),
-      })
-
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || "No pudimos enviar el email")
-      }
-
-      setMagicSent(true)
-      setSuccess("")
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message)
-      } else {
-        setError("No pudimos enviar el email")
-      }
-    } finally {
-      setMagicLoading(false)
-    }
-  }
-
-  return (
-    <main className="verlo-root">
+    return (
+  <main className="test-root">
       <style>{styles}</style>
 
-      <div className="verlo-page">
-        <header className="nav">
-          <div className="container nav-inner">
-            <VerloBrand width={112} />
+      <header className="nav">
+        <div className="container nav-inner">
+          <VerloBrand width={112} />
 
-            <nav className="nav-links">
-              <a href="#captacion">Qué querés hacer</a>
-              <a href="#captacion" className="nav-cta">
-                Sumate
+          <nav className="nav-links">
+            <a href="#caminos">Qué querés hacer</a>
+            <a href="#sumate" className="nav-cta">
+              Sumate
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <section className="hero">
+        <div className="container hero-grid">
+          <div>
+            <h1>
+              Alquilá directo, <em>seguro y sin comisión.</em>
+            </h1>
+
+            <p>
+              Cargá barrios, presupuesto y fecha de mudanza. Verlo usa esos datos para
+              acercarte propiedades compatibles sin pagar una comisión inmobiliaria enorme.
+            </p>
+
+            <div className="hero-actions">
+              <a
+                className="btn btn-primary"
+                href="#sumate"
+                onClick={() => choosePath("tenant")}
+              >
+                Busco alquilar
               </a>
-            </nav>
+
+              <a
+                className="btn btn-secondary"
+                href="#sumate"
+                onClick={() => choosePath("owner")}
+              >
+                Tengo una propiedad
+              </a>
+
+              <a
+                className="btn btn-secondary"
+                href="#sumate"
+                onClick={() => choosePath("renewal")}
+              >
+                Quiero renovar
+              </a>
+            </div>
+
+            <div className="trust-row">
+              <span className="pill">Sin comisión inmobiliaria</span>
+              <span className="pill">Matching por barrio</span>
+              <span className="pill">Más simple</span>
+              <span className="pill">Más seguro</span>
+            </div>
           </div>
-        </header>
 
-        <section className="hero">
-          <div className="container hero-grid">
-            <div>
-              <h1>
-                Alquilá directo, <em>seguro y sin comisión.</em>
-              </h1>
+          <HeroPhone />
+        </div>
+      </section>
 
-              <p>
-                En Verlo conectás directo con la otra parte, validás identidad y avanzás
-                hacia un contrato digital más simple, seguro y económico.
-              </p>
+      <section className="section" id="caminos">
+        <div className="container">
+          <div className="section-header">
+            <p className="kicker">Elegí tu camino</p>
 
-              <div className="hero-actions">
-                <a className="btn btn-primary" href="#captacion" onClick={() => choosePath("owner")}>
-                  Tengo una propiedad
-                </a>
+            <h2 className="section-title">
+              Datos simples para <em>matchear mejor.</em>
+            </h2>
 
-                <a className="btn btn-secondary" href="#captacion" onClick={() => choosePath("tenant")}>
+            <p className="section-copy">
+              Inquilinos dicen en qué barrios vivirían. Propietarios dicen en qué barrio
+              tienen la propiedad. Con eso empezamos a ordenar la demanda real.
+            </p>
+          </div>
+
+          <div className="mock-grid">
+            <article className="mock-item">
+              <MiniPhone type="tenant" />
+
+              <div className="mock-copy">
+                <h3>Buscá por barrios</h3>
+                <p>
+                  Marcá más de un barrio si te sirve. Así podemos matchearte con propiedades
+                  compatibles aunque no estén en tu primera opción.
+                </p>
+                <a href="#sumate" onClick={() => choosePath("tenant")}>
                   Busco alquilar
                 </a>
+              </div>
+            </article>
 
-                <a className="btn btn-secondary" href="#captacion" onClick={() => choosePath("renewal")}>
+            <article className="mock-item">
+              <MiniPhone type="owner" />
+
+              <div className="mock-copy">
+                <h3>Tenés una propiedad</h3>
+                <p>
+                  Dejanos barrio, tipo, precio y disponibilidad. No tenés que subir fotos ni
+                  publicar nada todavía.
+                </p>
+                <a href="#sumate" onClick={() => choosePath("owner")}>
+                  Tengo una propiedad
+                </a>
+              </div>
+            </article>
+
+            <article className="mock-item">
+              <MiniPhone type="renewal" />
+
+              <div className="mock-copy">
+                <h3>Renová sin comisión</h3>
+                <p>
+                  Ordená la renovación directo, rápido y sin costos inmobiliarios de renovación.
+                </p>
+                <a href="#sumate" onClick={() => choosePath("renewal")}>
                   Quiero renovar
                 </a>
               </div>
-
-              <div className="trust-row">
-                <span className="pill">Sin comisión inmobiliaria</span>
-                <span className="pill">Identidad validada</span>
-                <span className="pill">Contrato digital</span>
-                <span className="pill">App disponible próximamente</span>
-              </div>
-            </div>
-
-            <div className="hero-video-wrap" aria-hidden="true">
-              <div className="hero-video-glow" />
-
-              <div className="hero-video-frame">
-                <iframe
-                  src="/mockup-lab?key=verlo-demo-2026"
-                  title="Video demo Verlo"
-                  loading="eager"
-                  allow="autoplay"
-                />
-              </div>
-            </div>
+            </article>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="section" id="captacion">
-          <div className="container">
+      <section className="section" id="sumate">
+        <div className="container">
+          <div className="form-card">
             <div className="section-header">
-              <p className="kicker">Validación inicial</p>
+              <p className="kicker">Sumate a Verlo</p>
+
               <h2 className="section-title">
-                ¿Qué querés hacer con <em>Verlo?</em>
+                Dejá tus datos y seguimos <em>por WhatsApp.</em>
               </h2>
+
               <p className="section-copy">
-                Dejanos tus datos y te contactamos por WhatsApp cuando haya una oportunidad
-                compatible con tu caso.
+                Todos los campos son necesarios para poder ordenar y matchear bien.
               </p>
             </div>
 
             <div className="path-grid">
               <button
                 type="button"
-                className={`path-card ${path === "owner" ? "active" : ""}`}
-                onClick={() => choosePath("owner")}
-              >
-                <strong>Tengo una propiedad</strong>
-                <span>Registrá interés sin cargar fotos ni publicación completa.</span>
-              </button>
-
-              <button
-                type="button"
                 className={`path-card ${path === "tenant" ? "active" : ""}`}
                 onClick={() => choosePath("tenant")}
               >
                 <strong>Busco alquilar</strong>
-                <span>Contanos zona, presupuesto y qué tipo de propiedad buscás.</span>
+                <span>Barrios, presupuesto y fecha de mudanza.</span>
+              </button>
+
+              <button
+                type="button"
+                className={`path-card ${path === "owner" ? "active" : ""}`}
+                onClick={() => choosePath("owner")}
+              >
+                <strong>Tengo una propiedad</strong>
+                <span>Barrio, tipo, precio y disponibilidad.</span>
               </button>
 
               <button
@@ -803,185 +1407,246 @@ metadata: {
                 onClick={() => choosePath("renewal")}
               >
                 <strong>Quiero renovar</strong>
-                <span>Registrá un caso de renovación para ordenarlo con Verlo.</span>
+                <span>Barrio, contrato, partes y vencimiento.</span>
               </button>
             </div>
 
-            <div className="form-card">
-              <div className="form-head">
-                <h3>{selected.title}</h3>
-                <p>{selected.subtitle}</p>
+            <div className="form-head">
+              <h3>{selected.title}</h3>
+              <p>{selected.subtitle}</p>
+            </div>
+
+            <form className="form" onSubmit={handleSubmit}>
+              <div className="row">
+                <input className="input" name="full_name" placeholder="Nombre y apellido" required />
+                <input
+                  className="input"
+                  name="phone"
+                  placeholder="WhatsApp con característica. Ej: 11 3361 4865"
+                  inputMode="tel"
+                  required
+                />
               </div>
 
-              <form className="form" onSubmit={handleSubmit}>
-                <div className="row">
-                  <input className="input" name="full_name" placeholder="Nombre y apellido" required />
-                  <input
-                    className="input"
-                    name="phone"
-                    placeholder="WhatsApp con característica. Ej: 11 3361 4865"
-                    inputMode="tel"
-                    required
-                  />
-                </div>
+              <input className="input" name="email" type="email" placeholder="Email" required />
 
-                <input className="input" name="email" type="email" placeholder="Email" required />
+              {path === "tenant" && (
+                <>
+<div className="neighborhood-box">
+  <strong>¿Dónde buscarías alquilar?</strong>
 
-                {path === "owner" && (
-                  <>
-                    <div className="row">
-                      <input className="input" name="zone" placeholder="Zona de la propiedad" required />
+  <div className="area-tabs">
+    {(Object.keys(AREA_GROUPS) as AreaKey[]).map((areaKey) => (
+      <button
+        key={areaKey}
+        type="button"
+        className={`area-tab ${selectedArea === areaKey ? "active" : ""}`}
+        onClick={() => setSelectedArea(areaKey)}
+      >
+        {AREA_GROUPS[areaKey].label}
+      </button>
+    ))}
+  </div>
 
-                      <select className="select" name="property_type" required defaultValue="">
-                        <option value="" disabled>
-                          Tipo de propiedad
-                        </option>
-                        <option>Departamento</option>
-                        <option>Casa</option>
-                        <option>PH</option>
-                        <option>Local</option>
-                        <option>Oficina</option>
-                        <option>Otro</option>
-                      </select>
-                    </div>
+  <div className="neighborhood-grid">
+    {AREA_GROUPS[selectedArea].neighborhoods.map((neighborhood) => (
+      <label className="check-pill" key={neighborhood}>
+        <input
+          type="checkbox"
+          name="tenant_neighborhoods"
+          value={neighborhood}
+        />
+        {neighborhood}
+      </label>
+    ))}
+  </div>
 
-                    <div className="row">
-                      <select className="select" name="availability_status" required defaultValue="">
-                        <option value="" disabled>
-                          Disponibilidad
-                        </option>
-                        <option>Disponible ahora</option>
-                        <option>Disponible pronto</option>
-                        <option>Estoy evaluando alquilar</option>
-                      </select>
+  <input
+    className="input other-neighborhood"
+    name="tenant_other_neighborhood"
+    placeholder="Otro barrio o localidad"
+  />
+</div>
 
-                      <input className="input" name="approx_price" placeholder="Precio aproximado opcional" />
-                    </div>
-                  </>
-                )}
-
-                {path === "tenant" && (
-                  <>
-                    <div className="row">
-                      <input className="input" name="zone" placeholder="Zona donde buscás" required />
-
-                      <select className="select" name="desired_property_type" required defaultValue="">
-                        <option value="" disabled>
-                          Tipo de propiedad
-                        </option>
-                        <option>Departamento</option>
-                        <option>Casa</option>
-                        <option>PH</option>
-                        <option>Habitación</option>
-                        <option>Otro</option>
-                      </select>
-                    </div>
-
-                    <div className="row">
-                      <input className="input" name="budget_range" placeholder="Presupuesto aproximado" required />
-
-                      <select className="select" name="move_timing" required defaultValue="">
-                        <option value="" disabled>
-                          Cuándo querés mudarte
-                        </option>
-                        <option>Estoy buscando ahora</option>
-                        <option>Me quiero mudar en 1-3 meses</option>
-                        <option>Solo quiero enterarme de novedades</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                {path === "renewal" && (
-                  <>
-                    <div className="row">
-                      <select className="select" name="renewal_role" required defaultValue="">
-                        <option value="" disabled>
-                          En la renovación soy...
-                        </option>
-                        <option value="owner">Propietario</option>
-                        <option value="tenant">Inquilino</option>
-                      </select>
-
-                      <input className="input" name="zone" placeholder="Zona de la propiedad" required />
-                    </div>
-
-                    <div className="row">
-                      <input
-                        className="input"
-                        name="contract_expiration"
-                        type="date"
-                        required
-                      />
-
-                      <select className="select" name="other_party_status" required defaultValue="">
-                        <option value="" disabled>
-                          ¿Lo sabe ya tu contraparte?
-                        </option>
-                        <option>Sí, ya lo hablamos</option>
-                        <option>Todavía no</option>
-                        <option>No estoy seguro</option>
-                      </select>
-                    </div>
-
-                    <select className="select" name="renewal_need" required defaultValue="">
+                            <div className="row">
+                    <select className="select" name="desired_property_type" required defaultValue="">
                       <option value="" disabled>
-                        ¿Qué querés lograr con esta renovación?
+                        Tipo de propiedad
                       </option>
-                      <option>Renovar con condiciones parecidas</option>
-                      <option>Actualizar precio y renovar</option>
-                      <option>Cambiar plazo del contrato</option>
-                      <option>Todavía no lo sé, quiero que me guíen</option>
+                      <option>Departamento</option>
+                      <option>Casa</option>
+                      <option>PH</option>
+                      <option>Habitación</option>
+                      <option>Otro</option>
                     </select>
-                  </>
-                )}
 
-                {error && <p className="error">{error}</p>}
+                    <select className="select" name="desired_rooms" required defaultValue="">
+                      <option value="" disabled>
+                        Ambientes que buscás
+                      </option>
+                      <option>Monoambiente</option>
+                      <option>2 ambientes</option>
+                      <option>3 ambientes</option>
+                      <option>4 ambientes</option>
+                      <option>5 o más ambientes</option>
+                    </select>
+                  </div>
 
-                {success && !magicSent && <p className="success">{success}</p>}
+                  <div className="row">
+                    <input
+                      className="input"
+                      name="budget_range"
+                      placeholder="Presupuesto mensual máximo"
+                      required
+                    />
 
-                {!submittedLead && (
-                  <button className="submit" type="submit" disabled={loading}>
-                    {loading ? "Guardando..." : selected.button}
-                  </button>
-                )}
+                    <select className="select" name="move_timing" required defaultValue="">
+                      <option value="" disabled>
+                        Cuándo querés mudarte
+                      </option>
+                      <option>Estoy buscando ahora</option>
+                      <option>Me quiero mudar en 1-3 meses</option>
+                      <option>Me quiero mudar más adelante</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
-                {submittedLead && !magicSent && (
-                  <button
-                    className="submit"
-                    type="button"
-                    onClick={sendMagicLink}
-                    disabled={magicLoading}
-                  >
-                    {magicLoading ? "Enviando email..." : "Confirmar mi cuenta por email"}
-                  </button>
-                )}
+              {path === "owner" && (
+                <>
+                  <div className="row">
+                    <select className="select" name="owner_neighborhood" required defaultValue="">
+                      <option value="" disabled>
+                        Barrio donde está la propiedad
+                      </option>
+                      {ALL_NEIGHBORHOODS.map((neighborhood) => (
+                        <option key={neighborhood}>{neighborhood}</option>
+                      ))}
+                      <option>Otro</option>
+                    </select>
 
-                {magicSent && (
-                  <p className="success">
-                    Te enviamos un link por mail, hace click en él para finalizar.
-                  </p>
-                )}
-              </form>
-            </div>
+                    <select className="select" name="property_type" required defaultValue="">
+                      <option value="" disabled>
+                        Tipo de propiedad
+                      </option>
+                      <option>Departamento</option>
+                      <option>Casa</option>
+                      <option>PH</option>
+                      <option>Local</option>
+                      <option>Oficina</option>
+                      <option>Otro</option>
+                    </select>
+                  </div>
+
+                  <div className="row">
+                    <select className="select" name="property_rooms" required defaultValue="">
+                      <option value="" disabled>
+                        Ambientes de la propiedad
+                      </option>
+                      <option>Monoambiente</option>
+                      <option>2 ambientes</option>
+                      <option>3 ambientes</option>
+                      <option>4 ambientes</option>
+                      <option>5 o más ambientes</option>
+                    </select>
+
+                    <input
+                      className="input"
+                      name="approx_price"
+                      placeholder="Precio mensual esperado"
+                      required
+                    />
+                  </div>
+
+                  <select className="select" name="availability_status" required defaultValue="">
+                    <option value="" disabled>
+                      Disponibilidad
+                    </option>
+                    <option>Disponible ahora</option>
+                    <option>Disponible pronto</option>
+                    <option>Estoy evaluando alquilar</option>
+                  </select>
+                </>
+              )}
+
+              {path === "renewal" && (
+                <>
+                  <div className="row">
+                    <select className="select" name="renewal_role" required defaultValue="">
+                      <option value="" disabled>
+                        En la renovación soy...
+                      </option>
+                      <option value="owner">Propietario</option>
+                      <option value="tenant">Inquilino</option>
+                    </select>
+
+                    <select className="select" name="renewal_neighborhood" required defaultValue="">
+                      <option value="" disabled>
+                        Barrio de la propiedad
+                      </option>
+                    {ALL_NEIGHBORHOODS.map((neighborhood) => (
+  <option key={neighborhood}>{neighborhood}</option>
+))}
+<option>Otro</option>
+                    </select>
+                  </div>
+
+                  <div className="row">
+                    <input
+                      className="input"
+                      name="contract_expiration"
+                      type="date"
+                      required
+                    />
+
+                    <select className="select" name="other_party_status" required defaultValue="">
+                      <option value="" disabled>
+                        ¿Lo sabe ya tu contraparte?
+                      </option>
+                      <option>Sí, ya lo hablamos</option>
+                      <option>Todavía no</option>
+                      <option>No estoy seguro</option>
+                    </select>
+                  </div>
+
+                  <select className="select" name="renewal_need" required defaultValue="">
+                    <option value="" disabled>
+                      ¿Qué querés lograr con esta renovación?
+                    </option>
+                    <option>Renovar con condiciones parecidas</option>
+                    <option>Actualizar precio y renovar</option>
+                    <option>Cambiar plazo del contrato</option>
+                    <option>Todavía no lo sé, quiero que me guíen</option>
+                  </select>
+                </>
+              )}
+
+              {error && <p className="error">{error}</p>}
+              {success && <p className="success">{success}</p>}
+
+              <button className="submit" type="submit" disabled={loading}>
+                {submitLabel}
+              </button>
+            </form>
           </div>
-        </section>
+        </div>
+      </section>
 
       <footer className="footer">
-  <div className="container footer-inner">
-    <div className="footer-brand">
-      <VerloBrand width={86} />
-      <p>Alquiler directo, seguro y sin comisión.</p>
-    </div>
+        <div className="container footer-inner">
+          <div className="footer-brand">
+            <VerloBrand width={86} />
+            <p>Alquiler directo, seguro y sin comisión.</p>
+          </div>
 
-    <nav className="footer-links">
-      <a href="/terminos">Términos y condiciones</a>
-      <a href="/privacidad">Política de privacidad</a>
-      <a href="mailto:hola@verlo.lat">Contacto</a>
-    </nav>
-  </div>
-</footer>
-      </div>
-    </main>
+          <nav className="footer-links">
+            <a href="/terminos">Términos y condiciones</a>
+            <a href="/privacidad">Política de privacidad</a>
+            <a href="mailto:hola@verlo.lat">Contacto</a>
+          </nav>
+        </div>
+      </footer>
+  </main> 
   )
 }
+
