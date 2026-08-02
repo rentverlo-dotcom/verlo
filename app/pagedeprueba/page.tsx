@@ -1056,8 +1056,8 @@ export default function PageDePrueba() {
     }
   }
 
-  return (
-    <main className="test-root">
+    return (
+  <div className="test-root">
       <style>{styles}</style>
 
       <header className="nav">
@@ -1452,6 +1452,6 @@ export default function PageDePrueba() {
           </nav>
         </div>
       </footer>
-    </main>
+    </div>
   )
 }
