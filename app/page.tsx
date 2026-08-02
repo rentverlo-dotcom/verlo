@@ -1246,7 +1246,7 @@ neighborhood_slug: normalizeText(zone),
           <VerloBrand width={112} />
 
           <nav className="nav-links">
-            <a href="#caminos">Qué querés hacer</a>
+            <a href="#caminos">Aquilar - Publicar - Renovar</a>
             <a href="#sumate" className="nav-cta">
               Sumate
             </a>
