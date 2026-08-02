@@ -1510,6 +1510,7 @@ neighborhood_slug: normalizeText(zone),
     {NEIGHBORHOODS.map((neighborhood) => (
       <option key={neighborhood}>{neighborhood}</option>
     ))}
+    <option>Otro</option>
   </select>
 
   <select className="select" name="property_type" required defaultValue="">
@@ -1583,6 +1584,7 @@ neighborhood_slug: normalizeText(zone),
                       {NEIGHBORHOODS.map((neighborhood) => (
                         <option key={neighborhood}>{neighborhood}</option>
                       ))}
+                      <option>Otro</option>
                     </select>
                   </div>
 
