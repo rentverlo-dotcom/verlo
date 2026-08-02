@@ -189,13 +189,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
+const body = await req.json()
+const metadata = body.metadata || {}
 
-    const full_name = clean(body.full_name)
-    const email = clean(body.email).toLowerCase()
-    const phone = normalizePhone(clean(body.phone))
-    const role = clean(body.role)
-    const intent = clean(body.intent)
+const full_name = clean(body.full_name)
+const email = clean(body.email).toLowerCase()
+const phone_raw = clean(body.phone)
+const phone_normalized = normalizePhone(phone_raw)
+const phone = phone_normalized
+
+const role = clean(body.role)
+const intent = clean(body.intent)
 
     const zone = clean(body.zone) || null
     const property_type = clean(body.property_type) || null
@@ -210,6 +214,31 @@ export async function POST(req: NextRequest) {
     const contract_expiration = clean(body.contract_expiration) || null
     const other_party_status = clean(body.other_party_status) || null
     const renewal_need = clean(body.renewal_need) || null
+    const area_macro = clean(body.area_macro || metadata.tenant_area_label || metadata.area_macro) || null
+
+const neighborhood_labels =
+  toStringArray(body.neighborhood_labels).length > 0
+    ? toStringArray(body.neighborhood_labels)
+    : toStringArray(metadata.tenant_neighborhoods)
+
+const neighborhood_slugs =
+  toStringArray(body.neighborhood_slugs).length > 0
+    ? toStringArray(body.neighborhood_slugs)
+    : neighborhood_labels.map(normalizeText)
+
+const neighborhood_slug =
+  clean(body.neighborhood_slug || metadata.neighborhood_slug) ||
+  (zone ? normalizeText(zone) : null)
+
+const desired_rooms = clean(body.desired_rooms || metadata.desired_rooms) || null
+const property_rooms = clean(body.property_rooms || metadata.property_rooms) || null
+
+const budget_max = parseMoney(clean(body.budget_max || budget_range || metadata.budget_max))
+const approx_price_number = parseMoney(
+  clean(body.approx_price_number || approx_price || metadata.approx_price_number)
+)
+
+const source = clean(body.source || metadata.page) || "verlo_home"
 
     if (full_name.length < 3) {
       return NextResponse.json(
