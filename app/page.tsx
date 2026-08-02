@@ -1078,7 +1078,7 @@ function MiniPhone({ type }: { type: Path }) {
         <PhoneContent
           badge="Búsqueda activa"
           title="Buscá sin comisión"
-          copy="Marcá los barrios donde vivirías y tu presupuesto real."
+          copy="Marcá los barrios donde buscás y tu presupuesto real."
           button="Cargar búsqueda"
           rows={[
             { label: "Barrios", value: "Olivos + Núñez" },
