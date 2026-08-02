@@ -5,18 +5,134 @@ import VerloBrand from "@/components/VerloBrand"
 
 type Path = "tenant" | "owner" | "renewal"
 
-const NEIGHBORHOODS = [
-  "Vicente López",
-  "Olivos",
-  "Florida",
-  "La Lucila",
-  "Martínez",
-  "Núñez",
-  "Belgrano",
-  "Palermo",
-  "Colegiales",
-  "Saavedra",
-]
+const AREA_GROUPS = {
+  caba: {
+    label: "CABA",
+    neighborhoods: [
+      "Agronomía",
+      "Almagro",
+      "Balvanera",
+      "Barracas",
+      "Belgrano",
+      "Boedo",
+      "Caballito",
+      "Chacarita",
+      "Coghlan",
+      "Colegiales",
+      "Constitución",
+      "Flores",
+      "Floresta",
+      "La Boca",
+      "Liniers",
+      "Mataderos",
+      "Monserrat",
+      "Monte Castro",
+      "Nueva Pompeya",
+      "Núñez",
+      "Palermo",
+      "Parque Avellaneda",
+      "Parque Chacabuco",
+      "Parque Chas",
+      "Parque Patricios",
+      "Paternal",
+      "Puerto Madero",
+      "Recoleta",
+      "Retiro",
+      "Saavedra",
+      "San Cristóbal",
+      "San Nicolás",
+      "San Telmo",
+      "Vélez Sarsfield",
+      "Versalles",
+      "Villa Crespo",
+      "Villa Devoto",
+      "Villa General Mitre",
+      "Villa Lugano",
+      "Villa Luro",
+      "Villa Ortúzar",
+      "Villa Pueyrredón",
+      "Villa Real",
+      "Villa Riachuelo",
+      "Villa Santa Rita",
+      "Villa Soldati",
+      "Villa Urquiza",
+    ],
+  },
+  gba_norte: {
+    label: "GBA Norte",
+    neighborhoods: [
+      "Vicente López",
+      "Olivos",
+      "Florida",
+      "La Lucila",
+      "Munro",
+      "Villa Martelli",
+      "Carapachay",
+      "San Isidro",
+      "Martínez",
+      "Acassuso",
+      "Beccar",
+      "Boulogne",
+      "Victoria",
+      "San Fernando",
+      "Tigre",
+      "Don Torcuato",
+      "Pacheco",
+      "Benavídez",
+      "Pilar",
+      "Escobar",
+    ],
+  },
+  gba_oeste: {
+    label: "GBA Oeste",
+    neighborhoods: [
+      "Ramos Mejía",
+      "Haedo",
+      "Morón",
+      "Castelar",
+      "Ituzaingó",
+      "Hurlingham",
+      "Villa Tesei",
+      "Ciudadela",
+      "Liniers Oeste",
+      "San Justo",
+      "Lomas del Mirador",
+      "Merlo",
+      "Moreno",
+    ],
+  },
+  gba_sur: {
+    label: "GBA Sur",
+    neighborhoods: [
+      "Avellaneda",
+      "Wilde",
+      "Quilmes",
+      "Bernal",
+      "Lanús",
+      "Lomas de Zamora",
+      "Banfield",
+      "Temperley",
+      "Adrogué",
+      "Burzaco",
+      "Florencio Varela",
+      "Berazategui",
+      "Ezeiza",
+      "Monte Grande",
+    ],
+  },
+} as const
+
+type AreaKey = keyof typeof AREA_GROUPS
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
 
 const pathConfig = {
   tenant: {
