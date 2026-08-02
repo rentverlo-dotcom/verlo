@@ -269,7 +269,7 @@ async function upsertLeadMatches({
   supabaseAdmin,
   matches,
 }: {
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: SupabaseAdminClient
   matches: MatchRow[]
 }) {
   if (matches.length === 0) {
@@ -307,7 +307,7 @@ async function createLeadMatches({
   supabaseAdmin,
   lead,
 }: {
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: SupabaseAdminClient
   lead: MatchableLead
 }) {
   if (lead.intent !== "tenant_search" && lead.intent !== "owner_new_listing") {
