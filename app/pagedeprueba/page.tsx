@@ -1109,12 +1109,12 @@ if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
     const ownerNeighborhood = String(formData.get("owner_neighborhood") || "").trim()
     const renewalNeighborhood = String(formData.get("renewal_neighborhood") || "").trim()
 
-    const zone =
-      path === "tenant"
-        ? tenantNeighborhoodsText
-        : path === "owner"
-          ? ownerNeighborhood
-          : renewalNeighborhood
+   const zone =
+  path === "tenant"
+    ? normalizedTenantNeighborhoods.text
+    : path === "owner"
+      ? ownerNeighborhood
+      : renewalNeighborhood
 
     const payload = {
       full_name: String(formData.get("full_name") || "").trim(),
