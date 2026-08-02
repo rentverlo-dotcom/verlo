@@ -714,11 +714,14 @@ const styles = `
     margin-top: 12px;
   }
 
-  .neighborhood-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-  }
+.neighborhood-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
 
   .check-pill {
     display: flex;
