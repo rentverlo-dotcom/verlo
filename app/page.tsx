@@ -920,6 +920,19 @@ const styles = `
   opacity: 0;
   pointer-events: none;
 }
+
+.mock-item {
+  cursor: pointer;
+}
+
+.mock-item:hover .mini-phone {
+  transform: translateY(-4px);
+}
+
+.mini-phone {
+  transition: transform 180ms ease;
+}
+
   }
 `
 
