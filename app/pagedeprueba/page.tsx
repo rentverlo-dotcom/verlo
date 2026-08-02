@@ -708,17 +708,39 @@ metadata: {
           <div className="container nav-inner">
             <VerloBrand width={112} />
 
-          <nav className="nav-links">
-  <a href="#sumate" onClick={() => choosePath("tenant")}>
-    Quiero alquilar
+   <nav className="nav-links">
+  <a
+    href="#sumate"
+    onClick={() => {
+      choosePath("tenant")
+      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
+    }}
+  >
+    Alquilar
   </a>
 
-  <a href="#sumate" onClick={() => choosePath("owner")}>
-    Tengo una propiedad
+  <a
+    href="#sumate"
+    onClick={() => {
+      choosePath("owner")
+      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
+    }}
+  >
+    Publicar
   </a>
 
-  <a href="#sumate" onClick={() => choosePath("renewal")}>
-    Renovar contrato
+  <a
+    href="#sumate"
+    onClick={() => {
+      choosePath("renewal")
+      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
+    }}
+  >
+    Renovar
+  </a>
+
+  <a href="#sumate" className="nav-cta">
+    Sumate
   </a>
 </nav>
           </div>
