@@ -1251,12 +1251,32 @@ neighborhood_slug: normalizeText(zone),
         <div className="container nav-inner">
           <VerloBrand width={112} />
 
-          <nav className="nav-links">
-            <a href="#caminos">Aquilar - Publicar - Renovar</a>
-            <a href="#sumate" className="nav-cta">
-              Sumate
-            </a>
-          </nav>
+        <nav className="nav-links">
+  <a
+    href="#sumate"
+    onClick={() => choosePath("tenant")}
+  >
+    Alquilar
+  </a>
+
+  <a
+    href="#sumate"
+    onClick={() => choosePath("owner")}
+  >
+    Publicar
+  </a>
+
+  <a
+    href="#sumate"
+    onClick={() => choosePath("renewal")}
+  >
+    Renovar
+  </a>
+
+  <a href="#sumate" className="nav-cta">
+    Sumate
+  </a>
+</nav>
         </div>
       </header>
 
