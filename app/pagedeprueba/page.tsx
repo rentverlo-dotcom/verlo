@@ -1092,14 +1092,19 @@ export default function PageDePrueba() {
     const formData = new FormData(form)
     const eventId = `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
 
-    const tenantNeighborhoods = formData.getAll("tenant_neighborhoods").map(String)
-    const tenantNeighborhoodsText = normalizeNeighborhoods(tenantNeighborhoods)
+   const tenantNeighborhoods = formData.getAll("tenant_neighborhoods").map(String)
+const tenantOtherNeighborhood = String(formData.get("tenant_other_neighborhood") || "").trim()
 
-    if (path === "tenant" && tenantNeighborhoods.length === 0) {
-      setError("Elegí al menos un barrio donde buscarías alquilar.")
-      setLoading(false)
-      return
-    }
+const normalizedTenantNeighborhoods = normalizeNeighborhoods(
+  tenantNeighborhoods,
+  tenantOtherNeighborhood
+)
+
+if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
+  setError("Elegí al menos un barrio o escribí otra zona donde buscarías alquilar.")
+  setLoading(false)
+  return
+}
 
     const ownerNeighborhood = String(formData.get("owner_neighborhood") || "").trim()
     const renewalNeighborhood = String(formData.get("renewal_neighborhood") || "").trim()
