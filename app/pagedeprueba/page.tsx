@@ -1057,6 +1057,7 @@ function MiniPhone({ type }: { type: Path }) {
 
 export default function PageDePrueba() {
   const [path, setPath] = useState<Path>("tenant")
+  const [selectedArea, setSelectedArea] = useState<AreaKey>("caba")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
