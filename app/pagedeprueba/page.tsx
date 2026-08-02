@@ -732,50 +732,34 @@ metadata: {
           <div className="container nav-inner">
             <VerloBrand width={112} />
 
-  <nav className="nav-links">
-  <button
-    type="button"
-    className="nav-link-button"
-    onClick={() => {
-      choosePath("tenant")
-      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-    }}
+
+          <nav className="nav-links">
+  <a
+    href="#sumate"
+    onClick={() => choosePath("tenant")}
   >
     Alquilar
-  </button>
+  </a>
 
-  <button
-    type="button"
-    className="nav-link-button"
-    onClick={() => {
-      choosePath("owner")
-      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-    }}
+  <a
+    href="#sumate"
+    onClick={() => choosePath("owner")}
   >
     Publicar
-  </button>
+  </a>
 
-  <button
-    type="button"
-    className="nav-link-button"
-    onClick={() => {
-      choosePath("renewal")
-      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-    }}
+  <a
+    href="#sumate"
+    onClick={() => choosePath("renewal")}
   >
     Renovar
-  </button>
+  </a>
 
-  <button
-    type="button"
-    className="nav-link-button nav-cta"
-    onClick={() => {
-      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-    }}
-  >
+  <a href="#sumate" className="nav-cta">
     Sumate
-  </button>
+  </a>
 </nav>
+            
           </div>
         </header>
 
