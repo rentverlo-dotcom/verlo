@@ -914,6 +914,12 @@ const styles = `
     .footer-links {
       justify-content: flex-start;
     }
+    .honeypot {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+  pointer-events: none;
+}
   }
 `
 
