@@ -495,6 +495,30 @@ const styles = `
     .footer-links {
   justify-content: flex-start;
 }
+
+.nav-link-button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(5, 0, 2, 0.72);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 950;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nav-link-button:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.nav-link-button.nav-cta {
+  background: var(--black);
+  color: white;
+}
+
   }
 `
 
