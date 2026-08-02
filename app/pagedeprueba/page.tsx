@@ -122,6 +122,10 @@ const AREA_GROUPS = {
   },
 } as const
 
+const ALL_NEIGHBORHOODS = Object.values(AREA_GROUPS).flatMap(
+  (group) => group.neighborhoods
+)
+
 type AreaKey = keyof typeof AREA_GROUPS
 
 function normalizeText(value: string) {
