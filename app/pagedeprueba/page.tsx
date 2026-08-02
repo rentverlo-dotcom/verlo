@@ -685,6 +685,35 @@ const styles = `
     margin-bottom: 12px;
   }
 
+  .area-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-bottom: 14px;
+  }
+
+  .area-tab {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(5, 0, 2, 0.1);
+    background: white;
+    color: var(--black);
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .area-tab.active {
+    background: var(--black);
+    color: white;
+    box-shadow: 0 12px 28px rgba(5, 0, 2, 0.14);
+  }
+
+  .other-neighborhood {
+    margin-top: 12px;
+  }
+
   .neighborhood-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
