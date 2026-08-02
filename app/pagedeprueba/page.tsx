@@ -1507,10 +1507,10 @@ neighborhood_slug: normalizeText(zone),
     <option value="" disabled>
       Barrio donde está la propiedad
     </option>
-    {NEIGHBORHOODS.map((neighborhood) => (
-      <option key={neighborhood}>{neighborhood}</option>
-    ))}
-    <option>Otro</option>
+   {ALL_NEIGHBORHOODS.map((neighborhood) => (
+  <option key={neighborhood}>{neighborhood}</option>
+))}
+<option>Otro</option>
   </select>
 
   <select className="select" name="property_type" required defaultValue="">
@@ -1581,10 +1581,10 @@ neighborhood_slug: normalizeText(zone),
                       <option value="" disabled>
                         Barrio de la propiedad
                       </option>
-                      {NEIGHBORHOODS.map((neighborhood) => (
-                        <option key={neighborhood}>{neighborhood}</option>
-                      ))}
-                      <option>Otro</option>
+                    {ALL_NEIGHBORHOODS.map((neighborhood) => (
+  <option key={neighborhood}>{neighborhood}</option>
+))}
+<option>Otro</option>
                     </select>
                   </div>
 
