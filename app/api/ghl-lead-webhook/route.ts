@@ -29,6 +29,10 @@ type MatchRow = {
   reasons: Record<string, unknown>
 }
 
+type SupabaseAdminClient = {
+  from: (table: string) => any
+}
+
 type MatchableLead = {
   id: string
   role: string
