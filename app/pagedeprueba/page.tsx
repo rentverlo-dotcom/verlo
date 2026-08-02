@@ -1145,8 +1145,13 @@ if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
       metadata: {
         path,
         page: "pagedeprueba",
-        tenant_neighborhoods: tenantNeighborhoods,
-        neighborhood: zone,
+       tenant_area: selectedArea,
+tenant_area_label: AREA_GROUPS[selectedArea].label,
+tenant_neighborhoods: normalizedTenantNeighborhoods.labels,
+tenant_neighborhood_slugs: normalizedTenantNeighborhoods.slugs,
+tenant_other_neighborhood: tenantOtherNeighborhood,
+neighborhood: zone,
+neighborhood_slug: normalizeText(zone),
       },
     }
 
