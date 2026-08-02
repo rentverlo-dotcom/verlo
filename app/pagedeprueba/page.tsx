@@ -1267,60 +1267,92 @@ export default function PageDePrueba() {
                   </div>
 
                   <div className="row">
-                    <select className="select" name="desired_property_type" required defaultValue="">
-                      <option value="" disabled>
-                        Tipo de propiedad
-                      </option>
-                      <option>Departamento</option>
-                      <option>Casa</option>
-                      <option>PH</option>
-                      <option>Habitación</option>
-                      <option>Otro</option>
-                    </select>
+  <select className="select" name="desired_property_type" required defaultValue="">
+    <option value="" disabled>
+      Tipo de propiedad
+    </option>
+    <option>Departamento</option>
+    <option>Casa</option>
+    <option>PH</option>
+    <option>Habitación</option>
+    <option>Otro</option>
+  </select>
 
-                    <input
-                      className="input"
-                      name="budget_range"
-                      placeholder="Presupuesto mensual máximo"
-                      required
-                    />
-                  </div>
+  <select className="select" name="desired_rooms" required defaultValue="">
+    <option value="" disabled>
+      Ambientes que buscás
+    </option>
+    <option>Monoambiente</option>
+    <option>2 ambientes</option>
+    <option>3 ambientes</option>
+    <option>4 ambientes</option>
+    <option>5 o más ambientes</option>
+  </select>
+</div>
 
-                  <select className="select" name="move_timing" required defaultValue="">
-                    <option value="" disabled>
-                      Cuándo querés mudarte
-                    </option>
-                    <option>Estoy buscando ahora</option>
-                    <option>Me quiero mudar en 1-3 meses</option>
-                    <option>Me quiero mudar más adelante</option>
-                  </select>
-                </>
+<div className="row">
+  <input
+    className="input"
+    name="budget_range"
+    placeholder="Presupuesto mensual máximo"
+    required
+  />
+
+  <select className="select" name="move_timing" required defaultValue="">
+    <option value="" disabled>
+      Cuándo querés mudarte
+    </option>
+    <option>Estoy buscando ahora</option>
+    <option>Me quiero mudar en 1-3 meses</option>
+    <option>Me quiero mudar más adelante</option>
+  </select>
+</div>
               )}
 
               {path === "owner" && (
                 <>
                   <div className="row">
-                    <select className="select" name="owner_neighborhood" required defaultValue="">
-                      <option value="" disabled>
-                        Barrio donde está la propiedad
-                      </option>
-                      {NEIGHBORHOODS.map((neighborhood) => (
-                        <option key={neighborhood}>{neighborhood}</option>
-                      ))}
-                    </select>
+  <select className="select" name="owner_neighborhood" required defaultValue="">
+    <option value="" disabled>
+      Barrio donde está la propiedad
+    </option>
+    {NEIGHBORHOODS.map((neighborhood) => (
+      <option key={neighborhood}>{neighborhood}</option>
+    ))}
+  </select>
 
-                    <select className="select" name="property_type" required defaultValue="">
-                      <option value="" disabled>
-                        Tipo de propiedad
-                      </option>
-                      <option>Departamento</option>
-                      <option>Casa</option>
-                      <option>PH</option>
-                      <option>Local</option>
-                      <option>Oficina</option>
-                      <option>Otro</option>
-                    </select>
-                  </div>
+  <select className="select" name="property_type" required defaultValue="">
+    <option value="" disabled>
+      Tipo de propiedad
+    </option>
+    <option>Departamento</option>
+    <option>Casa</option>
+    <option>PH</option>
+    <option>Local</option>
+    <option>Oficina</option>
+    <option>Otro</option>
+  </select>
+</div>
+
+<div className="row">
+  <select className="select" name="property_rooms" required defaultValue="">
+    <option value="" disabled>
+      Ambientes de la propiedad
+    </option>
+    <option>Monoambiente</option>
+    <option>2 ambientes</option>
+    <option>3 ambientes</option>
+    <option>4 ambientes</option>
+    <option>5 o más ambientes</option>
+  </select>
+
+  <input
+    className="input"
+    name="approx_price"
+    placeholder="Precio mensual esperado"
+    required
+  />
+</div>
 
                   <div className="row">
                     <input
