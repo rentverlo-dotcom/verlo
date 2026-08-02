@@ -21,6 +21,14 @@ type TenantLeadRow = {
   budget_max: number | null
 }
 
+type MatchRow = {
+  tenant_lead_id: string
+  owner_lead_id: string
+  status: string
+  score: number
+  reasons: Record<string, unknown>
+}
+
 type MatchableLead = {
   id: string
   role: string
@@ -253,6 +261,44 @@ async function sendToGhlWebhook(payload: Record<string, unknown>) {
   }
 }
 
+async function upsertLeadMatches({
+  supabaseAdmin,
+  matches,
+}: {
+  supabaseAdmin: ReturnType<typeof createClient>
+  matches: MatchRow[]
+}) {
+  if (matches.length === 0) {
+    return {
+      ok: true,
+      created: 0,
+    }
+  }
+
+  const { error } = await supabaseAdmin
+    .from("lead_matches")
+    // El cast evita que Supabase tipado infiera la tabla nueva como never.
+    .upsert(matches as never, {
+      onConflict: "tenant_lead_id,owner_lead_id",
+      ignoreDuplicates: true,
+    })
+
+  if (error) {
+    console.error("lead match insert error:", error)
+
+    return {
+      ok: false,
+      created: 0,
+      error: error.message,
+    }
+  }
+
+  return {
+    ok: true,
+    created: matches.length,
+  }
+}
+
 async function createLeadMatches({
   supabaseAdmin,
   lead,
@@ -290,7 +336,7 @@ async function createLeadMatches({
 
     const ownerLeads = (ownerLeadsRaw || []) as unknown as OwnerLeadRow[]
 
-    const matches = ownerLeads
+    const matches: MatchRow[] = ownerLeads
       .map((ownerLead) => {
         const neighborhoodOk = isNeighborhoodCompatible({
           tenantNeighborhoodSlugs: lead.neighborhood_slugs,
@@ -339,36 +385,16 @@ async function createLeadMatches({
       })
       .filter((match) => match.score >= 60)
 
-    if (matches.length === 0) {
-      return {
-        ok: true,
-        created: 0,
-        skipped: false,
-      }
-    }
-
-    const { error: insertError } = await supabaseAdmin
-      .from("lead_matches")
-      .upsert(matches, {
-        onConflict: "tenant_lead_id,owner_lead_id",
-        ignoreDuplicates: true,
-      })
-
-    if (insertError) {
-      console.error("lead match insert error:", insertError)
-
-      return {
-        ok: false,
-        created: 0,
-        skipped: false,
-        error: insertError.message,
-      }
-    }
+    const result = await upsertLeadMatches({
+      supabaseAdmin,
+      matches,
+    })
 
     return {
-      ok: true,
-      created: matches.length,
+      ok: result.ok,
+      created: result.created,
       skipped: false,
+      error: "error" in result ? result.error : undefined,
     }
   }
 
@@ -394,7 +420,7 @@ async function createLeadMatches({
 
     const tenantLeads = (tenantLeadsRaw || []) as unknown as TenantLeadRow[]
 
-    const matches = tenantLeads
+    const matches: MatchRow[] = tenantLeads
       .map((tenantLead) => {
         const tenantNeighborhoodSlugs = toStringArray(tenantLead.neighborhood_slugs)
 
@@ -445,36 +471,16 @@ async function createLeadMatches({
       })
       .filter((match) => match.score >= 60)
 
-    if (matches.length === 0) {
-      return {
-        ok: true,
-        created: 0,
-        skipped: false,
-      }
-    }
-
-    const { error: insertError } = await supabaseAdmin
-      .from("lead_matches")
-      .upsert(matches, {
-        onConflict: "tenant_lead_id,owner_lead_id",
-        ignoreDuplicates: true,
-      })
-
-    if (insertError) {
-      console.error("lead match insert error:", insertError)
-
-      return {
-        ok: false,
-        created: 0,
-        skipped: false,
-        error: insertError.message,
-      }
-    }
+    const result = await upsertLeadMatches({
+      supabaseAdmin,
+      matches,
+    })
 
     return {
-      ok: true,
-      created: matches.length,
+      ok: result.ok,
+      created: result.created,
       skipped: false,
+      error: "error" in result ? result.error : undefined,
     }
   }
 
