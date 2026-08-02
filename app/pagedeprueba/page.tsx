@@ -708,12 +708,19 @@ metadata: {
           <div className="container nav-inner">
             <VerloBrand width={112} />
 
-            <nav className="nav-links">
-              <a href="#captacion">Qué querés hacer</a>
-              <a href="#captacion" className="nav-cta">
-                Sumate
-              </a>
-            </nav>
+          <nav className="nav-links">
+  <a href="#sumate" onClick={() => choosePath("tenant")}>
+    Quiero alquilar
+  </a>
+
+  <a href="#sumate" onClick={() => choosePath("owner")}>
+    Tengo una propiedad
+  </a>
+
+  <a href="#sumate" onClick={() => choosePath("renewal")}>
+    Renovar contrato
+  </a>
+</nav>
           </div>
         </header>
 
