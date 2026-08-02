@@ -911,11 +911,17 @@ function trackMetaLead(eventId: string, params?: Record<string, string>) {
   }
 }
 
-function normalizeNeighborhoods(values: string[]) {
-  return values
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .join(", ")
+function normalizeNeighborhoods(values: string[], otherValue?: string) {
+  const cleanValues = values.map((value) => value.trim()).filter(Boolean)
+
+  const other = otherValue?.trim()
+  if (other) cleanValues.push(other)
+
+  return {
+    labels: cleanValues,
+    text: cleanValues.join(", "),
+    slugs: cleanValues.map(normalizeText),
+  }
 }
 
 function Dots() {
