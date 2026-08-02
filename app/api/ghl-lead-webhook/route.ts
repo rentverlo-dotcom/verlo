@@ -282,7 +282,7 @@ async function upsertLeadMatches({
   const { error } = await supabaseAdmin
     .from("lead_matches")
     // El cast evita que Supabase tipado infiera la tabla nueva como never.
-    .upsert(matches as never, {
+    .upsert(matches, {
       onConflict: "tenant_lead_id,owner_lead_id",
       ignoreDuplicates: true,
     })
