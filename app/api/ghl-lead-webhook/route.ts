@@ -10,7 +10,28 @@ function clean(value: unknown) {
 }
 
 function normalizePhone(phone: string) {
-  return phone.replace(/[^\d+]/g, "")
+  const digits = phone.replace(/\D/g, "")
+
+  if (!digits) return ""
+
+  if (digits.startsWith("549")) return digits
+
+  if (digits.startsWith("54")) {
+    const withoutCountry = digits.slice(2)
+
+    if (withoutCountry.startsWith("9")) return digits
+
+    return `549${withoutCountry}`
+  }
+
+  if (digits.startsWith("0")) {
+    const withoutZero = digits.replace(/^0+/, "")
+    return `549${withoutZero}`
+  }
+
+  if (digits.startsWith("11")) return `549${digits}`
+
+  return digits
 }
 
 function isValidEmail(email: string) {
@@ -20,6 +41,53 @@ function isValidEmail(email: string) {
 function isValidPhone(phone: string) {
   const digits = phone.replace(/\D/g, "")
   return digits.length >= 8 && digits.length <= 15
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+function parseMoney(value: string) {
+  const cleanValue = value
+    .toLowerCase()
+    .replace(/\s/g, "")
+    .replace(/\$/g, "")
+    .replace(/ars/g, "")
+    .replace(/pesos/g, "")
+    .replace(/\./g, "")
+    .replace(/,/g, ".")
+
+  if (!cleanValue) return null
+
+  const match = cleanValue.match(/\d+(\.\d+)?/)
+  if (!match) return null
+
+  const number = Number(match[0])
+  if (!Number.isFinite(number)) return null
+
+  if (cleanValue.includes("k")) return number * 1000
+
+  return number
+}
+
+function toStringArray(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => clean(item)).filter(Boolean)
+  }
+
+  const text = clean(value)
+  if (!text) return []
+
+  return text
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function getLeadTags(data: {
