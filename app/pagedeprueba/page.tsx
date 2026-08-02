@@ -1384,22 +1384,41 @@ neighborhood_slug: normalizeText(zone),
 
               {path === "tenant" && (
                 <>
-                  <div className="neighborhood-box">
-                    <strong>Barrios donde buscarías alquilar</strong>
+<div className="neighborhood-box">
+  <strong>¿Dónde buscarías alquilar?</strong>
 
-                    <div className="neighborhood-grid">
-                      {NEIGHBORHOODS.map((neighborhood) => (
-                        <label className="check-pill" key={neighborhood}>
-                          <input
-                            type="checkbox"
-                            name="tenant_neighborhoods"
-                            value={neighborhood}
-                          />
-                          {neighborhood}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+  <div className="area-tabs">
+    {(Object.keys(AREA_GROUPS) as AreaKey[]).map((areaKey) => (
+      <button
+        key={areaKey}
+        type="button"
+        className={`area-tab ${selectedArea === areaKey ? "active" : ""}`}
+        onClick={() => setSelectedArea(areaKey)}
+      >
+        {AREA_GROUPS[areaKey].label}
+      </button>
+    ))}
+  </div>
+
+  <div className="neighborhood-grid">
+    {AREA_GROUPS[selectedArea].neighborhoods.map((neighborhood) => (
+      <label className="check-pill" key={neighborhood}>
+        <input
+          type="checkbox"
+          name="tenant_neighborhoods"
+          value={neighborhood}
+        />
+        {neighborhood}
+      </label>
+    ))}
+  </div>
+
+  <input
+    className="input other-neighborhood"
+    name="tenant_other_neighborhood"
+    placeholder="Otro barrio o localidad"
+  />
+</div>
 
                             <div className="row">
                     <select className="select" name="desired_property_type" required defaultValue="">
