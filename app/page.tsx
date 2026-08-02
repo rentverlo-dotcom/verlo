@@ -1463,7 +1463,6 @@ neighborhood_slug: normalizeText(zone),
       </a>
     </div>
   </article>
-</div>
           
           </div>
         </div>
