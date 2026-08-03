@@ -26,17 +26,27 @@ async function getSupabaseData() {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
-  const [summaryRes, byDayRes, byZoneRes, byCampaignRes, recentRes] = await Promise.all([
-    supabase.from("investor_lead_summary").select("*").single(),
-    supabase.from("investor_leads_by_day").select("*").limit(14),
-    supabase.from("investor_leads_by_zone").select("*").limit(10),
-    supabase.from("investor_leads_by_campaign").select("*").limit(10),
-    supabase.from("investor_recent_leads").select("*").limit(20),
-    supabase.from("investor_leads_by_role").select("*").limit(20),
-supabase.from("investor_leads_by_role_neighborhood").select("*").limit(80),
-supabase.from("investor_tenant_demand_by_neighborhood_rooms").select("*").limit(80),
-supabase.from("investor_matches_by_neighborhood").select("*").limit(40),
-  ])
+  const [
+  summaryRes,
+  byDayRes,
+  byZoneRes,
+  byCampaignRes,
+  recentRes,
+  byRoleRes,
+  byRoleNeighborhoodRes,
+  tenantDemandRoomsRes,
+  matchesByNeighborhoodRes,
+] = await Promise.all([
+  supabase.from("investor_lead_summary").select("*").single(),
+  supabase.from("investor_leads_by_day").select("*").limit(14),
+  supabase.from("investor_leads_by_zone").select("*").limit(10),
+  supabase.from("investor_leads_by_campaign").select("*").limit(10),
+  supabase.from("investor_recent_leads").select("*").limit(20),
+  supabase.from("investor_leads_by_role").select("*").limit(20),
+  supabase.from("investor_leads_by_role_neighborhood").select("*").limit(80),
+  supabase.from("investor_tenant_demand_by_neighborhood_rooms").select("*").limit(80),
+  supabase.from("investor_matches_by_neighborhood").select("*").limit(40),
+])
 
   return {
     summary: summaryRes.data as LeadSummary | null,
