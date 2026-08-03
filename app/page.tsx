@@ -1115,7 +1115,7 @@ function MiniPhone({ type }: { type: Path }) {
       <PhoneContent
         badge="Renovación"
         title="Renová sin comisión"
-        copy="Ordená el contrato directo, rápido y con firma digital."
+        copy="Digitalizá tu contrato rápido, con firma digital y sin costos de renovación."
         button="Renovar"
         rows={[
           { label: "Barrio", value: "Belgrano" },
