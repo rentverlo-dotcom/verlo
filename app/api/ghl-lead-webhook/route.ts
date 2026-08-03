@@ -962,6 +962,20 @@ export async function POST(req: NextRequest) {
       )
     }
 
+const neighborhoodResult = await insertLeadNeighborhoods({
+  supabaseAdmin,
+  leadId: leadRecord.id,
+  intent,
+  neighborhoodLabels: neighborhood_labels,
+  neighborhoodSlugs: neighborhood_slugs,
+  neighborhoodSlug: neighborhood_slug,
+  zone,
+})
+
+if (!neighborhoodResult.ok) {
+  console.error("lead neighborhoods error:", neighborhoodResult)
+}
+    
     const matchResult = await createLeadMatches({
       supabaseAdmin,
       lead: {
