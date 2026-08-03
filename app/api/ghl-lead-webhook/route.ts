@@ -373,6 +373,42 @@ async function insertLeadNeighborhoods({
 }
 
 
+async function getLeadNeighborhoodSlugs({
+  supabaseAdmin,
+  leadIds,
+  context,
+}: {
+  supabaseAdmin: SupabaseAdminClient
+  leadIds: string[]
+  context: "tenant_search" | "owner_property"
+}) {
+  if (leadIds.length === 0) return new Map<string, string[]>()
+
+  const { data, error } = await supabaseAdmin
+    .from("lead_neighborhoods")
+    .select("lead_id, neighborhood_slug")
+    .in("lead_id", leadIds)
+    .eq("context", context)
+
+  if (error) {
+    console.error("lead neighborhoods fetch error:", error)
+    return new Map<string, string[]>()
+  }
+
+  const map = new Map<string, string[]>()
+
+  for (const row of data || []) {
+    const leadId = String(row.lead_id)
+    const slug = String(row.neighborhood_slug)
+
+    if (!map.has(leadId)) map.set(leadId, [])
+    map.get(leadId)?.push(slug)
+  }
+
+  return map
+}
+
+
 async function createLeadMatches({
   supabaseAdmin,
   lead,
