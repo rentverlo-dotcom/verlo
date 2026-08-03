@@ -431,10 +431,20 @@ async function createLeadMatches({
       }
     }
 
-    const ownerLeads = (ownerLeadsRaw || []) as unknown as OwnerLeadRow[]
 
-    const matches: MatchRow[] = ownerLeads
-      .map((ownerLead) => {
+const ownerLeads = (ownerLeadsRaw || []) as unknown as OwnerLeadRow[]
+
+const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
+  supabaseAdmin,
+  leadIds: ownerLeads.map((ownerLead) => ownerLead.id),
+  context: "owner_property",
+})
+
+const matches: MatchRow[] = ownerLeads
+  .map((ownerLead) => {
+    const ownerNeighborhoodSlug =
+      ownerNeighborhoodMap.get(ownerLead.id)?.[0] || ownerLead.neighborhood_slug
+    
         const neighborhoodOk = isNeighborhoodCompatible({
           tenantNeighborhoodSlugs: lead.neighborhood_slugs,
           ownerNeighborhoodSlug: ownerNeighborhoodMap.get(ownerLead.id)?.[0] || ownerLead.neighborhood_slug,
