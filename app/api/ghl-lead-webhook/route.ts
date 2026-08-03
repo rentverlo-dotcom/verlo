@@ -431,31 +431,24 @@ async function createLeadMatches({
       }
     }
 
+    const ownerLeads = (ownerLeadsRaw || []) as unknown as OwnerLeadRow[]
 
-const ownerLeads = (ownerLeadsRaw || []) as unknown as OwnerLeadRow[]
+    const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
+      supabaseAdmin,
+      leadIds: ownerLeads.map((ownerLead) => ownerLead.id),
+      context: "owner_property",
+    })
 
-const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
-  supabaseAdmin,
-  leadIds: ownerLeads.map((ownerLead) => ownerLead.id),
-  context: "owner_property",
-})
+    const matches: MatchRow[] = ownerLeads
+      .map((ownerLead) => {
+        const ownerNeighborhoodSlug =
+          ownerNeighborhoodMap.get(ownerLead.id)?.[0] || ownerLead.neighborhood_slug
 
-const matches: MatchRow[] = ownerLeads
-  .map((ownerLead) => {
-    const ownerNeighborhoodSlug =
-      ownerNeighborhoodMap.get(ownerLead.id)?.[0] || ownerLead.neighborhood_slug
-    
         const neighborhoodOk = isNeighborhoodCompatible({
           tenantNeighborhoodSlugs: lead.neighborhood_slugs,
-          ownerNeighborhoodSlug: ownerNeighborhoodMap.get(ownerLead.id)?.[0] || ownerLead.neighborhood_slug,
+          ownerNeighborhoodSlug,
         })
 
-const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
-  supabaseAdmin,
-  leadIds: ownerLeads.map((ownerLead) => ownerLead.id),
-  context: "owner_property",
-})
-        
         const typeOk = isPropertyTypeCompatible(
           lead.desired_property_type,
           ownerLead.property_type
@@ -486,7 +479,7 @@ const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
             rooms_ok: roomsOk,
             price_ok: priceOk,
             tenant_neighborhood_slugs: lead.neighborhood_slugs,
-            owner_neighborhood_slug: ownerLead.neighborhood_slug,
+            owner_neighborhood_slug: ownerNeighborhoodSlug,
             tenant_type: lead.desired_property_type,
             owner_type: ownerLead.property_type,
             tenant_rooms: lead.desired_rooms,
@@ -531,35 +524,27 @@ const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
       }
     }
 
-  const tenantLeads = (tenantLeadsRaw || []) as unknown as TenantLeadRow[]
+    const tenantLeads = (tenantLeadsRaw || []) as unknown as TenantLeadRow[]
 
-const tenantNeighborhoodMap = await getLeadNeighborhoodSlugs({
-  supabaseAdmin,
-  leadIds: tenantLeads.map((tenantLead) => tenantLead.id),
-  context: "tenant_search",
-})
+    const tenantNeighborhoodMap = await getLeadNeighborhoodSlugs({
+      supabaseAdmin,
+      leadIds: tenantLeads.map((tenantLead) => tenantLead.id),
+      context: "tenant_search",
+    })
 
-const matches: MatchRow[] = tenantLeads
-  .map((tenantLead) => {
-    const tenantNeighborhoodSlugs =
-      tenantNeighborhoodMap.get(tenantLead.id) ||
-      toStringArray(tenantLead.neighborhood_slugs)
-       const tenantNeighborhoodSlugs =
-  tenantNeighborhoodMap.get(tenantLead.id) ||
-  toStringArray(tenantLead.neighborhood_slugs)
+    const ownerNeighborhoodSlug = lead.neighborhood_slug
+
+    const matches: MatchRow[] = tenantLeads
+      .map((tenantLead) => {
+        const tenantNeighborhoodSlugs =
+          tenantNeighborhoodMap.get(tenantLead.id) ||
+          toStringArray(tenantLead.neighborhood_slugs)
 
         const neighborhoodOk = isNeighborhoodCompatible({
           tenantNeighborhoodSlugs,
-          ownerNeighborhoodSlug: lead.neighborhood_slug,
+          ownerNeighborhoodSlug,
         })
 
-const tenantNeighborhoodMap = await getLeadNeighborhoodSlugs({
-  supabaseAdmin,
-  leadIds: tenantLeads.map((tenantLead) => tenantLead.id),
-  context: "tenant_search",
-})
-
-        
         const typeOk = isPropertyTypeCompatible(
           tenantLead.desired_property_type,
           lead.property_type
@@ -590,7 +575,7 @@ const tenantNeighborhoodMap = await getLeadNeighborhoodSlugs({
             rooms_ok: roomsOk,
             price_ok: priceOk,
             tenant_neighborhood_slugs: tenantNeighborhoodSlugs,
-            owner_neighborhood_slug: lead.neighborhood_slug,
+            owner_neighborhood_slug: ownerNeighborhoodSlug,
             tenant_type: tenantLead.desired_property_type,
             owner_type: lead.property_type,
             tenant_rooms: tenantLead.desired_rooms,
