@@ -450,7 +450,7 @@ async function createLeadMatches({
       .map((ownerLead) => {
         const neighborhoodOk = isNeighborhoodCompatible({
           tenantNeighborhoodSlugs: lead.neighborhood_slugs,
-          ownerNeighborhoodSlug: ownerLead.neighborhood_slug,
+          ownerNeighborhoodSlug: ownerNeighborhoodMap.get(ownerLead.id)?.[0] || ownerLead.neighborhood_slug,
         })
 
 const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
