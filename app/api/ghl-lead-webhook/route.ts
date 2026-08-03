@@ -453,6 +453,12 @@ async function createLeadMatches({
           ownerNeighborhoodSlug: ownerLead.neighborhood_slug,
         })
 
+const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
+  supabaseAdmin,
+  leadIds: ownerLeads.map((ownerLead) => ownerLead.id),
+  context: "owner_property",
+})
+        
         const typeOk = isPropertyTypeCompatible(
           lead.desired_property_type,
           ownerLead.property_type
