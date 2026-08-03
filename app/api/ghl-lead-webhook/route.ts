@@ -545,6 +545,13 @@ const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
           ownerNeighborhoodSlug: lead.neighborhood_slug,
         })
 
+const tenantNeighborhoodMap = await getLeadNeighborhoodSlugs({
+  supabaseAdmin,
+  leadIds: tenantLeads.map((tenantLead) => tenantLead.id),
+  context: "tenant_search",
+})
+
+        
         const typeOk = isPropertyTypeCompatible(
           tenantLead.desired_property_type,
           lead.property_type
