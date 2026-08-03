@@ -531,10 +531,19 @@ const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
       }
     }
 
-    const tenantLeads = (tenantLeadsRaw || []) as unknown as TenantLeadRow[]
+  const tenantLeads = (tenantLeadsRaw || []) as unknown as TenantLeadRow[]
 
-    const matches: MatchRow[] = tenantLeads
-      .map((tenantLead) => {
+const tenantNeighborhoodMap = await getLeadNeighborhoodSlugs({
+  supabaseAdmin,
+  leadIds: tenantLeads.map((tenantLead) => tenantLead.id),
+  context: "tenant_search",
+})
+
+const matches: MatchRow[] = tenantLeads
+  .map((tenantLead) => {
+    const tenantNeighborhoodSlugs =
+      tenantNeighborhoodMap.get(tenantLead.id) ||
+      toStringArray(tenantLead.neighborhood_slugs)
        const tenantNeighborhoodSlugs =
   tenantNeighborhoodMap.get(tenantLead.id) ||
   toStringArray(tenantLead.neighborhood_slugs)
