@@ -1475,7 +1475,7 @@ neighborhood_slug: normalizeText(zone),
               <p className="kicker">Sumate a Verlo</p>
 
               <h2 className="section-title">
-                Dejá tus datos y seguimos <em>por WhatsApp.</em>
+                Dejá tus datos y seguimos <em>de inmediato.</em>
               </h2>
 
               <p className="section-copy">
