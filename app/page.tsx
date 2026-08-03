@@ -1244,7 +1244,7 @@ neighborhood_slug: normalizeText(zone),
       })
 
       form.reset()
-      setSuccess("Listo. Guardamos tus datos y te vamos a contactar por WhatsApp.")
+      setSuccess("Listo. Guardamos tus datos y te vamos a contactar por WhatsApp o e-mail.")
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message)
