@@ -303,19 +303,6 @@ async function upsertLeadMatches({
   }
 }
 
-const neighborhoodResult = await insertLeadNeighborhoods({
-  supabaseAdmin,
-  leadId: leadRecord.id,
-  intent,
-  neighborhoodLabels: neighborhood_labels,
-  neighborhoodSlugs: neighborhood_slugs,
-  neighborhoodSlug: neighborhood_slug,
-  zone,
-})
-
-if (!neighborhoodResult.ok) {
-  console.error("lead neighborhoods error:", neighborhoodResult)
-}
 
 async function insertLeadNeighborhoods({
   supabaseAdmin,
