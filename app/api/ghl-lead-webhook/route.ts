@@ -303,6 +303,62 @@ async function upsertLeadMatches({
   }
 }
 
+async function insertLeadNeighborhoods({
+  supabaseAdmin,
+  leadId,
+  intent,
+  neighborhoodLabels,
+  neighborhoodSlugs,
+  neighborhoodSlug,
+  zone,
+}: {
+  supabaseAdmin: SupabaseAdminClient
+  leadId: string
+  intent: string
+  neighborhoodLabels: string[]
+  neighborhoodSlugs: string[]
+  neighborhoodSlug: string | null
+  zone: string | null
+}) {
+  const rows =
+    intent === "tenant_search"
+      ? neighborhoodSlugs.map((slug, index) => ({
+          lead_id: leadId,
+          context: "tenant_search",
+          neighborhood_label: neighborhoodLabels[index] || slug,
+          neighborhood_slug: slug,
+          position: index,
+        }))
+      : intent === "owner_new_listing" && neighborhoodSlug
+        ? [
+            {
+              lead_id: leadId,
+              context: "owner_property",
+              neighborhood_label: neighborhoodLabels[0] || zone || neighborhoodSlug,
+              neighborhood_slug: neighborhoodSlug,
+              position: 0,
+            },
+          ]
+        : []
+
+  if (rows.length === 0) return { ok: true, created: 0 }
+
+  const { error } = await supabaseAdmin
+    .from("lead_neighborhoods")
+    .upsert(rows, {
+      onConflict: "lead_id,context,neighborhood_slug",
+      ignoreDuplicates: true,
+    })
+
+  if (error) {
+    console.error("lead neighborhoods insert error:", error)
+    return { ok: false, created: 0, error: error.message }
+  }
+
+  return { ok: true, created: rows.length }
+}
+
+
 async function createLeadMatches({
   supabaseAdmin,
   lead,
