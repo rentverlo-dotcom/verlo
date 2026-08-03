@@ -32,6 +32,10 @@ async function getSupabaseData() {
     supabase.from("investor_leads_by_zone").select("*").limit(10),
     supabase.from("investor_leads_by_campaign").select("*").limit(10),
     supabase.from("investor_recent_leads").select("*").limit(20),
+    supabase.from("investor_leads_by_role").select("*").limit(20),
+supabase.from("investor_leads_by_role_neighborhood").select("*").limit(80),
+supabase.from("investor_tenant_demand_by_neighborhood_rooms").select("*").limit(80),
+supabase.from("investor_matches_by_neighborhood").select("*").limit(40),
   ])
 
   return {
@@ -40,6 +44,10 @@ async function getSupabaseData() {
     byZone: byZoneRes.data || [],
     byCampaign: byCampaignRes.data || [],
     recent: recentRes.data || [],
+    byRole: byRoleRes.data || [],
+byRoleNeighborhood: byRoleNeighborhoodRes.data || [],
+tenantDemandRooms: tenantDemandRoomsRes.data || [],
+matchesByNeighborhood: matchesByNeighborhoodRes.data || [],
   }
 }
 
