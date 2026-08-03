@@ -538,7 +538,9 @@ const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
 
     const matches: MatchRow[] = tenantLeads
       .map((tenantLead) => {
-        const tenantNeighborhoodSlugs = toStringArray(tenantLead.neighborhood_slugs)
+       const tenantNeighborhoodSlugs =
+  tenantNeighborhoodMap.get(tenantLead.id) ||
+  toStringArray(tenantLead.neighborhood_slugs)
 
         const neighborhoodOk = isNeighborhoodCompatible({
           tenantNeighborhoodSlugs,
