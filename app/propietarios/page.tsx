@@ -410,15 +410,20 @@ export default function PropietariosPage() {
         </div>
       </section>
 
-      <footer className="footer">
-        <div className="container footer-inner">
-          <VerloBrand width={30} />
-          <p>
-            Verlo facilita el encuentro entre partes, ordena información y acompaña el proceso. No publicamos datos sensibles sin confirmación.
-          </p>
-          <a href="/">Volver a verlo.lat</a>
-        </div>
-      </footer>
+  <footer className="footer">
+  <div className="container footer-inner">
+    <div className="footer-brand">
+      <VerloBrand width={86} />
+      <p>Alquiler directo, seguro y sin comisión.</p>
+    </div>
+
+    <nav className="footer-links">
+      <a href="/terminos">Términos y condiciones</a>
+      <a href="/privacidad">Política de privacidad</a>
+      <a href="mailto:hola@verlo.lat">Contacto</a>
+    </nav>
+  </div>
+</footer>
     </main>
   )
 }
