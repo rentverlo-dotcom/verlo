@@ -596,7 +596,7 @@ const styles = `
     background: rgba(255,255,255,.72);
     border: 1px solid rgba(5,0,2,.09);
     box-shadow: 0 28px 80px rgba(5,0,2,.1);
-    transform: rotate(1deg);
+    transform: none;
   }
 
   .hero-card-top {
