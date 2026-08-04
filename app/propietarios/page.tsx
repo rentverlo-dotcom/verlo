@@ -322,15 +322,15 @@ export default function PropietariosPage() {
         </div>
       </section>
 
-      <footer className="footer">
-        <VerloBrand width={30} />
-          <VerloBrand size="sm" />
-          <p>
-            Verlo facilita el encuentro entre partes, ordena información y acompaña el proceso. No publicamos datos sensibles sin confirmación.
-          </p>
-          <a href="/">Volver a verlo.lat</a>
-        </div>
-      </footer>
+     <footer className="footer">
+  <div className="container footer-inner">
+    <VerloBrand width={30} />
+    <p>
+      Verlo facilita el encuentro entre partes, ordena información y acompaña el proceso. No publicamos datos sensibles sin confirmación.
+    </p>
+    <a href="/">Volver a verlo.lat</a>
+  </div>
+</footer>
     </main>
   )
 }
