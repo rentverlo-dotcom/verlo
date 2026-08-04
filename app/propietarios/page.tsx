@@ -12,23 +12,92 @@ const DEMAND = [
   { neighborhood: "Villa Devoto", leads: 3, detail: "Búsquedas activas recientes" },
 ]
 
+const NEIGHBORHOOD_OPTIONS = [
+  { label: "Agronomía", slug: "agronomia" },
+  { label: "Almagro", slug: "almagro" },
+  { label: "Balvanera", slug: "balvanera" },
+  { label: "Barracas", slug: "barracas" },
+  { label: "Belgrano", slug: "belgrano" },
+  { label: "Boedo", slug: "boedo" },
+  { label: "Caballito", slug: "caballito" },
+  { label: "Chacarita", slug: "chacarita" },
+  { label: "Coghlan", slug: "coghlan" },
+  { label: "Colegiales", slug: "colegiales" },
+  { label: "Flores", slug: "flores" },
+  { label: "Floresta", slug: "floresta" },
+  { label: "Liniers", slug: "liniers" },
+  { label: "Mataderos", slug: "mataderos" },
+  { label: "Monserrat", slug: "monserrat" },
+  { label: "Monte Castro", slug: "monte-castro" },
+  { label: "Núñez", slug: "nunez" },
+  { label: "Palermo", slug: "palermo" },
+  { label: "Parque Avellaneda", slug: "parque-avellaneda" },
+  { label: "Parque Chacabuco", slug: "parque-chacabuco" },
+  { label: "Parque Chas", slug: "parque-chas" },
+  { label: "Parque Patricios", slug: "parque-patricios" },
+  { label: "Paternal", slug: "paternal" },
+  { label: "Recoleta", slug: "recoleta" },
+  { label: "Saavedra", slug: "saavedra" },
+  { label: "San Cristóbal", slug: "san-cristobal" },
+  { label: "San Nicolás", slug: "san-nicolas" },
+  { label: "San Telmo", slug: "san-telmo" },
+  { label: "Vélez Sarsfield", slug: "velez-sarsfield" },
+  { label: "Versalles", slug: "versalles" },
+  { label: "Villa Crespo", slug: "villa-crespo" },
+  { label: "Villa Devoto", slug: "villa-devoto" },
+  { label: "Villa General Mitre", slug: "villa-general-mitre" },
+  { label: "Villa Luro", slug: "villa-luro" },
+  { label: "Villa Ortúzar", slug: "villa-ortuzar" },
+  { label: "Villa Pueyrredón", slug: "villa-pueyrredon" },
+  { label: "Villa Real", slug: "villa-real" },
+  { label: "Villa Santa Rita", slug: "villa-santa-rita" },
+  { label: "Villa Urquiza", slug: "villa-urquiza" },
+  { label: "Vicente López", slug: "vicente-lopez" },
+  { label: "Olivos", slug: "olivos" },
+  { label: "Florida", slug: "florida" },
+  { label: "La Lucila", slug: "la-lucila" },
+  { label: "Munro", slug: "munro" },
+  { label: "Villa Martelli", slug: "villa-martelli" },
+  { label: "San Isidro", slug: "san-isidro" },
+  { label: "Martínez", slug: "martinez" },
+  { label: "Acassuso", slug: "acassuso" },
+  { label: "Beccar", slug: "beccar" },
+  { label: "San Fernando", slug: "san-fernando" },
+  { label: "Tigre", slug: "tigre" },
+]
+
 const PROPERTY_TYPES = ["Departamento", "Casa", "PH", "Local", "Oficina", "Otro"]
-const ROOM_OPTIONS = ["Monoambiente", "2 ambientes", "3 ambientes", "4 ambientes", "5+ ambientes"]
+
+const ROOM_OPTIONS = [
+  "Monoambiente",
+  "2 ambientes",
+  "3 ambientes",
+  "4 ambientes",
+  "5+ ambientes",
+]
+
+const PRICE_OPTIONS = [
+  { label: "$300.000", value: "300000" },
+  { label: "$400.000", value: "400000" },
+  { label: "$500.000", value: "500000" },
+  { label: "$600.000", value: "600000" },
+  { label: "$700.000", value: "700000" },
+  { label: "$800.000", value: "800000" },
+  { label: "$900.000", value: "900000" },
+  { label: "$1.000.000", value: "1000000" },
+  { label: "$1.100.000", value: "1100000" },
+  { label: "$1.200.000", value: "1200000" },
+  { label: "$1.300.000", value: "1300000" },
+  { label: "$1.500.000", value: "1500000" },
+  { label: "$1.800.000", value: "1800000" },
+  { label: "$2.000.000+", value: "2000000" },
+]
+
 const AVAILABILITY_OPTIONS = [
   "Disponible ahora",
   "Disponible pronto",
   "Estoy evaluando alquilar",
 ]
-
-function normalizeText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-}
 
 export default function PropietariosPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
@@ -45,7 +114,13 @@ export default function PropietariosPage() {
     const fullName = String(formData.get("full_name") || "").trim()
     const email = String(formData.get("email") || "").trim()
     const phone = String(formData.get("phone") || "").trim()
-    const zone = String(formData.get("zone") || "").trim()
+
+    const neighborhoodSlug = String(formData.get("neighborhood_slug") || "").trim()
+    const selectedNeighborhood = NEIGHBORHOOD_OPTIONS.find(
+      (item) => item.slug === neighborhoodSlug
+    )
+
+    const zone = selectedNeighborhood?.label || ""
     const propertyType = String(formData.get("property_type") || "").trim()
     const propertyRooms = String(formData.get("property_rooms") || "").trim()
     const approxPrice = String(formData.get("approx_price") || "").trim()
@@ -61,8 +136,8 @@ export default function PropietariosPage() {
       zone,
       area_macro: "owner_landing",
       neighborhood_labels: [zone],
-      neighborhood_slugs: [normalizeText(zone)],
-      neighborhood_slug: normalizeText(zone),
+      neighborhood_slugs: [neighborhoodSlug],
+      neighborhood_slug: neighborhoodSlug,
       property_type: propertyType,
       property_rooms: propertyRooms,
       approx_price: approxPrice,
@@ -72,7 +147,8 @@ export default function PropietariosPage() {
         page: "propietarios",
         owner_notes: notes,
         property_rooms: propertyRooms,
-        neighborhood_slug: normalizeText(zone),
+        neighborhood_slug: neighborhoodSlug,
+        neighborhood_label: zone,
       },
     }
 
@@ -106,9 +182,7 @@ export default function PropietariosPage() {
 
       <nav className="nav">
         <div className="container nav-inner">
-          <a href="/" className="brand-link" aria-label="Ir al inicio">
-            <VerloBrand width={34} />
-          </a>
+          <VerloBrand width={34} />
 
           <div className="nav-links">
             <a href="#demanda">Demanda activa</a>
@@ -260,7 +334,14 @@ export default function PropietariosPage() {
 
             <label>
               Barrio de la propiedad
-              <input name="zone" placeholder="Ej: Palermo" required />
+              <select name="neighborhood_slug" required defaultValue="">
+                <option value="" disabled>Elegí el barrio</option>
+                {NEIGHBORHOOD_OPTIONS.map((item) => (
+                  <option key={item.slug} value={item.slug}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <div className="form-row">
@@ -287,7 +368,14 @@ export default function PropietariosPage() {
 
             <label>
               Precio mensual estimado
-              <input name="approx_price" placeholder="Ej: 700000" required />
+              <select name="approx_price" required defaultValue="">
+                <option value="" disabled>Elegí un precio aproximado</option>
+                {PRICE_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
@@ -322,15 +410,15 @@ export default function PropietariosPage() {
         </div>
       </section>
 
-     <footer className="footer">
-  <div className="container footer-inner">
-    <VerloBrand width={30} />
-    <p>
-      Verlo facilita el encuentro entre partes, ordena información y acompaña el proceso. No publicamos datos sensibles sin confirmación.
-    </p>
-    <a href="/">Volver a verlo.lat</a>
-  </div>
-</footer>
+      <footer className="footer">
+        <div className="container footer-inner">
+          <VerloBrand width={30} />
+          <p>
+            Verlo facilita el encuentro entre partes, ordena información y acompaña el proceso. No publicamos datos sensibles sin confirmación.
+          </p>
+          <a href="/">Volver a verlo.lat</a>
+        </div>
+      </footer>
     </main>
   )
 }
@@ -375,12 +463,6 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-  }
-
-  .brand-link {
-    display: inline-flex;
-    color: inherit;
-    text-decoration: none;
   }
 
   .nav-links {
