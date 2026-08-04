@@ -1609,14 +1609,14 @@ neighborhood_slug: normalizeText(zone),
                       required
                     />
 
-                    <select className="select" name="move_timing" required defaultValue="">
-                      <option value="" disabled>
-                        Cuándo querés mudarte
-                      </option>
-                      <option>Estoy buscando ahora</option>
-                      <option>Me quiero mudar en 1-3 meses</option>
-                      <option>Me quiero mudar más adelante</option>
-                    </select>
+                 <select className="select" name="move_timing" required defaultValue="">
+  <option value="" disabled>
+    Cuándo querés mudarte
+  </option>
+  <option value="Ahora">Ahora</option>
+  <option value="En 1 a 3 meses">En 1 a 3 meses</option>
+  <option value="En 6 meses o más">En 6 meses o más</option>
+</select>
                   </div>
                 </>
               )}
