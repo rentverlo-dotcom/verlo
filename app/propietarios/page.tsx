@@ -94,9 +94,9 @@ const PRICE_OPTIONS = [
 ]
 
 const AVAILABILITY_OPTIONS = [
-  "Disponible ahora",
-  "Disponible pronto",
-  "Estoy evaluando alquilar",
+  "Ahora",
+  "En 1 a 3 meses",
+  "En 6 meses o más",
 ]
 
 export default function PropietariosPage() {
