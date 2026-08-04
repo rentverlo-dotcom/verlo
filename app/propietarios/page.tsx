@@ -107,7 +107,7 @@ export default function PropietariosPage() {
       <nav className="nav">
         <div className="container nav-inner">
           <a href="/" className="brand-link" aria-label="Ir al inicio">
-            <VerloBrand size="md" />
+            <VerloBrand width={34} />
           </a>
 
           <div className="nav-links">
