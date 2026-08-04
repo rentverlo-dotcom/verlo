@@ -259,7 +259,7 @@ export default function PropietariosPage() {
               <article className="demand-card" key={item.neighborhood}>
                 <span>{item.neighborhood}</span>
                 <strong>{item.leads}</strong>
-                <p>búsquedas activas</p>
+                {/*<p>búsquedas activas</p>*/}
                 <small>{item.detail}</small>
               </article>
             ))}
