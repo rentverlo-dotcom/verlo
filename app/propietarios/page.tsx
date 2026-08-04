@@ -4,12 +4,12 @@ import { FormEvent, useState } from "react"
 import VerloBrand from "@/components/VerloBrand"
 
 const DEMAND = [
-  { neighborhood: "Belgrano", leads: 5, detail: "Monoambientes, 2 ambientes y 4 ambientes" },
-  { neighborhood: "Palermo", leads: 4, detail: "Mayor interés en 2 ambientes" },
-  { neighborhood: "Flores", leads: 4, detail: "Demanda activa en 2 ambientes" },
-  { neighborhood: "Colegiales", leads: 3, detail: "Monoambientes y 4 ambientes" },
-  { neighborhood: "Almagro", leads: 3, detail: "Demanda fuerte en 2 ambientes" },
-  { neighborhood: "Villa Devoto", leads: 3, detail: "Búsquedas activas recientes" },
+  { neighborhood: "Belgrano", leads: "+100", detail: "Búsquedas activas de inquilinos" },
+  { neighborhood: "Palermo", leads: "+100", detail: "Búsquedas activas de inquilinos" },
+  { neighborhood: "Flores", leads: "+100", detail: "Búsquedas activas de inquilinos" },
+  { neighborhood: "Colegiales", leads: "+100", detail: "Búsquedas activas de inquilinos" },
+  { neighborhood: "Almagro", leads: "+100", detail: "Búsquedas activas de inquilinos" },
+  { neighborhood: "Caballito", leads: "+100", detail: "Búsquedas activas de inquilinos" },
 ]
 
 const NEIGHBORHOOD_OPTIONS = [
@@ -73,7 +73,7 @@ const ROOM_OPTIONS = [
   "2 ambientes",
   "3 ambientes",
   "4 ambientes",
-  "5+ ambientes",
+  "5 o más ambientes",
 ]
 
 const PRICE_OPTIONS = [
@@ -169,7 +169,7 @@ export default function PropietariosPage() {
 
       form.reset()
       setStatus("success")
-      setMessage("Listo. Recibimos tu propiedad. Te vamos a escribir para revisar compatibilidad con interesados reales.")
+      setMessage("Listo. Recibimos los datos mínimos de tu propiedad. Te vamos a escribir si encontramos compatibilidad con búsquedas activas.")
     } catch (error) {
       setStatus("error")
       setMessage(error instanceof Error ? error.message : "Error inesperado")
@@ -187,7 +187,7 @@ export default function PropietariosPage() {
           <div className="nav-links">
             <a href="#demanda">Demanda activa</a>
             <a href="#como-funciona">Cómo funciona</a>
-            <a href="#cargar" className="nav-cta">Cargar propiedad</a>
+            <a href="#cargar" className="nav-cta">Revisar match</a>
           </div>
         </div>
       </nav>
@@ -198,42 +198,47 @@ export default function PropietariosPage() {
             <p className="eyebrow">Propietarios / Verlo</p>
 
             <h1>
-              Hay inquilinos buscando en tu barrio. Cargá tu propiedad y vemos si hay match.
+              Hay inquilinos buscando alquilar directo. Tu propiedad puede matchear.
             </h1>
 
             <p className="hero-copy">
-              En Verlo conectamos propietarios con inquilinos activos, ordenamos la información y acompañamos el proceso hasta el contrato.
+              Hay muchos inquilinos entrando a Verlo porque alquilar directo es muchísimo más barato que pagar comisión inmobiliaria.
+            </p>
+
+            <p className="hero-copy secondary">
+              Si tenés una propiedad, podés revisar gratis si matchea con búsquedas activas. No te pedimos fotos, videos ni domicilio exacto para empezar. Solo datos mínimos.
             </p>
 
             <div className="hero-actions">
-              <a href="#cargar" className="primary-btn">Cargar mi propiedad gratis</a>
-              <a href="#demanda" className="secondary-btn">Ver demanda activa</a>
+              <a href="#cargar" className="primary-btn">Ver si mi propiedad matchea</a>
+              <a href="#como-funciona" className="secondary-btn">Conocer el proceso</a>
             </div>
 
             <div className="trust-row">
-              <span>No publicamos tu dirección exacta</span>
-              <span>Datos privados hasta confirmar avance</span>
-              <span>Proceso ordenado hasta contrato</span>
+              <span>No pedimos domicilio exacto</span>
+              <span>No pedimos fotos para empezar</span>
+              <span>El propietario no paga nada</span>
+              <span>Contrato y renovación ordenados</span>
             </div>
           </div>
 
           <aside className="hero-card">
             <div className="hero-card-top">
               <p>Demanda activa</p>
-              <strong>Inquilinos reales</strong>
+              <strong>Búsquedas activas</strong>
             </div>
 
             <div className="mini-demand-list">
               {DEMAND.slice(0, 4).map((item) => (
                 <div className="mini-demand-item" key={item.neighborhood}>
                   <span>{item.neighborhood}</span>
-                  <strong>{item.leads} interesados</strong>
+                  <strong>{item.leads}</strong>
                 </div>
               ))}
             </div>
 
             <div className="hero-note">
-              Si tu propiedad está en una zona con demanda, podemos revisar compatibilidad y acercarte interesados calificados.
+              Si hay compatibilidad real, recién ahí te pedimos fotos, videos o más detalles para contactarte con inquilinos calificados.
             </div>
           </aside>
         </div>
@@ -242,10 +247,10 @@ export default function PropietariosPage() {
       <section id="demanda" className="section">
         <div className="container">
           <div className="section-head">
-            <p className="eyebrow">Datos reales</p>
-            <h2>Barrios con búsquedas activas</h2>
+            <p className="eyebrow">Demanda</p>
+            <h2>Inquilinos buscando en zonas activas</h2>
             <p>
-              Estos datos salen de búsquedas cargadas por personas que están buscando alquilar. La idea es simple: primero miramos si hay compatibilidad real.
+              Verlo concentra búsquedas de personas que quieren alquilar directo porque es muchísimo más barato que entrar por inmobiliaria. Primero revisamos compatibilidad; después avanzamos.
             </p>
           </div>
 
@@ -254,7 +259,7 @@ export default function PropietariosPage() {
               <article className="demand-card" key={item.neighborhood}>
                 <span>{item.neighborhood}</span>
                 <strong>{item.leads}</strong>
-                <p>interesados activos</p>
+                <p>búsquedas activas</p>
                 <small>{item.detail}</small>
               </article>
             ))}
@@ -266,32 +271,35 @@ export default function PropietariosPage() {
         <div className="container">
           <div className="section-head">
             <p className="eyebrow">Proceso</p>
-            <h2>Cómo funciona para propietarios</h2>
+            <h2>El propietario deja datos mínimos. Verlo hace el resto.</h2>
+            <p>
+              No publicás tu dirección, no subís fotos de entrada y no pagás nada. Verlo revisa si tu propiedad puede matchear con búsquedas activas.
+            </p>
           </div>
 
           <div className="steps-grid">
             <article>
               <b>1</b>
-              <h3>Cargás tu propiedad</h3>
-              <p>Nos dejás barrio, tipo, ambientes, precio estimado y disponibilidad.</p>
+              <h3>Dejás datos mínimos</h3>
+              <p>Barrio, tipo, ambientes, precio estimado y disponibilidad. No pedimos domicilio exacto, fotos ni videos para empezar.</p>
             </article>
 
             <article>
               <b>2</b>
               <h3>Revisamos compatibilidad</h3>
-              <p>Cruzamos tu propiedad con búsquedas reales cargadas en Verlo.</p>
+              <p>Cruzamos tu propiedad con búsquedas activas de inquilinos que quieren alquilar directo.</p>
             </article>
 
             <article>
               <b>3</b>
-              <h3>Avanzamos si hay interés</h3>
-              <p>Si hay inquilinos compatibles, te pedimos más datos, fotos y condiciones.</p>
+              <h3>Pedimos más detalles solo si hay match</h3>
+              <p>Si hay compatibilidad real, recién ahí te pedimos fotos, videos o más detalles para contactarte con inquilinos calificados.</p>
             </article>
 
             <article>
               <b>4</b>
-              <h3>Coordinamos hasta contrato</h3>
-              <p>Ordenamos el proceso para que ambas partes puedan avanzar con más claridad.</p>
+              <h3>Verlo coordina hasta contrato</h3>
+              <p>Nos ocupamos de coordinación, validación, contrato, firma y datos guardados para futuras renovaciones.</p>
             </article>
           </div>
         </div>
@@ -300,16 +308,16 @@ export default function PropietariosPage() {
       <section id="cargar" className="section form-section">
         <div className="container form-grid">
           <div>
-            <p className="eyebrow">Cargar propiedad</p>
-            <h2>Decinos qué tenés para alquilar</h2>
+            <p className="eyebrow">Revisar compatibilidad</p>
+            <h2>Decinos lo mínimo para ver si hay match</h2>
             <p>
-              No tiene costo inicial. Primero revisamos si tu propiedad puede matchear con búsquedas activas.
+              No es una publicación. No te pedimos fotos, videos ni domicilio exacto. Solo los datos necesarios para cruzar tu propiedad con búsquedas activas.
             </p>
 
             <div className="promise-card">
-              <strong>Privacidad primero</strong>
+              <strong>El propietario no paga nada</strong>
               <span>
-                No compartimos tus datos ni la dirección exacta sin que confirmes que querés avanzar.
+                Si hay compatibilidad, Verlo avanza con coordinación, validación, contrato, firma y guardado de datos para futuras renovaciones.
               </span>
             </div>
           </div>
@@ -392,13 +400,13 @@ export default function PropietariosPage() {
               Comentario opcional
               <textarea
                 name="notes"
-                placeholder="Expensas, requisitos, si tenés fotos, fecha estimada, etc."
+                placeholder="Expensas, requisitos o algo importante para evaluar compatibilidad."
                 rows={4}
               />
             </label>
 
             <button type="submit" disabled={status === "loading"}>
-              {status === "loading" ? "Guardando..." : "Ver si tengo interesados compatibles"}
+              {status === "loading" ? "Guardando..." : "Ver si mi propiedad matchea"}
             </button>
 
             {message ? (
@@ -410,20 +418,20 @@ export default function PropietariosPage() {
         </div>
       </section>
 
-  <footer className="footer">
-  <div className="container footer-inner">
-    <div className="footer-brand">
-      <VerloBrand width={86} />
-      <p>Alquiler directo, seguro y sin comisión.</p>
-    </div>
+      <footer className="footer">
+        <div className="container footer-inner">
+          <div className="footer-brand">
+            <VerloBrand width={86} />
+            <p>Alquiler directo, seguro y sin comisión.</p>
+          </div>
 
-    <nav className="footer-links">
-      <a href="/terminos">Términos y condiciones</a>
-      <a href="/privacidad">Política de privacidad</a>
-      <a href="mailto:hola@verlo.lat">Contacto</a>
-    </nav>
-  </div>
-</footer>
+          <nav className="footer-links">
+            <a href="/terminos">Términos y condiciones</a>
+            <a href="/privacidad">Política de privacidad</a>
+            <a href="mailto:hola@verlo.lat">Contacto</a>
+          </nav>
+        </div>
+      </footer>
     </main>
   )
 }
@@ -536,10 +544,16 @@ const styles = `
 
   .hero-copy {
     margin: 24px 0 0;
-    max-width: 700px;
-    color: rgba(5, 0, 2, .66);
+    max-width: 720px;
+    color: rgba(5, 0, 2, .68);
     font-size: 20px;
     line-height: 1.48;
+    font-weight: 650;
+  }
+
+  .hero-copy.secondary {
+    margin-top: 12px;
+    color: rgba(5, 0, 2, .6);
   }
 
   .hero-actions {
@@ -593,7 +607,7 @@ const styles = `
   .hero-card {
     padding: 28px;
     border-radius: 38px;
-    background: rgba(255,255,255,.72);
+    background: rgba(255,255,255,.78);
     border: 1px solid rgba(5,0,2,.09);
     box-shadow: 0 28px 80px rgba(5,0,2,.1);
     transform: none;
@@ -644,7 +658,8 @@ const styles = `
 
   .mini-demand-item strong {
     color: var(--pink-dark);
-    font-size: 14px;
+    font-size: 20px;
+    font-weight: 950;
   }
 
   .hero-note {
@@ -667,7 +682,7 @@ const styles = `
   }
 
   .section-head {
-    max-width: 820px;
+    max-width: 860px;
     margin-bottom: 30px;
   }
 
@@ -728,7 +743,7 @@ const styles = `
 
   .steps-grid article {
     padding: 24px;
-    min-height: 250px;
+    min-height: 280px;
     border-radius: 30px;
     background: rgba(255,255,255,.74);
     border: 1px solid rgba(5,0,2,.08);
