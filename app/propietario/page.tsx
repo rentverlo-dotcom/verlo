@@ -1,4 +1,12 @@
-'use client'
+import { redirect } from "next/navigation"
+
+export default function PropietarioOldPage() {
+  redirect("/propietarios")
+}
+
+
+
+{/*'use client'
 
 import { useRouter } from 'next/navigation'
 
@@ -32,4 +40,4 @@ export default function PropietarioPage() {
       </button>
     </div>
   )
-}
+}*/}
