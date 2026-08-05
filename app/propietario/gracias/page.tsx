@@ -1,4 +1,13 @@
-"use client"
+import { redirect } from "next/navigation"
+
+export default function PropietarioGraciasOldPage() {
+  redirect("/propietarios")
+}
+
+
+
+
+{/*"use client"
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -384,4 +393,4 @@ export default function PropietarioGraciasPage() {
       </section>
     </main>
   )
-}
+}*/}
