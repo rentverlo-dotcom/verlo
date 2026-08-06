@@ -3,6 +3,8 @@
 import { FormEvent, useState, type ReactNode } from "react"
 import { useParams, useRouter } from "next/navigation"
 import VerloBrand from "@/components/VerloBrand"
+const CONTACT_HREF =
+  "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
 type DocType =
   | "dni_front"
@@ -172,7 +174,9 @@ export default function TenantValidationPage() {
           <div className="nav-links">
             <a href="/">Inicio</a>
             <a href="#datos">Datos</a>
-            <a href="mailto:hola@verlo.lat">Contacto</a>
+           <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
+  Contacto
+</a>
             <a href="#formulario" className="nav-cta">
               Validar
             </a>
