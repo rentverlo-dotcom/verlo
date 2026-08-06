@@ -428,7 +428,8 @@ export default function PropietariosPage() {
           <nav className="footer-links">
             <a href="/terminos">Términos y condiciones</a>
             <a href="/privacidad">Política de privacidad</a>
-            <a href="mailto:hola@verlo.lat">Contacto</a>
+            const CONTACT_HREF =
+  "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
           </nav>
         </div>
       </footer>
