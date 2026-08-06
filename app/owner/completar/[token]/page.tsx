@@ -177,15 +177,11 @@ export default function OwnerCompletionPage() {
               <a href="#formulario" className="primary-btn">
                 Cargar información
               </a>
-              <a href="/propietarios" className="secondary-btn">
-                Volver a propietarios
-              </a>
             </div>
 
             <div className="trust-row">
               <span>Tu dirección queda privada</span>
               <span>Verlo filtra interesados</span>
-              <span>Sin grupo de WhatsApp</span>
               <span>Coordinación trazable</span>
             </div>
           </div>
