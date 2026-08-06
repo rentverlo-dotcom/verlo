@@ -1753,7 +1753,9 @@ neighborhood_slug: normalizeText(zone),
           <nav className="footer-links">
             <a href="/terminos">Términos y condiciones</a>
             <a href="/privacidad">Política de privacidad</a>
-            <a href="mailto:hola@verlo.lat">Contacto</a>
+            <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
+  Contacto
+</a>
           </nav>
         </div>
       </footer>
