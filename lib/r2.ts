@@ -110,3 +110,4 @@ export function getR2PublicUrl(key: string) {
 }
 
 export const R2_BUCKET = bucket
+
