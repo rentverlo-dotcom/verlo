@@ -867,11 +867,11 @@ const styles = `
     gap: 12px;
   }
 
-  .docs-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
+ .docs-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
 
   .file-field {
     padding: 18px;
@@ -886,11 +886,27 @@ const styles = `
     color: rgba(5,0,2,.72);
   }
 
-  .file-field input {
-    padding: 12px;
-    background: white;
-    cursor: pointer;
-  }
+ .file-field input {
+  width: 100%;
+  max-width: 100%;
+  padding: 12px;
+  background: white;
+  cursor: pointer;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.file-field input::file-selector-button {
+  max-width: 100%;
+  margin-right: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--black);
+  color: white;
+  padding: 10px 14px;
+  font-weight: 950;
+  cursor: pointer;
+}
 
   .file-field input::file-selector-button {
     margin-right: 14px;
