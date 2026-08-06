@@ -320,3 +320,30 @@ textarea::placeholder {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+
+.field-input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid #eadfcd;
+  background: #ffffff;
+  padding: 0.95rem 1rem;
+  color: #15120d;
+  font-size: 0.95rem;
+  font-weight: 600;
+  outline: none;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.field-input::placeholder {
+  color: #a3957f;
+  font-weight: 600;
+}
+
+.field-input:focus {
+  border-color: #8a6a3f;
+  box-shadow: 0 0 0 4px rgba(216, 180, 106, 0.22);
+}
