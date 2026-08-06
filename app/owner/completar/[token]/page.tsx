@@ -445,7 +445,9 @@ export default function OwnerCompletionPage() {
           <nav className="footer-links">
             <a href="/terminos">Términos y condiciones</a>
             <a href="/privacidad">Política de privacidad</a>
-            <a href="mailto:hola@verlo.lat?subject=Consulta%20Verlo">Contacto</a>
+            <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
+  Contacto
+</a>
           </nav>
         </div>
       </footer>
