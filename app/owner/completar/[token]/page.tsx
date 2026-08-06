@@ -3,6 +3,8 @@
 import { FormEvent, useMemo, useState, type ReactNode } from "react"
 import { useParams, useRouter } from "next/navigation"
 import VerloBrand from "@/components/VerloBrand"
+const CONTACT_HREF =
+  "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
 type UploadedMedia = {
   key: string
