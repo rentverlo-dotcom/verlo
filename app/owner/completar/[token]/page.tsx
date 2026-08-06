@@ -152,8 +152,6 @@ export default function OwnerCompletionPage() {
           <VerloBrand width={34} />
 
           <div className="nav-links">
-            <a href="/">Inicio</a>
-            <a href="/propietarios">Propietarios</a>
             <a href="#datos">Datos</a>
             <a href="mailto:hola@verlo.lat">Contacto</a>
             <a href="#formulario" className="nav-cta">
@@ -447,8 +445,6 @@ export default function OwnerCompletionPage() {
           </div>
 
           <nav className="footer-links">
-            <a href="/">Inicio</a>
-            <a href="/propietarios">Propietarios</a>
             <a href="/terminos">Términos y condiciones</a>
             <a href="/privacidad">Política de privacidad</a>
             <a href="mailto:hola@verlo.lat">Contacto</a>
