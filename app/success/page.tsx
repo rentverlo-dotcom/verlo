@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase/client"
+const CONTACT_HREF =
+  "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
 
 const logoUrl =
@@ -451,9 +453,14 @@ export default function SuccessPage() {
               <Link className="button" href="/">
                 Completar de nuevo
               </Link>
-              <a className="buttonSecondary" href="mailto:hola@verlo.lat">
-                Contactar a Verlo
-              </a>
+            <a
+  href={CONTACT_HREF}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="secondary-btn"
+>
+  Contactar a Verlo
+</a>
             </div>
           </>
         )}
