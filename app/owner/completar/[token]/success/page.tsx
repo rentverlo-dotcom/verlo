@@ -1,6 +1,9 @@
 import Link from "next/link"
 import VerloBrand from "@/components/VerloBrand"
 
+const CONTACT_HREF =
+  "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
+
 export default function OwnerCompletionSuccessPage() {
   return (
     <main className="success-root">
@@ -19,7 +22,9 @@ export default function OwnerCompletionSuccessPage() {
           <div className="nav-links">
             <Link href="/">Inicio</Link>
             <Link href="/propietarios">Propietarios</Link>
-            <a href="mailto:hola@verlo.lat">Contacto</a>
+            <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
+              Contacto
+            </a>
           </div>
         </div>
       </nav>
@@ -63,6 +68,15 @@ export default function OwnerCompletionSuccessPage() {
             <Link href="/propietarios" className="secondary-btn">
               Ver propietarios
             </Link>
+
+            <a
+              href={CONTACT_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="secondary-btn"
+            >
+              Contactar a Verlo
+            </a>
           </div>
         </div>
       </section>
