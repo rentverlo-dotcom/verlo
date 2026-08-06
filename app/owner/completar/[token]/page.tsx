@@ -1,7 +1,7 @@
 "use client"
 
 import { FormEvent, useMemo, useState, type ReactNode } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import VerloBrand from "@/components/VerloBrand"
 
 type UploadedMedia = {
@@ -22,7 +22,8 @@ const AVAILABILITY_OPTIONS = [
 export default function OwnerCompletionPage() {
   const params = useParams()
   const token = String(params.token || "")
-
+  const router = useRouter()
+  
   const [privateAddress, setPrivateAddress] = useState("")
   const [floorUnit, setFloorUnit] = useState("")
   const [expensesAmount, setExpensesAmount] = useState("")
@@ -88,60 +89,59 @@ export default function OwnerCompletionPage() {
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault()
 
-    setLoading(true)
-    setError("")
-    setMessage("")
+  setLoading(true)
+  setError("")
+  setMessage("")
 
-    try {
-      const uploadedMedia: UploadedMedia[] = []
+  try {
+    const uploadedMedia: UploadedMedia[] = []
 
-      for (const file of files) {
-        const uploaded = await uploadFile(file)
-        uploadedMedia.push(uploaded)
-      }
-
-      const response = await fetch("/api/owner-completion", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token,
-          private_address: privateAddress,
-          floor_unit: floorUnit,
-          expenses_amount: expensesAmount,
-          deposit_amount: depositAmount,
-          availability_status: availabilityStatus,
-          requirements:
-            [
-              depositAmount ? `Depósito requerido: ${depositAmount}` : "",
-              requirements,
-            ]
-              .filter(Boolean)
-              .join("\n\n") || null,
-          visit_conditions: visitConditions,
-          property_notes: propertyNotes,
-          media: uploadedMedia,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data?.error || "No se pudo guardar la información")
-      }
-
-      setMessage("Listo. Recibimos la información de tu propiedad.")
-      setFiles([])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error inesperado")
-    } finally {
-      setLoading(false)
+    for (const file of files) {
+      const uploaded = await uploadFile(file)
+      uploadedMedia.push(uploaded)
     }
+
+    const response = await fetch("/api/owner-completion", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token,
+        private_address: privateAddress,
+        floor_unit: floorUnit,
+        expenses_amount: expensesAmount,
+        deposit_amount: depositAmount,
+        availability_status: availabilityStatus,
+        requirements:
+          [
+            depositAmount ? `Depósito requerido: ${depositAmount}` : "",
+            requirements,
+          ]
+            .filter(Boolean)
+            .join("\n\n") || null,
+        visit_conditions: visitConditions,
+        property_notes: propertyNotes,
+        media: uploadedMedia,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data?.error || "No se pudo guardar la información")
+    }
+
+    router.push(`/owner/completar/${token}/success`)
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Error inesperado")
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <main className="owners-root">
