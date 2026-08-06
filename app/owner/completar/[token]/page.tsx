@@ -153,7 +153,7 @@ export default function OwnerCompletionPage() {
 
           <div className="nav-links">
             <a href="#datos">Datos</a>
-            <a href="mailto:hola@verlo.lat">Contacto</a>
+            <a href="mailto:hola@verlo.lat?subject=Consulta%20Verlo">Contacto</a>
             <a href="#formulario" className="nav-cta">
               Completar
             </a>
@@ -443,7 +443,7 @@ export default function OwnerCompletionPage() {
           <nav className="footer-links">
             <a href="/terminos">Términos y condiciones</a>
             <a href="/privacidad">Política de privacidad</a>
-            <a href="mailto:hola@verlo.lat">Contacto</a>
+            <a href="mailto:hola@verlo.lat?subject=Consulta%20Verlo">Contacto</a>
           </nav>
         </div>
       </footer>
