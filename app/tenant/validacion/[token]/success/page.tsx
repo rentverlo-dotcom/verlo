@@ -71,8 +71,10 @@ export default function TenantValidationSuccessPage() {
               Volver al inicio
             </Link>
 
-            <a href="mailto:hola@verlo.lat" className="secondary-btn">
-              Contactar a Verlo
+<a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
+  Contacto
+</a>
+            Contactar a Verlo
             </a>
           </div>
         </div>
