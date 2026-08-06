@@ -1,7 +1,8 @@
 "use client"
 
-import { FormEvent, useMemo, useState } from "react"
+import { FormEvent, useMemo, useState, type ReactNode } from "react"
 import { useParams } from "next/navigation"
+import VerloBrand from "@/components/VerloBrand"
 
 type UploadedMedia = {
   key: string
@@ -12,7 +13,7 @@ type UploadedMedia = {
   mediaType: "photo" | "video"
 }
 
-const availabilityOptions = [
+const AVAILABILITY_OPTIONS = [
   "Ahora",
   "En 1 a 3 meses",
   "En 6 meses o más",
@@ -38,6 +39,7 @@ export default function OwnerCompletionPage() {
 
   const selectedFileStats = useMemo(() => {
     const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
+
     return {
       count: files.length,
       mb: (totalBytes / 1024 / 1024).toFixed(2),
@@ -113,7 +115,13 @@ export default function OwnerCompletionPage() {
           expenses_amount: expensesAmount,
           deposit_amount: depositAmount,
           availability_status: availabilityStatus,
-          requirements,
+          requirements:
+            [
+              depositAmount ? `Depósito requerido: ${depositAmount}` : "",
+              requirements,
+            ]
+              .filter(Boolean)
+              .join("\n\n") || null,
           visit_conditions: visitConditions,
           property_notes: propertyNotes,
           media: uploadedMedia,
@@ -136,78 +144,169 @@ export default function OwnerCompletionPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f5efe4] text-[#15120d]">
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute left-[-10%] top-[-20%] h-[520px] w-[520px] rounded-full bg-[#d8b46a]/30 blur-3xl" />
-        <div className="absolute bottom-[-20%] right-[-12%] h-[620px] w-[620px] rounded-full bg-[#ead7b2]/70 blur-3xl" />
-        <div className="absolute left-[45%] top-[18%] h-[360px] w-[360px] rounded-full bg-white/60 blur-3xl" />
-      </div>
+    <main className="owners-root">
+      <style>{styles}</style>
 
-      <section className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center px-5 py-8 md:px-8">
-        <div className="grid w-full gap-6 lg:grid-cols-[0.9fr_1.35fr]">
-          <aside className="rounded-[2rem] border border-white/60 bg-[#18140f] p-7 text-white shadow-2xl shadow-[#6f5630]/20 md:p-9">
-            <p className="mb-8 text-sm font-semibold uppercase tracking-[0.32em] text-[#d8b46a]">
-              Verlo
-            </p>
+      <nav className="nav">
+        <div className="container nav-inner">
+          <VerloBrand width={34} />
 
-            <h1 className="text-4xl font-black leading-[0.95] tracking-[-0.06em] md:text-5xl">
-              Completá tu propiedad
-            </h1>
+          <div className="nav-links">
+            <a href="/">Inicio</a>
+            <a href="/propietarios">Propietarios</a>
+            <a href="#datos">Datos</a>
+            <a href="mailto:hola@verlo.lat">Contacto</a>
+            <a href="#formulario" className="nav-cta">
+              Completar
+            </a>
+          </div>
+        </div>
+      </nav>
 
-            <p className="mt-5 text-base leading-7 text-[#e8decb]">
+      <section className="owner-hero">
+        <div className="container owner-hero-grid">
+          <div>
+            <p className="eyebrow">Propietarios / Verlo</p>
+
+            <h1>Completá tu propiedad para avanzar con matches reales.</h1>
+
+            <p className="hero-copy">
               Esta información no se publica abierta. La usamos para validar la
               oportunidad y coordinar solo con inquilinos compatibles.
             </p>
 
-            <div className="mt-8 space-y-3">
-              {[
-                "Sin comisión inmobiliaria para el inquilino.",
-                "Tu dirección queda privada.",
-                "Verlo coordina con perfiles compatibles.",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-start gap-3 rounded-2xl bg-white/8 p-4 ring-1 ring-white/10"
-                >
-                  <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#d8b46a] text-xs font-black text-[#18140f]">
-                    ✓
-                  </span>
-                  <p className="text-sm leading-6 text-[#f7efe0]">{item}</p>
-                </div>
-              ))}
+            <div className="hero-actions">
+              <a href="#formulario" className="primary-btn">
+                Cargar información
+              </a>
+              <a href="/propietarios" className="secondary-btn">
+                Volver a propietarios
+              </a>
             </div>
 
-            <div className="mt-8 rounded-3xl bg-[#d8b46a] p-5 text-[#18140f]">
-              <p className="text-sm font-black uppercase tracking-[0.2em]">
-                Importante
-              </p>
-              <p className="mt-2 text-sm font-semibold leading-6">
-                Subí fotos claras y datos reales. Con eso podemos presentar
-                mejor tu propiedad y evitar visitas inútiles.
-              </p>
+            <div className="trust-row">
+              <span>Tu dirección queda privada</span>
+              <span>Verlo filtra interesados</span>
+              <span>Sin grupo de WhatsApp</span>
+              <span>Coordinación trazable</span>
+            </div>
+          </div>
+
+          <aside className="hero-card">
+            <div className="hero-card-top">
+              <p>Estado</p>
+              <strong>Validación</strong>
+            </div>
+
+            <div className="mini-demand-list">
+              <div className="mini-demand-item">
+                <span>Dirección</span>
+                <strong>Privada</strong>
+              </div>
+
+              <div className="mini-demand-item">
+                <span>Fotos / videos</span>
+                <strong>R2</strong>
+              </div>
+
+              <div className="mini-demand-item">
+                <span>Inquilinos</span>
+                <strong>Filtrados</strong>
+              </div>
+
+              <div className="mini-demand-item">
+                <span>Contacto</span>
+                <strong>Verlo</strong>
+              </div>
+            </div>
+
+            <div className="hero-note">
+              Subí fotos claras y datos reales. Con eso podemos presentar mejor
+              tu propiedad y evitar visitas inútiles.
             </div>
           </aside>
+        </div>
+      </section>
 
-          <form
-            onSubmit={handleSubmit}
-            className="rounded-[2rem] border border-white/70 bg-white/82 p-5 shadow-2xl shadow-[#8a6a3f]/15 backdrop-blur md:p-8"
-          >
-            <div className="mb-7 flex flex-col gap-2 border-b border-[#eadfcd] pb-6">
-              <p className="text-sm font-bold uppercase tracking-[0.24em] text-[#8a6a3f]">
-                Datos privados
+      <section id="datos" className="section soft-section">
+        <div className="container">
+          <div className="section-head">
+            <p className="eyebrow">Qué necesitamos</p>
+            <h2>Datos privados para coordinar mejor.</h2>
+            <p>
+              No es una publicación abierta. La dirección, condiciones y material
+              visual se usan para validar la oportunidad antes de presentarla a
+              inquilinos compatibles.
+            </p>
+          </div>
+
+          <div className="steps-grid">
+            <article>
+              <b>1</b>
+              <h3>Datos internos</h3>
+              <p>
+                Dirección exacta, piso, expensas, depósito y disponibilidad real
+                de la propiedad.
               </p>
-              <h2 className="text-2xl font-black tracking-[-0.04em] text-[#15120d] md:text-3xl">
-                Información para avanzar con inquilinos compatibles
-              </h2>
-            </div>
+            </article>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <article>
+              <b>2</b>
+              <h3>Condiciones</h3>
+              <p>
+                Requisitos, garantías aceptadas, condiciones para visitar y notas
+                importantes.
+              </p>
+            </article>
+
+            <article>
+              <b>3</b>
+              <h3>Fotos y videos</h3>
+              <p>
+                Material visual para evaluar y presentar correctamente la
+                oportunidad.
+              </p>
+            </article>
+
+            <article>
+              <b>4</b>
+              <h3>Coordinación</h3>
+              <p>
+                Verlo valida el match y coordina el avance con trazabilidad, sin
+                exponer tus datos de entrada.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="formulario" className="section form-section">
+        <div className="container form-grid">
+          <div>
+            <p className="eyebrow">Completar propiedad</p>
+            <h2>Información para avanzar con inquilinos compatibles</h2>
+            <p>
+              Completá estos datos para que Verlo pueda revisar la oportunidad,
+              ordenar la información y avanzar solo con perfiles compatibles.
+            </p>
+
+            <div className="promise-card">
+              <strong>Tu propiedad no se publica abierta</strong>
+              <span>
+                La usamos internamente para coordinar mejor, validar el match y
+                evitar exposición innecesaria.
+              </span>
+            </div>
+          </div>
+
+          <form className="owner-form" onSubmit={handleSubmit}>
+            <div className="form-row">
               <Field label="Dirección exacta">
                 <input
                   value={privateAddress}
                   onChange={(event) => setPrivateAddress(event.target.value)}
                   placeholder="Ej: Av. Cabildo 1234"
-                  className="field-input"
+                  required
                 />
               </Field>
 
@@ -216,17 +315,17 @@ export default function OwnerCompletionPage() {
                   value={floorUnit}
                   onChange={(event) => setFloorUnit(event.target.value)}
                   placeholder="Ej: 4B"
-                  className="field-input"
                 />
               </Field>
+            </div>
 
+            <div className="form-row">
               <Field label="Expensas aproximadas">
                 <input
                   value={expensesAmount}
                   onChange={(event) => setExpensesAmount(event.target.value)}
                   placeholder="Ej: 85000"
                   inputMode="numeric"
-                  className="field-input"
                 />
               </Field>
 
@@ -235,142 +334,127 @@ export default function OwnerCompletionPage() {
                   value={depositAmount}
                   onChange={(event) => setDepositAmount(event.target.value)}
                   placeholder="Ej: 1 mes / $750.000"
-                  className="field-input"
                 />
               </Field>
-
-              <Field label="Disponibilidad">
-                <select
-                  value={availabilityStatus}
-                  onChange={(event) =>
-                    setAvailabilityStatus(event.target.value)
-                  }
-                  className="field-input"
-                >
-                  <option value="">Seleccionar</option>
-                  {availabilityOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <div className="hidden md:block" />
-
-              <Field label="Requisitos" wide>
-                <textarea
-                  value={requirements}
-                  onChange={(event) => setRequirements(event.target.value)}
-                  placeholder="Ej: garantía propietaria, seguro de caución, recibos, mascotas, etc."
-                  rows={4}
-                  className="field-input min-h-[118px] resize-none"
-                />
-              </Field>
-
-              <Field label="Condiciones para visita" wide>
-                <textarea
-                  value={visitConditions}
-                  onChange={(event) => setVisitConditions(event.target.value)}
-                  placeholder="Ej: se puede visitar por la tarde, coordinar con 24 hs, etc."
-                  rows={4}
-                  className="field-input min-h-[118px] resize-none"
-                />
-              </Field>
-
-              <Field label="Notas adicionales" wide>
-                <textarea
-                  value={propertyNotes}
-                  onChange={(event) => setPropertyNotes(event.target.value)}
-                  placeholder="Detalles útiles: luminosidad, estado, amoblado, orientación, amenities, etc."
-                  rows={4}
-                  className="field-input min-h-[118px] resize-none"
-                />
-              </Field>
-
-              <div className="md:col-span-2">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-black uppercase tracking-[0.14em] text-[#5c4a2d]">
-                    Fotos / videos
-                  </span>
-
-                  <div className="rounded-3xl border border-dashed border-[#c7ad78] bg-[#fbf7ef] p-5">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,video/*"
-                      onChange={(event) =>
-                        setFiles(Array.from(event.target.files || []))
-                      }
-                      className="block w-full cursor-pointer rounded-2xl border border-[#eadfcd] bg-white px-4 py-3 text-sm font-semibold text-[#15120d] file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-[#18140f] file:px-5 file:py-3 file:text-sm file:font-black file:text-white hover:file:bg-[#8a6a3f]"
-                    />
-
-                    <p className="mt-3 text-sm font-medium leading-6 text-[#6d6256]">
-                      Subí fotos claras del ambiente, cocina, baño, vista y
-                      detalles relevantes. También podés subir videos cortos.
-                    </p>
-                  </div>
-                </label>
-              </div>
             </div>
 
-            {files.length > 0 && (
-              <div className="mt-5 rounded-3xl bg-[#18140f] p-5 text-white">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-black">
+            <Field label="Disponibilidad">
+              <select
+                value={availabilityStatus}
+                onChange={(event) => setAvailabilityStatus(event.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  Elegí una opción
+                </option>
+                {AVAILABILITY_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Requisitos">
+              <textarea
+                value={requirements}
+                onChange={(event) => setRequirements(event.target.value)}
+                placeholder="Ej: garantía propietaria, seguro de caución, recibos, mascotas, contrato mínimo, etc."
+                rows={4}
+              />
+            </Field>
+
+            <Field label="Condiciones para visita">
+              <textarea
+                value={visitConditions}
+                onChange={(event) => setVisitConditions(event.target.value)}
+                placeholder="Ej: se puede visitar por la tarde, coordinar con 24 hs, días disponibles, etc."
+                rows={4}
+              />
+            </Field>
+
+            <Field label="Notas adicionales">
+              <textarea
+                value={propertyNotes}
+                onChange={(event) => setPropertyNotes(event.target.value)}
+                placeholder="Detalles útiles: luminosidad, estado, amoblado, orientación, amenities, mascotas, etc."
+                rows={4}
+              />
+            </Field>
+
+            <label className="media-box">
+              <span>Fotos / videos</span>
+
+              <div className="file-drop">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*"
+                  onChange={(event) =>
+                    setFiles(Array.from(event.target.files || []))
+                  }
+                />
+
+                <p>
+                  Subí fotos claras del ambiente, cocina, baño, vista y detalles
+                  relevantes. También podés subir videos cortos.
+                </p>
+              </div>
+            </label>
+
+            {files.length > 0 ? (
+              <div className="selected-files">
+                <div className="selected-files-head">
+                  <strong>
                     {selectedFileStats.count} archivo
                     {selectedFileStats.count === 1 ? "" : "s"} seleccionado
                     {selectedFileStats.count === 1 ? "" : "s"}
-                  </p>
-                  <p className="rounded-full bg-[#d8b46a] px-3 py-1 text-xs font-black text-[#18140f]">
-                    {selectedFileStats.mb} MB
-                  </p>
+                  </strong>
+                  <span>{selectedFileStats.mb} MB</span>
                 </div>
 
-                <ul className="grid gap-2 text-sm text-[#f3ead9]">
+                <ul>
                   {files.map((file) => (
-                    <li
-                      key={`${file.name}-${file.size}`}
-                      className="flex items-center justify-between gap-3 rounded-2xl bg-white/8 px-4 py-3"
-                    >
-                      <span className="truncate">{file.name}</span>
-                      <span className="shrink-0 text-[#d8b46a]">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </span>
+                    <li key={`${file.name}-${file.size}`}>
+                      <span>{file.name}</span>
+                      <small>{(file.size / 1024 / 1024).toFixed(2)} MB</small>
                     </li>
                   ))}
                 </ul>
               </div>
-            )}
+            ) : null}
 
-            {error && (
-              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-                {error}
-              </div>
-            )}
+            {error ? <p className="form-message error">{error}</p> : null}
+            {message ? <p className="form-message success">{message}</p> : null}
 
-            {message && (
-              <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-700">
-                {message}
-              </div>
-            )}
+            <button type="submit" disabled={loading}>
+              {loading ? "Enviando..." : "Enviar información"}
+            </button>
 
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-full bg-[#18140f] px-7 py-4 text-base font-black text-white shadow-xl shadow-[#18140f]/20 transition hover:-translate-y-0.5 hover:bg-[#8a6a3f] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-              >
-                {loading ? "Enviando..." : "Enviar información"}
-              </button>
-
-              <p className="text-sm font-medium leading-6 text-[#6d6256]">
-                La carga puede tardar si subís videos pesados.
-              </p>
-            </div>
+            <p className="upload-note">
+              La carga puede tardar si subís videos pesados. No cierres esta
+              pantalla hasta ver la confirmación.
+            </p>
           </form>
         </div>
       </section>
+
+      <footer className="footer">
+        <div className="container footer-inner">
+          <div className="footer-brand">
+            <VerloBrand width={86} />
+            <p>Alquiler directo, seguro y sin comisión.</p>
+          </div>
+
+          <nav className="footer-links">
+            <a href="/">Inicio</a>
+            <a href="/propietarios">Propietarios</a>
+            <a href="/terminos">Términos y condiciones</a>
+            <a href="/privacidad">Política de privacidad</a>
+            <a href="mailto:hola@verlo.lat">Contacto</a>
+          </nav>
+        </div>
+      </footer>
     </main>
   )
 }
@@ -378,18 +462,636 @@ export default function OwnerCompletionPage() {
 function Field({
   label,
   children,
-  wide = false,
 }: {
   label: string
-  children: React.ReactNode
-  wide?: boolean
+  children: ReactNode
 }) {
   return (
-    <label className={wide ? "block md:col-span-2" : "block"}>
-      <span className="mb-2 block text-sm font-black uppercase tracking-[0.14em] text-[#5c4a2d]">
-        {label}
-      </span>
+    <label>
+      {label}
       {children}
     </label>
   )
 }
+
+const styles = `
+  .owners-root {
+    --pink: #f2a8a9;
+    --pink-dark: #c37986;
+    --black: #050002;
+    --soft: #f2ebec;
+    --paper: #fffaf8;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 84% 10%, rgba(242,168,169,.48), transparent 28%),
+      radial-gradient(circle at 10% 48%, rgba(195,121,134,.16), transparent 26%),
+      var(--soft);
+    color: var(--black);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .owners-root * {
+    box-sizing: border-box;
+  }
+
+  .container {
+    width: min(1160px, calc(100% - 40px));
+    margin: 0 auto;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(18px);
+    background: rgba(242, 235, 236, 0.84);
+    border-bottom: 1px solid rgba(5, 0, 2, 0.08);
+  }
+
+  .nav-inner {
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 14px;
+  }
+
+  .nav-links a {
+    color: rgba(5, 0, 2, 0.72);
+    text-decoration: none;
+    font-weight: 900;
+  }
+
+  .nav-cta {
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--black);
+    color: white !important;
+    min-width: 118px;
+    text-align: center;
+  }
+
+  .owner-hero {
+    padding: 88px 0 76px;
+  }
+
+  .owner-hero-grid {
+    display: grid;
+    grid-template-columns: 1.04fr 0.96fr;
+    gap: 56px;
+    align-items: center;
+  }
+
+  .eyebrow {
+    margin: 0;
+    color: var(--pink-dark);
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  h1 {
+    margin: 18px 0 0;
+    font-size: clamp(48px, 7vw, 92px);
+    line-height: .88;
+    letter-spacing: -.085em;
+    max-width: 900px;
+  }
+
+  h2 {
+    margin: 10px 0 0;
+    font-size: clamp(34px, 4.6vw, 64px);
+    line-height: .92;
+    letter-spacing: -.075em;
+  }
+
+  h3 {
+    margin: 16px 0 0;
+    font-size: 22px;
+    line-height: 1;
+    letter-spacing: -.045em;
+  }
+
+  .hero-copy {
+    margin: 24px 0 0;
+    max-width: 720px;
+    color: rgba(5, 0, 2, .68);
+    font-size: 20px;
+    line-height: 1.48;
+    font-weight: 650;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 54px;
+    padding: 0 22px;
+    border-radius: 999px;
+    font-weight: 950;
+    text-decoration: none;
+  }
+
+  .primary-btn {
+    background: var(--black);
+    color: white;
+    box-shadow: 0 18px 42px rgba(5,0,2,.18);
+  }
+
+  .secondary-btn {
+    color: var(--black);
+    background: rgba(255,255,255,.62);
+    border: 1px solid rgba(5,0,2,.1);
+  }
+
+  .trust-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 26px;
+  }
+
+  .trust-row span {
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.58);
+    border: 1px solid rgba(5,0,2,.08);
+    color: rgba(5,0,2,.64);
+    font-size: 13px;
+    font-weight: 850;
+  }
+
+  .hero-card {
+    padding: 28px;
+    border-radius: 38px;
+    background: rgba(255,255,255,.78);
+    border: 1px solid rgba(5,0,2,.09);
+    box-shadow: 0 28px 80px rgba(5,0,2,.1);
+  }
+
+  .hero-card-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .hero-card-top p {
+    margin: 0;
+    color: var(--pink-dark);
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 11px;
+  }
+
+  .hero-card-top strong {
+    font-size: 22px;
+    letter-spacing: -.05em;
+  }
+
+  .mini-demand-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .mini-demand-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 16px;
+    border-radius: 22px;
+    background: var(--paper);
+    border: 1px solid rgba(5,0,2,.08);
+  }
+
+  .mini-demand-item span {
+    font-weight: 950;
+    letter-spacing: -.03em;
+  }
+
+  .mini-demand-item strong {
+    color: var(--pink-dark);
+    font-size: 20px;
+    font-weight: 950;
+  }
+
+  .hero-note {
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 24px;
+    background: var(--black);
+    color: white;
+    font-weight: 850;
+    line-height: 1.35;
+  }
+
+  .section {
+    padding: 74px 0;
+  }
+
+  .soft-section {
+    background: rgba(255,255,255,.34);
+    border-block: 1px solid rgba(5,0,2,.06);
+  }
+
+  .section-head {
+    max-width: 860px;
+    margin-bottom: 30px;
+  }
+
+  .section-head p:not(.eyebrow) {
+    margin: 16px 0 0;
+    color: rgba(5,0,2,.62);
+    font-size: 18px;
+    line-height: 1.5;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .steps-grid article {
+    padding: 24px;
+    min-height: 280px;
+    border-radius: 30px;
+    background: rgba(255,255,255,.74);
+    border: 1px solid rgba(5,0,2,.08);
+  }
+
+  .steps-grid b {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    background: var(--black);
+    color: white;
+    font-size: 18px;
+  }
+
+  .steps-grid p {
+    margin: 14px 0 0;
+    color: rgba(5,0,2,.62);
+    line-height: 1.45;
+  }
+
+  .form-section {
+    padding-bottom: 94px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: .85fr 1.15fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  .form-grid > div > p:not(.eyebrow) {
+    margin: 18px 0 0;
+    color: rgba(5,0,2,.64);
+    font-size: 19px;
+    line-height: 1.5;
+  }
+
+  .promise-card {
+    margin-top: 28px;
+    padding: 22px;
+    border-radius: 28px;
+    background: var(--black);
+    color: white;
+    display: grid;
+    gap: 8px;
+  }
+
+  .promise-card strong {
+    font-size: 20px;
+    letter-spacing: -.04em;
+  }
+
+  .promise-card span {
+    color: rgba(255,255,255,.76);
+    line-height: 1.4;
+  }
+
+  .owner-form {
+    padding: 28px;
+    border-radius: 34px;
+    background: rgba(255,255,255,.78);
+    border: 1px solid rgba(5,0,2,.08);
+    box-shadow: 0 26px 70px rgba(5,0,2,.08);
+    display: grid;
+    gap: 16px;
+  }
+
+  .owner-form label,
+  .media-box {
+    display: grid;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 950;
+    color: rgba(5,0,2,.72);
+  }
+
+  .owner-form input,
+  .owner-form select,
+  .owner-form textarea {
+    width: 100%;
+    border: 1px solid rgba(5,0,2,.12);
+    border-radius: 18px;
+    background: #fffaf8;
+    color: var(--black);
+    font: inherit;
+    font-size: 15px;
+    padding: 15px 16px;
+    outline: none;
+  }
+
+  .owner-form textarea {
+    resize: vertical;
+  }
+
+  .owner-form input:focus,
+  .owner-form select:focus,
+  .owner-form textarea:focus {
+    border-color: var(--pink-dark);
+    box-shadow: 0 0 0 4px rgba(242,168,169,.22);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .file-drop {
+    padding: 18px;
+    border-radius: 26px;
+    background: #fffaf8;
+    border: 1px dashed rgba(195, 121, 134, .42);
+  }
+
+  .file-drop input {
+    padding: 12px;
+    background: white;
+    cursor: pointer;
+  }
+
+  .file-drop input::file-selector-button {
+    margin-right: 14px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    padding: 12px 18px;
+    font-weight: 950;
+    cursor: pointer;
+  }
+
+  .file-drop input::file-selector-button:hover {
+    background: var(--pink-dark);
+  }
+
+  .file-drop p {
+    margin: 12px 0 0;
+    color: rgba(5,0,2,.58);
+    line-height: 1.45;
+    font-weight: 750;
+  }
+
+  .selected-files {
+    padding: 18px;
+    border-radius: 26px;
+    background: var(--black);
+    color: white;
+  }
+
+  .selected-files-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .selected-files-head strong {
+    font-size: 15px;
+    letter-spacing: -.02em;
+  }
+
+  .selected-files-head span {
+    display: inline-flex;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: var(--pink);
+    color: var(--black);
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  .selected-files ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .selected-files li {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.08);
+  }
+
+  .selected-files li span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255,255,255,.88);
+  }
+
+  .selected-files li small {
+    flex-shrink: 0;
+    color: var(--pink);
+    font-weight: 900;
+  }
+
+  .owner-form button {
+    margin-top: 4px;
+    min-height: 58px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    font-size: 16px;
+    font-weight: 950;
+    cursor: pointer;
+    box-shadow: 0 18px 45px rgba(5, 0, 2, 0.18);
+  }
+
+  .owner-form button:hover {
+    background: var(--pink-dark);
+  }
+
+  .owner-form button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+
+  .upload-note {
+    margin: -2px 0 0;
+    color: rgba(5,0,2,.58);
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 750;
+  }
+
+  .form-message {
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 18px;
+    font-weight: 850;
+    line-height: 1.35;
+  }
+
+  .form-message.success {
+    background: rgba(92, 180, 126, .16);
+    color: #245b38;
+  }
+
+  .form-message.error {
+    background: rgba(195, 70, 70, .13);
+    color: #802727;
+  }
+
+  .footer {
+    padding: 54px 0;
+    border-top: 1px solid rgba(5, 0, 2, 0.1);
+    background: rgba(255, 255, 255, 0.34);
+  }
+
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    gap: 32px;
+    align-items: flex-start;
+    color: rgba(5, 0, 2, 0.58);
+    font-size: 14px;
+  }
+
+  .footer-brand {
+    display: grid;
+    gap: 12px;
+  }
+
+  .footer-brand p {
+    margin: 0;
+    max-width: 280px;
+    line-height: 1.45;
+    color: rgba(5, 0, 2, 0.62);
+    font-weight: 700;
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 16px 22px;
+  }
+
+  .footer-links a {
+    color: rgba(5, 0, 2, 0.66);
+    text-decoration: none;
+    font-weight: 800;
+  }
+
+  @media (max-width: 900px) {
+    .nav-links a:not(.nav-cta) {
+      display: none;
+    }
+
+    .owner-hero-grid,
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .owner-hero {
+      padding-top: 58px;
+    }
+
+    .steps-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .footer-inner {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .footer-links {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .container {
+      width: min(100% - 26px, 1160px);
+    }
+
+    .nav-inner {
+      height: 68px;
+    }
+
+    h1 {
+      font-size: 48px;
+    }
+
+    h2 {
+      font-size: 38px;
+    }
+
+    .steps-grid,
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .owner-form {
+      padding: 20px;
+      border-radius: 28px;
+    }
+
+    .hero-actions {
+      display: grid;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      width: 100%;
+    }
+  }
+`
