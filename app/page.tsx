@@ -651,6 +651,15 @@ const styles = `
     display: grid;
     gap: 14px;
   }
+  
+.honeypot {
+  position: absolute !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 
   .row {
     display: grid;
