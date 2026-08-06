@@ -1,5 +1,7 @@
 import Link from "next/link"
 import VerloBrand from "@/components/VerloBrand"
+const CONTACT_HREF =
+  "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
 export default function TenantValidationSuccessPage() {
   const confettiItems = Array.from({ length: 42 })
@@ -27,7 +29,9 @@ export default function TenantValidationSuccessPage() {
 
           <div className="nav-links">
             <Link href="/">Inicio</Link>
-            <a href="mailto:hola@verlo.lat">Contacto</a>
+            <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
+  Contacto
+</a>
           </div>
         </div>
       </nav>
