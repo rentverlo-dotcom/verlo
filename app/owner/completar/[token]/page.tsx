@@ -155,7 +155,9 @@ export default function OwnerCompletionPage() {
 
           <div className="nav-links">
             <a href="#datos">Datos</a>
-            <a href="mailto:hola@verlo.lat?subject=Consulta%20Verlo">Contacto</a>
+            <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
+  Contacto
+</a>
             <a href="#formulario" className="nav-cta">
               Completar
             </a>
