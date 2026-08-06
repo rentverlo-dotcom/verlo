@@ -2,6 +2,8 @@
 
 import { FormEvent, useMemo, useState } from "react"
 import VerloBrand from "@/components/VerloBrand"
+const CONTACT_HREF =
+  "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
 type Path = "tenant" | "owner" | "renewal"
 
