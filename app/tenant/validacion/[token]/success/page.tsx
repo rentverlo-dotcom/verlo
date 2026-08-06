@@ -1,5 +1,7 @@
 import Link from "next/link"
+import type { CSSProperties } from "react"
 import VerloBrand from "@/components/VerloBrand"
+
 const CONTACT_HREF =
   "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
@@ -14,11 +16,7 @@ export default function TenantValidationSuccessPage() {
         {confettiItems.map((_, index) => (
           <span
             key={index}
-            style={
-              {
-                "--i": index,
-              } as React.CSSProperties
-            }
+            style={{ "--i": index } as CSSProperties}
           />
         ))}
       </div>
@@ -30,8 +28,8 @@ export default function TenantValidationSuccessPage() {
           <div className="nav-links">
             <Link href="/">Inicio</Link>
             <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
-  Contacto
-</a>
+              Contacto
+            </a>
           </div>
         </div>
       </nav>
@@ -71,10 +69,13 @@ export default function TenantValidationSuccessPage() {
               Volver al inicio
             </Link>
 
-<a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
-  Contacto
-</a>
-            Contactar a Verlo
+            <a
+              href={CONTACT_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="secondary-btn"
+            >
+              Contactar a Verlo
             </a>
           </div>
         </div>
