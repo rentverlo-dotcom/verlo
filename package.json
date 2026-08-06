@@ -12,8 +12,6 @@
   "dependencies": {
   "@react-spring/web": "^9.7.3",
   "@supabase/supabase-js": "^2.39.3",
-  "@aws-sdk/client-s3": "^3.864.0",
-  "@aws-sdk/s3-request-presigner": "^3.864.0",
   "aos": "^2.3.4",
   "framer-motion": "^12.34.3",
   "next": "14.0.0",
