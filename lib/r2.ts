@@ -1,5 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+import crypto from "crypto"
 
 const accountId = process.env.R2_ACCOUNT_ID
 const accessKeyId = process.env.R2_ACCESS_KEY_ID
@@ -12,14 +11,30 @@ if (!accountId || !accessKeyId || !secretAccessKey) {
   throw new Error("Missing R2 env vars")
 }
 
-export const r2Client = new S3Client({
-  region: "auto",
-  endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId,
-    secretAccessKey,
-  },
-})
+function hmac(key: crypto.BinaryLike, value: string) {
+  return crypto.createHmac("sha256", key).update(value, "utf8").digest()
+}
+
+function sha256Hex(value: string) {
+  return crypto.createHash("sha256").update(value, "utf8").digest("hex")
+}
+
+function encodeRfc3986(value: string) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) =>
+    `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  )
+}
+
+function encodeKeyForPath(key: string) {
+  return key.split("/").map(encodeRfc3986).join("/")
+}
+
+function getSigningKey(secret: string, date: string) {
+  const kDate = hmac(`AWS4${secret}`, date)
+  const kRegion = hmac(kDate, "auto")
+  const kService = hmac(kRegion, "s3")
+  return hmac(kService, "aws4_request")
+}
 
 export function buildR2Key(params: {
   folder: string
@@ -38,20 +53,60 @@ export async function createR2UploadUrl(params: {
   key: string
   contentType: string
 }) {
-  const command = new PutObjectCommand({
-    Bucket: bucket,
-    Key: params.key,
-    ContentType: params.contentType,
-  })
+  const now = new Date()
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "")
+  const dateStamp = amzDate.slice(0, 8)
+  const host = `${accountId}.r2.cloudflarestorage.com`
+  const credentialScope = `${dateStamp}/auto/s3/aws4_request`
+  const encodedKey = encodeKeyForPath(params.key)
+  const canonicalUri = `/${bucket}/${encodedKey}`
 
-  return getSignedUrl(r2Client, command, {
-    expiresIn: 60 * 5,
-  })
+  const queryParams: Record<string, string> = {
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": `${accessKeyId}/${credentialScope}`,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Expires": "300",
+    "X-Amz-SignedHeaders": "content-type;host",
+  }
+
+  const canonicalQueryString = Object.keys(queryParams)
+    .sort()
+    .map((key) => `${encodeRfc3986(key)}=${encodeRfc3986(queryParams[key])}`)
+    .join("&")
+
+  const canonicalHeaders = `content-type:${params.contentType}\nhost:${host}\n`
+  const signedHeaders = "content-type;host"
+  const payloadHash = "UNSIGNED-PAYLOAD"
+
+  const canonicalRequest = [
+    "PUT",
+    canonicalUri,
+    canonicalQueryString,
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash,
+  ].join("\n")
+
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    amzDate,
+    credentialScope,
+    sha256Hex(canonicalRequest),
+  ].join("\n")
+
+  const signingKey = getSigningKey(secretAccessKey, dateStamp)
+
+  const signature = crypto
+    .createHmac("sha256", signingKey)
+    .update(stringToSign, "utf8")
+    .digest("hex")
+
+  return `https://${host}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`
 }
 
 export function getR2PublicUrl(key: string) {
   if (!publicUrl) return null
-  return `${publicUrl}/${key}`
+  return `${publicUrl.replace(/\/$/, "")}/${key}`
 }
 
 export const R2_BUCKET = bucket
