@@ -1678,14 +1678,14 @@ neighborhood_slug: normalizeText(zone),
                     />
                   </div>
 
-                  <select className="select" name="availability_status" required defaultValue="">
-                    <option value="" disabled>
-                      Disponibilidad
-                    </option>
-                    <option>Disponible ahora</option>
-                    <option>Disponible pronto</option>
-                    <option>Estoy evaluando alquilar</option>
-                  </select>
+               <select className="select" name="availability_status" required defaultValue="">
+  <option value="" disabled>
+    Cuándo estará disponible
+  </option>
+  <option value="Ahora">Ahora</option>
+  <option value="En 1 a 3 meses">En 1 a 3 meses</option>
+  <option value="En 6 meses o más">En 6 meses o más</option>
+</select>
                 </>
               )}
 
