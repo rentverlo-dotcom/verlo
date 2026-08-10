@@ -1374,17 +1374,21 @@ neighborhood_slug: normalizeText(zone),
         Verlo conecta propietarios e inquilinos compatibles por zona, presupuesto y momento de mudanza.
       </p>
 
-   <div className="launch-offer">
-  <span className="launch-kicker">LANZAMIENTO VERLO</span>
+  <div className="launch-ticket">
+  <div className="launch-ticket-inner">
+    <span className="launch-ticket-label">LANZAMIENTO VERLO</span>
 
-  <div className="launch-price-row">
-    <span className="launch-old-price">$70.000</span>
-    <span className="launch-free">GRATIS</span>
+    <div className="launch-ticket-price">
+      <span className="launch-ticket-old">$70.000</span>
+      <span className="launch-ticket-free">GRATIS</span>
+    </div>
+
+    <div className="launch-ticket-line" />
+
+    <span className="launch-ticket-copy">
+      PRIMEROS 20 CONTRATOS
+    </span>
   </div>
-
-  <span className="launch-detail">
-    Primeros 20 contratos firmados con Verlo
-  </span>
 </div>
 
       <div className="hero-actions">
