@@ -1201,7 +1201,7 @@ function MiniPhone({ type }: { type: Path }) {
         <PhoneContent
           badge="Propietario"
           title="Dejá tus datos"
-          copy="Barrio, tipo, precio y disponibilidad. Sin fotos todavía."
+          copy="Barrio, tipo, precio y disponibilidad. Fotos, videos y datos privados, solo cuando haya match y vos lo apruebes."
           button="Dejar datos"
           rows={[
             { label: "Barrio", value: "Vicente López" },
