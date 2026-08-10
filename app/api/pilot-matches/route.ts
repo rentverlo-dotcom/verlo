@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const ghlWebhookUrl = process.env.GHL_LEAD_WEBHOOK_URL
+    const ghlWebhookUrl =
+  "https://services.leadconnectorhq.com/hooks/cvNj4z9CkErHpF9tD4BE/webhook-trigger/295302fb-a1ee-459e-a075-ec639b80177d"
 
     if (!supabaseUrl || !serviceRoleKey || !ghlWebhookUrl) {
       return NextResponse.json(
