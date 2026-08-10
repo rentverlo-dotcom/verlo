@@ -1304,27 +1304,21 @@ neighborhood_slug: normalizeText(zone),
         </div>
       </header>
 
-      <section className="hero">
+   <section className="hero">
   <div className="container hero-grid">
     <div>
       <h1>
         Alquilá directo. <em>Encontrá tu match.</em>
       </h1>
 
-      <p>
-        Cargá barrios, presupuesto y fecha de mudanza. Verlo cruza tu búsqueda con
-        propietarios e inquilinos compatibles y te conecta cuando hay coincidencia.
+      <p className="hero-subtitle">
+        Verlo conecta propietarios e inquilinos compatibles por zona, presupuesto y momento de mudanza.
       </p>
 
       <div className="launch-offer">
-        <span className="launch-label">Precio del servicio</span>
-
-        <div className="launch-price-row">
-          <span className="launch-old-price">USD 47</span>
-          <span className="launch-free">GRATIS</span>
-        </div>
-
-        <strong>para los primeros 20 contratos firmados con Verlo</strong>
+        <span className="launch-old-price">USD 47</span>
+        <span className="launch-free">GRATIS</span>
+        <span className="launch-detail">Primeros 20 contratos</span>
       </div>
 
       <div className="hero-actions">
@@ -1354,10 +1348,9 @@ neighborhood_slug: normalizeText(zone),
       </div>
 
       <div className="trust-row">
-        <span className="pill">Matching gratis</span>
-        <span className="pill">Publicar es gratis</span>
         <span className="pill">Sin comisión inmobiliaria</span>
-        <span className="pill">Primeros 20 contratos gratis</span>
+        <span className="pill">Matching gratis</span>
+        <span className="pill">Publicar gratis</span>
       </div>
     </div>
 
