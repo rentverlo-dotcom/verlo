@@ -1161,7 +1161,7 @@ function HeroPhone() {
         <PhoneContent
           badge="Alquiler directo"
           title="Menos comisión. Más control."
-          copy="Verlo ordena datos reales para matchear inquilinos y propietarios por barrio."
+          copy="Verlo ordena datos reales para matchear inquilinos y propietarios por barrio. Te cuida a vos y tu bolsillo."
           button="Empezar"
           rows={[
             { label: "Barrio", value: "Olivos" },
