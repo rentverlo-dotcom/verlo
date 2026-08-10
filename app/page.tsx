@@ -944,63 +944,97 @@ const styles = `
   transition: transform 180ms ease;
 }
 
-.launch-offer {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+.launch-ticket {
+  position: relative;
+  display: inline-block;
   margin: 22px 0 30px;
-  padding: 14px 18px 15px;
-  background: #050002;
-  border-radius: 18px;
-  color: #fff;
+  padding: 7px;
+  background: #f2a8a9;
+  border-radius: 22px;
+  box-shadow: 0 12px 35px rgba(5, 0, 2, 0.12);
 }
 
-.launch-kicker {
+.launch-ticket::before,
+.launch-ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 36px;
+  background: #f5eaea;
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.launch-ticket::before {
+  left: -9px;
+}
+
+.launch-ticket::after {
+  right: -9px;
+}
+
+.launch-ticket-inner {
+  min-width: 300px;
+  padding: 14px 24px 16px;
+  border: 2px dashed rgba(5, 0, 2, 0.35);
+  border-radius: 16px;
+  text-align: center;
+  color: #050002;
+}
+
+.launch-ticket-label {
+  display: block;
+  margin-bottom: 5px;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  opacity: 0.65;
+  letter-spacing: 0.16em;
 }
 
-.launch-price-row {
+.launch-ticket-price {
   display: flex;
   align-items: center;
-  gap: 12px;
-  line-height: 1;
+  justify-content: center;
+  gap: 15px;
 }
 
-.launch-old-price {
+.launch-ticket-old {
   position: relative;
   font-size: 22px;
   font-weight: 700;
   opacity: 0.55;
 }
 
-.launch-old-price::after {
+.launch-ticket-old::after {
   content: "";
   position: absolute;
-  left: -3px;
-  right: -3px;
+  left: -5px;
+  right: -5px;
   top: 50%;
-  height: 2px;
-  background: #f2a8a9;
-  transform: rotate(-5deg);
+  height: 3px;
+  background: #050002;
+  transform: rotate(-7deg);
 }
 
-.launch-free {
-  font-size: 34px;
+.launch-ticket-free {
+  font-size: 42px;
+  line-height: 1;
   font-weight: 900;
-  letter-spacing: -0.04em;
-  color: #f2a8a9;
+  letter-spacing: -0.055em;
 }
 
-.launch-detail {
-  margin-top: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  opacity: 0.8;
+.launch-ticket-line {
+  width: 75%;
+  height: 1px;
+  margin: 10px auto 8px;
+  background: rgba(5, 0, 2, 0.28);
+}
+
+.launch-ticket-copy {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
   }
