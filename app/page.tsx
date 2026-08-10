@@ -1405,7 +1405,7 @@ neighborhood_slug: normalizeText(zone),
       </h1>
 
       <p className="hero-subtitle">
-        Verlo conecta propietarios e inquilinos compatibles por zona, presupuesto y momento de mudanza.
+        Encontrá una propiedad o un inquilino compatible sin pagar una comisión inmobiliaria enorme.
       </p>
 
 <div
