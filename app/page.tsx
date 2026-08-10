@@ -1305,54 +1305,65 @@ neighborhood_slug: normalizeText(zone),
       </header>
 
       <section className="hero">
-        <div className="container hero-grid">
-          <div>
-            <h1>
-              Alquilá directo, <em>seguro y sin comisión.</em>
-            </h1>
+  <div className="container hero-grid">
+    <div>
+      <h1>
+        Alquilá directo. <em>Encontrá tu match.</em>
+      </h1>
 
-            <p>
-              Cargá barrios, presupuesto y fecha de mudanza. Verlo usa esos datos para
-              acercarte propiedades compatibles sin pagar una comisión inmobiliaria enorme.
-            </p>
+      <p>
+        Cargá barrios, presupuesto y fecha de mudanza. Verlo cruza tu búsqueda con
+        propietarios e inquilinos compatibles y te conecta cuando hay coincidencia.
+      </p>
 
-            <div className="hero-actions">
-              <a
-                className="btn btn-primary"
-                href="#sumate"
-                onClick={() => choosePath("tenant")}
-              >
-                Busco alquilar
-              </a>
+      <div className="launch-offer">
+        <span className="launch-label">Precio del servicio</span>
 
-              <a
-                className="btn btn-secondary"
-                href="#sumate"
-                onClick={() => choosePath("owner")}
-              >
-                Tengo una propiedad
-              </a>
-
-              <a
-                className="btn btn-secondary"
-                href="#sumate"
-                onClick={() => choosePath("renewal")}
-              >
-                Quiero renovar
-              </a>
-            </div>
-
-            <div className="trust-row">
-              <span className="pill">Sin comisión inmobiliaria</span>
-              <span className="pill">Matching por barrio</span>
-              <span className="pill">Más simple</span>
-              <span className="pill">Más seguro</span>
-            </div>
-          </div>
-
-          <HeroPhone />
+        <div className="launch-price-row">
+          <span className="launch-old-price">USD 47</span>
+          <span className="launch-free">GRATIS</span>
         </div>
-      </section>
+
+        <strong>para los primeros 20 contratos firmados con Verlo</strong>
+      </div>
+
+      <div className="hero-actions">
+        <a
+          className="btn btn-primary"
+          href="#sumate"
+          onClick={() => choosePath("tenant")}
+        >
+          Busco alquilar
+        </a>
+
+        <a
+          className="btn btn-secondary"
+          href="#sumate"
+          onClick={() => choosePath("owner")}
+        >
+          Tengo una propiedad
+        </a>
+
+        <a
+          className="btn btn-secondary"
+          href="#sumate"
+          onClick={() => choosePath("renewal")}
+        >
+          Quiero renovar
+        </a>
+      </div>
+
+      <div className="trust-row">
+        <span className="pill">Matching gratis</span>
+        <span className="pill">Publicar es gratis</span>
+        <span className="pill">Sin comisión inmobiliaria</span>
+        <span className="pill">Primeros 20 contratos gratis</span>
+      </div>
+    </div>
+
+    <HeroPhone />
+  </div>
+</section>
 
       <section className="section" id="caminos">
         <div className="container">
