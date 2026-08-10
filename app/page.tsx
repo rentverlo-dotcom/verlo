@@ -1408,6 +1408,91 @@ neighborhood_slug: normalizeText(zone),
         Verlo conecta propietarios e inquilinos compatibles por zona, presupuesto y momento de mudanza.
       </p>
 
+<div
+  style={{
+    display: "inline-block",
+    margin: "22px 0 30px",
+    background: "#f2a8a9",
+    padding: "7px",
+    borderRadius: "22px",
+    boxShadow: "0 12px 35px rgba(5,0,2,.12)",
+  }}
+>
+  <div
+    style={{
+      minWidth: "300px",
+      padding: "14px 24px 16px",
+      border: "2px dashed rgba(5,0,2,.35)",
+      borderRadius: "16px",
+      textAlign: "center",
+      color: "#050002",
+    }}
+  >
+    <div
+      style={{
+        fontSize: "11px",
+        fontWeight: 800,
+        letterSpacing: ".16em",
+        marginBottom: "6px",
+      }}
+    >
+      LANZAMIENTO VERLO
+    </div>
+
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "16px",
+      }}
+    >
+      <span
+        style={{
+          fontSize: "22px",
+          fontWeight: 700,
+          textDecoration: "line-through",
+          textDecorationThickness: "3px",
+          opacity: 0.5,
+        }}
+      >
+        $70.000
+      </span>
+
+      <span
+        style={{
+          fontSize: "42px",
+          lineHeight: 1,
+          fontWeight: 900,
+          letterSpacing: "-0.055em",
+        }}
+      >
+        GRATIS
+      </span>
+    </div>
+
+    <div
+      style={{
+        width: "75%",
+        height: "1px",
+        background: "rgba(5,0,2,.25)",
+        margin: "10px auto 8px",
+      }}
+    />
+
+    <div
+      style={{
+        fontSize: "12px",
+        fontWeight: 800,
+        letterSpacing: ".08em",
+      }}
+    >
+      PRIMEROS 20 CONTRATOS
+    </div>
+  </div>
+</div>
+
+      
 
       <div className="hero-actions">
         <a
