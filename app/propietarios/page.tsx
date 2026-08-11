@@ -323,6 +323,22 @@ export default function PropietariosPage() {
           </div>
 
           <form className="owner-form" onSubmit={handleSubmit}>
+            <div
+  style={{
+    marginBottom: "22px",
+    padding: "14px 18px",
+    background: "#050002",
+    color: "#f2a8a9",
+    borderRadius: "18px",
+    textAlign: "center",
+    fontSize: "20px",
+    fontWeight: 950,
+    letterSpacing: ".03em",
+    textTransform: "uppercase",
+  }}
+>
+  SOLO PARA PROPIETARIOS
+</div>
             <input name="website" type="text" tabIndex={-1} autoComplete="off" className="honeypot" />
 
             <label>
