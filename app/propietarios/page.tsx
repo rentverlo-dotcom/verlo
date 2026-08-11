@@ -441,12 +441,13 @@ export default function PropietariosPage() {
             <p>Alquiler directo, seguro y sin comisión.</p>
           </div>
 
-          <nav className="footer-links">
-            <a href="/terminos">Términos y condiciones</a>
-            <a href="/privacidad">Política de privacidad</a>
-            const CONTACT_HREF =
-  "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
-          </nav>
+         <nav className="footer-links">
+  <a href="/terminos">Términos y condiciones</a>
+  <a href="/privacidad">Política de privacidad</a>
+  <a href="mailto:hola@verlo.lat?subject=Consulta%20Verlo">
+    Contacto
+  </a>
+</nav>
         </div>
       </footer>
     </main>
