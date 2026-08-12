@@ -1401,11 +1401,15 @@ export async function POST(req: NextRequest) {
 })
 
     
-    const ghl = await sendToGhlWebhook({
-      ...leadPayload,
-      lead_id: leadRecord.id,
-      match_result: matchResult,
-    })
+ const ghl = await sendToGhlWebhook({
+  ...leadPayload,
+
+  lead_id: leadRecord.id,
+
+  match_result: matchResult,
+
+  ...matchSummary,
+})
 
     if (!ghl.ok) {
       console.error("ghl webhook error:", ghl.error)
