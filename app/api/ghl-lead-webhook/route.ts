@@ -531,6 +531,157 @@ function getNeighborhoodCompatibility({
   }
 }
 
+
+async function getLeadMatchSummary({
+  supabaseAdmin,
+  leadId,
+  role,
+}: {
+  supabaseAdmin: SupabaseAdminClient
+  leadId: string
+  role: string
+}) {
+  const matchColumn =
+    role === "owner"
+      ? "owner_lead_id"
+      : "tenant_lead_id"
+
+  const { data, error } = await supabaseAdmin
+    .from("lead_matches")
+    .select(`
+      id,
+      score,
+      reasons,
+      tenant_lead_id,
+      owner_lead_id
+    `)
+    .eq(matchColumn, leadId)
+    .order("score", { ascending: false })
+
+  if (error) {
+    console.error("lead match summary error:", error)
+
+    return {
+      verlo_match_count: 0,
+      verlo_match_100_count: 0,
+      verlo_match_80_count: 0,
+      verlo_best_match_score: null,
+      verlo_best_zone: null,
+      verlo_best_timing: null,
+      verlo_best_property_type: null,
+      verlo_best_rooms: null,
+      verlo_best_price: null,
+      verlo_best_matches_on: null,
+      verlo_match_summary: null,
+      verlo_match_role: role,
+      verlo_match_updated_at: new Date().toISOString(),
+    }
+  }
+
+  const matches = data || []
+
+  const match100Count = matches.filter(
+    (match: any) => Number(match.score) === 100
+  ).length
+
+  const match80Count = matches.filter(
+    (match: any) => Number(match.score) === 80
+  ).length
+
+  const bestMatch = matches[0] || null
+
+  const reasons =
+    bestMatch?.reasons &&
+    typeof bestMatch.reasons === "object"
+      ? bestMatch.reasons
+      : {}
+
+  const bestZone =
+    role === "owner"
+      ? reasons?.matched_tenant_neighborhood ||
+        reasons?.owner_neighborhood_slug ||
+        null
+      : reasons?.owner_neighborhood_slug ||
+        reasons?.matched_tenant_neighborhood ||
+        null
+
+  const bestTiming =
+    role === "owner"
+      ? reasons?.tenant_move_timing || null
+      : reasons?.owner_availability_status || null
+
+  const bestPropertyType =
+    role === "owner"
+      ? reasons?.tenant_type || null
+      : reasons?.owner_type || null
+
+  const bestRooms =
+    role === "owner"
+      ? reasons?.tenant_rooms || null
+      : reasons?.owner_rooms || null
+
+  const bestPrice =
+    role === "owner"
+      ? reasons?.tenant_budget_max || null
+      : reasons?.owner_price || null
+
+  const matchesOn: string[] = []
+
+  if (reasons?.neighborhood_ok) {
+    matchesOn.push("zona")
+  }
+
+  if (reasons?.type_ok) {
+    matchesOn.push("tipo de propiedad")
+  }
+
+  if (reasons?.rooms_ok) {
+    matchesOn.push("ambientes")
+  }
+
+  if (reasons?.price_ok) {
+    matchesOn.push("presupuesto")
+  }
+
+  if (reasons?.time_ok) {
+    matchesOn.push("momento de mudanza")
+  }
+
+  const summary =
+    matches.length > 0
+      ? `${matches.length} matches: ${match100Count} al 100% y ${match80Count} al 80%`
+      : "Todavía no encontramos matches activos"
+
+  return {
+    verlo_match_count: matches.length,
+    verlo_match_100_count: match100Count,
+    verlo_match_80_count: match80Count,
+
+    verlo_best_match_score:
+      bestMatch ? Number(bestMatch.score) : null,
+
+    verlo_best_zone: bestZone,
+    verlo_best_timing: bestTiming,
+    verlo_best_property_type: bestPropertyType,
+    verlo_best_rooms: bestRooms,
+    verlo_best_price: bestPrice,
+
+    verlo_best_matches_on:
+      matchesOn.length > 0
+        ? matchesOn.join(", ")
+        : null,
+
+    verlo_match_summary: summary,
+
+    verlo_match_role: role,
+
+    verlo_match_updated_at:
+      new Date().toISOString(),
+  }
+}
+
+
+
 async function createLeadMatches({
   supabaseAdmin,
   lead,
