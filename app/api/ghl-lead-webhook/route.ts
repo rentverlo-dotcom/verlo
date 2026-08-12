@@ -625,10 +625,15 @@ async function createLeadMatches({
 
         if (!timeOk) return null
 
-        const neighborhoodOk = isNeighborhoodCompatible({
-          tenantNeighborhoodSlugs: lead.neighborhood_slugs,
-          ownerNeighborhoodSlug,
-        })
+       const neighborhoodMatch = getNeighborhoodCompatibility({
+  tenantNeighborhoodSlugs,
+  ownerNeighborhoodSlug,
+  compatibilityMap: neighborhoodCompatibilityMap,
+})
+
+if (!neighborhoodMatch.ok) return null
+
+const neighborhoodOk = true
 
         const typeOk = isPropertyTypeCompatible(
           lead.desired_property_type,
