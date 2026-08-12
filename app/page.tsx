@@ -1353,6 +1353,7 @@ if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
       desired_property_type: String(formData.get("desired_property_type") || "").trim(),
       desired_rooms: String(formData.get("desired_rooms") || "").trim(),
       budget_range: String(formData.get("budget_range") || "").trim(),
+      budget_max: tenantBudgetMax,
       move_timing: String(formData.get("move_timing") || "").trim(),
       renewal_role: String(formData.get("renewal_role") || "").trim(),
       contract_expiration: String(formData.get("contract_expiration") || "").trim(),
