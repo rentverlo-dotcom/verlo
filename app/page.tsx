@@ -1930,12 +1930,22 @@ neighborhood_slug: normalizeText(zone),
                       <option>5 o más ambientes</option>
                     </select>
 
-                    <input
-                      className="input"
-                      name="approx_price"
-                      placeholder="Precio mensual esperado"
-                      required
-                    />
+                   <select
+  className="select"
+  name="approx_price"
+  required
+  defaultValue=""
+>
+  <option value="" disabled>
+    Precio mensual esperado
+  </option>
+
+  {OWNER_PRICE_RANGES.map((option) => (
+    <option key={option.value} value={option.value}>
+      {option.label}
+    </option>
+  ))}
+</select>
                   </div>
 
                <select className="select" name="availability_status" required defaultValue="">
