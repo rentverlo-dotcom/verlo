@@ -1080,6 +1080,8 @@ if (!neighborhoodResult.ok) {
         property_rooms,
         budget_max,
         approx_price_number,
+        move_timing,
+        availability_status,
       },
     })
 
