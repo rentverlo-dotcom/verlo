@@ -407,7 +407,15 @@ async function createLeadMatches({
   supabaseAdmin: SupabaseAdminClient
   lead: MatchableLead
 }) {
-  if (lead.intent !== "tenant_search" && lead.intent !== "owner_new_listing") {
+  const isTenant =
+    lead.role === "tenant" &&
+    lead.intent === "tenant_search"
+
+  const isOwner =
+    lead.role === "owner" &&
+    lead.intent === "owner_new_listing"
+
+  if (!isTenant && !isOwner) {
     return {
       ok: true,
       created: 0,
@@ -415,11 +423,33 @@ async function createLeadMatches({
     }
   }
 
-  if (lead.intent === "tenant_search") {
+  // ============================================================
+  // NUEVO TENANT -> BUSCAR OWNERS
+  // ============================================================
+
+  if (isTenant) {
+    if (!lead.move_timing) {
+      return {
+        ok: true,
+        created: 0,
+        skipped: true,
+      }
+    }
+
     const { data: ownerLeadsRaw, error } = await supabaseAdmin
       .from("lead_intake")
-      .select("id, neighborhood_slug, property_type, property_rooms, approx_price_number")
+      .select(`
+        id,
+        neighborhood_slug,
+        property_type,
+        property_rooms,
+        approx_price_number,
+        availability_status,
+        lead_quality
+      `)
+      .eq("role", "owner")
       .eq("intent", "owner_new_listing")
+      .eq("availability_status", lead.move_timing)
       .neq("id", lead.id)
       .order("created_at", { ascending: false })
       .limit(500)
@@ -435,7 +465,12 @@ async function createLeadMatches({
       }
     }
 
-    const ownerLeads = (ownerLeadsRaw || []) as unknown as OwnerLeadRow[]
+    const ownerLeads = ((ownerLeadsRaw || []) as unknown as OwnerLeadRow[])
+      .filter(
+        (ownerLead) =>
+          ownerLead.lead_quality !== "duplicate" &&
+          ownerLead.lead_quality !== "needs_reclassification"
+      )
 
     const ownerNeighborhoodMap = await getLeadNeighborhoodSlugs({
       supabaseAdmin,
@@ -446,7 +481,15 @@ async function createLeadMatches({
     const matches: MatchRow[] = ownerLeads
       .map((ownerLead) => {
         const ownerNeighborhoodSlug =
-          ownerNeighborhoodMap.get(ownerLead.id)?.[0] || ownerLead.neighborhood_slug
+          ownerNeighborhoodMap.get(ownerLead.id)?.[0] ||
+          ownerLead.neighborhood_slug
+
+        const timeOk =
+          !!lead.move_timing &&
+          !!ownerLead.availability_status &&
+          lead.move_timing === ownerLead.availability_status
+
+        if (!timeOk) return null
 
         const neighborhoodOk = isNeighborhoodCompatible({
           tenantNeighborhoodSlugs: lead.neighborhood_slugs,
@@ -458,7 +501,10 @@ async function createLeadMatches({
           ownerLead.property_type
         )
 
-        const roomsOk = isRoomsCompatible(lead.desired_rooms, ownerLead.property_rooms)
+        const roomsOk = isRoomsCompatible(
+          lead.desired_rooms,
+          ownerLead.property_rooms
+        )
 
         const priceOk = isPriceCompatible(
           lead.budget_max,
@@ -478,21 +524,30 @@ async function createLeadMatches({
           status: "new",
           score,
           reasons: {
+            time_ok: true,
             neighborhood_ok: neighborhoodOk,
             type_ok: typeOk,
             rooms_ok: roomsOk,
             price_ok: priceOk,
+
+            tenant_move_timing: lead.move_timing,
+            owner_availability_status: ownerLead.availability_status,
+
             tenant_neighborhood_slugs: lead.neighborhood_slugs,
             owner_neighborhood_slug: ownerNeighborhoodSlug,
+
             tenant_type: lead.desired_property_type,
             owner_type: ownerLead.property_type,
+
             tenant_rooms: lead.desired_rooms,
             owner_rooms: ownerLead.property_rooms,
+
             tenant_budget_max: lead.budget_max,
             owner_price: ownerLead.approx_price_number,
           },
-        }
+        } satisfies MatchRow
       })
+      .filter((match): match is MatchRow => match !== null)
       .filter((match) => match.score >= 60)
 
     const result = await upsertLeadMatches({
@@ -508,11 +563,33 @@ async function createLeadMatches({
     }
   }
 
-  if (lead.intent === "owner_new_listing") {
+  // ============================================================
+  // NUEVO OWNER -> BUSCAR TENANTS
+  // ============================================================
+
+  if (isOwner) {
+    if (!lead.availability_status) {
+      return {
+        ok: true,
+        created: 0,
+        skipped: true,
+      }
+    }
+
     const { data: tenantLeadsRaw, error } = await supabaseAdmin
       .from("lead_intake")
-      .select("id, neighborhood_slugs, desired_property_type, desired_rooms, budget_max")
+      .select(`
+        id,
+        neighborhood_slugs,
+        desired_property_type,
+        desired_rooms,
+        budget_max,
+        move_timing,
+        lead_quality
+      `)
+      .eq("role", "tenant")
       .eq("intent", "tenant_search")
+      .eq("move_timing", lead.availability_status)
       .neq("id", lead.id)
       .order("created_at", { ascending: false })
       .limit(500)
@@ -528,7 +605,12 @@ async function createLeadMatches({
       }
     }
 
-    const tenantLeads = (tenantLeadsRaw || []) as unknown as TenantLeadRow[]
+    const tenantLeads = ((tenantLeadsRaw || []) as unknown as TenantLeadRow[])
+      .filter(
+        (tenantLead) =>
+          tenantLead.lead_quality !== "duplicate" &&
+          tenantLead.lead_quality !== "needs_reclassification"
+      )
 
     const tenantNeighborhoodMap = await getLeadNeighborhoodSlugs({
       supabaseAdmin,
@@ -544,6 +626,13 @@ async function createLeadMatches({
           tenantNeighborhoodMap.get(tenantLead.id) ||
           toStringArray(tenantLead.neighborhood_slugs)
 
+        const timeOk =
+          !!tenantLead.move_timing &&
+          !!lead.availability_status &&
+          tenantLead.move_timing === lead.availability_status
+
+        if (!timeOk) return null
+
         const neighborhoodOk = isNeighborhoodCompatible({
           tenantNeighborhoodSlugs,
           ownerNeighborhoodSlug,
@@ -554,7 +643,10 @@ async function createLeadMatches({
           lead.property_type
         )
 
-        const roomsOk = isRoomsCompatible(tenantLead.desired_rooms, lead.property_rooms)
+        const roomsOk = isRoomsCompatible(
+          tenantLead.desired_rooms,
+          lead.property_rooms
+        )
 
         const priceOk = isPriceCompatible(
           tenantLead.budget_max,
@@ -574,21 +666,30 @@ async function createLeadMatches({
           status: "new",
           score,
           reasons: {
+            time_ok: true,
             neighborhood_ok: neighborhoodOk,
             type_ok: typeOk,
             rooms_ok: roomsOk,
             price_ok: priceOk,
+
+            tenant_move_timing: tenantLead.move_timing,
+            owner_availability_status: lead.availability_status,
+
             tenant_neighborhood_slugs: tenantNeighborhoodSlugs,
             owner_neighborhood_slug: ownerNeighborhoodSlug,
+
             tenant_type: tenantLead.desired_property_type,
             owner_type: lead.property_type,
+
             tenant_rooms: tenantLead.desired_rooms,
             owner_rooms: lead.property_rooms,
+
             tenant_budget_max: tenantLead.budget_max,
             owner_price: lead.approx_price_number,
           },
-        }
+        } satisfies MatchRow
       })
+      .filter((match): match is MatchRow => match !== null)
       .filter((match) => match.score >= 60)
 
     const result = await upsertLeadMatches({
