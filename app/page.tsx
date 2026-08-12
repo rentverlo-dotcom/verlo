@@ -1323,7 +1323,15 @@ const selectedBudgetOption = TENANT_BUDGET_RANGES.find(
 
 const tenantBudgetMax = selectedBudgetOption?.max ?? null
     
+const selectedOwnerPriceRange = String(
+  formData.get("approx_price") || ""
+).trim()
 
+const selectedOwnerPriceOption = OWNER_PRICE_RANGES.find(
+  (option) => option.value === selectedOwnerPriceRange
+)
+
+const ownerPriceNumber = selectedOwnerPriceOption?.max ?? null
    const tenantNeighborhoods = formData.getAll("tenant_neighborhoods").map(String)
 const tenantOtherNeighborhood = String(formData.get("tenant_other_neighborhood") || "").trim()
 
