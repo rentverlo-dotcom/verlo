@@ -49,6 +49,8 @@ type MatchableLead = {
   property_rooms: string | null
   budget_max: number | null
   approx_price_number: number | null
+  move_timing: string | null
+  availability_status: string | null
 }
 
 function clean(value: unknown) {
