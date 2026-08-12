@@ -761,17 +761,22 @@ async function createLeadMatches({
           tenantNeighborhoodMap.get(tenantLead.id) ||
           toStringArray(tenantLead.neighborhood_slugs)
 
-        const timeOk =
-          !!tenantLead.move_timing &&
-          !!lead.availability_status &&
-          tenantLead.move_timing === lead.availability_status
+       const timeOk = isTimingCompatible(
+  lead.move_timing,
+  ownerLead.availability_status
+)
 
-        if (!timeOk) return null
+if (!timeOk) return null
 
-        const neighborhoodOk = isNeighborhoodCompatible({
-          tenantNeighborhoodSlugs,
-          ownerNeighborhoodSlug,
-        })
+       const neighborhoodMatch = getNeighborhoodCompatibility({
+  tenantNeighborhoodSlugs: lead.neighborhood_slugs,
+  ownerNeighborhoodSlug,
+  compatibilityMap: neighborhoodCompatibilityMap,
+})
+
+if (!neighborhoodMatch.ok) return null
+
+const neighborhoodOk = true
 
         const typeOk = isPropertyTypeCompatible(
           tenantLead.desired_property_type,
