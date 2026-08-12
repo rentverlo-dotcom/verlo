@@ -101,6 +101,50 @@ function normalizeText(value: string) {
     .replace(/^-+|-+$/g, "")
 }
 
+type TimingBucket = "0_3_months" | "6_plus_months"
+
+function normalizeTimingBucket(value: string | null): TimingBucket | null {
+  if (!value) return null
+
+  const normalized = normalizeText(value)
+
+  const shortWindow = new Set([
+    normalizeText("Ahora"),
+    normalizeText("En 1 a 3 meses"),
+    normalizeText("Estoy buscando ahora"),
+    normalizeText("Me quiero mudar en 1-3 meses"),
+    normalizeText("Disponible ahora"),
+    normalizeText("Disponible pronto"),
+  ])
+
+  const longWindow = new Set([
+    normalizeText("En 6 meses o más"),
+    normalizeText("Me quiero mudar más adelante"),
+  ])
+
+  if (shortWindow.has(normalized)) {
+    return "0_3_months"
+  }
+
+  if (longWindow.has(normalized)) {
+    return "6_plus_months"
+  }
+
+  return null
+}
+
+function isTimingCompatible(
+  tenantTiming: string | null,
+  ownerTiming: string | null
+) {
+  const tenantBucket = normalizeTimingBucket(tenantTiming)
+  const ownerBucket = normalizeTimingBucket(ownerTiming)
+
+  if (!tenantBucket || !ownerBucket) return false
+
+  return tenantBucket === ownerBucket
+}
+
 function parseMoney(value: string) {
   const cleanValue = value
     .toLowerCase()
