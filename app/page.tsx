@@ -124,6 +124,45 @@ const AREA_GROUPS = {
   },
 } as const
 
+const TENANT_BUDGET_RANGES = [
+  {
+    label: "Hasta $500.000",
+    value: "hasta-500000",
+    max: 500000,
+  },
+  {
+    label: "$500.001 a $700.000",
+    value: "500001-700000",
+    max: 700000,
+  },
+  {
+    label: "$700.001 a $900.000",
+    value: "700001-900000",
+    max: 900000,
+  },
+  {
+    label: "$900.001 a $1.200.000",
+    value: "900001-1200000",
+    max: 1200000,
+  },
+  {
+    label: "$1.200.001 a $1.500.000",
+    value: "1200001-1500000",
+    max: 1500000,
+  },
+  {
+    label: "$1.500.001 a $2.000.000",
+    value: "1500001-2000000",
+    max: 2000000,
+  },
+  {
+    label: "Más de $2.000.000",
+    value: "2000000-plus",
+    max: 999999999,
+  },
+] as const
+
+
 const ALL_NEIGHBORHOODS = Object.values(AREA_GROUPS).flatMap(
   (group) => group.neighborhoods
 )
