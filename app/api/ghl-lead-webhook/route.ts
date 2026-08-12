@@ -11,6 +11,8 @@ type OwnerLeadRow = {
   property_type: string | null
   property_rooms: string | null
   approx_price_number: number | null
+  availability_status: string | null
+  lead_quality: string | null
 }
 
 type TenantLeadRow = {
@@ -19,6 +21,8 @@ type TenantLeadRow = {
   desired_property_type: string | null
   desired_rooms: string | null
   budget_max: number | null
+  move_timing: string | null
+  lead_quality: string | null
 }
 
 type MatchRow = {
