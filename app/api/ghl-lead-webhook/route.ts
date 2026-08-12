@@ -1393,6 +1393,14 @@ export async function POST(req: NextRequest) {
       console.error("lead matching error:", matchResult)
     }
 
+
+    const matchSummary = await getLeadMatchSummary({
+  supabaseAdmin,
+  leadId: leadRecord.id,
+  role,
+})
+
+    
     const ghl = await sendToGhlWebhook({
       ...leadPayload,
       lead_id: leadRecord.id,
