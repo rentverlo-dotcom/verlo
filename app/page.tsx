@@ -1370,6 +1370,7 @@ if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
       property_rooms: String(formData.get("property_rooms") || "").trim(),
       availability_status: String(formData.get("availability_status") || "").trim(),
       approx_price: String(formData.get("approx_price") || "").trim(),
+      approx_price_number: ownerPriceNumber,
       desired_property_type: String(formData.get("desired_property_type") || "").trim(),
       desired_rooms: String(formData.get("desired_rooms") || "").trim(),
       budget_range: String(formData.get("budget_range") || "").trim(),
