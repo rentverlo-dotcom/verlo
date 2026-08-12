@@ -446,6 +446,91 @@ async function getLeadNeighborhoodSlugs({
 }
 
 
+async function getNeighborhoodCompatibilityMap({
+  supabaseAdmin,
+}: {
+  supabaseAdmin: SupabaseAdminClient
+}) {
+  const { data, error } = await supabaseAdmin
+    .from("neighborhood_compatibility")
+    .select(`
+      neighborhood_slug,
+      compatible_neighborhood_slug,
+      compatibility_level
+    `)
+    .eq("active", true)
+
+  if (error) {
+    console.error("neighborhood compatibility fetch error:", error)
+    return new Map<string, Map<string, string>>()
+  }
+
+  const map = new Map<string, Map<string, string>>()
+
+  for (const row of data || []) {
+    const origin = String(row.neighborhood_slug)
+    const compatible = String(row.compatible_neighborhood_slug)
+    const level = String(row.compatibility_level || "nearby")
+
+    if (!map.has(origin)) {
+      map.set(origin, new Map())
+    }
+
+    map.get(origin)?.set(compatible, level)
+  }
+
+  return map
+}
+
+function getNeighborhoodCompatibility({
+  tenantNeighborhoodSlugs,
+  ownerNeighborhoodSlug,
+  compatibilityMap,
+}: {
+  tenantNeighborhoodSlugs: string[]
+  ownerNeighborhoodSlug: string | null
+  compatibilityMap: Map<string, Map<string, string>>
+}) {
+  if (!ownerNeighborhoodSlug) {
+    return {
+      ok: false,
+      type: null,
+      matchedTenantNeighborhood: null,
+    }
+  }
+
+  for (const tenantNeighborhood of tenantNeighborhoodSlugs) {
+    if (tenantNeighborhood === ownerNeighborhoodSlug) {
+      return {
+        ok: true,
+        type: "exact",
+        matchedTenantNeighborhood: tenantNeighborhood,
+      }
+    }
+  }
+
+  for (const tenantNeighborhood of tenantNeighborhoodSlugs) {
+    const relationship =
+      compatibilityMap
+        .get(tenantNeighborhood)
+        ?.get(ownerNeighborhoodSlug)
+
+    if (relationship) {
+      return {
+        ok: true,
+        type: relationship,
+        matchedTenantNeighborhood: tenantNeighborhood,
+      }
+    }
+  }
+
+  return {
+    ok: false,
+    type: null,
+    matchedTenantNeighborhood: null,
+  }
+}
+
 async function createLeadMatches({
   supabaseAdmin,
   lead,
