@@ -1313,9 +1313,11 @@ if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
       event_source_url: window.location.href,
       fbp: getCookie("_fbp"),
       fbc: getMetaFbc(),
-      metadata: {
-        path,
-        page: "pagedeprueba",
+     source: "verlo_home",
+
+metadata: {
+  path,
+  page: "verlo_home",
        tenant_area: selectedArea,
 tenant_area_label: AREA_GROUPS[selectedArea].label,
 tenant_neighborhoods: normalizedTenantNeighborhoods.labels,
