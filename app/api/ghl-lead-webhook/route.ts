@@ -552,11 +552,12 @@ async function createLeadMatches({
       created: 0,
       skipped: true,
     }
-    const neighborhoodCompatibilityMap =
-  await getNeighborhoodCompatibilityMap({
-    supabaseAdmin,
-  })
   }
+
+  const neighborhoodCompatibilityMap =
+    await getNeighborhoodCompatibilityMap({
+      supabaseAdmin,
+    })
 
   // ============================================================
   // NUEVO TENANT -> BUSCAR OWNERS
@@ -618,22 +619,22 @@ async function createLeadMatches({
           ownerNeighborhoodMap.get(ownerLead.id)?.[0] ||
           ownerLead.neighborhood_slug
 
-        const timeOk =
-          !!lead.move_timing &&
-          !!ownerLead.availability_status &&
-          lead.move_timing === ownerLead.availability_status
+        const timeOk = isTimingCompatible(
+          lead.move_timing,
+          ownerLead.availability_status
+        )
 
         if (!timeOk) return null
 
-       const neighborhoodMatch = getNeighborhoodCompatibility({
-  tenantNeighborhoodSlugs,
-  ownerNeighborhoodSlug,
-  compatibilityMap: neighborhoodCompatibilityMap,
-})
+        const neighborhoodMatch = getNeighborhoodCompatibility({
+          tenantNeighborhoodSlugs: lead.neighborhood_slugs,
+          ownerNeighborhoodSlug,
+          compatibilityMap: neighborhoodCompatibilityMap,
+        })
 
-if (!neighborhoodMatch.ok) return null
+        if (!neighborhoodMatch.ok) return null
 
-const neighborhoodOk = true
+        const neighborhoodOk = true
 
         const typeOk = isPropertyTypeCompatible(
           lead.desired_property_type,
@@ -691,8 +692,8 @@ matched_tenant_neighborhood:
         } satisfies MatchRow
       })
       .filter((match) => match !== null)
-.map((match) => match as MatchRow)
-.filter((match) => match.score >= 60)
+      .map((match) => match as MatchRow)
+      .filter((match) => match.score >= 60)
 
     const result = await upsertLeadMatches({
       supabaseAdmin,
@@ -769,22 +770,22 @@ matched_tenant_neighborhood:
           tenantNeighborhoodMap.get(tenantLead.id) ||
           toStringArray(tenantLead.neighborhood_slugs)
 
-   const timeOk = isTimingCompatible(
-  tenantLead.move_timing,
-  lead.availability_status
-)
+        const timeOk = isTimingCompatible(
+          tenantLead.move_timing,
+          lead.availability_status
+        )
 
-if (!timeOk) return null
+        if (!timeOk) return null
 
-       const neighborhoodMatch = getNeighborhoodCompatibility({
-  tenantNeighborhoodSlugs: lead.neighborhood_slugs,
-  ownerNeighborhoodSlug,
-  compatibilityMap: neighborhoodCompatibilityMap,
-})
+        const neighborhoodMatch = getNeighborhoodCompatibility({
+          tenantNeighborhoodSlugs,
+          ownerNeighborhoodSlug,
+          compatibilityMap: neighborhoodCompatibilityMap,
+        })
 
-if (!neighborhoodMatch.ok) return null
+        if (!neighborhoodMatch.ok) return null
 
-const neighborhoodOk = true
+        const neighborhoodOk = true
 
         const typeOk = isPropertyTypeCompatible(
           tenantLead.desired_property_type,
@@ -819,10 +820,9 @@ const neighborhoodOk = true
             type_ok: typeOk,
             rooms_ok: roomsOk,
             price_ok: priceOk,
-
             neighborhood_match_type: neighborhoodMatch.type,
-matched_tenant_neighborhood:
-  neighborhoodMatch.matchedTenantNeighborhood,
+            matched_tenant_neighborhood:
+              neighborhoodMatch.matchedTenantNeighborhood,
 
             tenant_move_timing: tenantLead.move_timing,
             owner_availability_status: lead.availability_status,
@@ -842,8 +842,8 @@ matched_tenant_neighborhood:
         } satisfies MatchRow
       })
       .filter((match) => match !== null)
-.map((match) => match as MatchRow)
-.filter((match) => match.score >= 60)
+      .map((match) => match as MatchRow)
+      .filter((match) => match.score >= 60)
 
     const result = await upsertLeadMatches({
       supabaseAdmin,
@@ -1205,19 +1205,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
-const neighborhoodResult = await insertLeadNeighborhoods({
-  supabaseAdmin,
-  leadId: leadRecord.id,
-  intent,
-  neighborhoodLabels: neighborhood_labels,
-  neighborhoodSlugs: neighborhood_slugs,
-  neighborhoodSlug: neighborhood_slug,
-  zone,
-})
+    const neighborhoodResult = await insertLeadNeighborhoods({
+      supabaseAdmin,
+      leadId: leadRecord.id,
+      intent,
+      neighborhoodLabels: neighborhood_labels,
+      neighborhoodSlugs: neighborhood_slugs,
+      neighborhoodSlug: neighborhood_slug,
+      zone,
+    })
 
-if (!neighborhoodResult.ok) {
-  console.error("lead neighborhoods error:", neighborhoodResult)
-}
+    if (!neighborhoodResult.ok) {
+      console.error("lead neighborhoods error:", neighborhoodResult)
+    }
     
     const matchResult = await createLeadMatches({
       supabaseAdmin,
