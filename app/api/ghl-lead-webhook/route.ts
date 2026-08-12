@@ -664,6 +664,10 @@ async function createLeadMatches({
             rooms_ok: roomsOk,
             price_ok: priceOk,
 
+neighborhood_match_type: neighborhoodMatch.type,
+matched_tenant_neighborhood:
+  neighborhoodMatch.matchedTenantNeighborhood,
+            
             tenant_move_timing: lead.move_timing,
             owner_availability_status: ownerLead.availability_status,
 
@@ -811,6 +815,10 @@ const neighborhoodOk = true
             type_ok: typeOk,
             rooms_ok: roomsOk,
             price_ok: priceOk,
+
+            neighborhood_match_type: neighborhoodMatch.type,
+matched_tenant_neighborhood:
+  neighborhoodMatch.matchedTenantNeighborhood,
 
             tenant_move_timing: tenantLead.move_timing,
             owner_availability_status: lead.availability_status,
