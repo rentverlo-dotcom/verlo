@@ -549,8 +549,9 @@ async function createLeadMatches({
           },
         } satisfies MatchRow
       })
-      .filter((match): match is MatchRow => match !== null)
-      .filter((match) => match.score >= 60)
+      .filter((match) => match !== null)
+.map((match) => match as MatchRow)
+.filter((match) => match.score >= 60)
 
     const result = await upsertLeadMatches({
       supabaseAdmin,
@@ -691,8 +692,9 @@ async function createLeadMatches({
           },
         } satisfies MatchRow
       })
-      .filter((match): match is MatchRow => match !== null)
-      .filter((match) => match.score >= 60)
+      .filter((match) => match !== null)
+.map((match) => match as MatchRow)
+.filter((match) => match.score >= 60)
 
     const result = await upsertLeadMatches({
       supabaseAdmin,
