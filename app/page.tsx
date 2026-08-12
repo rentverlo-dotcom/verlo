@@ -1842,12 +1842,22 @@ neighborhood_slug: normalizeText(zone),
                   </div>
 
                   <div className="row">
-                    <input
-                      className="input"
-                      name="budget_range"
-                      placeholder="Presupuesto mensual máximo"
-                      required
-                    />
+                  <select
+  className="select"
+  name="budget_range"
+  required
+  defaultValue=""
+>
+  <option value="" disabled>
+    Presupuesto mensual máximo
+  </option>
+
+  {TENANT_BUDGET_RANGES.map((option) => (
+    <option key={option.value} value={option.value}>
+      {option.label}
+    </option>
+  ))}
+</select>
 
                  <select className="select" name="move_timing" required defaultValue="">
   <option value="" disabled>
