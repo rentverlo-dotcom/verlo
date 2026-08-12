@@ -692,7 +692,7 @@ matched_tenant_neighborhood:
         } satisfies MatchRow
       })
       .filter((match) => match !== null)
-      .map((match) => match as MatchRow)
+      .filter((match) => match.score >= 80)
       .filter((match) => match.score >= 60)
 
     const result = await upsertLeadMatches({
@@ -843,7 +843,7 @@ matched_tenant_neighborhood:
       })
       .filter((match) => match !== null)
       .map((match) => match as MatchRow)
-      .filter((match) => match.score >= 60)
+     .filter((match) => match.score >= 80)
 
     const result = await upsertLeadMatches({
       supabaseAdmin,
