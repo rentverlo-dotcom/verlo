@@ -552,6 +552,10 @@ async function createLeadMatches({
       created: 0,
       skipped: true,
     }
+    const neighborhoodCompatibilityMap =
+  await getNeighborhoodCompatibilityMap({
+    supabaseAdmin,
+  })
   }
 
   // ============================================================
