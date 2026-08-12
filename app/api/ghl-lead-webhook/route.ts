@@ -584,7 +584,6 @@ async function createLeadMatches({
       `)
       .eq("role", "owner")
       .eq("intent", "owner_new_listing")
-      .eq("availability_status", lead.move_timing)
       .neq("id", lead.id)
       .order("created_at", { ascending: false })
       .limit(500)
