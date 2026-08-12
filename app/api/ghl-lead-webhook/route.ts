@@ -728,7 +728,6 @@ matched_tenant_neighborhood:
       `)
       .eq("role", "tenant")
       .eq("intent", "tenant_search")
-      .eq("move_timing", lead.availability_status)
       .neq("id", lead.id)
       .order("created_at", { ascending: false })
       .limit(500)
@@ -765,9 +764,9 @@ matched_tenant_neighborhood:
           tenantNeighborhoodMap.get(tenantLead.id) ||
           toStringArray(tenantLead.neighborhood_slugs)
 
-       const timeOk = isTimingCompatible(
-  lead.move_timing,
-  ownerLead.availability_status
+   const timeOk = isTimingCompatible(
+  tenantLead.move_timing,
+  lead.availability_status
 )
 
 if (!timeOk) return null
