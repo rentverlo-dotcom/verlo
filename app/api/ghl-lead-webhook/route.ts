@@ -844,7 +844,7 @@ matched_tenant_neighborhood:
       })
       .filter((match) => match !== null)
       .filter((match) => match.score >= 80)
-      .filter((match) => match.score >= 60)
+      
 
     const result = await upsertLeadMatches({
       supabaseAdmin,
