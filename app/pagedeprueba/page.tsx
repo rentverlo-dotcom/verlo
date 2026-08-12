@@ -638,10 +638,12 @@ export default function TestCaptacionPage() {
 event_source_url: window.location.href,
 fbp: getCookie("_fbp"),
 fbc: getMetaFbc(),
+source: "pagedeprueba",
+
 metadata: {
-        path,
-        page: "test_captacion",
-      },
+  path,
+  page: "pagedeprueba",
+},
     }
 
     try {
