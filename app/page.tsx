@@ -1301,6 +1301,16 @@ export default function PageDePrueba() {
     const form = e.currentTarget
     const formData = new FormData(form)
     const eventId = `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
+const selectedBudgetRange = String(
+  formData.get("budget_range") || ""
+).trim()
+
+const selectedBudgetOption = TENANT_BUDGET_RANGES.find(
+  (option) => option.value === selectedBudgetRange
+)
+
+const tenantBudgetMax = selectedBudgetOption?.max ?? null
+    
 
    const tenantNeighborhoods = formData.getAll("tenant_neighborhoods").map(String)
 const tenantOtherNeighborhood = String(formData.get("tenant_other_neighborhood") || "").trim()
