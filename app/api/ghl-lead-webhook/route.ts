@@ -1415,6 +1415,58 @@ export async function POST(req: NextRequest) {
       },
     })
 
+  let pilotMatch: Record<string, unknown> = {
+  ok: true,
+  triggered: false,
+  reason: "no_matches",
+}
+
+if (Number(matchSummary.verlo_match_count || 0) > 0) {
+  try {
+    const pilotResponse = await fetch(
+      `${req.nextUrl.origin}/api/pilot-matches`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          send: true,
+          lead_ids: [leadRecord.id],
+          limit: 25,
+        }),
+      }
+    )
+
+    const pilotData = await pilotResponse
+      .json()
+      .catch(() => null)
+
+    pilotMatch = {
+      ok: pilotResponse.ok && pilotData?.ok !== false,
+      triggered: true,
+      status: pilotResponse.status,
+      response: pilotData,
+    }
+
+    if (!pilotResponse.ok || pilotData?.ok === false) {
+      console.error("pilot match webhook error:", pilotData)
+    }
+  } catch (err) {
+    pilotMatch = {
+      ok: false,
+      triggered: true,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Error disparando pilot matches",
+    }
+
+    console.error("pilot match trigger error:", err)
+  }
+}
+
+    
     if (!matchResult.ok) {
       console.error("lead matching error:", matchResult)
     }
@@ -1482,6 +1534,7 @@ export async function POST(req: NextRequest) {
       meta,
       tags,
       match_result: matchResult,
+      pilot_match: pilotMatch,
       event_id: eventId,
       lead_id: leadRecord?.id || null,
     })
