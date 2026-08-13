@@ -1415,7 +1415,17 @@ export async function POST(req: NextRequest) {
       },
     })
 
-  let pilotMatch: Record<string, unknown> = {
+if (!matchResult.ok) {
+  console.error("lead matching error:", matchResult)
+}
+
+const matchSummary = await getLeadMatchSummary({
+  supabaseAdmin,
+  leadId: leadRecord.id,
+  role,
+})
+
+let pilotMatch: Record<string, unknown> = {
   ok: true,
   triggered: false,
   reason: "no_matches",
@@ -1465,19 +1475,6 @@ if (Number(matchSummary.verlo_match_count || 0) > 0) {
     console.error("pilot match trigger error:", err)
   }
 }
-
-    
-    if (!matchResult.ok) {
-      console.error("lead matching error:", matchResult)
-    }
-
-
-    const matchSummary = await getLeadMatchSummary({
-  supabaseAdmin,
-  leadId: leadRecord.id,
-  role,
-})
-
     
  const ghl = await sendToGhlWebhook({
   ...leadPayload,
