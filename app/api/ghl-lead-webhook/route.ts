@@ -192,38 +192,64 @@ function getLeadTags(data: {
 }) {
   const tags = new Set<string>()
 
+  // Base
   tags.add("verlo_lead")
 
-  if (data.source === "pagedeprueba") tags.add("verlo_pagedeprueba")
-  if (data.source === "verlo_home") tags.add("verlo_home")
-  if (data.source === "test_captacion") tags.add("verlo_test_captacion")
+  // Fuente
+  if (data.source === "verlo_home") {
+    tags.add("verlo_home")
 
-  if (data.role === "owner") tags.add("verlo_owner")
-  if (data.role === "tenant") tags.add("verlo_tenant")
+    // Lo mantenemos por compatibilidad con GHL histórico
+    tags.add("verlo_test_captacion")
+  }
+
+  if (data.source === "verlo_propietarios") {
+    tags.add("verlo_propietarios")
+  }
+
+  if (data.source === "pagedeprueba") {
+    tags.add("verlo_pagedeprueba")
+  }
+
+  // Rol
+  if (data.role === "owner") {
+    tags.add("verlo_owner")
+  }
+
+  if (data.role === "tenant") {
+    tags.add("verlo_tenant")
+  }
 
   if (data.role === "both") {
     tags.add("verlo_owner")
     tags.add("verlo_tenant")
   }
 
-  if (data.intent === "owner_new_listing") tags.add("verlo_owner_new_listing")
-  if (data.intent === "tenant_search") tags.add("verlo_tenant_search")
-  if (data.intent === "contract_renewal") tags.add("verlo_contract_renewal")
+  // Intención
+  if (data.intent === "owner_new_listing") {
+    tags.add("verlo_owner_new_listing")
+  }
 
-  if (data.availability_status === "Disponible ahora") tags.add("owner_available_now")
-  if (data.availability_status === "Disponible pronto") tags.add("owner_available_soon")
-  if (data.availability_status === "Estoy evaluando alquilar") tags.add("owner_evaluating")
+  if (data.intent === "tenant_search") {
+    tags.add("verlo_tenant_search")
+  }
 
-  if (data.move_timing === "Estoy buscando ahora") tags.add("tenant_searching_now")
-  if (data.move_timing === "Me quiero mudar en 1-3 meses") tags.add("tenant_move_1_3_months")
-  if (data.move_timing === "Me quiero mudar más adelante") tags.add("tenant_move_later")
-  if (data.move_timing === "Solo quiero enterarme de novedades") tags.add("tenant_news_only")
+  if (data.intent === "contract_renewal") {
+    tags.add("verlo_contract_renewal")
+  }
 
-  if (data.intent === "contract_renewal" && data.renewal_role === "owner") {
+  // Renovación
+  if (
+    data.intent === "contract_renewal" &&
+    data.renewal_role === "owner"
+  ) {
     tags.add("renewal_owner")
   }
 
-  if (data.intent === "contract_renewal" && data.renewal_role === "tenant") {
+  if (
+    data.intent === "contract_renewal" &&
+    data.renewal_role === "tenant"
+  ) {
     tags.add("renewal_tenant")
   }
 
