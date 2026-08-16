@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+  import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { sendMetaCapiLead } from "@/lib/meta/capi"
 
@@ -1345,6 +1345,13 @@ const accepted_guarantee_types =
       property_rooms,
       budget_max,
       approx_price_number,
+      income_proof_type,
+      income_range,
+      income_max,
+      guarantee_types,
+      accepted_income_proof_types,
+      min_income_ratio,
+      accepted_guarantee_types,
     }
 
     const leadPayload = {
@@ -1376,6 +1383,13 @@ const accepted_guarantee_types =
       renewal_need,
       source,
       tags,
+      income_proof_type,
+      income_range,
+      income_max,
+      guarantee_types,
+accepted_income_proof_types,
+min_income_ratio,
+accepted_guarantee_types,
       metadata: normalizedMetadata,
     }
 
