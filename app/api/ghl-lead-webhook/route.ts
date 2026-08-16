@@ -1481,6 +1481,13 @@ accepted_guarantee_types,
         approx_price_number,
         move_timing,
         availability_status,
+        income_proof_type,
+income_range,
+income_max,
+guarantee_types,
+accepted_income_proof_types,
+min_income_ratio,
+accepted_guarantee_types,
       },
     })
 
