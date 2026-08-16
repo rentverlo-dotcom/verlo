@@ -1129,6 +1129,29 @@ export async function POST(req: NextRequest) {
 
     const move_timing = clean(body.move_timing) || null
 
+    const income_proof_type =
+  clean(body.income_proof_type) || null
+
+const income_range =
+  clean(body.income_range) || null
+
+const income_max = body.income_max
+  ? Number(body.income_max)
+  : null
+
+const guarantee_types =
+  toStringArray(body.guarantee_types)
+
+const accepted_income_proof_types =
+  toStringArray(body.accepted_income_proof_types)
+
+const min_income_ratio = body.min_income_ratio
+  ? Number(body.min_income_ratio)
+  : null
+
+const accepted_guarantee_types =
+  toStringArray(body.accepted_guarantee_types)
+    
     const renewal_role = clean(body.renewal_role) || null
     const contract_expiration = clean(body.contract_expiration) || null
     const other_party_status = clean(body.other_party_status) || null
