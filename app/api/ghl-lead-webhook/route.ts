@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { sendMetaCapiLead } from "@/lib/meta/capi"
 
@@ -306,18 +306,80 @@ function isNeighborhoodCompatible(data: {
   return data.tenantNeighborhoodSlugs.includes(data.ownerNeighborhoodSlug)
 }
 
+function isIncomeProofCompatible(
+  tenantProof: string | null,
+  acceptedProofs: string[] | null
+): boolean | null {
+  if (!tenantProof || !acceptedProofs || acceptedProofs.length === 0) {
+    return null
+  }
+
+  if (tenantProof === "none") return false
+
+  if (acceptedProofs.includes("any")) return true
+
+  return acceptedProofs.includes(tenantProof)
+}
+
+function isIncomeAmountCompatible(
+  tenantIncomeMax: number | null,
+  ownerPrice: number | null,
+  minIncomeRatio: number | null
+): boolean | null {
+  if (!tenantIncomeMax || !ownerPrice || !minIncomeRatio) {
+    return null
+  }
+
+  return tenantIncomeMax >= ownerPrice * minIncomeRatio
+}
+
+function isGuaranteeCompatible(
+  tenantGuarantees: string[] | null,
+  acceptedGuarantees: string[] | null
+): boolean | null {
+  if (
+    !tenantGuarantees ||
+    tenantGuarantees.length === 0 ||
+    !acceptedGuarantees ||
+    acceptedGuarantees.length === 0
+  ) {
+    return null
+  }
+
+  const realTenantGuarantees =
+    tenantGuarantees.filter((value) => value !== "none")
+
+  if (realTenantGuarantees.length === 0) {
+    return false
+  }
+
+  if (acceptedGuarantees.includes("any")) {
+    return true
+  }
+
+  return realTenantGuarantees.some((guarantee) =>
+    acceptedGuarantees.includes(guarantee)
+  )
+}
+
 function calculateMatchScore(data: {
   neighborhoodOk: boolean
   typeOk: boolean
   roomsOk: boolean
   priceOk: boolean
+  incomeProofOk: boolean | null
+  incomeAmountOk: boolean | null
+  guaranteeOk: boolean | null
 }) {
   let score = 0
 
   if (data.neighborhoodOk) score += 40
-  if (data.typeOk) score += 20
-  if (data.roomsOk) score += 20
-  if (data.priceOk) score += 20
+  if (data.typeOk) score += 15
+  if (data.roomsOk) score += 15
+  if (data.priceOk) score += 10
+  if (data.incomeProofOk === true) score += 5
+  if (data.incomeAmountOk === true) score += 10
+  if (data.guaranteeOk === true) score += 5
 
   return score
 }
@@ -602,6 +664,10 @@ async function getLeadMatchSummary({
     .select(`
       id,
       score,
+      income_proof_ok,
+      income_amount_ok,
+      guarantee_ok,
+      prequalified,
       reasons,
       tenant_lead_id,
       owner_lead_id
@@ -698,6 +764,18 @@ async function getLeadMatchSummary({
     matchesOn.push("momento de mudanza")
   }
 
+  if (reasons?.income_proof_ok) {
+    matchesOn.push("demostración de ingresos")
+  }
+
+  if (reasons?.income_amount_ok) {
+    matchesOn.push("nivel de ingresos")
+  }
+
+  if (reasons?.guarantee_ok) {
+    matchesOn.push("garantía")
+  }
+
   const summary =
     matches.length > 0
       ? `${matches.length} matches: ${match100Count} al 100% y ${match80Count} al 80%`
@@ -783,6 +861,9 @@ async function createLeadMatches({
         property_rooms,
         approx_price_number,
         availability_status,
+        accepted_income_proof_types,
+        min_income_ratio,
+        accepted_guarantee_types,
         lead_quality
       `)
       .eq("role", "owner")
@@ -853,11 +934,35 @@ async function createLeadMatches({
           ownerLead.approx_price_number
         )
 
+        const incomeProofOk = isIncomeProofCompatible(
+          lead.income_proof_type,
+          ownerLead.accepted_income_proof_types
+        )
+
+        const incomeAmountOk = isIncomeAmountCompatible(
+          lead.income_max,
+          ownerLead.approx_price_number,
+          ownerLead.min_income_ratio
+        )
+
+        const guaranteeOk = isGuaranteeCompatible(
+          lead.guarantee_types,
+          ownerLead.accepted_guarantee_types
+        )
+
+        const prequalified =
+          incomeProofOk === true &&
+          incomeAmountOk === true &&
+          guaranteeOk === true
+
         const score = calculateMatchScore({
           neighborhoodOk,
           typeOk,
           roomsOk,
           priceOk,
+          incomeProofOk,
+          incomeAmountOk,
+          guaranteeOk,
         })
 
         return {
@@ -865,16 +970,20 @@ async function createLeadMatches({
           owner_lead_id: ownerLead.id,
           status: "new",
           score,
-          income_proof_ok: null,
-          income_amount_ok: null,
-          guarantee_ok: null,
-          prequalified: false,
+          income_proof_ok: incomeProofOk,
+          income_amount_ok: incomeAmountOk,
+          guarantee_ok: guaranteeOk,
+          prequalified,
           reasons: {
             time_ok: true,
             neighborhood_ok: neighborhoodOk,
             type_ok: typeOk,
             rooms_ok: roomsOk,
             price_ok: priceOk,
+            income_proof_ok: incomeProofOk,
+            income_amount_ok: incomeAmountOk,
+            guarantee_ok: guaranteeOk,
+            prequalified,
 
 neighborhood_match_type: neighborhoodMatch.type,
 matched_tenant_neighborhood:
@@ -894,6 +1003,17 @@ matched_tenant_neighborhood:
 
             tenant_budget_max: lead.budget_max,
             owner_price: ownerLead.approx_price_number,
+
+            tenant_income_proof_type: lead.income_proof_type,
+            tenant_income_range: lead.income_range,
+            tenant_income_max: lead.income_max,
+            tenant_guarantee_types: lead.guarantee_types,
+
+            owner_accepted_income_proof_types:
+              ownerLead.accepted_income_proof_types,
+            owner_min_income_ratio: ownerLead.min_income_ratio,
+            owner_accepted_guarantee_types:
+              ownerLead.accepted_guarantee_types,
           },
         } satisfies MatchRow
       })
@@ -936,6 +1056,10 @@ matched_tenant_neighborhood:
         desired_rooms,
         budget_max,
         move_timing,
+        income_proof_type,
+        income_range,
+        income_max,
+        guarantee_types,
         lead_quality
       `)
       .eq("role", "tenant")
@@ -1008,11 +1132,35 @@ matched_tenant_neighborhood:
           lead.approx_price_number
         )
 
+        const incomeProofOk = isIncomeProofCompatible(
+          tenantLead.income_proof_type,
+          lead.accepted_income_proof_types
+        )
+
+        const incomeAmountOk = isIncomeAmountCompatible(
+          tenantLead.income_max,
+          lead.approx_price_number,
+          lead.min_income_ratio
+        )
+
+        const guaranteeOk = isGuaranteeCompatible(
+          tenantLead.guarantee_types,
+          lead.accepted_guarantee_types
+        )
+
+        const prequalified =
+          incomeProofOk === true &&
+          incomeAmountOk === true &&
+          guaranteeOk === true
+
         const score = calculateMatchScore({
           neighborhoodOk,
           typeOk,
           roomsOk,
           priceOk,
+          incomeProofOk,
+          incomeAmountOk,
+          guaranteeOk,
         })
 
         return {
@@ -1020,16 +1168,20 @@ matched_tenant_neighborhood:
           owner_lead_id: lead.id,
           status: "new",
           score,
-          income_proof_ok: null,
-          income_amount_ok: null,
-          guarantee_ok: null,
-          prequalified: false,
+          income_proof_ok: incomeProofOk,
+          income_amount_ok: incomeAmountOk,
+          guarantee_ok: guaranteeOk,
+          prequalified,
           reasons: {
             time_ok: true,
             neighborhood_ok: neighborhoodOk,
             type_ok: typeOk,
             rooms_ok: roomsOk,
             price_ok: priceOk,
+            income_proof_ok: incomeProofOk,
+            income_amount_ok: incomeAmountOk,
+            guarantee_ok: guaranteeOk,
+            prequalified,
             neighborhood_match_type: neighborhoodMatch.type,
             matched_tenant_neighborhood:
               neighborhoodMatch.matchedTenantNeighborhood,
@@ -1048,6 +1200,17 @@ matched_tenant_neighborhood:
 
             tenant_budget_max: tenantLead.budget_max,
             owner_price: lead.approx_price_number,
+
+            tenant_income_proof_type: tenantLead.income_proof_type,
+            tenant_income_range: tenantLead.income_range,
+            tenant_income_max: tenantLead.income_max,
+            tenant_guarantee_types: tenantLead.guarantee_types,
+
+            owner_accepted_income_proof_types:
+              lead.accepted_income_proof_types,
+            owner_min_income_ratio: lead.min_income_ratio,
+            owner_accepted_guarantee_types:
+              lead.accepted_guarantee_types,
           },
         } satisfies MatchRow
       })
