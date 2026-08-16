@@ -12,6 +12,9 @@ type OwnerLeadRow = {
   property_rooms: string | null
   approx_price_number: number | null
   availability_status: string | null
+  accepted_income_proof_types: string[] | null
+  min_income_ratio: number | null
+  accepted_guarantee_types: string[] | null
   lead_quality: string | null
 }
 
@@ -22,6 +25,10 @@ type TenantLeadRow = {
   desired_rooms: string | null
   budget_max: number | null
   move_timing: string | null
+  income_proof_type: string | null
+  income_range: string | null
+  income_max: number | null
+  guarantee_types: string[] | null
   lead_quality: string | null
 }
 
@@ -30,6 +37,10 @@ type MatchRow = {
   owner_lead_id: string
   status: string
   score: number
+  income_proof_ok: boolean | null
+  income_amount_ok: boolean | null
+  guarantee_ok: boolean | null
+  prequalified: boolean
   reasons: Record<string, unknown>
 }
 
@@ -41,16 +52,30 @@ type MatchableLead = {
   id: string
   role: string
   intent: string
+
   neighborhood_slugs: string[]
   neighborhood_slug: string | null
+
   desired_property_type: string | null
   property_type: string | null
+
   desired_rooms: string | null
   property_rooms: string | null
+
   budget_max: number | null
   approx_price_number: number | null
+
   move_timing: string | null
   availability_status: string | null
+
+  income_proof_type: string | null
+  income_range: string | null
+  income_max: number | null
+  guarantee_types: string[]
+
+  accepted_income_proof_types: string[]
+  min_income_ratio: number | null
+  accepted_guarantee_types: string[]
 }
 
 function clean(value: unknown) {
