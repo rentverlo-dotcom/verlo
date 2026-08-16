@@ -175,6 +175,16 @@ const TENANT_BUDGET_RANGES = [
 ] as const
 
 
+const INCOME_RANGES = [
+  { label: "Hasta $500.000", value: "0-500000", max: 500000 },
+  { label: "$500.001 a $1.000.000", value: "500001-1000000", max: 1000000 },
+  { label: "$1.000.001 a $1.500.000", value: "1000001-1500000", max: 1500000 },
+  { label: "$1.500.001 a $2.000.000", value: "1500001-2000000", max: 2000000 },
+  { label: "$2.000.001 a $3.000.000", value: "2000001-3000000", max: 3000000 },
+  { label: "Más de $3.000.000", value: "3000001-plus", max: 999999999 },
+] as const
+
+
 const ALL_NEIGHBORHOODS = Object.values(AREA_GROUPS).flatMap(
   (group) => group.neighborhoods
 )
@@ -1332,6 +1342,21 @@ const selectedOwnerPriceOption = OWNER_PRICE_RANGES.find(
 )
 
 const ownerPriceNumber = selectedOwnerPriceOption?.max ?? null
+
+const selectedIncomeRange = String(
+  formData.get("income_range") || ""
+).trim()
+
+const selectedIncomeOption = INCOME_RANGES.find(
+  (option) => option.value === selectedIncomeRange
+)
+
+const tenantIncomeMax = selectedIncomeOption?.max ?? null
+
+const tenantGuaranteeTypes = formData.getAll("guarantee_types").map(String)
+const acceptedIncomeProofTypes = formData.getAll("accepted_income_proof_types").map(String)
+const acceptedGuaranteeTypes = formData.getAll("accepted_guarantee_types").map(String)
+
    const tenantNeighborhoods = formData.getAll("tenant_neighborhoods").map(String)
 const tenantOtherNeighborhood = String(formData.get("tenant_other_neighborhood") || "").trim()
 
@@ -1342,6 +1367,34 @@ const normalizedTenantNeighborhoods = normalizeNeighborhoods(
 
 if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
   setError("Elegí al menos un barrio o escribí otra zona donde buscarías alquilar.")
+  setLoading(false)
+  return
+}
+
+if (path === "tenant" && tenantGuaranteeTypes.length === 0) {
+  setError("Elegí al menos una opción de garantía.")
+  setLoading(false)
+  return
+}
+
+if (
+  path === "tenant" &&
+  tenantGuaranteeTypes.includes("none") &&
+  tenantGuaranteeTypes.length > 1
+) {
+  setError("Si elegís 'No tengo garantía', no marques otra garantía.")
+  setLoading(false)
+  return
+}
+
+if (path === "owner" && acceptedIncomeProofTypes.length === 0) {
+  setError("Elegí al menos una demostración de ingresos aceptada.")
+  setLoading(false)
+  return
+}
+
+if (path === "owner" && acceptedGuaranteeTypes.length === 0) {
+  setError("Elegí al menos una garantía aceptada.")
   setLoading(false)
   return
 }
@@ -1376,6 +1429,15 @@ if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
       budget_range: String(formData.get("budget_range") || "").trim(),
       budget_max: tenantBudgetMax,
       move_timing: String(formData.get("move_timing") || "").trim(),
+      income_proof_type: String(formData.get("income_proof_type") || "").trim(),
+      income_range: selectedIncomeRange,
+      income_max: tenantIncomeMax,
+      guarantee_types: tenantGuaranteeTypes,
+      accepted_income_proof_types: acceptedIncomeProofTypes,
+      min_income_ratio: formData.get("min_income_ratio")
+        ? Number(formData.get("min_income_ratio"))
+        : null,
+      accepted_guarantee_types: acceptedGuaranteeTypes,
       renewal_role: String(formData.get("renewal_role") || "").trim(),
       contract_expiration: String(formData.get("contract_expiration") || "").trim(),
       other_party_status: String(formData.get("other_party_status") || "").trim(),
@@ -1889,6 +1951,98 @@ neighborhood_slug: normalizeText(zone),
   <option value="En 6 meses o más">En 6 meses o más</option>
 </select>
                   </div>
+
+                  <div className="row">
+                    <select
+                      className="select"
+                      name="income_proof_type"
+                      required
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Cómo demostrás tus ingresos
+                      </option>
+                      <option value="salary_receipt">Recibo de sueldo</option>
+                      <option value="monotributo">Monotributista</option>
+                      <option value="self_employed">
+                        Autónomo / socio / director de empresa
+                      </option>
+                      <option value="other_formal">
+                        Otra demostración formal de ingresos
+                      </option>
+                      <option value="none">
+                        No tengo demostración formal de ingresos
+                      </option>
+                    </select>
+
+                    <select
+                      className="select"
+                      name="income_range"
+                      required
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Ingreso mensual demostrable
+                      </option>
+
+                      {INCOME_RANGES.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="neighborhood-box">
+                    <strong>¿Qué garantía podrías presentar?</strong>
+
+                    <div className="neighborhood-grid">
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="guarantee_types"
+                          value="property_guarantee"
+                        />
+                        Garantía propietaria
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="guarantee_types"
+                          value="surety_insurance"
+                        />
+                        Seguro de caución
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="guarantee_types"
+                          value="salary_guarantors"
+                        />
+                        Garantes con recibo de sueldo
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="guarantee_types"
+                          value="other"
+                        />
+                        Otra garantía
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="guarantee_types"
+                          value="none"
+                        />
+                        No tengo garantía
+                      </label>
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -1956,6 +2110,123 @@ neighborhood_slug: normalizeText(zone),
   <option value="En 1 a 3 meses">En 1 a 3 meses</option>
   <option value="En 6 meses o más">En 6 meses o más</option>
 </select>
+
+                  <div className="neighborhood-box">
+                    <strong>¿Qué demostraciones de ingresos aceptarías?</strong>
+
+                    <div className="neighborhood-grid">
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_income_proof_types"
+                          value="salary_receipt"
+                        />
+                        Recibo de sueldo
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_income_proof_types"
+                          value="monotributo"
+                        />
+                        Monotributista
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_income_proof_types"
+                          value="self_employed"
+                        />
+                        Autónomo / socio / director de empresa
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_income_proof_types"
+                          value="other_formal"
+                        />
+                        Otra demostración formal
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_income_proof_types"
+                          value="any"
+                        />
+                        Cualquiera de las anteriores
+                      </label>
+                    </div>
+                  </div>
+
+                  <select
+                    className="select"
+                    name="min_income_ratio"
+                    required
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Ingreso mínimo en relación al alquiler
+                    </option>
+                    <option value="2">2 veces el alquiler</option>
+                    <option value="2.5">2,5 veces el alquiler</option>
+                    <option value="3">3 veces el alquiler</option>
+                    <option value="4">4 veces el alquiler</option>
+                  </select>
+
+                  <div className="neighborhood-box">
+                    <strong>¿Qué garantías aceptarías?</strong>
+
+                    <div className="neighborhood-grid">
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_guarantee_types"
+                          value="property_guarantee"
+                        />
+                        Garantía propietaria
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_guarantee_types"
+                          value="surety_insurance"
+                        />
+                        Seguro de caución
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_guarantee_types"
+                          value="salary_guarantors"
+                        />
+                        Garantes con recibo de sueldo
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_guarantee_types"
+                          value="other"
+                        />
+                        Otra garantía
+                      </label>
+
+                      <label className="check-pill">
+                        <input
+                          type="checkbox"
+                          name="accepted_guarantee_types"
+                          value="any"
+                        />
+                        Cualquiera de las anteriores
+                      </label>
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -2041,4 +2312,3 @@ neighborhood_slug: normalizeText(zone),
   </main> 
   )
 }
-
