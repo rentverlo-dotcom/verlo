@@ -1,4 +1,4 @@
-  import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { sendMetaCapiLead } from "@/lib/meta/capi"
 
@@ -865,6 +865,10 @@ async function createLeadMatches({
           owner_lead_id: ownerLead.id,
           status: "new",
           score,
+          income_proof_ok: null,
+          income_amount_ok: null,
+          guarantee_ok: null,
+          prequalified: false,
           reasons: {
             time_ok: true,
             neighborhood_ok: neighborhoodOk,
@@ -1016,6 +1020,10 @@ matched_tenant_neighborhood:
           owner_lead_id: lead.id,
           status: "new",
           score,
+          income_proof_ok: null,
+          income_amount_ok: null,
+          guarantee_ok: null,
+          prequalified: false,
           reasons: {
             time_ok: true,
             neighborhood_ok: neighborhoodOk,
