@@ -1430,6 +1430,13 @@ accepted_guarantee_types,
         other_party_status,
         renewal_need,
         source,
+        income_proof_type,
+income_range,
+income_max,
+guarantee_types,
+accepted_income_proof_types,
+min_income_ratio,
+accepted_guarantee_types,
         metadata: normalizedMetadata,
       })
       .select("id")
