@@ -193,6 +193,46 @@ function parseMoney(value: string) {
   return number
 }
 
+function budgetRangeToMax(value: string | null): number | null {
+  switch (value) {
+    case "hasta-500000":
+      return 500000
+    case "500001-700000":
+      return 700000
+    case "700001-900000":
+      return 900000
+    case "900001-1200000":
+      return 1200000
+    case "1200001-1500000":
+      return 1500000
+    case "1500001-2000000":
+      return 2000000
+    case "2000000-plus":
+      return 999999999
+    default:
+      return null
+  }
+}
+
+function incomeRangeToMax(value: string | null): number | null {
+  switch (value) {
+    case "0-500000":
+      return 500000
+    case "500001-1000000":
+      return 1000000
+    case "1000001-1500000":
+      return 1500000
+    case "1500001-2000000":
+      return 2000000
+    case "2000001-3000000":
+      return 3000000
+    case "3000001-plus":
+      return 999999999
+    default:
+      return null
+  }
+}
+
 function toStringArray(value: unknown) {
   if (Array.isArray(value)) {
     return value.map((item) => clean(item)).filter(Boolean)
@@ -1294,9 +1334,10 @@ export async function POST(req: NextRequest) {
     const desired_rooms = clean(body.desired_rooms || metadata.desired_rooms) || null
     const budget_range = clean(body.budget_range) || null
 
-    const budget_max = parseMoney(
-      clean(body.budget_max || budget_range || metadata.budget_max)
-    )
+   const budget_max =
+  body.budget_max
+    ? Number(body.budget_max)
+    : budgetRangeToMax(budget_range)
 
     const move_timing = clean(body.move_timing) || null
 
@@ -1306,10 +1347,10 @@ export async function POST(req: NextRequest) {
 const income_range =
   clean(body.income_range) || null
 
-const income_max = body.income_max
-  ? Number(body.income_max)
-  : null
-
+const income_max =
+  body.income_max
+    ? Number(body.income_max)
+    : incomeRangeToMax(income_range)
 const guarantee_types =
   toStringArray(body.guarantee_types)
 
@@ -1791,3 +1832,4 @@ if (Number(matchSummary.verlo_match_count || 0) > 0) {
     )
   }
 }
+
