@@ -1340,29 +1340,40 @@ const intent = clean(
       clean(body.approx_price_number || approx_price || metadata.approx_price_number)
     )
 
-    const desired_property_type = clean(body.desired_property_type) || null
-    const desired_rooms = clean(body.desired_rooms || metadata.desired_rooms) || null
-    const budget_range = clean(body.budget_range) || null
+const desired_property_type =
+  clean(body.verlo_property_type || body.desired_property_type) || null
 
-   const budget_max =
+const desired_rooms =
+  clean(
+    body.verlo_desired_rooms ||
+    body.desired_rooms ||
+    metadata.desired_rooms
+  ) || null
+
+const budget_range =
+  clean(body.verlo_budget_range || body.budget_range) || null
+
+const budget_max =
   body.budget_max
     ? Number(body.budget_max)
     : budgetRangeToMax(budget_range)
 
-    const move_timing = clean(body.move_timing) || null
+const move_timing =
+  clean(body.verlo_move_timing || body.move_timing) || null
 
-    const income_proof_type =
-  clean(body.income_proof_type) || null
+const income_proof_type =
+  clean(body.verlo_income_proof_type || body.income_proof_type) || null
 
 const income_range =
-  clean(body.income_range) || null
+  clean(body.verlo_income_range || body.income_range) || null
 
 const income_max =
   body.income_max
     ? Number(body.income_max)
     : incomeRangeToMax(income_range)
+
 const guarantee_types =
-  toStringArray(body.guarantee_types)
+  toStringArray(body.verlo_guarantee_types || body.guarantee_types)
 
 const accepted_income_proof_types =
   toStringArray(body.accepted_income_proof_types)
