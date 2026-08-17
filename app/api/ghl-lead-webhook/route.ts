@@ -1316,8 +1316,17 @@ export async function POST(req: NextRequest) {
     const phone_normalized = normalizePhone(phone_raw)
     const phone = phone_normalized
 
-    const role = clean(body.verlo_role || body.role)
-    const intent = clean(body.verlo_intent || body.intent)
+    const role = clean(
+  req.nextUrl.searchParams.get("verlo_role") ||
+  body.verlo_role ||
+  body.role
+)
+
+const intent = clean(
+  req.nextUrl.searchParams.get("verlo_intent") ||
+  body.verlo_intent ||
+  body.intent
+)
 
     const zone = clean(body.zone) || null
 
