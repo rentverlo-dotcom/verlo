@@ -1439,12 +1439,19 @@ const accepted_guarantee_types =
 }
 
     if (intent === "tenant_search") {
-      if (neighborhood_slugs.length === 0) {
-        return NextResponse.json(
-          { ok: false, error: "Elegí al menos un barrio donde buscarías alquilar" },
-          { status: 400 }
-        )
-      }
+     if (neighborhood_slugs.length === 0) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "Elegí al menos un barrio donde buscarías alquilar",
+      raw_neighborhood_labels: body.neighborhood_labels,
+      raw_neighborhood_slugs: body.neighborhood_slugs,
+      parsed_neighborhood_labels: neighborhood_labels,
+      parsed_neighborhood_slugs: neighborhood_slugs,
+    },
+    { status: 400 }
+  )
+}
 
       if (!desired_property_type) {
         return NextResponse.json(
