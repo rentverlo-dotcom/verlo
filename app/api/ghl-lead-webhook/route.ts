@@ -1416,12 +1416,18 @@ const accepted_guarantee_types =
       )
     }
 
-    if (!["owner_new_listing", "tenant_search", "contract_renewal"].includes(intent)) {
-      return NextResponse.json(
-        { ok: false, error: "Intención inválida" },
-        { status: 400 }
-      )
-    }
+   if (!["owner_new_listing", "tenant_search", "contract_renewal"].includes(intent)) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "Intención inválida",
+      received_intent: intent,
+      raw_verlo_intent: body.verlo_intent,
+      raw_intent: body.intent,
+    },
+    { status: 400 }
+  )
+}
 
     if (intent === "tenant_search") {
       if (neighborhood_slugs.length === 0) {
