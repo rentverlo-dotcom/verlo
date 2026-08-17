@@ -1395,9 +1395,9 @@ const accepted_guarantee_types =
     const area_macro =
       clean(body.area_macro || metadata.tenant_area_label || metadata.area_macro) || null
 
- const neighborhood_labels =
-  toStringArray(body.verlo_neighborhood_labels).length > 0
-    ? toStringArray(body.verlo_neighborhood_labels)
+const neighborhood_labels =
+  toStringArray(body.verlo_neighborhoods).length > 0
+    ? toStringArray(body.verlo_neighborhoods)
     : toStringArray(body.neighborhood_labels).length > 0
       ? toStringArray(body.neighborhood_labels)
       : toStringArray(metadata.tenant_neighborhoods)
