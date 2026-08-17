@@ -1298,15 +1298,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-
-return NextResponse.json(
-  {
-    ok: false,
-    debug: true,
-    body,
-  },
-  { status: 400 }
-)
    
     const metadata = body.metadata || {}
 
