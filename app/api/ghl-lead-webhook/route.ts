@@ -1412,14 +1412,29 @@ const guarantee_types =
   toStringArray(body.verlo_guarantee_types || body.guarantee_types)
 
 const accepted_income_proof_types =
-  toStringArray(body.accepted_income_proof_types)
+  toStringArray(
+    body.verlo_ai_owner_accepted_income_proof_types ||
+    body.verlo_accepted_income_proof_types ||
+    body.accepted_income_proof_types
+  )
 
-const min_income_ratio = body.min_income_ratio
-  ? Number(body.min_income_ratio)
-  : null
+const min_income_ratio =
+  body.verlo_min_income_ratio ||
+  body.verlo_ai_owner_min_income_ratio ||
+  body.min_income_ratio
+    ? Number(
+        body.verlo_min_income_ratio ||
+        body.verlo_ai_owner_min_income_ratio ||
+        body.min_income_ratio
+      )
+    : null
 
 const accepted_guarantee_types =
-  toStringArray(body.accepted_guarantee_types)
+  toStringArray(
+    body.verlo_ai_owner_accepted_guarantee_types ||
+    body.verlo_accepted_guarantee_types ||
+    body.accepted_guarantee_types
+  )
     
     const renewal_role = clean(body.renewal_role) || null
     const contract_expiration = clean(body.contract_expiration) || null
