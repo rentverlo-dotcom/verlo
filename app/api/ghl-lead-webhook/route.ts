@@ -1331,14 +1331,50 @@ const intent = clean(
 
     const zone = clean(body.zone) || null
 
-    const property_type = clean(body.property_type) || null
-    const property_rooms = clean(body.property_rooms || metadata.property_rooms) || null
-    const availability_status = clean(body.availability_status) || null
-    const approx_price = clean(body.approx_price) || null
+ const property_type =
+  role === "owner"
+    ? clean(
+        body.verlo_property_type ||
+        body.verlo_ai_owner_property_type ||
+        body.property_type
+      ) || null
+    : clean(body.property_type) || null
 
-    const approx_price_number = parseMoney(
-      clean(body.approx_price_number || approx_price || metadata.approx_price_number)
-    )
+const property_rooms =
+  role === "owner"
+    ? clean(
+        body.verlo_property_rooms ||
+        body.verlo_ai_owner_property_rooms ||
+        body.property_rooms ||
+        metadata.property_rooms
+      ) || null
+    : clean(body.property_rooms || metadata.property_rooms) || null
+
+const availability_status =
+  role === "owner"
+    ? clean(
+        body.verlo_availability_status ||
+        body.verlo_ai_owner_availability_status ||
+        body.availability_status
+      ) || null
+    : clean(body.availability_status) || null
+
+const approx_price =
+  role === "owner"
+    ? clean(
+        body.verlo_approx_price ||
+        body.verlo_ai_owner_approx_price ||
+        body.approx_price
+      ) || null
+    : clean(body.approx_price) || null
+
+const approx_price_number = parseMoney(
+  clean(
+    body.approx_price_number ||
+    approx_price ||
+    metadata.approx_price_number
+  )
+)
 
 const desired_property_type =
   clean(body.verlo_property_type || body.desired_property_type) || null
