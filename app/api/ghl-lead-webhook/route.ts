@@ -1459,8 +1459,14 @@ const neighborhood_labels =
         : neighborhood_labels.map(normalizeText)
 
     const neighborhood_slug =
-      clean(body.neighborhood_slug || metadata.neighborhood_slug) ||
-      (zone ? normalizeText(zone) : null)
+  clean(body.neighborhood_slug || metadata.neighborhood_slug) ||
+  (
+    role === "owner" && neighborhood_labels.length > 0
+      ? normalizeText(neighborhood_labels[0])
+      : zone
+        ? normalizeText(zone)
+        : null
+  )
 
     if (full_name.length < 3) {
       return NextResponse.json(
