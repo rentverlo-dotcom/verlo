@@ -1411,6 +1411,14 @@ const income_max =
 const guarantee_types =
   toStringArray(body.verlo_guarantee_types || body.guarantee_types)
 
+const match_notifications =
+  clean(
+    body.verlo_match_notifications ||
+    body.verlo_ai_match_notifications ||
+    body.match_notifications
+  ) || null
+
+   
 const accepted_income_proof_types =
   toStringArray(
     body.verlo_ai_owner_accepted_income_proof_types ||
