@@ -1665,6 +1665,7 @@ const neighborhood_labels =
       accepted_income_proof_types,
       min_income_ratio,
       accepted_guarantee_types,
+      match_notifications,
     }
 
     const leadPayload = {
