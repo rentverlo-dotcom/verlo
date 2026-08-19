@@ -1475,12 +1475,12 @@ const neighborhood_labels =
       )
     }
 
-    if (!isValidEmail(email)) {
-      return NextResponse.json(
-        { ok: false, error: "Ingresá un email válido" },
-        { status: 400 }
-      )
-    }
+  if (email && !isValidEmail(email)) {
+  return NextResponse.json(
+    { ok: false, error: "Ingresá un email válido" },
+    { status: 400 }
+  )
+}
 
     if (!isValidPhone(phone)) {
       return NextResponse.json(
