@@ -1449,8 +1449,12 @@ const accepted_guarantee_types =
     const other_party_status = clean(body.other_party_status) || null
     const renewal_need = clean(body.renewal_need) || null
 
-    const source = clean(body.source || metadata.page) || "verlo_home"
-
+const source =
+  clean(
+    req.nextUrl.searchParams.get("source") ||
+    body.source ||
+    metadata.page
+  ) || "verlo_home"
     const area_macro =
       clean(body.area_macro || metadata.tenant_area_label || metadata.area_macro) || null
 
