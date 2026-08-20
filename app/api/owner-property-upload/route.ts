@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import {
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3"
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import { randomUUID } from "crypto"
+  createHash,
+  createHmac,
+  randomUUID,
+} from "crypto"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -23,7 +22,186 @@ function safeFilename(value: string) {
     .slice(0, 120)
 }
 
-export async function POST(req: NextRequest) {
+function sha256(value: string) {
+  return createHash("sha256")
+    .update(value)
+    .digest("hex")
+}
+
+function hmac(
+  key: Buffer | string,
+  value: string
+) {
+  return createHmac("sha256", key)
+    .update(value)
+    .digest()
+}
+
+function encodePath(path: string) {
+  return path
+    .split("/")
+    .map((part) =>
+      encodeURIComponent(part)
+        .replace(/%2F/g, "/")
+    )
+    .join("/")
+}
+
+function amzDate(date: Date) {
+  return date
+    .toISOString()
+    .replace(/[:-]|\.\d{3}/g, "")
+}
+
+function createR2PresignedPutUrl({
+  endpoint,
+  bucket,
+  key,
+  accessKeyId,
+  secretAccessKey,
+  contentType,
+}: {
+  endpoint: string
+  bucket: string
+  key: string
+  accessKeyId: string
+  secretAccessKey: string
+  contentType: string
+}) {
+  const region = "auto"
+  const service = "s3"
+  const expires = 900
+
+  const now = new Date()
+
+  const fullAmzDate =
+    amzDate(now)
+
+  const dateStamp =
+    fullAmzDate.slice(0, 8)
+
+  const endpointUrl =
+    new URL(endpoint)
+
+  const host =
+    endpointUrl.host
+
+  const canonicalUri =
+    `/${encodeURIComponent(bucket)}/${encodePath(key)}`
+
+  const credentialScope =
+    `${dateStamp}/${region}/${service}/aws4_request`
+
+  const credential =
+    `${accessKeyId}/${credentialScope}`
+
+  const queryParams =
+    new URLSearchParams()
+
+  queryParams.set(
+    "X-Amz-Algorithm",
+    "AWS4-HMAC-SHA256"
+  )
+
+  queryParams.set(
+    "X-Amz-Credential",
+    credential
+  )
+
+  queryParams.set(
+    "X-Amz-Date",
+    fullAmzDate
+  )
+
+  queryParams.set(
+    "X-Amz-Expires",
+    String(expires)
+  )
+
+  queryParams.set(
+    "X-Amz-SignedHeaders",
+    "host"
+  )
+
+  const canonicalQueryString =
+    Array.from(queryParams.entries())
+      .sort(([a], [b]) =>
+        a.localeCompare(b)
+      )
+      .map(
+        ([key, value]) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+      )
+      .join("&")
+
+  const canonicalHeaders =
+    `host:${host}\n`
+
+  const signedHeaders =
+    "host"
+
+  const payloadHash =
+    "UNSIGNED-PAYLOAD"
+
+  const canonicalRequest = [
+    "PUT",
+    canonicalUri,
+    canonicalQueryString,
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash,
+  ].join("\n")
+
+  const stringToSign = [
+    "AWS4-HMAC-SHA256",
+    fullAmzDate,
+    credentialScope,
+    sha256(canonicalRequest),
+  ].join("\n")
+
+  const kDate =
+    hmac(
+      `AWS4${secretAccessKey}`,
+      dateStamp
+    )
+
+  const kRegion =
+    hmac(
+      kDate,
+      region
+    )
+
+  const kService =
+    hmac(
+      kRegion,
+      service
+    )
+
+  const kSigning =
+    hmac(
+      kService,
+      "aws4_request"
+    )
+
+  const signature =
+    createHmac(
+      "sha256",
+      kSigning
+    )
+      .update(stringToSign)
+      .digest("hex")
+
+  return (
+    `${endpointUrl.protocol}//${host}` +
+    canonicalUri +
+    `?${canonicalQueryString}` +
+    `&X-Amz-Signature=${signature}`
+  )
+}
+
+export async function POST(
+  req: NextRequest
+) {
   try {
     const supabaseUrl =
       process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -44,11 +222,14 @@ export async function POST(req: NextRequest) {
       process.env.R2_BUCKET
 
     const r2Prefix =
-      clean(process.env.R2_PREFIX)
+      clean(
+        process.env.R2_PREFIX
+      )
 
     const r2PublicUrl =
-      clean(process.env.R2_PUBLIC_URL)
-        .replace(/\/+$/, "")
+      clean(
+        process.env.R2_PUBLIC_URL
+      ).replace(/\/+$/, "")
 
     if (
       !supabaseUrl ||
@@ -61,59 +242,74 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing server configuration",
+          error:
+            "Missing server configuration",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       )
     }
 
     const body =
-      await req.json().catch(() => ({}))
+      await req
+        .json()
+        .catch(() => ({}))
 
     const token =
       clean(body?.token)
 
     const filename =
       safeFilename(
-        clean(body?.filename) || "archivo"
+        clean(
+          body?.filename
+        ) || "archivo"
       )
 
     const contentType =
-      clean(body?.contentType)
-
-    if (!token) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Missing token",
-        },
-        { status: 400 }
+      clean(
+        body?.contentType
       )
-    }
 
-    if (!contentType) {
+    if (
+      !token ||
+      !contentType
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing contentType",
+          error:
+            "Missing token or contentType",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       )
     }
 
     const isPhoto =
-      contentType.startsWith("image/")
+      contentType.startsWith(
+        "image/"
+      )
 
     const isVideo =
-      contentType.startsWith("video/")
+      contentType.startsWith(
+        "video/"
+      )
 
-    if (!isPhoto && !isVideo) {
+    if (
+      !isPhoto &&
+      !isVideo
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Only photos and videos are allowed",
+          error:
+            "Only photos and videos are allowed",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       )
     }
 
@@ -129,42 +325,55 @@ export async function POST(req: NextRequest) {
         }
       )
 
-    // =========================================================
-    // 1. VALIDAR TOKEN DE ESA PROPIEDAD
-    // =========================================================
-
     const {
       data: accessToken,
       error: tokenError,
-    } = await supabase
-      .from("owner_property_access_tokens")
-      .select(`
-        id,
-        owner_lead_id,
-        completion_id,
-        expires_at,
-        revoked_at
-      `)
-      .eq("token", token)
-      .single()
+    } =
+      await supabase
+        .from(
+          "owner_property_access_tokens"
+        )
+        .select(`
+          id,
+          owner_lead_id,
+          completion_id,
+          expires_at,
+          revoked_at
+        `)
+        .eq(
+          "token",
+          token
+        )
+        .single()
 
-    if (tokenError || !accessToken) {
+    if (
+      tokenError ||
+      !accessToken
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Invalid token",
+          error:
+            "Invalid token",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       )
     }
 
-    if (accessToken.revoked_at) {
+    if (
+      accessToken.revoked_at
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Token revoked",
+          error:
+            "Token revoked",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       )
     }
 
@@ -172,74 +381,68 @@ export async function POST(req: NextRequest) {
       accessToken.expires_at &&
       new Date(
         accessToken.expires_at
-      ).getTime() < Date.now()
+      ).getTime() <
+        Date.now()
     ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Token expired",
+          error:
+            "Token expired",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       )
     }
 
-    if (!accessToken.completion_id) {
+    if (
+      !accessToken.completion_id
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Property completion missing",
+          error:
+            "Property completion missing",
         },
-        { status: 409 }
+        {
+          status: 409,
+        }
       )
     }
 
-    // =========================================================
-    // 2. CREAR KEY ÚNICA DE R2
-    // =========================================================
-
-    const basePrefix =
+    const prefix =
       r2Prefix
-        ? `${r2Prefix.replace(/\/+$/, "")}/`
+        ? `${r2Prefix.replace(
+            /\/+$/,
+            ""
+          )}/`
         : ""
 
     const key =
-      `${basePrefix}owners/` +
+      `${prefix}owners/` +
       `${accessToken.owner_lead_id}/` +
       `${accessToken.completion_id}/` +
       `${randomUUID()}-${filename}`
 
-    // =========================================================
-    // 3. CLIENTE CLOUDFLARE R2
-    // =========================================================
-
-    const r2 =
-      new S3Client({
-        region: "auto",
-
-        endpoint: r2Endpoint,
-
-        credentials: {
-          accessKeyId: r2AccessKey,
-          secretAccessKey: r2SecretKey,
-        },
-      })
-
-    const command =
-      new PutObjectCommand({
-        Bucket: r2Bucket,
-        Key: key,
-        ContentType: contentType,
-      })
-
-    // URL válida 15 minutos
     const uploadUrl =
-      await getSignedUrl(
-        r2,
-        command,
-        {
-          expiresIn: 60 * 15,
-        }
-      )
+      createR2PresignedPutUrl({
+        endpoint:
+          r2Endpoint,
+
+        bucket:
+          r2Bucket,
+
+        key,
+
+        accessKeyId:
+          r2AccessKey,
+
+        secretAccessKey:
+          r2SecretKey,
+
+        contentType,
+      })
 
     const publicUrl =
       r2PublicUrl
@@ -249,11 +452,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
 
-      upload_url: uploadUrl,
+      upload_url:
+        uploadUrl,
 
       key,
 
-      public_url: publicUrl,
+      public_url:
+        publicUrl,
 
       media_type:
         isVideo
@@ -275,9 +480,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Unexpected server error",
+        error:
+          "Unexpected server error",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     )
   }
 }
