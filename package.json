@@ -10,8 +10,6 @@
     "lint": "next lint"
   },
 "dependencies": {
-  "@aws-sdk/client-s3": "^3.864.0",
-  "@aws-sdk/s3-request-presigner": "^3.864.0",
   "@react-spring/web": "^9.7.3",
   "@supabase/supabase-js": "^2.39.3",
   "aos": "^2.3.4",
