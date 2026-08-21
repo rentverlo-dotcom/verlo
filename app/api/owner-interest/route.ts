@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
@@ -9,7 +9,7 @@ function clean(value: unknown) {
 }
 
 export async function POST(
-  request: Request
+  request: NextRequest
 ) {
   try {
     const supabaseUrl =
@@ -29,8 +29,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Missing configuration",
+          error: "Missing configuration",
         },
         {
           status: 500,
@@ -58,12 +57,14 @@ export async function POST(
     const token =
       clean(body?.token)
 
+    const matchId =
+      clean(body?.match_id)
+
     if (!token) {
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Missing token",
+          error: "Missing token",
         },
         {
           status: 400,
@@ -71,29 +72,40 @@ export async function POST(
       )
     }
 
+    if (!matchId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Missing match_id",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // =========================================================
+    // 1. VALIDAR TOKEN AGREGADO DEL OWNER
+    // =========================================================
+
     const {
       data: accessToken,
       error: tokenError,
-    } =
-      await supabase
-        .from(
-          "match_access_tokens"
-        )
-        .select(`
-          id,
-          match_id,
-          lead_id,
-          expires_at
-        `)
-        .eq(
-          "token",
-          token
-        )
-        .eq(
-          "audience",
-          "owner"
-        )
-        .single()
+    } = await supabase
+      .from(
+        "owner_candidates_access_tokens"
+      )
+      .select(`
+        id,
+        owner_lead_id,
+        expires_at,
+        revoked_at
+      `)
+      .eq(
+        "token",
+        token
+      )
+      .single()
 
     if (
       tokenError ||
@@ -102,8 +114,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Invalid token",
+          error: "Invalid token",
         },
         {
           status: 404,
@@ -111,27 +122,69 @@ export async function POST(
       )
     }
 
+    if (
+      accessToken.revoked_at
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Token revoked",
+        },
+        {
+          status: 403,
+        }
+      )
+    }
+
+    if (
+      accessToken.expires_at &&
+      new Date(
+        accessToken.expires_at
+      ).getTime() <
+        Date.now()
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Expired token",
+        },
+        {
+          status: 403,
+        }
+      )
+    }
+
+    const ownerLeadId =
+      accessToken.owner_lead_id
+
+    // =========================================================
+    // 2. BUSCAR MATCH ELEGIDO
+    // =========================================================
+
     const {
       data: match,
       error: matchError,
-    } =
-      await supabase
-        .from(
-          "lead_matches"
-        )
-        .select(`
-          id,
-          tenant_lead_id,
-          owner_lead_id,
-          tenant_interest_at,
-          owner_interest_at,
-          ready_to_connect_at
-        `)
-        .eq(
-          "id",
-          accessToken.match_id
-        )
-        .single()
+    } = await supabase
+      .from("lead_matches")
+      .select(`
+        id,
+        tenant_lead_id,
+        owner_lead_id,
+        tenant_interest_at,
+        tenant_verified_at,
+        owner_interest_at,
+        ready_to_connect_at,
+        introduced_at
+      `)
+      .eq(
+        "id",
+        matchId
+      )
+      .eq(
+        "owner_lead_id",
+        ownerLeadId
+      )
+      .single()
 
     if (
       matchError ||
@@ -140,8 +193,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Match not found",
+          error: "Match not found",
         },
         {
           status: 404,
@@ -149,25 +201,29 @@ export async function POST(
       )
     }
 
+    // =========================================================
+    // 3. EL OWNER SOLO PUEDE ACEPTAR UN CANDIDATO
+    // QUE YA MOSTRÓ INTERÉS Y COMPLETÓ VALIDACIÓN
+    // =========================================================
+
     if (
-      match.owner_lead_id !==
-      accessToken.lead_id
+      !match.tenant_interest_at ||
+      !match.tenant_verified_at
     ) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            "Unauthorized",
+            "Tenant has not completed the candidate flow",
         },
         {
-          status: 403,
+          status: 409,
         }
       )
     }
 
     const now =
-      new Date()
-        .toISOString()
+      new Date().toISOString()
 
     const ownerInterestAt =
       match.owner_interest_at ||
@@ -180,10 +236,13 @@ export async function POST(
       )
 
     const update:
-      Record<string, unknown> = {
-        owner_interest_at:
-          ownerInterestAt,
-      }
+      Record<
+        string,
+        string
+      > = {
+      owner_interest_at:
+        ownerInterestAt,
+    }
 
     if (
       ready &&
@@ -193,18 +252,23 @@ export async function POST(
         now
     }
 
+    // =========================================================
+    // 4. GUARDAR OK DEL OWNER
+    // =========================================================
+
     const {
       error: updateError,
-    } =
-      await supabase
-        .from(
-          "lead_matches"
-        )
-        .update(update)
-        .eq(
-          "id",
-          match.id
-        )
+    } = await supabase
+      .from("lead_matches")
+      .update(update)
+      .eq(
+        "id",
+        match.id
+      )
+      .eq(
+        "owner_lead_id",
+        ownerLeadId
+      )
 
     if (updateError) {
       throw new Error(
@@ -212,55 +276,97 @@ export async function POST(
       )
     }
 
-    if (
+    const becameReady =
       ready &&
-      readyWebhook &&
       !match.ready_to_connect_at
+
+    // =========================================================
+    // 5. DOBLE OK
+    //
+    // Solo dispara webhook la PRIMERA vez
+    // que el match queda ready_to_connect.
+    // =========================================================
+
+    if (
+      becameReady &&
+      readyWebhook
     ) {
-      await fetch(
-        readyWebhook,
-        {
-          method: "POST",
+      try {
+        const webhookResponse =
+          await fetch(
+            readyWebhook,
+            {
+              method: "POST",
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
 
-          body:
-            JSON.stringify({
-              match_id:
-                match.id,
+              body: JSON.stringify({
+                event:
+                  "ready_to_connect",
 
-              tenant_lead_id:
-                match.tenant_lead_id,
+                source:
+                  "verlo_double_opt_in",
 
-              owner_lead_id:
-                match.owner_lead_id,
+                match_id:
+                  match.id,
 
-              event:
-                "ready_to_connect",
+                tenant_lead_id:
+                  match.tenant_lead_id,
 
-              source:
-                "verlo_double_opt_in",
-            }),
+                owner_lead_id:
+                  match.owner_lead_id,
+
+                ready_to_connect_at:
+                  now,
+              }),
+            }
+          )
+
+        if (
+          !webhookResponse.ok
+        ) {
+          console.error(
+            "ready webhook error:",
+            webhookResponse.status
+          )
         }
-      )
+      } catch (
+        webhookError
+      ) {
+        console.error(
+          "ready webhook request error:",
+          webhookError
+        )
+      }
     }
+
+    // =========================================================
+    // 6. RESPONSE
+    // =========================================================
 
     return NextResponse.json({
       ok: true,
+
+      match_id:
+        match.id,
 
       owner_interest:
         true,
 
       tenant_interest:
-        Boolean(
-          match.tenant_interest_at
-        ),
+        true,
+
+      tenant_verified:
+        true,
 
       ready_to_connect:
         ready,
+
+      became_ready:
+        becameReady,
     })
   } catch (error) {
     console.error(
