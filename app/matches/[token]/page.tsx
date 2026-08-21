@@ -396,20 +396,31 @@ export default function MatchesPage() {
   return (
     <>
       <main className="page">
-        <header>
-          <VerloBrand />
-
-          <span className="count">
-            {
-              data.count
-            }{" "}
-            MATCH
-            {data.count ===
-            1
-              ? ""
-              : "ES"}
-          </span>
-        </header>
+     <header
+  style={{
+    position: "sticky",
+    top: 0,
+    zIndex: 50,
+    height: "76px",
+    background: "rgba(242,235,236,0.82)",
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+    borderBottom: "1px solid rgba(5,0,2,0.08)",
+    display: "flex",
+    alignItems: "center",
+  }}
+>
+  <div
+    style={{
+      width: "min(1160px, calc(100% - 40px))",
+      margin: "0 auto",
+      display: "flex",
+      alignItems: "center",
+    }}
+  >
+    <VerloBrand />
+  </div>
+</header>
 
         <section className="intro">
           <span className="eyebrow">
