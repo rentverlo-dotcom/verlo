@@ -111,6 +111,17 @@ export default function PropietariosPage() {
     const form = event.currentTarget
     const formData = new FormData(form)
 
+    const website = String(formData.get("website") || "").trim()
+
+if (website) {
+  form.reset()
+  setStatus("success")
+  setMessage(
+    "Listo. Recibimos los datos mínimos de tu propiedad. Te vamos a escribir si encontramos compatibilidad con búsquedas activas."
+  )
+  return
+}
+
     const fullName = String(formData.get("full_name") || "").trim()
     const email = String(formData.get("email") || "").trim()
     const phone = String(formData.get("phone") || "").trim()
