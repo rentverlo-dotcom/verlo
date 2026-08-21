@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { randomBytes } from "crypto"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -14,6 +15,10 @@ function clean(value: unknown) {
   return String(value || "").trim()
 }
 
+function normalizePhone(value: unknown) {
+  return clean(value).replace(/\D/g, "")
+}
+
 export async function POST(
   request: NextRequest
 ) {
@@ -24,6 +29,10 @@ export async function POST(
     const serviceRoleKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY
 
+    const ownerCandidatesWebhook =
+      process.env
+        .GHL_OWNER_CANDIDATES_READY_WEBHOOK_URL
+
     if (
       !supabaseUrl ||
       !serviceRoleKey
@@ -31,7 +40,8 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing Supabase env vars",
+          error:
+            "Missing Supabase env vars",
         },
         {
           status: 500,
@@ -109,7 +119,8 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing token",
+          error:
+            "Missing token",
         },
         {
           status: 400,
@@ -162,7 +173,8 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Invalid token",
+          error:
+            "Invalid token",
         },
         {
           status: 404,
@@ -176,7 +188,8 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Token revoked",
+          error:
+            "Token revoked",
         },
         {
           status: 403,
@@ -194,7 +207,8 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Expired token",
+          error:
+            "Expired token",
         },
         {
           status: 403,
@@ -206,22 +220,25 @@ export async function POST(
       accessToken.tenant_lead_id
 
     // =========================================================
-    // 2. VALIDAR QUE TODOS LOS MATCHES ELEGIDOS
-    // PERTENEZCAN A ESTE TENANT
+    // 2. VALIDAR MATCHES ELEGIDOS
     // =========================================================
 
     const {
       data: selectedMatches,
       error: matchesError,
     } = await supabase
-      .from("lead_matches")
+      .from(
+        "lead_matches"
+      )
       .select(`
         id,
         tenant_lead_id,
         owner_lead_id,
         score,
         status,
-        owner_completed_at
+        owner_completed_at,
+        tenant_interest_at,
+        tenant_verified_at
       `)
       .in(
         "id",
@@ -245,7 +262,9 @@ export async function POST(
         null
       )
 
-    if (matchesError) {
+    if (
+      matchesError
+    ) {
       throw new Error(
         matchesError.message
       )
@@ -269,10 +288,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. GUARDAR / REUTILIZAR VERIFICACIÓN DEL TENANT
-    //
-    // match_id = NULL
-    // documentación pertenece al lead
+    // 3. GUARDAR / REUTILIZAR VERIFICACIÓN
     // =========================================================
 
     const {
@@ -411,11 +427,6 @@ export async function POST(
         verificationError ||
         !updatedVerification
       ) {
-        console.error(
-          "tenant verification update error:",
-          verificationError
-        )
-
         return NextResponse.json(
           {
             ok: false,
@@ -450,11 +461,6 @@ export async function POST(
         verificationError ||
         !newVerification
       ) {
-        console.error(
-          "tenant verification insert error:",
-          verificationError
-        )
-
         return NextResponse.json(
           {
             ok: false,
@@ -473,7 +479,6 @@ export async function POST(
 
     // =========================================================
     // 4. MARCAR INTERÉS + VERIFICACIÓN
-    // EN TODOS LOS MATCHES ELEGIDOS
     // =========================================================
 
     const now =
@@ -481,7 +486,8 @@ export async function POST(
         .toISOString()
 
     const {
-      error: updateMatchesError,
+      error:
+        updateMatchesError,
     } = await supabase
       .from(
         "lead_matches"
@@ -511,7 +517,363 @@ export async function POST(
     }
 
     // =========================================================
-    // 5. RESPONSE
+    // 5. OWNERS INVOLUCRADOS
+    // =========================================================
+
+    const ownerLeadIds =
+      Array.from(
+        new Set(
+          selectedMatches.map(
+            (match) =>
+              match.owner_lead_id
+          )
+        )
+      )
+
+    const {
+      data: owners,
+      error: ownersError,
+    } = await supabase
+      .from(
+        "lead_intake"
+      )
+      .select(`
+        id,
+        full_name,
+        phone,
+        phone_normalized,
+        email
+      `)
+      .in(
+        "id",
+        ownerLeadIds
+      )
+
+    if (
+      ownersError
+    ) {
+      throw new Error(
+        ownersError.message
+      )
+    }
+
+    const ownersById =
+      new Map(
+        (
+          owners ||
+          []
+        ).map(
+          (owner) => [
+            owner.id,
+            owner,
+          ]
+        )
+      )
+
+    const ownerNotifications:
+      Array<{
+        owner_lead_id:
+          string
+
+        candidates_url:
+          string
+
+        candidate_count:
+          number
+
+        sent:
+          boolean
+      }> = []
+
+    // =========================================================
+    // 6. PARA CADA OWNER:
+    // TOKEN AGREGADO + URL PERMANENTE
+    // =========================================================
+
+    for (
+      const ownerLeadId
+      of ownerLeadIds
+    ) {
+      const owner =
+        ownersById.get(
+          ownerLeadId
+        )
+
+      if (!owner) {
+        continue
+      }
+
+      const {
+        data:
+          currentCandidates,
+        error:
+          candidatesError,
+      } = await supabase
+        .from(
+          "lead_matches"
+        )
+        .select(`
+          id,
+          score,
+          tenant_lead_id
+        `)
+        .eq(
+          "owner_lead_id",
+          ownerLeadId
+        )
+        .gte(
+          "score",
+          80
+        )
+        .in(
+          "status",
+          ACTIVE_MATCH_STATUSES
+        )
+        .not(
+          "tenant_interest_at",
+          "is",
+          null
+        )
+        .not(
+          "tenant_verified_at",
+          "is",
+          null
+        )
+        .order(
+          "score",
+          {
+            ascending: false,
+          }
+        )
+
+      if (
+        candidatesError
+      ) {
+        throw new Error(
+          candidatesError.message
+        )
+      }
+
+      if (
+        !currentCandidates ||
+        currentCandidates.length ===
+          0
+      ) {
+        continue
+      }
+
+      const {
+        data:
+          existingOwnerToken,
+        error:
+          tokenLookupError,
+      } = await supabase
+        .from(
+          "owner_candidates_access_tokens"
+        )
+        .select(`
+          id,
+          token,
+          expires_at
+        `)
+        .eq(
+          "owner_lead_id",
+          ownerLeadId
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+        .or(
+          `expires_at.is.null,expires_at.gt.${now}`
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false,
+          }
+        )
+        .limit(1)
+        .maybeSingle()
+
+      if (
+        tokenLookupError
+      ) {
+        throw new Error(
+          tokenLookupError
+            .message
+        )
+      }
+
+      let ownerToken:
+        string
+
+      if (
+        existingOwnerToken
+      ) {
+        ownerToken =
+          existingOwnerToken.token
+      } else {
+        ownerToken =
+          randomBytes(32)
+            .toString(
+              "hex"
+            )
+
+        const expiresAt =
+          new Date(
+            Date.now() +
+              30 *
+                24 *
+                60 *
+                60 *
+                1000
+          ).toISOString()
+
+        const {
+          error:
+            tokenInsertError,
+        } = await supabase
+          .from(
+            "owner_candidates_access_tokens"
+          )
+          .insert({
+            owner_lead_id:
+              ownerLeadId,
+
+            token:
+              ownerToken,
+
+            expires_at:
+              expiresAt,
+          })
+
+        if (
+          tokenInsertError
+        ) {
+          throw new Error(
+            tokenInsertError.message
+          )
+        }
+      }
+
+      const candidatesUrl =
+        `https://verlo.lat/candidatos/${ownerToken}`
+
+      let sent =
+        false
+
+      // =======================================================
+      // 7. AVISAR AL OWNER MEDIANTE VERLO / GHL
+      // =======================================================
+
+      if (
+        ownerCandidatesWebhook
+      ) {
+        try {
+          const response =
+            await fetch(
+              ownerCandidatesWebhook,
+              {
+                method:
+                  "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body:
+                  JSON.stringify({
+                    lead_id:
+                      owner.id,
+
+                    full_name:
+                      owner.full_name,
+
+                    first_name:
+                      clean(
+                        owner.full_name
+                      ).split(
+                        /\s+/
+                      )[0] ||
+                      "",
+
+                    phone:
+                      normalizePhone(
+                        owner
+                          .phone_normalized ||
+                          owner.phone
+                      ),
+
+                    email:
+                      clean(
+                        owner.email
+                      ).toLowerCase(),
+
+                    role:
+                      "owner",
+
+                    verlo_candidates_token:
+                      ownerToken,
+
+                    verlo_candidates_url:
+                      candidatesUrl,
+
+                    verlo_candidate_count:
+                      currentCandidates.length,
+
+                    source:
+                      "verlo_candidates_ready",
+
+                    tags: [
+                      "verlo_lead",
+                      "verlo_owner",
+                      "verlo_candidates_ready",
+                    ],
+                  }),
+              }
+            )
+
+          sent =
+            response.ok
+
+          if (
+            !response.ok
+          ) {
+            console.error(
+              "GHL owner candidates notify failed",
+              ownerLeadId,
+              response.status
+            )
+          }
+        } catch (
+          webhookError
+        ) {
+          console.error(
+            "GHL owner candidates webhook error",
+            ownerLeadId,
+            webhookError
+          )
+        }
+      }
+
+      ownerNotifications.push({
+        owner_lead_id:
+          ownerLeadId,
+
+        candidates_url:
+          candidatesUrl,
+
+        candidate_count:
+          currentCandidates.length,
+
+        sent,
+      })
+    }
+
+    // =========================================================
+    // 8. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -528,6 +890,18 @@ export async function POST(
 
       match_ids:
         matchIds,
+
+      owners_ready:
+        ownerLeadIds.length,
+
+      owners_notified:
+        ownerNotifications.filter(
+          (item) =>
+            item.sent
+        ).length,
+
+      owner_notifications:
+        ownerNotifications,
     })
   } catch (error) {
     console.error(
