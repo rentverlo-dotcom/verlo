@@ -1,8 +1,13 @@
 "use client"
 
 import { FormEvent, useState, type ReactNode } from "react"
-import { useParams, useRouter } from "next/navigation"
+import {
+  useParams,
+  useRouter,
+  useSearchParams,
+} from "next/navigation"
 import VerloBrand from "@/components/VerloBrand"
+
 const CONTACT_HREF =
   "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
@@ -46,7 +51,16 @@ const guaranteeOptions = [
 export default function TenantValidationPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
   const token = String(params.token || "")
+
+  const matchIds = String(
+    searchParams.get("matches") || ""
+  )
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
 
   const [documentNumber, setDocumentNumber] = useState("")
   const [employmentStatus, setEmploymentStatus] = useState("")
@@ -63,39 +77,58 @@ export default function TenantValidationPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  async function uploadDocument(docType: DocType, file: File) {
-    const presignResponse = await fetch("/api/tenant-verification/presign", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        token,
-        docType,
-        filename: file.name,
-        contentType: file.type || "application/octet-stream",
-      }),
-    })
+  async function uploadDocument(
+    docType: DocType,
+    file: File
+  ) {
+    const presignResponse = await fetch(
+      "/api/tenant-document-upload",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          docType,
+          filename: file.name,
+          contentType:
+            file.type || "application/octet-stream",
+        }),
+      }
+    )
 
     const presignData = await presignResponse.json()
 
-    if (!presignResponse.ok) {
-      throw new Error(presignData?.error || "No se pudo preparar la subida")
+    if (
+      !presignResponse.ok ||
+      !presignData?.ok
+    ) {
+      throw new Error(
+        presignData?.error ||
+          "No se pudo preparar la subida"
+      )
     }
 
-    const uploadResponse = await fetch(presignData.signedUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": file.type || "application/octet-stream",
-      },
-      body: file,
-    })
+    const uploadResponse = await fetch(
+      presignData.upload_url,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type":
+            file.type || "application/octet-stream",
+        },
+        body: file,
+      }
+    )
 
     if (!uploadResponse.ok) {
-      throw new Error(`Falló la subida de ${file.name}`)
+      throw new Error(
+        `Falló la subida de ${file.name}`
+      )
     }
 
-    return presignData.path as string
+    return presignData.key as string
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -105,18 +138,33 @@ export default function TenantValidationPage() {
     setError("")
 
     try {
+      if (matchIds.length === 0) {
+        throw new Error(
+          "No hay propiedades seleccionadas."
+        )
+      }
+
       const documents: UploadedDocs = {}
 
       if (dniFront) {
-        documents.dni_front = await uploadDocument("dni_front", dniFront)
+        documents.dni_front = await uploadDocument(
+          "dni_front",
+          dniFront
+        )
       }
 
       if (dniBack) {
-        documents.dni_back = await uploadDocument("dni_back", dniBack)
+        documents.dni_back = await uploadDocument(
+          "dni_back",
+          dniBack
+        )
       }
 
       if (selfie) {
-        documents.selfie = await uploadDocument("selfie", selfie)
+        documents.selfie = await uploadDocument(
+          "selfie",
+          selfie
+        )
       }
 
       if (incomeProof) {
@@ -140,6 +188,7 @@ export default function TenantValidationPage() {
         },
         body: JSON.stringify({
           token,
+          match_ids: matchIds,
           document_number: documentNumber,
           employment_status: employmentStatus,
           income_range: incomeRange,
@@ -152,12 +201,21 @@ export default function TenantValidationPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data?.error || "No se pudo guardar la validación")
+        throw new Error(
+          data?.error ||
+            "No se pudo guardar la validación"
+        )
       }
 
-      router.push(`/tenant/validacion/${token}/success`)
+      router.push(
+        `/tenant/validacion/${token}/success`
+      )
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error inesperado")
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Error inesperado"
+      )
     } finally {
       setLoading(false)
     }
@@ -174,9 +232,13 @@ export default function TenantValidationPage() {
           <div className="nav-links">
             <a href="/">Inicio</a>
             <a href="#datos">Datos</a>
-           <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
-  Contacto
-</a>
+            <a
+              href={CONTACT_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Contacto
+            </a>
             <a href="#formulario" className="nav-cta">
               Validar
             </a>
@@ -189,12 +251,15 @@ export default function TenantValidationPage() {
           <div>
             <p className="eyebrow">Inquilinos / Verlo</p>
 
-            <h1>Validá tu perfil para avanzar con propietarios compatibles.</h1>
+            <h1>
+              Validá tu perfil para avanzar con propietarios
+              compatibles.
+            </h1>
 
             <p className="hero-copy">
-              Esta información no se publica. La usamos para presentarte mejor
-              ante propietarios y ordenar el proceso antes de una visita o
-              contrato.
+              Esta información no se publica. La usamos para
+              presentarte mejor ante propietarios y ordenar el
+              proceso antes de una visita o contrato.
             </p>
 
             <div className="hero-actions">
@@ -243,8 +308,8 @@ export default function TenantValidationPage() {
             </div>
 
             <div className="hero-note">
-              Cuanto más claro esté tu perfil, más fácil es avanzar con un
-              propietario sin perder tiempo.
+              Cuanto más claro esté tu perfil, más fácil es
+              avanzar con un propietario sin perder tiempo.
             </div>
           </aside>
         </div>
@@ -256,8 +321,9 @@ export default function TenantValidationPage() {
             <p className="eyebrow">Qué validamos</p>
             <h2>Datos mínimos para presentarte bien.</h2>
             <p>
-              Verlo no comparte documentos sensibles de entrada. Primero ordena
-              el perfil y después acompaña el avance con el propietario.
+              Verlo no comparte documentos sensibles de entrada.
+              Primero ordena el perfil y después acompaña el avance
+              con el propietario.
             </p>
           </div>
 
@@ -265,54 +331,74 @@ export default function TenantValidationPage() {
             <article>
               <b>1</b>
               <h3>Identidad</h3>
-              <p>DNI frente, dorso y selfie para validar que sos una persona real.</p>
+              <p>
+                DNI frente, dorso y selfie para validar que sos una
+                persona real.
+              </p>
             </article>
 
             <article>
               <b>2</b>
               <h3>Ingresos</h3>
-              <p>Situación laboral, rango de ingresos y comprobante disponible.</p>
+              <p>
+                Situación laboral, rango de ingresos y comprobante
+                disponible.
+              </p>
             </article>
 
             <article>
               <b>3</b>
               <h3>Garantía</h3>
-              <p>Garantía propietaria, seguro de caución, recibos o aval familiar.</p>
+              <p>
+                Garantía propietaria, seguro de caución, recibos o
+                aval familiar.
+              </p>
             </article>
 
             <article>
               <b>4</b>
               <h3>Presentación</h3>
-              <p>Ordenamos tu perfil para avanzar con propietarios compatibles.</p>
+              <p>
+                Ordenamos tu perfil para avanzar con propietarios
+                compatibles.
+              </p>
             </article>
           </div>
         </div>
       </section>
 
-      <section id="formulario" className="section form-section">
+      <section
+        id="formulario"
+        className="section form-section"
+      >
         <div className="container form-grid">
           <div>
             <p className="eyebrow">Validación tenant</p>
             <h2>Completá tu perfil antes de avanzar</h2>
             <p>
-              Estos datos ayudan a que Verlo pueda presentarte de forma seria y
-              ordenada ante propietarios compatibles.
+              Estos datos ayudan a que Verlo pueda presentarte de
+              forma seria y ordenada ante propietarios compatibles.
             </p>
 
             <div className="promise-card">
               <strong>Tu documentación queda privada</strong>
               <span>
-                No se publica abierta. La usa Verlo para validar el perfil y
-                coordinar el avance con mayor confianza.
+                No se publica abierta. La usa Verlo para validar el
+                perfil y coordinar el avance con mayor confianza.
               </span>
             </div>
           </div>
 
-          <form className="tenant-form" onSubmit={handleSubmit}>
+          <form
+            className="tenant-form"
+            onSubmit={handleSubmit}
+          >
             <Field label="DNI / documento">
               <input
                 value={documentNumber}
-                onChange={(event) => setDocumentNumber(event.target.value)}
+                onChange={(event) =>
+                  setDocumentNumber(event.target.value)
+                }
                 placeholder="Ej: 30123456"
                 required
               />
@@ -322,12 +408,15 @@ export default function TenantValidationPage() {
               <Field label="Situación laboral">
                 <select
                   value={employmentStatus}
-                  onChange={(event) => setEmploymentStatus(event.target.value)}
+                  onChange={(event) =>
+                    setEmploymentStatus(event.target.value)
+                  }
                   required
                 >
                   <option value="" disabled>
                     Elegí una opción
                   </option>
+
                   {employmentOptions.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -339,12 +428,15 @@ export default function TenantValidationPage() {
               <Field label="Rango de ingresos">
                 <select
                   value={incomeRange}
-                  onChange={(event) => setIncomeRange(event.target.value)}
+                  onChange={(event) =>
+                    setIncomeRange(event.target.value)
+                  }
                   required
                 >
                   <option value="" disabled>
                     Elegí una opción
                   </option>
+
                   {incomeOptions.map((item) => (
                     <option key={item} value={item}>
                       {item}
@@ -357,12 +449,15 @@ export default function TenantValidationPage() {
             <Field label="Garantía / respaldo">
               <select
                 value={guaranteeType}
-                onChange={(event) => setGuaranteeType(event.target.value)}
+                onChange={(event) =>
+                  setGuaranteeType(event.target.value)
+                }
                 required
               >
                 <option value="" disabled>
                   Elegí una opción
                 </option>
+
                 {guaranteeOptions.map((item) => (
                   <option key={item} value={item}>
                     {item}
@@ -409,21 +504,30 @@ export default function TenantValidationPage() {
             <Field label="Notas adicionales">
               <textarea
                 value={moveNotes}
-                onChange={(event) => setMoveNotes(event.target.value)}
+                onChange={(event) =>
+                  setMoveNotes(event.target.value)
+                }
                 placeholder="Ej: fecha ideal de mudanza, si tenés mascotas, quién viviría en la propiedad, aclaraciones de garantía, etc."
                 rows={4}
               />
             </Field>
 
-            {error ? <p className="form-message error">{error}</p> : null}
+            {error ? (
+              <p className="form-message error">{error}</p>
+            ) : null}
 
-            <button type="submit" disabled={loading}>
-              {loading ? "Enviando..." : "Enviar validación"}
+            <button
+              type="submit"
+              disabled={loading}
+            >
+              {loading
+                ? "Enviando..."
+                : "Enviar validación"}
             </button>
 
             <p className="upload-note">
-              La carga puede tardar si los archivos son pesados. No cierres esta
-              pantalla hasta terminar.
+              La carga puede tardar si los archivos son pesados. No
+              cierres esta pantalla hasta terminar.
             </p>
           </form>
         </div>
@@ -433,15 +537,23 @@ export default function TenantValidationPage() {
         <div className="container footer-inner">
           <div className="footer-brand">
             <VerloBrand width={86} />
-            <p>Alquiler directo, seguro y sin comisión.</p>
+            <p>
+              Alquiler directo, seguro y sin comisión.
+            </p>
           </div>
 
           <nav className="footer-links">
             <a href="/">Inicio</a>
             <a href="/propietarios">Propietarios</a>
-            <a href="/terminos">Términos y condiciones</a>
-            <a href="/privacidad">Política de privacidad</a>
-            <a href="mailto:hola@verlo.lat">Contacto</a>
+            <a href="/terminos">
+              Términos y condiciones
+            </a>
+            <a href="/privacidad">
+              Política de privacidad
+            </a>
+            <a href="mailto:hola@verlo.lat">
+              Contacto
+            </a>
           </nav>
         </div>
       </footer>
@@ -483,12 +595,15 @@ function FileField({
         type="file"
         accept="image/jpeg,image/png,image/webp,application/pdf"
         required={required}
-        onChange={(event) => setFile(event.target.files?.[0] || null)}
+        onChange={(event) =>
+          setFile(event.target.files?.[0] || null)
+        }
       />
 
       {file ? (
         <small>
-          {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
+          {file.name} ·{" "}
+          {(file.size / 1024 / 1024).toFixed(2)} MB
         </small>
       ) : (
         <small>JPG, PNG, WEBP o PDF</small>
