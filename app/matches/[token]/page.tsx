@@ -765,13 +765,6 @@ function Styles() {
         padding: 30px 24px 80px;
       }
 
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 70px;
-      }
-
       .count {
         font-size: 12px;
         font-weight: 800;
