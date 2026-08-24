@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { randomBytes } from "crypto"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -14,6 +15,10 @@ function normalizePhone(value: unknown) {
 
 function firstName(value: unknown) {
   return clean(value).split(/\s+/)[0] || ""
+}
+
+function generateToken() {
+  return randomBytes(32).toString("hex")
 }
 
 export async function POST(
@@ -284,8 +289,236 @@ export async function POST(
       ready &&
       !match.ready_to_connect_at
 
+    let contractId: string | null = null
+    let tenantClosingToken: string | null = null
+    let ownerClosingToken: string | null = null
+
     // =========================================================
-    // 5. DOBLE OK
+    // 5. CREAR / REUTILIZAR CIERRE
+    //
+    // CUANDO EXISTE DOBLE OK:
+    // - lead_contracts
+    // - token tenant
+    // - token owner
+    // =========================================================
+
+    if (ready) {
+      const {
+        data: existingContract,
+        error: existingContractError,
+      } = await supabase
+        .from("lead_contracts")
+        .select("id")
+        .eq(
+          "lead_match_id",
+          match.id
+        )
+        .maybeSingle()
+
+      if (existingContractError) {
+        throw new Error(
+          existingContractError.message
+        )
+      }
+
+      if (existingContract) {
+        contractId =
+          existingContract.id
+      } else {
+        const {
+          data: newContract,
+          error: contractError,
+        } = await supabase
+          .from("lead_contracts")
+          .insert({
+            lead_match_id:
+              match.id,
+
+            tenant_lead_id:
+              match.tenant_lead_id,
+
+            owner_lead_id:
+              match.owner_lead_id,
+
+            status:
+              "draft",
+          })
+          .select("id")
+          .single()
+
+        if (
+          contractError ||
+          !newContract
+        ) {
+          throw new Error(
+            contractError?.message ||
+              "Could not create lead contract"
+          )
+        }
+
+        contractId =
+          newContract.id
+      }
+
+      // =======================================================
+      // 5A. TOKEN TENANT
+      // =======================================================
+
+      const {
+        data: existingTenantToken,
+        error: tenantTokenLookupError,
+      } = await supabase
+        .from(
+          "lead_contract_access_tokens"
+        )
+        .select(`
+          token,
+          revoked_at
+        `)
+        .eq(
+          "contract_id",
+          contractId
+        )
+        .eq(
+          "role",
+          "tenant"
+        )
+        .maybeSingle()
+
+      if (tenantTokenLookupError) {
+        throw new Error(
+          tenantTokenLookupError.message
+        )
+      }
+
+      if (
+        existingTenantToken &&
+        !existingTenantToken.revoked_at
+      ) {
+        tenantClosingToken =
+          existingTenantToken.token
+      } else if (
+        !existingTenantToken
+      ) {
+        tenantClosingToken =
+          generateToken()
+
+        const {
+          error:
+            tenantTokenInsertError,
+        } = await supabase
+          .from(
+            "lead_contract_access_tokens"
+          )
+          .insert({
+            contract_id:
+              contractId,
+
+            lead_id:
+              match.tenant_lead_id,
+
+            role:
+              "tenant",
+
+            token:
+              tenantClosingToken,
+          })
+
+        if (
+          tenantTokenInsertError
+        ) {
+          throw new Error(
+            tenantTokenInsertError.message
+          )
+        }
+      }
+
+      // =======================================================
+      // 5B. TOKEN OWNER
+      // =======================================================
+
+      const {
+        data: existingOwnerToken,
+        error: ownerTokenLookupError,
+      } = await supabase
+        .from(
+          "lead_contract_access_tokens"
+        )
+        .select(`
+          token,
+          revoked_at
+        `)
+        .eq(
+          "contract_id",
+          contractId
+        )
+        .eq(
+          "role",
+          "owner"
+        )
+        .maybeSingle()
+
+      if (ownerTokenLookupError) {
+        throw new Error(
+          ownerTokenLookupError.message
+        )
+      }
+
+      if (
+        existingOwnerToken &&
+        !existingOwnerToken.revoked_at
+      ) {
+        ownerClosingToken =
+          existingOwnerToken.token
+      } else if (
+        !existingOwnerToken
+      ) {
+        ownerClosingToken =
+          generateToken()
+
+        const {
+          error:
+            ownerTokenInsertError,
+        } = await supabase
+          .from(
+            "lead_contract_access_tokens"
+          )
+          .insert({
+            contract_id:
+              contractId,
+
+            lead_id:
+              match.owner_lead_id,
+
+            role:
+              "owner",
+
+            token:
+              ownerClosingToken,
+          })
+
+        if (
+          ownerTokenInsertError
+        ) {
+          throw new Error(
+            ownerTokenInsertError.message
+          )
+        }
+      }
+    }
+
+    const tenantClosingUrl =
+      tenantClosingToken
+        ? `https://verlo.lat/cierre/${tenantClosingToken}`
+        : null
+
+    const ownerClosingUrl =
+      ownerClosingToken
+        ? `https://verlo.lat/cierre/${ownerClosingToken}`
+        : null
+
+    // =========================================================
+    // 6. DOBLE OK
     //
     // SOLO LA PRIMERA VEZ:
     // BUSCAMOS TENANT + OWNER Y MANDAMOS
@@ -386,6 +619,15 @@ export async function POST(
 
             ready_to_connect_at:
               now,
+
+            contract_id:
+              contractId,
+
+            closing_token:
+              tenantClosingToken,
+
+            closing_url:
+              tenantClosingUrl,
           }
 
           const ownerPayload = {
@@ -431,10 +673,19 @@ export async function POST(
 
             ready_to_connect_at:
               now,
+
+            contract_id:
+              contractId,
+
+            closing_token:
+              ownerClosingToken,
+
+            closing_url:
+              ownerClosingUrl,
           }
 
           // ===================================================
-          // 5A. WHATSAPP AL TENANT
+          // 6A. WHATSAPP AL TENANT
           // ===================================================
 
           try {
@@ -474,7 +725,7 @@ export async function POST(
           }
 
           // ===================================================
-          // 5B. WHATSAPP AL OWNER
+          // 6B. WHATSAPP AL OWNER
           // ===================================================
 
           try {
@@ -528,7 +779,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 6. RESPONSE
+    // 7. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -551,6 +802,15 @@ export async function POST(
 
       became_ready:
         becameReady,
+
+      contract_id:
+        contractId,
+
+      tenant_closing_url:
+        tenantClosingUrl,
+
+      owner_closing_url:
+        ownerClosingUrl,
     })
   } catch (error) {
     console.error(
@@ -562,7 +822,9 @@ export async function POST(
       {
         ok: false,
         error:
-          "Unexpected server error",
+          error instanceof Error
+            ? error.message
+            : "Unexpected server error",
       },
       {
         status: 500,
