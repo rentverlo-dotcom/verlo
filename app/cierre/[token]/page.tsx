@@ -26,23 +26,34 @@ type ClosingData = {
     start_date: string | null
     end_date: string | null
     adjustment_method: string | null
+
     terms: {
       expenses?: string
       services?: string
       special_conditions?: string
     }
+
     content: string | null
+
     tenant_agreed: boolean
     owner_agreed: boolean
-    tenant_agreed_at: string | null
-    owner_agreed_at: string | null
+
+    tenant_agreed_at:
+      | string
+      | null
+
+    owner_agreed_at:
+      | string
+      | null
   }
 
   match: {
     id: string
     score: number
     status: string
-    ready_to_connect_at: string | null
+    ready_to_connect_at:
+      | string
+      | null
   }
 
   tenant: {
@@ -60,18 +71,53 @@ type ClosingData = {
   }
 
   property: {
-    address: string | null
-    floor_unit: string | null
-    neighborhood: string | null
-    property_type: string | null
-    rooms: string | null
-    approx_price: string | null
-    approx_price_number: number | null
-    expenses_amount: number | null
-    availability_status: string | null
-    requirements: string | null
-    visit_conditions: string | null
-    notes: string | null
+    address:
+      | string
+      | null
+
+    floor_unit:
+      | string
+      | null
+
+    neighborhood:
+      | string
+      | null
+
+    property_type:
+      | string
+      | null
+
+    rooms:
+      | string
+      | null
+
+    approx_price:
+      | string
+      | null
+
+    approx_price_number:
+      | number
+      | null
+
+    expenses_amount:
+      | number
+      | null
+
+    availability_status:
+      | string
+      | null
+
+    requirements:
+      | string
+      | null
+
+    visit_conditions:
+      | string
+      | null
+
+    notes:
+      | string
+      | null
   }
 }
 
@@ -109,14 +155,26 @@ function money(
 function humanize(
   value: string | null
 ) {
-  if (!value) return "—"
+  if (!value) {
+    return "—"
+  }
 
   const dictionary:
-    Record<string, string> = {
-      apartment: "Departamento",
-      house: "Casa",
-      ph: "PH",
-      studio: "Monoambiente",
+    Record<
+      string,
+      string
+    > = {
+      apartment:
+        "Departamento",
+
+      house:
+        "Casa",
+
+      ph:
+        "PH",
+
+      studio:
+        "Monoambiente",
     }
 
   return (
@@ -127,6 +185,25 @@ function humanize(
   )
 }
 
+function formatDate(
+  value: string | null
+) {
+  if (!value) {
+    return "—"
+  }
+
+  const parts =
+    value.split("-")
+
+  if (
+    parts.length === 3
+  ) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`
+  }
+
+  return value
+}
+
 export default function ClosingPage() {
   const params =
     useParams<{
@@ -135,16 +212,17 @@ export default function ClosingPage() {
 
   const token =
     String(
-      params?.token || ""
+      params?.token ||
+        ""
     )
 
   const [
     data,
     setData,
   ] =
-    useState<ClosingData | null>(
-      null
-    )
+    useState<
+      ClosingData | null
+    >(null)
 
   const [
     loading,
@@ -171,25 +249,59 @@ export default function ClosingPage() {
     useState(false)
 
   const [
+    accepting,
+    setAccepting,
+  ] =
+    useState(false)
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] =
+    useState("")
+
+  const [
     form,
     setForm,
   ] =
     useState<FormState>({
-      monthly_price: "",
-      deposit: "",
-      start_date: "",
-      end_date: "",
-      adjustment_method: "",
-      expenses: "",
-      services: "",
-      special_conditions: "",
+      monthly_price:
+        "",
+
+      deposit:
+        "",
+
+      start_date:
+        "",
+
+      end_date:
+        "",
+
+      adjustment_method:
+        "",
+
+      expenses:
+        "",
+
+      services:
+        "",
+
+      special_conditions:
+        "",
     })
 
-  async function load() {
-    if (!token) return
+  async function load(
+    showLoader = true
+  ) {
+    if (!token) {
+      return
+    }
 
     try {
-      setLoading(true)
+      if (showLoader) {
+        setLoading(true)
+      }
+
       setError("")
 
       const response =
@@ -198,7 +310,8 @@ export default function ClosingPage() {
             token
           )}`,
           {
-            cache: "no-store",
+            cache:
+              "no-store",
           }
         )
 
@@ -220,7 +333,8 @@ export default function ClosingPage() {
       setForm({
         monthly_price:
           json.contract
-            .monthly_price !== null
+            .monthly_price !==
+          null
             ? String(
                 json.contract
                   .monthly_price
@@ -228,7 +342,8 @@ export default function ClosingPage() {
             : "",
 
         deposit:
-          json.contract.deposit !==
+          json.contract
+            .deposit !==
           null
             ? String(
                 json.contract
@@ -238,10 +353,12 @@ export default function ClosingPage() {
 
         start_date:
           json.contract
-            .start_date || "",
+            .start_date ||
+          "",
 
         end_date:
-          json.contract.end_date ||
+          json.contract
+            .end_date ||
           "",
 
         adjustment_method:
@@ -250,26 +367,34 @@ export default function ClosingPage() {
           "",
 
         expenses:
-          json.contract.terms
-            ?.expenses || "",
+          json.contract
+            .terms
+            ?.expenses ||
+          "",
 
         services:
-          json.contract.terms
-            ?.services || "",
+          json.contract
+            .terms
+            ?.services ||
+          "",
 
         special_conditions:
-          json.contract.terms
+          json.contract
+            .terms
             ?.special_conditions ||
           "",
       })
     } catch (err) {
       setError(
-        err instanceof Error
+        err instanceof
+          Error
           ? err.message
           : "No pudimos abrir este cierre."
       )
     } finally {
-      setLoading(false)
+      if (showLoader) {
+        setLoading(false)
+      }
     }
   }
 
@@ -283,15 +408,21 @@ export default function ClosingPage() {
 
   const counterpart =
     useMemo(() => {
-      if (!data) return null
+      if (!data) {
+        return null
+      }
 
       return isOwner
         ? data.tenant
         : data.owner
-    }, [data, isOwner])
+    }, [
+      data,
+      isOwner,
+    ])
 
   function updateField(
-    field: keyof FormState,
+    field:
+      keyof FormState,
     value: string
   ) {
     setForm(
@@ -303,56 +434,60 @@ export default function ClosingPage() {
   }
 
   async function generateContract(
-    event: FormEvent
+    event:
+      FormEvent
   ) {
     event.preventDefault()
 
     try {
       setGenerating(true)
       setError("")
+      setSuccessMessage("")
 
       const response =
         await fetch(
           "/api/closing-generate",
           {
-            method: "POST",
+            method:
+              "POST",
 
             headers: {
               "Content-Type":
                 "application/json",
             },
 
-            body: JSON.stringify({
-              token,
+            body:
+              JSON.stringify({
+                token,
 
-              monthly_price:
-                Number(
-                  form.monthly_price
-                ),
+                monthly_price:
+                  Number(
+                    form.monthly_price
+                  ),
 
-              deposit:
-                Number(
-                  form.deposit
-                ),
+                deposit:
+                  Number(
+                    form.deposit
+                  ),
 
-              start_date:
-                form.start_date,
+                start_date:
+                  form.start_date,
 
-              end_date:
-                form.end_date,
+                end_date:
+                  form.end_date,
 
-              adjustment_method:
-                form.adjustment_method,
+                adjustment_method:
+                  form.adjustment_method,
 
-              expenses:
-                form.expenses,
+                expenses:
+                  form.expenses,
 
-              services:
-                form.services,
+                services:
+                  form.services,
 
-              special_conditions:
-                form.special_conditions,
-            }),
+                special_conditions:
+                  form.special_conditions,
+              }),
           }
         )
 
@@ -369,18 +504,121 @@ export default function ClosingPage() {
         )
       }
 
-      setShowForm(false)
+      setShowForm(
+        false
+      )
 
-      await load()
+      setSuccessMessage(
+        "El contrato fue generado. Revisalo antes de confirmar."
+      )
+
+      await load(false)
     } catch (err) {
       setError(
-        err instanceof Error
+        err instanceof
+          Error
           ? err.message
           : "No pudimos generar el contrato."
       )
     } finally {
-      setGenerating(false)
+      setGenerating(
+        false
+      )
     }
+  }
+
+  async function agreeContract() {
+    if (!data) {
+      return
+    }
+
+    const alreadyAgreed =
+      data.viewer.role ===
+      "tenant"
+        ? data.contract
+            .tenant_agreed
+        : data.contract
+            .owner_agreed
+
+    if (alreadyAgreed) {
+      return
+    }
+
+    const confirmed =
+      window.confirm(
+        "¿Confirmás que leíste el contrato y estás de acuerdo con esta versión?"
+      )
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setAccepting(true)
+      setError("")
+      setSuccessMessage("")
+
+      const response =
+        await fetch(
+          "/api/closing-agree",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                token,
+              }),
+          }
+        )
+
+      const json =
+        await response.json()
+
+      if (
+        !response.ok ||
+        !json?.ok
+      ) {
+        throw new Error(
+          json?.error ||
+            "No pudimos registrar tu aceptación."
+        )
+      }
+
+      await load(false)
+
+      if (
+        json.both_agreed
+      ) {
+        setSuccessMessage(
+          "Listo. Las dos partes aceptaron el contrato y el alquiler quedó cerrado en Verlo."
+        )
+      } else {
+        setSuccessMessage(
+          "Tu aceptación quedó registrada. Falta la confirmación de la otra parte."
+        )
+      }
+    } catch (err) {
+      setError(
+        err instanceof
+          Error
+          ? err.message
+          : "No pudimos registrar tu aceptación."
+      )
+    } finally {
+      setAccepting(
+        false
+      )
+    }
+  }
+
+  function printContract() {
+    window.print()
   }
 
   if (loading) {
@@ -390,8 +628,9 @@ export default function ClosingPage() {
           <VerloBrand />
 
           <p>
-            Cargando tu espacio
-            de cierre...
+            Cargando tu
+            espacio de
+            cierre...
           </p>
         </main>
 
@@ -410,8 +649,9 @@ export default function ClosingPage() {
           <VerloBrand />
 
           <h1>
-            No pudimos abrir
-            este cierre.
+            No pudimos
+            abrir este
+            cierre.
           </h1>
 
           <p>
@@ -443,65 +683,149 @@ export default function ClosingPage() {
     data.contract
       .owner_agreed
 
+  const viewerAgreed =
+    data.viewer.role ===
+    "tenant"
+      ? data.contract
+          .tenant_agreed
+      : data.contract
+          .owner_agreed
+
+  const otherAgreed =
+    data.viewer.role ===
+    "tenant"
+      ? data.contract
+          .owner_agreed
+      : data.contract
+          .tenant_agreed
+
+  const contractLocked =
+    data.contract.status ===
+    "agreed"
+
   return (
     <>
       <main className="closing-page">
-        <header className="closing-header">
+        <header className="closing-header no-print">
           <div className="closing-header-inner">
             <VerloBrand />
 
-            <span className="status-pill">
-              DOBLE OK
+            <span
+              className={
+                bothAgreed
+                  ? "status-pill completed"
+                  : "status-pill"
+              }
+            >
+              {bothAgreed
+                ? "ALQUILER CERRADO"
+                : "DOBLE OK"}
             </span>
           </div>
         </header>
 
-        <section className="closing-hero">
+        <section className="closing-hero no-print">
           <span className="eyebrow">
             ESPACIO DE CIERRE
           </span>
 
-          <h1>
-            Coincidieron.
-            <br />
+          {bothAgreed ? (
+            <>
+              <h1>
+                Alquiler
+                cerrado.
+                <br />
 
-            <em>
-              Ahora cierren
-              el alquiler.
-            </em>
-          </h1>
+                <em>
+                  Acuerdo
+                  confirmado.
+                </em>
+              </h1>
 
-          <p>
-            Ya hubo acuerdo para
-            avanzar. Desde acá
-            pueden completar las
-            condiciones finales y
-            generar el contrato.
-          </p>
+              <p>
+                Las dos partes
+                aceptaron esta
+                versión del
+                contrato. El
+                cierre quedó
+                registrado en
+                Verlo.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1>
+                Coincidieron.
+                <br />
+
+                <em>
+                  Ahora cierren
+                  el alquiler.
+                </em>
+              </h1>
+
+              <p>
+                Ya hubo acuerdo
+                para avanzar.
+                Desde acá pueden
+                completar las
+                condiciones
+                finales, revisar
+                el contrato y
+                confirmar el
+                acuerdo.
+              </p>
+            </>
+          )}
         </section>
 
         <section className="closing-layout">
           <div className="closing-main">
-            <article className="verlo-card success-card">
-              <span className="card-kicker">
-                MATCH CONFIRMADO
-              </span>
+            {bothAgreed ? (
+              <article className="verlo-card final-card no-print">
+                <span className="card-kicker">
+                  CIERRE COMPLETADO
+                </span>
 
-              <h2>
-                Los dos quieren
-                avanzar.
-              </h2>
+                <h2>
+                  El alquiler quedó
+                  cerrado.
+                </h2>
 
-              <p>
-                Verlo habilitó los
-                datos de contacto y
-                este espacio privado
-                para cerrar el
-                alquiler.
-              </p>
-            </article>
+                <p>
+                  El propietario y
+                  el inquilino
+                  confirmaron el
+                  mismo contrato.
+                  Podés volver a
+                  este enlace para
+                  consultar el
+                  documento.
+                </p>
+              </article>
+            ) : (
+              <article className="verlo-card success-card no-print">
+                <span className="card-kicker">
+                  MATCH CONFIRMADO
+                </span>
 
-            <article className="verlo-card">
+                <h2>
+                  Los dos quieren
+                  avanzar.
+                </h2>
+
+                <p>
+                  Verlo habilitó
+                  los datos de
+                  contacto y este
+                  espacio privado
+                  para cerrar el
+                  alquiler.
+                </p>
+              </article>
+            )}
+
+            <article className="verlo-card no-print">
               <span className="card-kicker">
                 LA OTRA PARTE
               </span>
@@ -545,7 +869,7 @@ export default function ClosingPage() {
               </div>
             </article>
 
-            <article className="verlo-card">
+            <article className="verlo-card no-print">
               <span className="card-kicker">
                 PROPIEDAD
               </span>
@@ -633,7 +957,7 @@ export default function ClosingPage() {
             </article>
 
             <article className="verlo-card contract-card">
-              <div className="contract-heading">
+              <div className="contract-heading no-print">
                 <div>
                   <span className="card-kicker">
                     CONTRATO
@@ -641,250 +965,274 @@ export default function ClosingPage() {
 
                   <h2>
                     {contractGenerated
-                      ? "Contrato generado"
+                      ? "Contrato del alquiler"
                       : "Armen el acuerdo final"}
                   </h2>
 
                   <p>
                     {contractGenerated
-                      ? "Este documento refleja las condiciones cargadas para este alquiler."
+                      ? contractLocked
+                        ? "Esta es la versión final aceptada por las dos partes."
+                        : "Revisá el documento completo antes de confirmar."
                       : "Completá las condiciones finales. Verlo genera el contrato a partir de esos datos."}
                   </p>
                 </div>
 
-                {!showForm && (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() =>
-                      setShowForm(
-                        true
-                      )
-                    }
-                  >
-                    {contractGenerated
-                      ? "EDITAR CONDICIONES"
-                      : "ARMAR CONTRATO"}
-                  </button>
-                )}
-              </div>
-
-              {showForm && (
-                <form
-                  className="contract-form"
-                  onSubmit={
-                    generateContract
-                  }
-                >
-                  <div className="form-section">
-                    <h3>
-                      Condiciones económicas
-                    </h3>
-
-                    <div className="form-grid">
-                      <Field
-                        label="Alquiler mensual"
-                        type="number"
-                        value={
-                          form.monthly_price
-                        }
-                        placeholder="Ej. 850000"
-                        required
-                        onChange={value =>
-                          updateField(
-                            "monthly_price",
-                            value
-                          )
-                        }
-                      />
-
-                      <Field
-                        label="Depósito"
-                        type="number"
-                        value={
-                          form.deposit
-                        }
-                        placeholder="Ej. 850000"
-                        required
-                        onChange={value =>
-                          updateField(
-                            "deposit",
-                            value
-                          )
-                        }
-                      />
-
-                      <Field
-                        label="Fecha de inicio"
-                        type="date"
-                        value={
-                          form.start_date
-                        }
-                        required
-                        onChange={value =>
-                          updateField(
-                            "start_date",
-                            value
-                          )
-                        }
-                      />
-
-                      <Field
-                        label="Fecha de finalización"
-                        type="date"
-                        value={
-                          form.end_date
-                        }
-                        required
-                        onChange={value =>
-                          updateField(
-                            "end_date",
-                            value
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-section">
-                    <h3>
-                      Actualización
-                    </h3>
-
-                    <label className="field">
-                      <span>
-                        Mecanismo de
-                        actualización
-                      </span>
-
-                      <textarea
-                        value={
-                          form.adjustment_method
-                        }
-                        onChange={event =>
-                          updateField(
-                            "adjustment_method",
-                            event
-                              .target
-                              .value
-                          )
-                        }
-                        placeholder="Ej. actualización trimestral según IPC."
-                        required
-                      />
-                    </label>
-                  </div>
-
-                  <div className="form-section">
-                    <h3>
-                      Gastos y condiciones
-                    </h3>
-
-                    <label className="field">
-                      <span>
-                        Expensas, tasas
-                        y gastos
-                      </span>
-
-                      <textarea
-                        value={
-                          form.expenses
-                        }
-                        onChange={event =>
-                          updateField(
-                            "expenses",
-                            event
-                              .target
-                              .value
-                          )
-                        }
-                        placeholder="Indicá cómo se distribuyen las expensas y demás gastos."
-                      />
-                    </label>
-
-                    <label className="field">
-                      <span>
-                        Servicios
-                      </span>
-
-                      <textarea
-                        value={
-                          form.services
-                        }
-                        onChange={event =>
-                          updateField(
-                            "services",
-                            event
-                              .target
-                              .value
-                          )
-                        }
-                        placeholder="Ej. electricidad, gas e internet a cargo del inquilino."
-                      />
-                    </label>
-
-                    <label className="field">
-                      <span>
-                        Condiciones
-                        particulares
-                      </span>
-
-                      <textarea
-                        value={
-                          form.special_conditions
-                        }
-                        onChange={event =>
-                          updateField(
-                            "special_conditions",
-                            event
-                              .target
-                              .value
-                          )
-                        }
-                        placeholder="Cualquier condición adicional acordada entre las partes."
-                      />
-                    </label>
-                  </div>
-
-                  {error && (
-                    <div className="form-error">
-                      {error}
-                    </div>
-                  )}
-
-                  <div className="form-actions">
+                {!showForm &&
+                  !contractLocked && (
                     <button
                       type="button"
-                      className="secondary-button"
+                      className="primary-button"
                       onClick={() =>
                         setShowForm(
-                          false
+                          true
                         )
                       }
                     >
-                      CANCELAR
+                      {contractGenerated
+                        ? "EDITAR CONDICIONES"
+                        : "ARMAR CONTRATO"}
                     </button>
+                  )}
+              </div>
 
-                    <button
-                      type="submit"
-                      className="primary-button"
-                      disabled={
-                        generating
-                      }
-                    >
-                      {generating
-                        ? "GENERANDO..."
-                        : "GENERAR CONTRATO"}
-                    </button>
-                  </div>
-                </form>
+              {showForm &&
+                !contractLocked && (
+                  <form
+                    className="contract-form no-print"
+                    onSubmit={
+                      generateContract
+                    }
+                  >
+                    <div className="form-section">
+                      <h3>
+                        Condiciones
+                        económicas
+                      </h3>
+
+                      <div className="form-grid">
+                        <Field
+                          label="Alquiler mensual"
+                          type="number"
+                          value={
+                            form.monthly_price
+                          }
+                          placeholder="Ej. 850000"
+                          required
+                          onChange={value =>
+                            updateField(
+                              "monthly_price",
+                              value
+                            )
+                          }
+                        />
+
+                        <Field
+                          label="Depósito"
+                          type="number"
+                          value={
+                            form.deposit
+                          }
+                          placeholder="Ej. 850000"
+                          required
+                          onChange={value =>
+                            updateField(
+                              "deposit",
+                              value
+                            )
+                          }
+                        />
+
+                        <Field
+                          label="Fecha de inicio"
+                          type="date"
+                          value={
+                            form.start_date
+                          }
+                          required
+                          onChange={value =>
+                            updateField(
+                              "start_date",
+                              value
+                            )
+                          }
+                        />
+
+                        <Field
+                          label="Fecha de finalización"
+                          type="date"
+                          value={
+                            form.end_date
+                          }
+                          required
+                          onChange={value =>
+                            updateField(
+                              "end_date",
+                              value
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-section">
+                      <h3>
+                        Actualización
+                      </h3>
+
+                      <label className="field">
+                        <span>
+                          Mecanismo de
+                          actualización
+                        </span>
+
+                        <textarea
+                          value={
+                            form.adjustment_method
+                          }
+                          onChange={event =>
+                            updateField(
+                              "adjustment_method",
+                              event
+                                .target
+                                .value
+                            )
+                          }
+                          placeholder="Ej. actualización trimestral según IPC."
+                          required
+                        />
+                      </label>
+                    </div>
+
+                    <div className="form-section">
+                      <h3>
+                        Gastos y
+                        condiciones
+                      </h3>
+
+                      <label className="field">
+                        <span>
+                          Expensas, tasas
+                          y gastos
+                        </span>
+
+                        <textarea
+                          value={
+                            form.expenses
+                          }
+                          onChange={event =>
+                            updateField(
+                              "expenses",
+                              event
+                                .target
+                                .value
+                            )
+                          }
+                          placeholder="Indicá cómo se distribuyen las expensas y demás gastos."
+                        />
+                      </label>
+
+                      <label className="field">
+                        <span>
+                          Servicios
+                        </span>
+
+                        <textarea
+                          value={
+                            form.services
+                          }
+                          onChange={event =>
+                            updateField(
+                              "services",
+                              event
+                                .target
+                                .value
+                            )
+                          }
+                          placeholder="Ej. electricidad, gas e internet a cargo del inquilino."
+                        />
+                      </label>
+
+                      <label className="field">
+                        <span>
+                          Condiciones
+                          particulares
+                        </span>
+
+                        <textarea
+                          value={
+                            form.special_conditions
+                          }
+                          onChange={event =>
+                            updateField(
+                              "special_conditions",
+                              event
+                                .target
+                                .value
+                            )
+                          }
+                          placeholder="Cualquier condición adicional acordada entre las partes."
+                        />
+                      </label>
+                    </div>
+
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() =>
+                          setShowForm(
+                            false
+                          )
+                        }
+                      >
+                        CANCELAR
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="primary-button"
+                        disabled={
+                          generating
+                        }
+                      >
+                        {generating
+                          ? "GENERANDO..."
+                          : "GENERAR CONTRATO"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+              {error && (
+                <div className="form-error no-print">
+                  {error}
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="success-message no-print">
+                  {successMessage}
+                </div>
               )}
 
               {contractGenerated &&
                 data.contract
                   .content && (
                   <>
-                    <div className="document-shell">
+                    <div className="document-actions no-print">
+                      <button
+                        type="button"
+                        className="secondary-button print-button"
+                        onClick={
+                          printContract
+                        }
+                      >
+                        IMPRIMIR / GUARDAR PDF
+                      </button>
+                    </div>
+
+                    <div className="document-shell print-area">
                       <article className="contract-document">
                         <div className="document-brand">
                           <VerloBrand
@@ -910,15 +1258,16 @@ export default function ClosingPage() {
                         </div>
 
                         <div className="document-footer">
-                          Documento generado
-                          en Verlo
+                          Documento
+                          generado en
+                          Verlo
                         </div>
                       </article>
                     </div>
 
-                    <div className="contract-summary">
+                    <div className="contract-summary no-print">
                       <Info
-                        label="Alquiler"
+                        label="Alquiler mensual"
                         value={money(
                           data.contract
                             .monthly_price
@@ -935,28 +1284,103 @@ export default function ClosingPage() {
 
                       <Info
                         label="Inicio"
-                        value={
+                        value={formatDate(
                           data.contract
-                            .start_date ||
-                          "—"
-                        }
+                            .start_date
+                        )}
                       />
 
                       <Info
                         label="Finalización"
+                        value={formatDate(
+                          data.contract
+                            .end_date
+                        )}
+                      />
+
+                      <Info
+                        label="Actualización"
                         value={
                           data.contract
-                            .end_date ||
+                            .adjustment_method ||
                           "—"
                         }
                       />
+                    </div>
+
+                    <div className="agreement-panel no-print">
+                      {bothAgreed ? (
+                        <div className="agreement-complete">
+                          <span className="agreement-icon">
+                            ✓
+                          </span>
+
+                          <div>
+                            <strong>
+                              Contrato
+                              aceptado por
+                              las dos partes
+                            </strong>
+
+                            <p>
+                              Este alquiler
+                              quedó cerrado
+                              en Verlo.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="agreement-copy">
+                            <span className="card-kicker">
+                              TU CONFIRMACIÓN
+                            </span>
+
+                            <h3>
+                              {viewerAgreed
+                                ? "Tu aceptación ya está registrada."
+                                : "¿Estás de acuerdo con este contrato?"}
+                            </h3>
+
+                            <p>
+                              {viewerAgreed
+                                ? otherAgreed
+                                  ? "Las dos partes ya confirmaron."
+                                  : "Ahora falta que la otra parte confirme esta misma versión."
+                                : "Confirmá únicamente después de leer el documento completo. Si el contrato cambia, las aceptaciones anteriores se eliminan y ambas partes deberán confirmar nuevamente."}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            className={
+                              viewerAgreed
+                                ? "agree-button agreed"
+                                : "agree-button"
+                            }
+                            disabled={
+                              accepting ||
+                              viewerAgreed
+                            }
+                            onClick={
+                              agreeContract
+                            }
+                          >
+                            {accepting
+                              ? "REGISTRANDO..."
+                              : viewerAgreed
+                                ? "✓ YA ACEPTASTE ESTE CONTRATO"
+                                : "ESTOY DE ACUERDO CON ESTE CONTRATO"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
             </article>
           </div>
 
-          <aside className="closing-sidebar">
+          <aside className="closing-sidebar no-print">
             <div className="sidebar-card">
               <span className="card-kicker">
                 ESTADO DEL CIERRE
@@ -990,12 +1414,36 @@ export default function ClosingPage() {
                       .owner_agreed
                   }
                 />
+
+                <Step
+                  label="Alquiler cerrado"
+                  done={
+                    bothAgreed
+                  }
+                />
               </div>
+
+              {!bothAgreed &&
+                viewerAgreed && (
+                  <div className="waiting-box">
+                    <strong>
+                      Tu parte está
+                      lista
+                    </strong>
+
+                    <span>
+                      Esperamos la
+                      confirmación de
+                      la otra parte.
+                    </span>
+                  </div>
+                )}
 
               {bothAgreed && (
                 <div className="complete-box">
                   <strong>
-                    Acuerdo completado
+                    Alquiler
+                    cerrado
                   </strong>
 
                   <span>
@@ -1008,9 +1456,13 @@ export default function ClosingPage() {
 
               <p className="sidebar-note">
                 Este enlace es
-                privado y corresponde
+                privado y
+                corresponde
                 únicamente a este
-                cierre.
+                cierre. Guardalo
+                para volver a
+                consultar el
+                contrato.
               </p>
             </div>
           </aside>
@@ -1071,10 +1523,13 @@ function Field({
         placeholder={
           placeholder
         }
-        required={required}
+        required={
+          required
+        }
         onChange={event =>
           onChange(
-            event.target.value
+            event.target
+              .value
           )
         }
       />
@@ -1197,6 +1652,10 @@ function Styles() {
         font-weight: 800;
         letter-spacing:
           0.12em;
+      }
+
+      .status-pill.completed {
+        background: #ec4899;
       }
 
       .closing-hero {
@@ -1323,6 +1782,47 @@ function Styles() {
         color: #ff8bc4;
       }
 
+      .success-card p {
+        color:
+          rgba(
+            255,
+            255,
+            255,
+            0.72
+          );
+      }
+
+      .final-card {
+        background:
+          linear-gradient(
+            135deg,
+            #ec4899,
+            #ca2f77
+          );
+        color: white;
+      }
+
+      .final-card
+        .card-kicker {
+        color:
+          rgba(
+            255,
+            255,
+            255,
+            0.78
+          );
+      }
+
+      .final-card p {
+        color:
+          rgba(
+            255,
+            255,
+            255,
+            0.84
+          );
+      }
+
       .verlo-card h2 {
         margin:
           8px 0 10px;
@@ -1344,16 +1844,6 @@ function Styles() {
         line-height: 1.6;
       }
 
-      .success-card p {
-        color:
-          rgba(
-            255,
-            255,
-            255,
-            0.7
-          );
-      }
-
       .person-title {
         margin-top: 12px;
         display: flex;
@@ -1368,8 +1858,7 @@ function Styles() {
         margin-bottom: 5px;
       }
 
-      .person-title
-        span {
+      .person-title span {
         color: #8a8184;
         font-size: 14px;
       }
@@ -1456,7 +1945,8 @@ function Styles() {
       }
 
       .primary-button,
-      .secondary-button {
+      .secondary-button,
+      .agree-button {
         min-height: 48px;
         border-radius: 14px;
         padding:
@@ -1464,11 +1954,12 @@ function Styles() {
         font-size: 12px;
         font-weight: 900;
         letter-spacing:
-          0.06em;
+          0.055em;
         cursor: pointer;
         transition:
           transform 160ms ease,
-          opacity 160ms ease;
+          opacity 160ms ease,
+          box-shadow 160ms ease;
       }
 
       .primary-button {
@@ -1491,17 +1982,22 @@ function Styles() {
       }
 
       .primary-button:hover,
-      .secondary-button:hover {
+      .secondary-button:hover,
+      .agree-button:hover {
         transform:
           translateY(
             -1px
           );
       }
 
-      .primary-button:disabled {
-        opacity: 0.5;
+      button:disabled {
         cursor:
           not-allowed;
+      }
+
+      .primary-button:disabled,
+      .agree-button:disabled {
+        opacity: 0.6;
       }
 
       .contract-form {
@@ -1513,7 +2009,7 @@ function Styles() {
       }
 
       .form-section +
-        .form-section {
+      .form-section {
         margin-top: 28px;
       }
 
@@ -1542,13 +2038,14 @@ function Styles() {
         display: block;
       }
 
-      .field + .field {
+      .field +
+      .field {
         margin-top: 14px;
       }
 
       .form-grid
-        .field +
-        .field {
+      .field +
+      .field {
         margin-top: 0;
       }
 
@@ -1608,18 +2105,46 @@ function Styles() {
         gap: 10px;
       }
 
-      .form-error {
-        margin-top: 18px;
-        padding: 13px 15px;
-        border-radius: 13px;
-        background: #fff0f3;
-        color: #a51d47;
+      .form-error,
+      .success-message {
+        margin-top: 20px;
+        padding:
+          14px 16px;
+        border-radius: 14px;
         font-size: 13px;
         font-weight: 700;
+        line-height: 1.5;
+      }
+
+      .form-error {
+        background: #fff0f3;
+        color: #a51d47;
+      }
+
+      .success-message {
+        background: #fff0f7;
+        color: #a82967;
+        border:
+          1px solid
+          #ffd1e6;
+      }
+
+      .document-actions {
+        margin-top: 30px;
+        display: flex;
+        justify-content:
+          flex-end;
+      }
+
+      .print-button {
+        background: #050002;
+        color: white;
+        border-color:
+          #050002;
       }
 
       .document-shell {
-        margin-top: 30px;
+        margin-top: 18px;
         padding: 24px;
         overflow-x: auto;
         border-radius: 20px;
@@ -1627,10 +2152,11 @@ function Styles() {
       }
 
       .contract-document {
-        width: min(
-          794px,
-          100%
-        );
+        width:
+          min(
+            794px,
+            100%
+          );
         min-height: 1123px;
         margin: 0 auto;
         padding:
@@ -1703,6 +2229,88 @@ function Styles() {
         color: #9a9194;
       }
 
+      .agreement-panel {
+        margin-top: 24px;
+        padding: 24px;
+        border-radius: 20px;
+        background:
+          linear-gradient(
+            135deg,
+            #fff8fb,
+            #fff0f7
+          );
+        border:
+          1px solid
+          #ffd4e7;
+      }
+
+      .agreement-copy h3 {
+        margin:
+          8px 0 8px;
+        font-size: 24px;
+        line-height: 1.08;
+        letter-spacing:
+          -0.035em;
+      }
+
+      .agreement-copy p {
+        max-width: 680px;
+        font-size: 14px;
+      }
+
+      .agree-button {
+        width: 100%;
+        margin-top: 20px;
+        border: 0;
+        background: #ec4899;
+        color: white;
+        box-shadow:
+          0 10px 30px
+          rgba(
+            236,
+            72,
+            153,
+            0.2
+          );
+      }
+
+      .agree-button.agreed {
+        background: #050002;
+        box-shadow: none;
+      }
+
+      .agreement-complete {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .agreement-icon {
+        width: 48px;
+        height: 48px;
+        flex:
+          0 0 48px;
+        display: flex;
+        align-items: center;
+        justify-content:
+          center;
+        border-radius: 999px;
+        background: #ec4899;
+        color: white;
+        font-size: 22px;
+        font-weight: 900;
+      }
+
+      .agreement-complete strong {
+        display: block;
+        font-size: 18px;
+      }
+
+      .agreement-complete p {
+        margin-top: 4px;
+        font-size: 13px;
+      }
+
       .closing-sidebar {
         position: sticky;
         top: 98px;
@@ -1727,7 +2335,8 @@ function Styles() {
       .step-dot {
         width: 27px;
         height: 27px;
-        flex: 0 0 27px;
+        flex:
+          0 0 27px;
         display: flex;
         align-items: center;
         justify-content:
@@ -1750,19 +2359,44 @@ function Styles() {
         color: #4d4548;
       }
 
+      .waiting-box,
       .complete-box {
         margin-top: 24px;
         padding: 16px;
         border-radius: 16px;
+      }
+
+      .waiting-box {
+        background: #faf8f5;
+        border:
+          1px solid
+          #e9e0dc;
+      }
+
+      .complete-box {
         background: #fff0f7;
         border:
           1px solid
           #ffd1e6;
       }
 
+      .waiting-box strong,
+      .waiting-box span,
       .complete-box strong,
       .complete-box span {
         display: block;
+      }
+
+      .waiting-box strong {
+        color: #30292c;
+        font-size: 14px;
+      }
+
+      .waiting-box span {
+        margin-top: 5px;
+        color: #7c7275;
+        font-size: 12px;
+        line-height: 1.45;
       }
 
       .complete-box strong {
@@ -1918,7 +2552,74 @@ function Styles() {
           font-size: 13px;
           line-height: 1.7;
         }
+
+        .agreement-complete {
+          align-items:
+            flex-start;
+        }
+      }
+
+      @page {
+        size: A4;
+        margin: 18mm;
+      }
+
+      @media print {
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white !important;
+        }
+
+        body * {
+          visibility: hidden !important;
+        }
+
+        .print-area,
+        .print-area * {
+          visibility: visible !important;
+        }
+
+        .print-area {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white !important;
+          overflow: visible !important;
+          border-radius: 0 !important;
+        }
+
+        .contract-document {
+          width: 100% !important;
+          min-height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+        }
+
+        .document-brand {
+          margin-bottom: 24px !important;
+        }
+
+        .contract-copy {
+          font-size: 11pt !important;
+          line-height: 1.65 !important;
+          color: black !important;
+        }
+
+        .document-footer {
+          color: #666 !important;
+        }
+
+        .no-print {
+          display: none !important;
+        }
       }
     `}</style>
   )
 }
+
