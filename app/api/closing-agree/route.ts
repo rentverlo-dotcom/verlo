@@ -66,7 +66,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 1. VALIDAR TOKEN
+    // 1. VALIDAR TOKEN DE CIERRE
     // =========================================================
 
     const {
@@ -77,6 +77,7 @@ export async function POST(
         "lead_contract_access_tokens"
       )
       .select(`
+        id,
         contract_id,
         lead_id,
         role,
@@ -136,8 +137,25 @@ export async function POST(
       )
     }
 
+    if (
+      accessToken.role !==
+        "tenant" &&
+      accessToken.role !==
+        "owner"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Invalid role",
+        },
+        {
+          status: 403,
+        }
+      )
+    }
+
     // =========================================================
-    // 2. TRAER CONTRATO
+    // 2. CONTRATO
     // =========================================================
 
     const {
@@ -198,7 +216,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. VERIFICAR QUE EL TOKEN CORRESPONDA A LA PARTE
+    // 3. VALIDAR QUE EL TOKEN SEA DE ESA PARTE
     // =========================================================
 
     if (
@@ -237,6 +255,80 @@ export async function POST(
       )
     }
 
+    // =========================================================
+    // 4. MATCH DEBE SEGUIR SIENDO EL CORRECTO
+    // =========================================================
+
+    const {
+      data: match,
+      error: matchError,
+    } = await supabase
+      .from("lead_matches")
+      .select(`
+        id,
+        tenant_lead_id,
+        owner_lead_id,
+        ready_to_connect_at,
+        status
+      `)
+      .eq(
+        "id",
+        contract.lead_match_id
+      )
+      .single()
+
+    if (
+      matchError ||
+      !match
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Match not found",
+        },
+        {
+          status: 404,
+        }
+      )
+    }
+
+    if (
+      match.tenant_lead_id !==
+        contract.tenant_lead_id ||
+      match.owner_lead_id !==
+        contract.owner_lead_id
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Contract and match do not correspond",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    if (
+      !match.ready_to_connect_at
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Match is not ready to close",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    // =========================================================
+    // 5. GUARDAR ACEPTACIÓN
+    // =========================================================
+
     const now =
       new Date().toISOString()
 
@@ -260,12 +352,8 @@ export async function POST(
           ownerAgreedAt
       )
 
-    // =========================================================
-    // 4. GUARDAR ACEPTACIÓN
-    // =========================================================
-
     const {
-      error: updateError,
+      error: contractUpdateError,
     } = await supabase
       .from("lead_contracts")
       .update({
@@ -288,20 +376,27 @@ export async function POST(
         contract.id
       )
 
-    if (updateError) {
+    if (
+      contractUpdateError
+    ) {
       throw new Error(
-        updateError.message
+        contractUpdateError.message
       )
     }
 
     // =========================================================
-    // 5. SI LOS DOS ACEPTARON:
-    // CERRAR EL MATCH
+    // 6. SI AMBOS ACEPTARON:
+    // CIERRE OPERATIVO COMPLETO
     // =========================================================
 
     if (bothAgreed) {
+      // -------------------------------------------------------
+      // 6A. MATCH ELEGIDO = CONVERTED
+      // -------------------------------------------------------
+
       const {
-        error: matchUpdateError,
+        error:
+          convertedError,
       } = await supabase
         .from("lead_matches")
         .update({
@@ -313,17 +408,187 @@ export async function POST(
           contract.lead_match_id
         )
 
+      if (convertedError) {
+        throw new Error(
+          convertedError.message
+        )
+      }
+
+      // -------------------------------------------------------
+      // 6B. DESCARTAR RESTO DE MATCHES DE ESA BÚSQUEDA TENANT
+      // -------------------------------------------------------
+
+      const {
+        error:
+          tenantMatchesError,
+      } = await supabase
+        .from("lead_matches")
+        .update({
+          status:
+            "discarded",
+        })
+        .eq(
+          "tenant_lead_id",
+          contract.tenant_lead_id
+        )
+        .neq(
+          "id",
+          contract.lead_match_id
+        )
+        .in(
+          "status",
+          [
+            "new",
+            "reviewed",
+            "contacted",
+          ]
+        )
+
       if (
-        matchUpdateError
+        tenantMatchesError
       ) {
         throw new Error(
-          matchUpdateError.message
+          tenantMatchesError.message
+        )
+      }
+
+      // -------------------------------------------------------
+      // 6C. DESCARTAR RESTO DE MATCHES DE ESA PUBLICACIÓN OWNER
+      // -------------------------------------------------------
+
+      const {
+        error:
+          ownerMatchesError,
+      } = await supabase
+        .from("lead_matches")
+        .update({
+          status:
+            "discarded",
+        })
+        .eq(
+          "owner_lead_id",
+          contract.owner_lead_id
+        )
+        .neq(
+          "id",
+          contract.lead_match_id
+        )
+        .in(
+          "status",
+          [
+            "new",
+            "reviewed",
+            "contacted",
+          ]
+        )
+
+      if (
+        ownerMatchesError
+      ) {
+        throw new Error(
+          ownerMatchesError.message
+        )
+      }
+
+      // -------------------------------------------------------
+      // 6D. CERRAR PANEL DE MATCHES DEL TENANT
+      // -------------------------------------------------------
+
+      const {
+        error:
+          tenantTokenError,
+      } = await supabase
+        .from(
+          "tenant_matches_access_tokens"
+        )
+        .update({
+          revoked_at:
+            now,
+        })
+        .eq(
+          "tenant_lead_id",
+          contract.tenant_lead_id
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+
+      if (
+        tenantTokenError
+      ) {
+        throw new Error(
+          tenantTokenError.message
+        )
+      }
+
+      // -------------------------------------------------------
+      // 6E. CERRAR PANEL DE CANDIDATOS DEL OWNER
+      // -------------------------------------------------------
+
+      const {
+        error:
+          ownerCandidatesTokenError,
+      } = await supabase
+        .from(
+          "owner_candidates_access_tokens"
+        )
+        .update({
+          revoked_at:
+            now,
+        })
+        .eq(
+          "owner_lead_id",
+          contract.owner_lead_id
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+
+      if (
+        ownerCandidatesTokenError
+      ) {
+        throw new Error(
+          ownerCandidatesTokenError.message
+        )
+      }
+
+      // -------------------------------------------------------
+      // 6F. CERRAR TOKEN DE CARGA DE ESA PUBLICACIÓN
+      // -------------------------------------------------------
+
+      const {
+        error:
+          ownerPropertyTokenError,
+      } = await supabase
+        .from(
+          "owner_property_access_tokens"
+        )
+        .update({
+          revoked_at:
+            now,
+        })
+        .eq(
+          "owner_lead_id",
+          contract.owner_lead_id
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+
+      if (
+        ownerPropertyTokenError
+      ) {
+        throw new Error(
+          ownerPropertyTokenError.message
         )
       }
     }
 
     // =========================================================
-    // 6. RESPONSE
+    // 7. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -356,7 +621,10 @@ export async function POST(
       match_status:
         bothAgreed
           ? "converted"
-          : null,
+          : match.status,
+
+      flow_closed:
+        bothAgreed,
     })
   } catch (error) {
     console.error(
