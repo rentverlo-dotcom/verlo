@@ -160,7 +160,7 @@ export async function GET(
         id,
         full_name,
         zone,
-        neighborhood_label,
+        
         neighborhood_labels,
         property_type,
         property_rooms,
@@ -279,7 +279,7 @@ export async function GET(
             owner.zone || null,
 
           neighborhood:
-            owner.neighborhood_label ||
+           
             owner.neighborhood_labels?.[0] ||
             null,
 
@@ -341,7 +341,7 @@ export async function GET(
         income_range,
         income_max,
         guarantee_types,
-        neighborhood_label,
+     
         neighborhood_labels,
         area_macro
       `)
@@ -563,8 +563,7 @@ export async function GET(
                 null,
 
               neighborhood:
-                tenant
-                  .neighborhood_label ||
+              
                 tenant
                   .neighborhood_labels?.[0] ||
                 tenant.area_macro ||
@@ -672,7 +671,7 @@ export async function GET(
           null,
 
         neighborhood:
-          owner.neighborhood_label ||
+          
           owner.neighborhood_labels?.[0] ||
           null,
 
