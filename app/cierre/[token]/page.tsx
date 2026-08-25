@@ -2784,7 +2784,7 @@ export default function ClosingPage() {
                       </strong>
 
                       <p>
-                        Podés revisar los archivos del inquilino antes de tomar la decisión final.
+                        Tenés acceso a los archivos cargados por el propietario para esta propiedad.
                       </p>
                     </div>
                   </div>
