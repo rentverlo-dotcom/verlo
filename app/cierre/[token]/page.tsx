@@ -2784,7 +2784,7 @@ export default function ClosingPage() {
                       </strong>
 
                       <p>
-                        Tenés acceso a los archivos cargados por el propietario para esta propiedad.
+                        Tenés acceso a los archivos cargados por el inquilino para esta operación.
                       </p>
                     </div>
                   </div>
