@@ -41,6 +41,28 @@ const ARGENTINA_PROVINCES = [
   "Tucumán",
 ]
 
+type ReviewPropertyMedia = {
+  id: string
+  type: string
+  url: string | null
+  key: string | null
+  filename: string | null
+  content_type: string | null
+  position: number
+  available: boolean
+}
+
+type ReviewTenantDocument = {
+  kind: string
+  label: string
+  key: string | null
+  url: string | null
+  filename: string | null
+  content_type: string | null
+  available: boolean
+  readable: boolean
+}
+
 type ClosingData = {
   ok: boolean
 
@@ -343,6 +365,74 @@ type ClosingData = {
     notes:
       string | null
   }
+
+  review_assets: {
+    ready:
+      boolean
+
+    property_media:
+      ReviewPropertyMedia[]
+
+    tenant_profile:
+      | {
+          full_name:
+            string | null
+
+          document_number:
+            string | null
+
+          employment_status:
+            string | null
+
+          income_proof_type:
+            string | null
+
+          income_range:
+            string | null
+
+          income_max:
+            number | null
+
+          guarantee_type:
+            string | null
+
+          guarantee_types:
+            string[]
+
+          move_notes:
+            string | null
+
+          verification_status:
+            string | null
+
+          reviewed_at:
+            string | null
+        }
+      | null
+
+    tenant_documents:
+      ReviewTenantDocument[]
+
+    checks: {
+      property_media_expected:
+        boolean
+
+      property_media_count:
+        number
+
+      property_media_readable:
+        boolean
+
+      tenant_documents_expected:
+        boolean
+
+      tenant_documents_count:
+        number
+
+      tenant_documents_readable:
+        boolean
+    }
+  }
 }
 
 type ContractFormState = {
@@ -623,6 +713,27 @@ function humanize(
 
     studio:
       "Monoambiente",
+
+    salary_receipt:
+      "Recibo de sueldo",
+
+    monotributo:
+      "Monotributo",
+
+    self_employed:
+      "Autónomo",
+
+    other_formal:
+      "Otros ingresos formales",
+
+    property_guarantee:
+      "Garantía propietaria",
+
+    surety_insurance:
+      "Seguro de caución",
+
+    salary_guarantors:
+      "Garantes con recibo",
   }
 
   return (
@@ -690,6 +801,63 @@ function furnishingLabel(
   }
 
   return "A definir"
+}
+
+function isImage(
+  contentType:
+    string | null,
+  filename:
+    string | null
+) {
+  if (
+    contentType?.startsWith(
+      "image/"
+    )
+  ) {
+    return true
+  }
+
+  const lower =
+    String(
+      filename || ""
+    ).toLowerCase()
+
+  return (
+    lower.endsWith(
+      ".jpg"
+    ) ||
+    lower.endsWith(
+      ".jpeg"
+    ) ||
+    lower.endsWith(
+      ".png"
+    ) ||
+    lower.endsWith(
+      ".webp"
+    )
+  )
+}
+
+function isPdf(
+  contentType:
+    string | null,
+  filename:
+    string | null
+) {
+  if (
+    contentType ===
+    "application/pdf"
+  ) {
+    return true
+  }
+
+  return String(
+    filename || ""
+  )
+    .toLowerCase()
+    .endsWith(
+      ".pdf"
+    )
 }
 
 export default function ClosingPage() {
@@ -791,6 +959,14 @@ export default function ClosingPage() {
   ] =
     useState(
       false
+    )
+
+  const [
+    mediaIndex,
+    setMediaIndex,
+  ] =
+    useState(
+      0
     )
 
   const [
@@ -1030,6 +1206,10 @@ export default function ClosingPage() {
 
       setData(
         json
+      )
+
+      setMediaIndex(
+        0
       )
 
       setContractForm({
@@ -1724,8 +1904,8 @@ export default function ClosingPage() {
       setSuccessMessage(
         json
           .contract_invalidated
-          ? "Datos guardados. Como cambió información del contrato, la versión anterior quedó invalidada y deberá generarse nuevamente."
-          : "Datos legales guardados correctamente."
+          ? "Datos guardados. Como cambió información del contrato, la versión anterior quedó reemplazada y deberá generarse nuevamente."
+          : "Datos guardados correctamente."
       )
 
       await load(
@@ -1921,6 +2101,20 @@ export default function ClosingPage() {
       return
     }
 
+    if (
+      !data
+        .review_assets
+        .ready
+    ) {
+      setError(
+        isOwner
+          ? "No podés aceptar todavía. Primero debe estar disponible para revisar la documentación cargada por el inquilino."
+          : "No podés aceptar todavía. Primero debe estar disponible para revisar la multimedia de la propiedad."
+      )
+
+      return
+    }
+
     const alreadyAgreed =
       data
         .viewer
@@ -1941,7 +2135,7 @@ export default function ClosingPage() {
 
     const confirmed =
       window.confirm(
-        "¿Confirmás que leíste el contrato completo y estás de acuerdo con esta versión?"
+        "¿Confirmás que revisaste la información disponible, leíste el contrato completo y estás de acuerdo con esta versión?"
       )
 
     if (
@@ -2150,6 +2344,23 @@ export default function ClosingPage() {
           .completeness
           .tenant
 
+  const currentPropertyMedia =
+    data
+      .review_assets
+      .property_media[
+        mediaIndex
+      ]
+
+  const tenantDocuments =
+    data
+      .review_assets
+      .tenant_documents
+      .filter(
+        document =>
+          document
+            .available
+      )
+
   return (
     <>
       <main className="closing-page">
@@ -2166,7 +2377,7 @@ export default function ClosingPage() {
             >
               {bothAgreed
                 ? "ALQUILER CERRADO"
-                : "DOBLE OK"}
+                : "MATCH CONFIRMADO"}
             </span>
           </div>
         </header>
@@ -2203,7 +2414,7 @@ export default function ClosingPage() {
               </h1>
 
               <p>
-                Este es el espacio privado para completar los datos legales, definir las condiciones finales y aceptar el contrato.
+                Revisá la información de la otra parte y de la propiedad, completá lo necesario y avanzá con el contrato.
               </p>
             </>
           )}
@@ -2228,7 +2439,7 @@ export default function ClosingPage() {
             ) : (
               <article className="verlo-card success-card no-print">
                 <span className="card-kicker">
-                  MATCH CONFIRMADO
+                  INTERÉS MUTUO
                 </span>
 
                 <h2>
@@ -2236,7 +2447,7 @@ export default function ClosingPage() {
                 </h2>
 
                 <p>
-                  Ahora falta completar la información contractual y cerrar las condiciones definitivas.
+                  Ahora tienen acceso a la información necesaria para revisar el acuerdo antes de aceptar el contrato.
                 </p>
               </article>
             )}
@@ -2282,6 +2493,324 @@ export default function ClosingPage() {
                 />
               </div>
             </article>
+
+            {!isOwner && (
+              <article className="verlo-card no-print review-card">
+                <span className="card-kicker">
+                  INFORMACIÓN PARA REVISAR
+                </span>
+
+                <h2>
+                  Multimedia de la propiedad
+                </h2>
+
+                <p>
+                  Mirá nuevamente las fotos y videos de la propiedad antes de avanzar con el contrato.
+                </p>
+
+                {data
+                  .review_assets
+                  .property_media
+                  .length >
+                0 ? (
+                  <>
+                    <div className="main-media">
+                      {currentPropertyMedia?.url ? (
+                        currentPropertyMedia.type ===
+                        "video" ? (
+                          <video
+                            src={
+                              currentPropertyMedia.url
+                            }
+                            controls
+                            playsInline
+                          />
+                        ) : (
+                          <img
+                            src={
+                              currentPropertyMedia.url
+                            }
+                            alt="Propiedad"
+                          />
+                        )
+                      ) : (
+                        <div className="media-unavailable">
+                          No pudimos abrir este archivo.
+                        </div>
+                      )}
+                    </div>
+
+                    {data
+                      .review_assets
+                      .property_media
+                      .length >
+                      1 && (
+                      <div className="media-thumbs">
+                        {data
+                          .review_assets
+                          .property_media
+                          .map(
+                            (
+                              item,
+                              index
+                            ) => (
+                              <button
+                                key={
+                                  item.id
+                                }
+                                type="button"
+                                className={
+                                  index ===
+                                  mediaIndex
+                                    ? "media-thumb active"
+                                    : "media-thumb"
+                                }
+                                onClick={
+                                  () =>
+                                    setMediaIndex(
+                                      index
+                                    )
+                                }
+                              >
+                                {item.url ? (
+                                  item.type ===
+                                    "video" ? (
+                                    <video
+                                      src={
+                                        item.url
+                                      }
+                                      muted
+                                    />
+                                  ) : (
+                                    <img
+                                      src={
+                                        item.url
+                                      }
+                                      alt=""
+                                    />
+                                  )
+                                ) : (
+                                  <span>
+                                    Archivo
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          )}
+                      </div>
+                    )}
+
+                    <div className="review-confirmation">
+                      <span className="review-check">
+                        ✓
+                      </span>
+
+                      <div>
+                        <strong>
+                          Multimedia disponible
+                        </strong>
+
+                        <p>
+                          Tenés acceso a los archivos cargados por el propietario para esta propiedad.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="review-warning">
+                    <strong>
+                      No hay multimedia disponible para revisar.
+                    </strong>
+
+                    <span>
+                      No vas a poder aceptar el contrato hasta que los archivos de la propiedad estén disponibles.
+                    </span>
+                  </div>
+                )}
+              </article>
+            )}
+
+            {isOwner && (
+              <article className="verlo-card no-print review-card">
+                <span className="card-kicker">
+                  INFORMACIÓN PARA REVISAR
+                </span>
+
+                <h2>
+                  Documentación del inquilino
+                </h2>
+
+                <p>
+                  Revisá la identidad, los ingresos y la documentación cargada antes de aceptar el contrato.
+                </p>
+
+                {data
+                  .review_assets
+                  .tenant_profile && (
+                  <div className="tenant-review-profile">
+                    <Info
+                      label="Nombre completo"
+                      value={
+                        data
+                          .review_assets
+                          .tenant_profile
+                          .full_name ||
+                        "—"
+                      }
+                    />
+
+                    <Info
+                      label="DNI"
+                      value={
+                        data
+                          .review_assets
+                          .tenant_profile
+                          .document_number ||
+                        "—"
+                      }
+                    />
+
+                    <Info
+                      label="Situación laboral"
+                      value={
+                        data
+                          .review_assets
+                          .tenant_profile
+                          .employment_status ||
+                        "—"
+                      }
+                    />
+
+                    <Info
+                      label="Ingresos"
+                      value={
+                        data
+                          .review_assets
+                          .tenant_profile
+                          .income_range ||
+                        money(
+                          data
+                            .review_assets
+                            .tenant_profile
+                            .income_max
+                        )
+                      }
+                    />
+
+                    <Info
+                      label="Garantía"
+                      value={
+                        humanize(
+                          data
+                            .review_assets
+                            .tenant_profile
+                            .guarantee_type
+                        )
+                      }
+                    />
+
+                    <Info
+                      label="Estado de validación"
+                      value={
+                        data
+                          .review_assets
+                          .tenant_profile
+                          .verification_status ||
+                        "—"
+                      }
+                    />
+                  </div>
+                )}
+
+                {tenantDocuments.length >
+                0 ? (
+                  <div className="documents-grid">
+                    {tenantDocuments.map(
+                      document => (
+                        <DocumentCard
+                          key={
+                            document.kind
+                          }
+                          document={
+                            document
+                          }
+                        />
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <div className="review-warning">
+                    <strong>
+                      No encontramos documentos disponibles.
+                    </strong>
+
+                    <span>
+                      No vas a poder aceptar el contrato hasta que la documentación del inquilino esté disponible para revisión.
+                    </span>
+                  </div>
+                )}
+
+                {data
+                  .review_assets
+                  .tenant_profile
+                  ?.move_notes && (
+                  <div className="profile-note">
+                    <span>
+                      INFORMACIÓN ADICIONAL
+                    </span>
+
+                    <p>
+                      {
+                        data
+                          .review_assets
+                          .tenant_profile
+                          .move_notes
+                      }
+                    </p>
+                  </div>
+                )}
+
+                {data
+                  .review_assets
+                  .ready && (
+                  <div className="review-confirmation">
+                    <span className="review-check">
+                      ✓
+                    </span>
+
+                    <div>
+                      <strong>
+                        Documentación disponible
+                      </strong>
+
+                      <p>
+                        Podés revisar los archivos del inquilino antes de tomar la decisión final.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </article>
+            )}
+
+            {!data
+              .review_assets
+              .ready && (
+              <article className="verlo-card no-print review-blocked-card">
+                <span className="card-kicker">
+                  REVISIÓN PENDIENTE
+                </span>
+
+                <h2>
+                  Falta información para poder aceptar.
+                </h2>
+
+                <p>
+                  {isOwner
+                    ? "La documentación del inquilino todavía no está completamente disponible para revisar."
+                    : "La multimedia de la propiedad todavía no está completamente disponible para revisar."}
+                </p>
+              </article>
+            )}
 
             <article className="verlo-card no-print">
               <div className="section-heading">
@@ -2394,7 +2923,7 @@ export default function ClosingPage() {
                           </strong>
 
                           <span>
-                            Si modificás datos después de haber generado el contrato, esa versión se invalida y ambas partes deberán aceptar la nueva.
+                            Si modificás datos después de haber generado el contrato, esa versión se reemplaza y ambas partes deberán aceptar la nueva.
                           </span>
                         </div>
 
@@ -2595,7 +3124,7 @@ export default function ClosingPage() {
                             .private_address && (
                             <div className="reference-box">
                               <span>
-                                DIRECCIÓN PRIVADA CARGADA ANTERIORMENTE
+                                DIRECCIÓN CARGADA ANTERIORMENTE
                               </span>
 
                               <strong>
@@ -2622,7 +3151,7 @@ export default function ClosingPage() {
                               )}
 
                               <p>
-                                Usala solamente como referencia. Confirmá abajo la dirección contractual completa.
+                                Confirmá abajo la dirección contractual completa.
                               </p>
                             </div>
                           )}
@@ -2696,7 +3225,6 @@ export default function ClosingPage() {
                                 propertyLegalForm.city
                               }
                               required
-                              placeholder="Ej. Villa Devoto"
                               onChange={
                                 value =>
                                   updatePropertyLegalField(
@@ -2744,7 +3272,6 @@ export default function ClosingPage() {
                               value={
                                 propertyLegalForm.postal_code
                               }
-                              placeholder="Ej. 1419"
                               onChange={
                                 value =>
                                   updatePropertyLegalField(
@@ -2762,7 +3289,7 @@ export default function ClosingPage() {
                           </h3>
 
                           <p className="section-help">
-                            Es el lugar que figurará al comienzo del contrato. No tiene que coincidir necesariamente con el domicilio del inmueble.
+                            Es el lugar que figurará al comienzo del contrato.
                           </p>
 
                           <div className="form-grid">
@@ -2822,7 +3349,7 @@ export default function ClosingPage() {
                           </h3>
 
                           <p className="section-help">
-                            Acá ya no importa cómo estaba planteado al comienzo. Elegí cómo se entregará efectivamente el inmueble según lo acordado entre ustedes.
+                            Elegí cómo se entregará efectivamente el inmueble según lo acordado entre ustedes.
                           </p>
 
                           <SelectField
@@ -2868,7 +3395,6 @@ export default function ClosingPage() {
                                 furnishingForm.inventory
                               }
                               required
-                              placeholder="Ej. Heladera Samsung, mesa con cuatro sillas, cama de dos plazas, dos mesas de luz..."
                               onChange={
                                 value =>
                                   updateFurnishingField(
@@ -2886,7 +3412,6 @@ export default function ClosingPage() {
                               value={
                                 furnishingForm.condition_notes
                               }
-                              placeholder="Ej. Muebles en buen estado general, heladera funcionando correctamente..."
                               onChange={
                                 value =>
                                   updateFurnishingField(
@@ -2953,7 +3478,6 @@ export default function ClosingPage() {
                                 tenantLegalForm.dni
                               }
                               required
-                              placeholder="Ej. 30123456"
                               onChange={
                                 value =>
                                   updateTenantLegalField(
@@ -3004,14 +3528,6 @@ export default function ClosingPage() {
                               }
                             />
                           </div>
-
-                          {data
-                            .tenant
-                            .document_number && (
-                            <p className="section-help">
-                              El DNI fue recuperado de la validación que ya realizaste en Verlo. Revisalo y corregilo solamente si fuese necesario.
-                            </p>
-                          )}
                         </div>
 
                         <AddressFields
@@ -3121,21 +3637,9 @@ export default function ClosingPage() {
                     "Dirección contractual pendiente"}
               </h2>
 
-              {data
-                .property
-                .floor_unit && (
-                <p className="property-subtitle">
-                  {
-                    data
-                      .property
-                      .floor_unit
-                  }
-                </p>
-              )}
-
               <div className="info-grid">
                 <Info
-                  label="Zona de búsqueda"
+                  label="Zona"
                   value={
                     data
                       .property
@@ -3180,7 +3684,7 @@ export default function ClosingPage() {
                 />
 
                 <Info
-                  label="Expensas publicadas"
+                  label="Expensas"
                   value={
                     data
                       .property
@@ -3237,7 +3741,7 @@ export default function ClosingPage() {
                             .completeness
                             .all
                           ? "Los datos legales están completos. Ya podés definir las condiciones económicas y generar el contrato."
-                          : "Antes de generar el contrato deben estar completos los datos legales del propietario, del inquilino y del inmueble."
+                          : "Antes de generar el contrato deben estar completos los datos necesarios."
                         : data
                             .legal
                             .completeness
@@ -3278,11 +3782,11 @@ export default function ClosingPage() {
                   >
                     <div className="edit-alert">
                       <strong>
-                        Condiciones finales del alquiler
+                        Definí el acuerdo final
                       </strong>
 
                       <span>
-                        No uses el botón Atrás del navegador. Podés editar y regenerar el contrato desde acá. Cada regeneración invalida cualquier aceptación anterior.
+                        Completá las condiciones que acordaron. Si después necesitás corregir algo, vas a poder editarlo antes de cerrar el alquiler.
                       </span>
                     </div>
 
@@ -3292,11 +3796,11 @@ export default function ClosingPage() {
                       .all && (
                       <div className="blocking-alert">
                         <strong>
-                          Todavía faltan datos legales
+                          Falta completar información
                         </strong>
 
                         <span>
-                          Podés preparar las condiciones, pero el backend no permitirá generar el contrato hasta que ambas partes hayan completado los datos obligatorios.
+                          Podés avanzar con las condiciones mientras tanto. El contrato estará disponible cuando ambas partes completen los datos necesarios.
                         </span>
                       </div>
                     )}
@@ -3377,7 +3881,7 @@ export default function ClosingPage() {
                       </div>
 
                       <p className="money-help">
-                        Podés escribir 700000, 700.000, 700,000 o $700.000. Verlo lo convierte al importe correcto antes de guardarlo.
+                        Podés escribir 700000, 700.000, 700,000 o $700.000.
                       </p>
                     </div>
 
@@ -3392,7 +3896,6 @@ export default function ClosingPage() {
                           contractForm.adjustment_method
                         }
                         required
-                        placeholder="Ej. Actualización trimestral según IPC publicado por INDEC."
                         onChange={
                           value =>
                             updateContractField(
@@ -3413,7 +3916,6 @@ export default function ClosingPage() {
                         value={
                           contractForm.payment_method
                         }
-                        placeholder="Ej. Transferencia bancaria por mes adelantado, del día 1 al 10 de cada mes."
                         onChange={
                           value =>
                             updateContractField(
@@ -3428,7 +3930,6 @@ export default function ClosingPage() {
                         value={
                           contractForm.payment_details
                         }
-                        placeholder="Ej. Transferencia al alias..., enviar comprobante a..."
                         onChange={
                           value =>
                             updateContractField(
@@ -3449,7 +3950,6 @@ export default function ClosingPage() {
                         value={
                           contractForm.expenses
                         }
-                        placeholder="Ej. Expensas ordinarias a cargo del inquilino; extraordinarias a cargo del propietario; ABL a cargo del propietario."
                         onChange={
                           value =>
                             updateContractField(
@@ -3464,7 +3964,6 @@ export default function ClosingPage() {
                         value={
                           contractForm.services
                         }
-                        placeholder="Ej. Electricidad, gas, agua e internet a cargo del inquilino."
                         onChange={
                           value =>
                             updateContractField(
@@ -3485,7 +3984,6 @@ export default function ClosingPage() {
                         value={
                           contractForm.guarantee_type
                         }
-                        placeholder="Ej. Seguro de caución / garantía propietaria / fiador"
                         onChange={
                           value =>
                             updateContractField(
@@ -3500,7 +3998,6 @@ export default function ClosingPage() {
                         value={
                           contractForm.guarantee_details
                         }
-                        placeholder="Ej. Póliza emitida por..., CUIT..., número de póliza..."
                         onChange={
                           value =>
                             updateContractField(
@@ -3521,7 +4018,6 @@ export default function ClosingPage() {
                         value={
                           contractForm.pets_policy
                         }
-                        placeholder="Ej. Se permiten mascotas domésticas respetando el reglamento del edificio."
                         onChange={
                           value =>
                             updateContractField(
@@ -3536,7 +4032,6 @@ export default function ClosingPage() {
                         value={
                           contractForm.insurance_terms
                         }
-                        placeholder="Ej. El inquilino contratará seguro de incendio durante toda la locación."
                         onChange={
                           value =>
                             updateContractField(
@@ -3557,7 +4052,6 @@ export default function ClosingPage() {
                         value={
                           contractForm.special_conditions
                         }
-                        placeholder="Cualquier condición adicional acordada entre las partes."
                         onChange={
                           value =>
                             updateContractField(
@@ -3573,14 +4067,10 @@ export default function ClosingPage() {
                         REVISÁ ANTES DE GENERAR
                       </span>
 
-                      <h3>
-                        Estos valores van a quedar escritos en el contrato
-                      </h3>
-
                       <div className="review-grid">
                         <div>
                           <span>
-                            ALQUILER MENSUAL
+                            ALQUILER
                           </span>
 
                           <strong>
@@ -3627,17 +4117,6 @@ export default function ClosingPage() {
                             )}
                           </strong>
                         </div>
-                      </div>
-
-                      <div className="review-adjustment">
-                        <span>
-                          ACTUALIZACIÓN
-                        </span>
-
-                        <strong>
-                          {contractForm.adjustment_method ||
-                            "A definir"}
-                        </strong>
                       </div>
                     </div>
 
@@ -3796,7 +4275,7 @@ export default function ClosingPage() {
                         </div>
 
                         <div className="document-title">
-                          CONTRATO DE LOCACIÓN DE VIVIENDA
+                          CONTRATO DE LOCACIÓN
                         </div>
 
                         <div className="document-rule" />
@@ -3850,9 +4329,13 @@ export default function ClosingPage() {
                                 ? otherAgreed
                                   ? "Las dos partes ya confirmaron."
                                   : "Ahora falta que la otra parte confirme esta misma versión."
-                                : isOwner
-                                  ? "Confirmá solamente después de revisar el documento completo. Si detectás un error, usá EDITAR CONDICIONES antes de aceptar."
-                                  : "Confirmá solamente después de leer el documento completo. Si detectás un dato incorrecto, no aceptes todavía y coordiná la corrección con el propietario."}
+                                : data
+                                    .review_assets
+                                    .ready
+                                  ? "Confirmá solamente después de revisar la información disponible y leer el contrato completo."
+                                  : isOwner
+                                    ? "Antes de aceptar necesitás poder revisar la documentación del inquilino."
+                                    : "Antes de aceptar necesitás poder revisar la multimedia de la propiedad."}
                             </p>
                           </div>
 
@@ -3865,7 +4348,10 @@ export default function ClosingPage() {
                             }
                             disabled={
                               accepting ||
-                              viewerAgreed
+                              viewerAgreed ||
+                              !data
+                                .review_assets
+                                .ready
                             }
                             onClick={
                               agreeContract
@@ -3875,7 +4361,11 @@ export default function ClosingPage() {
                               ? "REGISTRANDO..."
                               : viewerAgreed
                                 ? "✓ YA ACEPTASTE ESTE CONTRATO"
-                                : "ESTOY DE ACUERDO CON ESTE CONTRATO"}
+                                : !data
+                                    .review_assets
+                                    .ready
+                                  ? "FALTA REVISAR INFORMACIÓN"
+                                  : "ESTOY DE ACUERDO CON ESTE CONTRATO"}
                           </button>
                         </>
                       )}
@@ -3895,6 +4385,19 @@ export default function ClosingPage() {
                 <Step
                   label="Match confirmado"
                   done
+                />
+
+                <Step
+                  label={
+                    isOwner
+                      ? "Documentación disponible"
+                      : "Multimedia disponible"
+                  }
+                  done={
+                    data
+                      .review_assets
+                      .ready
+                  }
                 />
 
                 <Step
@@ -3986,7 +4489,7 @@ export default function ClosingPage() {
               )}
 
               <p className="sidebar-note">
-                Este enlace es privado y corresponde únicamente a este cierre. Guardalo para volver a consultar el contrato.
+                Este enlace es privado y corresponde únicamente a este cierre.
               </p>
             </div>
           </aside>
@@ -4010,6 +4513,96 @@ export default function ClosingPage() {
 
       <Styles />
     </>
+  )
+}
+
+function DocumentCard({
+  document,
+}: {
+  document:
+    ReviewTenantDocument
+}) {
+  return (
+    <article className="document-review-card">
+      <div className="document-review-head">
+        <span>
+          {document.label}
+        </span>
+
+        <strong>
+          {document.readable
+            ? "Disponible"
+            : "No disponible"}
+        </strong>
+      </div>
+
+      {document.url ? (
+        <>
+          {isImage(
+            document.content_type,
+            document.filename
+          ) ? (
+            <a
+              href={
+                document.url
+              }
+              target="_blank"
+              rel="noreferrer"
+              className="document-preview-link"
+            >
+              <img
+                src={
+                  document.url
+                }
+                alt={
+                  document.label
+                }
+              />
+            </a>
+          ) : isPdf(
+              document.content_type,
+              document.filename
+            ) ? (
+            <a
+              href={
+                document.url
+              }
+              target="_blank"
+              rel="noreferrer"
+              className="file-open-button"
+            >
+              ABRIR PDF
+            </a>
+          ) : (
+            <a
+              href={
+                document.url
+              }
+              target="_blank"
+              rel="noreferrer"
+              className="file-open-button"
+            >
+              ABRIR ARCHIVO
+            </a>
+          )}
+
+          <a
+            href={
+              document.url
+            }
+            target="_blank"
+            rel="noreferrer"
+            className="open-document-link"
+          >
+            VER EN GRANDE ↗
+          </a>
+        </>
+      ) : (
+        <div className="document-not-readable">
+          El archivo existe pero no pudimos abrirlo.
+        </div>
+      )}
+    </article>
   )
 }
 
@@ -4446,7 +5039,6 @@ function AddressFields({
             address
           }
           required
-          placeholder="Calle, número, piso/depto si corresponde"
           onChange={
             onAddress
           }
@@ -4493,7 +5085,6 @@ function AddressFields({
           value={
             postalCode
           }
-          placeholder="Opcional"
           onChange={
             onPostalCode
           }
@@ -4600,6 +5191,7 @@ function Styles() {
         font-size: 11px;
         font-weight: 800;
         letter-spacing: 0.12em;
+        pointer-events: none;
       }
 
       .status-pill.completed {
@@ -4693,14 +5285,6 @@ function Styles() {
         color: white;
       }
 
-      .final-card .card-kicker {
-        color: rgba(255, 255, 255, 0.78);
-      }
-
-      .final-card p {
-        color: rgba(255, 255, 255, 0.84);
-      }
-
       .verlo-card h2 {
         margin: 8px 0 10px;
         font-size: clamp(26px, 3vw, 38px);
@@ -4731,15 +5315,6 @@ function Styles() {
         gap: 20px;
       }
 
-      .person-title h2 {
-        margin-bottom: 5px;
-      }
-
-      .person-title span {
-        color: #8a8184;
-        font-size: 14px;
-      }
-
       .verified {
         padding: 8px 11px;
         border-radius: 999px;
@@ -4747,15 +5322,11 @@ function Styles() {
         color: #c37986;
         font-size: 12px;
         font-weight: 800;
-        white-space: nowrap;
-      }
-
-      .property-subtitle {
-        margin-top: -3px !important;
       }
 
       .info-grid,
-      .contract-summary {
+      .contract-summary,
+      .tenant-review-profile {
         margin-top: 24px;
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4792,6 +5363,214 @@ function Styles() {
         line-height: 1.4;
       }
 
+      .main-media {
+        margin-top: 24px;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        border-radius: 20px;
+        overflow: hidden;
+        background: #eee9e6;
+      }
+
+      .main-media img,
+      .main-media video {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .media-unavailable {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #8c8285;
+        font-weight: 700;
+      }
+
+      .media-thumbs {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 5px;
+      }
+
+      .media-thumb {
+        width: 88px;
+        height: 66px;
+        flex: 0 0 88px;
+        padding: 0;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #eee9e6;
+        cursor: pointer;
+      }
+
+      .media-thumb.active {
+        border-color: #c37986;
+      }
+
+      .media-thumb img,
+      .media-thumb video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .documents-grid {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .document-review-card {
+        padding: 16px;
+        border: 1px solid #e8dedf;
+        border-radius: 18px;
+        background: #faf8f5;
+      }
+
+      .document-review-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .document-review-head span {
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .document-review-head strong {
+        color: #c37986;
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+
+      .document-preview-link {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        border-radius: 12px;
+        background: white;
+      }
+
+      .document-preview-link img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .file-open-button {
+        min-height: 120px;
+        border-radius: 12px;
+        background: #050002;
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .open-document-link {
+        display: block;
+        margin-top: 10px;
+        color: #050002;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .document-not-readable {
+        padding: 30px 10px;
+        text-align: center;
+        border-radius: 12px;
+        background: #fff0f3;
+        color: #a51d47;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .review-confirmation,
+      .review-warning {
+        margin-top: 20px;
+        padding: 16px;
+        border-radius: 16px;
+      }
+
+      .review-confirmation {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: #fffaf8;
+        border: 1px solid rgba(195, 121, 134, 0.26);
+      }
+
+      .review-check {
+        width: 30px;
+        height: 30px;
+        flex: 0 0 30px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #c37986;
+        color: white;
+        font-weight: 900;
+      }
+
+      .review-confirmation strong,
+      .review-warning strong,
+      .review-warning span {
+        display: block;
+      }
+
+      .review-confirmation p {
+        margin-top: 3px;
+        font-size: 12px;
+      }
+
+      .review-warning {
+        background: #fff3dd;
+        border: 1px solid #efd49e;
+      }
+
+      .review-warning span {
+        margin-top: 5px;
+        font-size: 12px;
+        color: #716555;
+      }
+
+      .review-blocked-card {
+        border-color: #efd49e;
+        background: #fffdf6;
+      }
+
+      .profile-note {
+        margin-top: 20px;
+        padding: 16px;
+        border-radius: 16px;
+        background: #faf8f5;
+      }
+
+      .profile-note span {
+        display: block;
+        margin-bottom: 7px;
+        color: #9c9194;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+      }
+
       .legal-status-grid {
         margin-top: 24px;
         display: grid;
@@ -4821,15 +5600,12 @@ function Styles() {
       .legal-status-icon {
         width: 24px;
         height: 24px;
-        flex: 0 0 24px;
         border-radius: 999px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: #c37986;
         color: white;
-        font-size: 11px;
-        font-weight: 900;
       }
 
       .legal-form-wrap,
@@ -4851,10 +5627,6 @@ function Styles() {
         font-weight: 900;
         letter-spacing: 0.055em;
         cursor: pointer;
-        transition:
-          transform 160ms ease,
-          opacity 160ms ease,
-          box-shadow 160ms ease;
       }
 
       .primary-button {
@@ -4869,20 +5641,9 @@ function Styles() {
         color: #050002;
       }
 
-      .primary-button:hover,
-      .secondary-button:hover,
-      .agree-button:hover,
-      .floating-edit-button:hover {
-        transform: translateY(-1px);
-      }
-
       button:disabled {
         cursor: not-allowed;
-      }
-
-      .primary-button:disabled,
-      .agree-button:disabled {
-        opacity: 0.6;
+        opacity: 0.55;
       }
 
       .edit-alert,
@@ -4918,40 +5679,12 @@ function Styles() {
         display: block;
       }
 
-      .edit-alert strong,
-      .blocking-alert strong {
-        color: #050002;
-        font-size: 14px;
-      }
-
       .edit-alert span,
       .blocking-alert span {
         margin-top: 5px;
         color: #625b5e;
         font-size: 13px;
         line-height: 1.5;
-      }
-
-      .reference-box > span {
-        color: #9c9194;
-        font-size: 9px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-      }
-
-      .reference-box > strong {
-        margin-top: 7px;
-        font-size: 16px;
-      }
-
-      .reference-box > small {
-        margin-top: 4px;
-        color: #70666a;
-      }
-
-      .reference-box p {
-        margin-top: 10px;
-        font-size: 12px;
       }
 
       .form-section + .form-section {
@@ -4961,14 +5694,12 @@ function Styles() {
       .form-section h3 {
         margin: 0 0 7px;
         font-size: 18px;
-        letter-spacing: -0.02em;
       }
 
       .section-help {
         margin-bottom: 16px !important;
         color: #8a8184 !important;
         font-size: 12px;
-        line-height: 1.5;
       }
 
       .form-grid {
@@ -5008,34 +5739,16 @@ function Styles() {
         padding: 14px 15px;
         font: inherit;
         outline: none;
-        transition:
-          border-color 150ms ease,
-          box-shadow 150ms ease;
-      }
-
-      .field select {
-        min-height: 49px;
       }
 
       .field textarea {
         min-height: 108px;
         resize: vertical;
-        line-height: 1.5;
-      }
-
-      .field input:focus,
-      .field textarea:focus,
-      .field select:focus {
-        border-color: #c37986;
-        box-shadow: 0 0 0 4px rgba(195, 121, 134, 0.16);
       }
 
       .money-help {
         margin-top: 10px !important;
-        max-width: none !important;
-        color: #8a8184 !important;
         font-size: 12px;
-        line-height: 1.5;
       }
 
       .review-before-generate {
@@ -5046,50 +5759,23 @@ function Styles() {
         color: white;
       }
 
-      .review-before-generate .card-kicker {
-        color: #f2a8a9;
-      }
-
-      .review-before-generate h3 {
-        margin: 8px 0 20px;
-        max-width: 520px;
-        font-size: 22px;
-        line-height: 1.15;
-        letter-spacing: -0.035em;
-      }
-
       .review-grid {
+        margin-top: 18px;
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
 
-      .review-grid > div,
-      .review-adjustment {
+      .review-grid > div {
         padding: 15px;
         border-radius: 14px;
         background: rgba(255, 255, 255, 0.08);
       }
 
-      .review-grid span,
-      .review-adjustment span {
+      .review-grid span {
         display: block;
         margin-bottom: 6px;
-        color: rgba(255, 255, 255, 0.58);
         font-size: 9px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-      }
-
-      .review-grid strong,
-      .review-adjustment strong {
-        display: block;
-        font-size: 17px;
-        line-height: 1.35;
-      }
-
-      .review-adjustment {
-        margin-top: 10px;
       }
 
       .form-actions {
@@ -5106,7 +5792,6 @@ function Styles() {
         border-radius: 14px;
         font-size: 13px;
         font-weight: 700;
-        line-height: 1.5;
       }
 
       .form-error {
@@ -5124,23 +5809,12 @@ function Styles() {
         margin-top: 30px;
         display: flex;
         justify-content: flex-end;
-        flex-wrap: wrap;
         gap: 10px;
-      }
-
-      .edit-document-button {
-        border-color: #c37986;
-        color: #c37986;
       }
 
       .print-button {
         background: #050002;
         color: white;
-        border-color: #050002;
-      }
-
-      .contract-summary {
-        margin-bottom: 18px;
       }
 
       .document-shell {
@@ -5157,8 +5831,6 @@ function Styles() {
         margin: 0 auto;
         padding: 66px 70px 56px;
         background: white;
-        color: #191517;
-        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
       }
 
       .document-brand {
@@ -5172,7 +5844,6 @@ function Styles() {
         font-family: Georgia, "Times New Roman", serif;
         font-size: 19px;
         font-weight: 700;
-        letter-spacing: 0.08em;
       }
 
       .document-rule {
@@ -5188,7 +5859,6 @@ function Styles() {
         font-family: Georgia, "Times New Roman", serif;
         font-size: 14.5px;
         line-height: 1.82;
-        color: #211d1f;
       }
 
       .document-footer {
@@ -5197,9 +5867,6 @@ function Styles() {
         border-top: 1px solid #ddd5d7;
         text-align: center;
         font-size: 10px;
-        letter-spacing: 0.09em;
-        text-transform: uppercase;
-        color: #9a9194;
       }
 
       .agreement-panel {
@@ -5215,15 +5882,8 @@ function Styles() {
       }
 
       .agreement-copy h3 {
-        margin: 8px 0 8px;
+        margin: 8px 0;
         font-size: 24px;
-        line-height: 1.08;
-        letter-spacing: -0.035em;
-      }
-
-      .agreement-copy p {
-        max-width: 680px;
-        font-size: 14px;
       }
 
       .agree-button {
@@ -5232,12 +5892,10 @@ function Styles() {
         border: 0;
         background: #c37986;
         color: white;
-        box-shadow: 0 10px 30px rgba(195, 121, 134, 0.22);
       }
 
       .agree-button.agreed {
         background: #050002;
-        box-shadow: none;
       }
 
       .agreement-complete {
@@ -5249,25 +5907,12 @@ function Styles() {
       .agreement-icon {
         width: 48px;
         height: 48px;
-        flex: 0 0 48px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 999px;
         background: #c37986;
         color: white;
-        font-size: 22px;
-        font-weight: 900;
-      }
-
-      .agreement-complete strong {
-        display: block;
-        font-size: 18px;
-      }
-
-      .agreement-complete p {
-        margin-top: 4px;
-        font-size: 13px;
       }
 
       .closing-sidebar {
@@ -5300,9 +5945,6 @@ function Styles() {
         justify-content: center;
         border-radius: 999px;
         background: #eee9e6;
-        color: #9b9395;
-        font-size: 12px;
-        font-weight: 900;
       }
 
       .step-dot.done {
@@ -5313,7 +5955,6 @@ function Styles() {
       .step span {
         font-size: 13px;
         font-weight: 700;
-        color: #4d4548;
       }
 
       .waiting-box,
@@ -5325,12 +5966,10 @@ function Styles() {
 
       .waiting-box {
         background: #faf8f5;
-        border: 1px solid #e9e0dc;
       }
 
       .complete-box {
         background: #fffaf8;
-        border: 1px solid rgba(195, 121, 134, 0.28);
       }
 
       .waiting-box strong,
@@ -5340,28 +5979,10 @@ function Styles() {
         display: block;
       }
 
-      .waiting-box strong {
-        color: #30292c;
-        font-size: 14px;
-      }
-
-      .waiting-box span {
-        margin-top: 5px;
-        color: #7c7275;
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
-      .complete-box strong {
-        color: #c37986;
-        font-size: 14px;
-      }
-
+      .waiting-box span,
       .complete-box span {
         margin-top: 5px;
-        color: #625b5e;
         font-size: 12px;
-        line-height: 1.45;
       }
 
       .sidebar-note {
@@ -5369,7 +5990,6 @@ function Styles() {
         padding-top: 20px;
         border-top: 1px solid #eee7e2;
         font-size: 11px;
-        line-height: 1.5;
         color: #9c9295;
       }
 
@@ -5381,7 +6001,6 @@ function Styles() {
         border: 0;
         background: #c37986;
         color: white;
-        box-shadow: 0 15px 38px rgba(5, 0, 2, 0.18);
       }
 
       .closing-centered {
@@ -5392,21 +6011,6 @@ function Styles() {
         justify-content: center;
         text-align: center;
         padding: 30px;
-        background: #f8f6f1;
-      }
-
-      .closing-centered h1 {
-        max-width: 580px;
-        margin: 35px 0 12px;
-        font-size: clamp(38px, 7vw, 64px);
-        line-height: 0.98;
-        letter-spacing: -0.05em;
-      }
-
-      .closing-centered p {
-        max-width: 520px;
-        color: #756c6f;
-        line-height: 1.6;
       }
 
       @media (max-width: 900px) {
@@ -5419,7 +6023,8 @@ function Styles() {
         }
 
         .info-grid,
-        .contract-summary {
+        .contract-summary,
+        .tenant-review-profile {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
@@ -5431,21 +6036,8 @@ function Styles() {
           width: min(100% - 28px, 1160px);
         }
 
-        .closing-hero {
-          padding: 48px 0 34px;
-        }
-
-        .closing-hero h1 {
-          font-size: 48px;
-        }
-
-        .closing-hero p {
-          font-size: 16px;
-        }
-
         .verlo-card {
           padding: 22px;
-          border-radius: 20px;
         }
 
         .person-title,
@@ -5457,29 +6049,16 @@ function Styles() {
         .info-grid,
         .info-grid.two,
         .contract-summary,
+        .tenant-review-profile,
         .form-grid,
         .review-grid,
-        .legal-status-grid {
+        .legal-status-grid,
+        .documents-grid {
           grid-template-columns: 1fr;
-        }
-
-        .primary-button,
-        .secondary-button {
-          width: 100%;
-        }
-
-        .document-actions {
-          flex-direction: column;
-        }
-
-        .form-actions {
-          flex-direction: column-reverse;
         }
 
         .document-shell {
           padding: 10px;
-          margin-left: -6px;
-          margin-right: -6px;
         }
 
         .contract-document {
@@ -5487,19 +6066,10 @@ function Styles() {
           padding: 40px 26px;
         }
 
-        .contract-copy {
-          font-size: 13px;
-          line-height: 1.7;
-        }
-
-        .agreement-complete {
-          align-items: flex-start;
-        }
-
         .floating-edit-button {
           right: 14px;
-          bottom: 14px;
           left: 14px;
+          bottom: 14px;
           width: calc(100% - 28px);
         }
       }
@@ -5534,8 +6104,6 @@ function Styles() {
           margin: 0 !important;
           padding: 0 !important;
           background: white !important;
-          overflow: visible !important;
-          border-radius: 0 !important;
         }
 
         .contract-document {
@@ -5543,21 +6111,6 @@ function Styles() {
           min-height: auto !important;
           margin: 0 !important;
           padding: 0 !important;
-          box-shadow: none !important;
-        }
-
-        .document-brand {
-          margin-bottom: 24px !important;
-        }
-
-        .contract-copy {
-          font-size: 11pt !important;
-          line-height: 1.65 !important;
-          color: black !important;
-        }
-
-        .document-footer {
-          color: #666 !important;
         }
 
         .no-print {
