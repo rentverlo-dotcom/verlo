@@ -2361,6 +2361,170 @@ export default function ClosingPage() {
             .available
       )
 
+  if (bothAgreed) {
+    return (
+      <>
+        <main className="closing-page final-celebration-page">
+          <header className="closing-header no-print">
+            <div className="closing-header-inner">
+              <VerloBrand />
+
+              <span className="status-pill completed">
+                ALQUILER CERRADO
+              </span>
+            </div>
+          </header>
+
+          <div
+            className="celebration-garland no-print"
+            aria-hidden="true"
+          >
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+
+          <section className="final-celebration no-print">
+            <div className="final-celebration-card">
+              <div className="final-celebration-icon">
+                ✓
+              </div>
+
+              <span className="final-eyebrow">
+                TODO LISTO
+              </span>
+
+              <h1>
+                ¡Felicitaciones!
+                <br />
+
+                <em>
+                  Tienen alquiler.
+                </em>
+              </h1>
+
+              <p className="final-lead">
+                El propietario y el inquilino confirmaron la misma versión del contrato y el cierre quedó registrado en Verlo.
+              </p>
+
+              <div className="final-signature-note">
+                <div className="final-signature-icon">
+                  ✎
+                </div>
+
+                <div>
+                  <strong>
+                    Ahora pueden firmar el contrato
+                  </strong>
+
+                  <p>
+                    La aceptación realizada en Verlo deja constancia de que ambas partes están de acuerdo con esta versión. Podés guardar el contrato, imprimirlo y firmarlo formalmente con la otra parte.
+                  </p>
+                </div>
+              </div>
+
+              <div className="final-actions">
+                <button
+                  type="button"
+                  className="final-primary-button"
+                  onClick={printContract}
+                >
+                  IMPRIMIR / GUARDAR CONTRATO
+                </button>
+              </div>
+
+              <div className="dashboard-coming">
+                <span>
+                  LO QUE VIENE
+                </span>
+
+                <h2>
+                  Estamos preparando tu tablero de gestión Verlo.
+                </h2>
+
+                <p>
+                  Muy pronto vas a poder gestionar tu alquiler desde un solo lugar: contrato, documentación, pagos y todo lo relacionado con esta nueva etapa.
+                </p>
+
+                <strong>
+                  Te avisaremos cuando esté disponible.
+                </strong>
+              </div>
+
+              <p className="final-verlo-line">
+                Verlo sigue acompañándote después del match.
+              </p>
+            </div>
+          </section>
+
+          {data.contract.content && (
+            <section className="final-contract-section">
+              <div className="final-contract-heading no-print">
+                <div>
+                  <span className="card-kicker">
+                    TU CONTRATO
+                  </span>
+
+                  <h2>
+                    Contrato listo para guardar e imprimir
+                  </h2>
+
+                  <p>
+                    Esta es la versión que fue confirmada por las dos partes.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="secondary-button print-button"
+                  onClick={printContract}
+                >
+                  IMPRIMIR / GUARDAR PDF
+                </button>
+              </div>
+
+              <div className="document-shell print-area">
+                <article className="contract-document">
+                  <div className="document-brand">
+                    <VerloBrand
+                      width={28}
+                      showText
+                    />
+                  </div>
+
+                  <div className="document-title">
+                    CONTRATO DE LOCACIÓN
+                  </div>
+
+                  <div className="document-rule" />
+
+                  <div className="contract-copy">
+                    {data.contract.content}
+                  </div>
+
+                  <div className="document-footer">
+                    Documento generado en Verlo
+                  </div>
+                </article>
+              </div>
+            </section>
+          )}
+        </main>
+
+        <Styles />
+      </>
+    )
+  }
+
+  
   return (
     <>
       <main className="closing-page">
@@ -6017,6 +6181,362 @@ function Styles() {
         justify-content: center;
         text-align: center;
         padding: 30px;
+      }
+
+
+            .final-celebration-page {
+        overflow: hidden;
+        padding-bottom: 90px;
+      }
+
+      .celebration-garland {
+        width: min(1160px, calc(100% - 40px));
+        height: 72px;
+        margin: 0 auto;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        position: relative;
+      }
+
+      .celebration-garland::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        left: -5%;
+        width: 110%;
+        height: 40px;
+        border-bottom: 2px solid rgba(195, 121, 134, 0.45);
+        border-radius: 0 0 50% 50%;
+      }
+
+      .celebration-garland span {
+        position: relative;
+        z-index: 2;
+        width: 18px;
+        height: 28px;
+        margin-top: 30px;
+        background: #f2a8a9;
+        clip-path: polygon(
+          0 0,
+          100% 0,
+          50% 100%
+        );
+        transform: rotate(
+          var(--garland-rotate, 0deg)
+        );
+      }
+
+      .celebration-garland span:nth-child(2n) {
+        background: #c37986;
+      }
+
+      .celebration-garland span:nth-child(3n) {
+        background: #050002;
+      }
+
+      .celebration-garland span:nth-child(4n) {
+        background: #f2ebec;
+      }
+
+      .final-celebration {
+        width: min(
+          920px,
+          calc(100% - 40px)
+        );
+        margin: 20px auto 0;
+      }
+
+      .final-celebration-card {
+        position: relative;
+        padding: 64px 58px 48px;
+        overflow: hidden;
+        text-align: center;
+        border: 1px solid rgba(5, 0, 2, 0.08);
+        border-radius: 36px;
+        background:
+          radial-gradient(
+            600px 260px at 50% -10%,
+            rgba(242, 168, 169, 0.5),
+            transparent 70%
+          ),
+          #ffffff;
+        box-shadow:
+          0 28px 90px rgba(30, 15, 20, 0.09);
+      }
+
+      .final-celebration-card::before,
+      .final-celebration-card::after {
+        content: "";
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        border-radius: 999px;
+        background: rgba(
+          242,
+          168,
+          169,
+          0.18
+        );
+        pointer-events: none;
+      }
+
+      .final-celebration-card::before {
+        top: -90px;
+        left: -75px;
+      }
+
+      .final-celebration-card::after {
+        right: -70px;
+        bottom: -85px;
+      }
+
+      .final-celebration-icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #c37986;
+        color: white;
+        font-size: 31px;
+        font-weight: 900;
+        box-shadow:
+          0 14px 35px rgba(
+            195,
+            121,
+            134,
+            0.28
+          );
+      }
+
+      .final-eyebrow {
+        display: block;
+        color: #c37986;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+      }
+
+      .final-celebration h1 {
+        margin: 15px auto 20px;
+        color: #050002;
+        font-size:
+          clamp(
+            50px,
+            8vw,
+            92px
+          );
+        line-height: 0.93;
+        letter-spacing: -0.06em;
+        font-weight: 800;
+      }
+
+      .final-celebration h1 em {
+        color: #c37986;
+        font-family:
+          Georgia,
+          "Times New Roman",
+          serif;
+        font-weight: 500;
+      }
+
+      .final-lead {
+        max-width: 650px;
+        margin: 0 auto;
+        color: #625b5e;
+        font-size: 18px;
+        line-height: 1.6;
+      }
+
+      .final-signature-note {
+        max-width: 700px;
+        margin: 34px auto 0;
+        padding: 22px;
+        display: flex;
+        gap: 17px;
+        text-align: left;
+        border-radius: 20px;
+        background: #fffaf8;
+        border:
+          1px solid
+          rgba(
+            195,
+            121,
+            134,
+            0.28
+          );
+      }
+
+      .final-signature-icon {
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #050002;
+        color: white;
+        font-size: 21px;
+      }
+
+      .final-signature-note strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 16px;
+      }
+
+      .final-signature-note p {
+        margin: 0;
+        color: #6e6669;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .final-actions {
+        margin-top: 28px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .final-primary-button {
+        min-height: 56px;
+        padding: 0 28px;
+        border: 0;
+        border-radius: 16px;
+        background: #050002;
+        color: white;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.07em;
+        box-shadow:
+          0 16px 36px
+          rgba(5, 0, 2, 0.18);
+      }
+
+      .dashboard-coming {
+        max-width: 700px;
+        margin: 44px auto 0;
+        padding: 30px;
+        text-align: left;
+        border-radius: 24px;
+        background:
+          linear-gradient(
+            135deg,
+            #f2ebec,
+            #fffaf8
+          );
+      }
+
+      .dashboard-coming > span {
+        display: block;
+        color: #c37986;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+      }
+
+      .dashboard-coming h2 {
+        margin: 9px 0 10px;
+        font-size:
+          clamp(
+            25px,
+            4vw,
+            36px
+          );
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+      }
+
+      .dashboard-coming p {
+        margin: 0;
+        color: #6e6669;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .dashboard-coming strong {
+        display: block;
+        margin-top: 16px;
+        color: #050002;
+        font-size: 13px;
+      }
+
+      .final-verlo-line {
+        margin: 32px 0 0;
+        color: #9b9194;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .final-contract-section {
+        width: min(
+          920px,
+          calc(100% - 40px)
+        );
+        margin: 28px auto 0;
+      }
+
+      .final-contract-heading {
+        margin-bottom: 18px;
+        padding: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        border-radius: 24px;
+        background: white;
+        border:
+          1px solid
+          rgba(5, 0, 2, 0.08);
+      }
+
+      .final-contract-heading h2 {
+        margin: 7px 0 7px;
+        font-size: 28px;
+        letter-spacing: -0.04em;
+      }
+
+      .final-contract-heading p {
+        margin: 0;
+        color: #6e6669;
+        font-size: 13px;
+      }
+
+      @media (max-width: 640px) {
+        .final-celebration-card {
+          padding:
+            44px
+            22px
+            30px;
+          border-radius: 26px;
+        }
+
+        .final-signature-note {
+          flex-direction: column;
+        }
+
+        .dashboard-coming {
+          padding: 22px;
+        }
+
+        .final-primary-button {
+          width: 100%;
+        }
+
+        .final-contract-heading {
+          flex-direction: column;
+          align-items: flex-start;
+          padding: 22px;
+        }
+
+        .final-contract-heading button {
+          width: 100%;
+        }
       }
 
       @media (max-width: 900px) {
