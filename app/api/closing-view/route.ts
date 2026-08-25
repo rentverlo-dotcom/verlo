@@ -2,9 +2,14 @@ import {
   NextRequest,
   NextResponse,
 } from "next/server"
+
 import {
   createClient,
 } from "@supabase/supabase-js"
+
+import {
+  createR2ReadUrl,
+} from "@/lib/r2"
 
 export const runtime =
   "nodejs"
@@ -30,6 +35,111 @@ function nullableString(
     null
 }
 
+function filenameFromKey(
+  key: string | null
+) {
+  if (!key) {
+    return null
+  }
+
+  const parts =
+    key.split("/")
+
+  return (
+    parts[
+      parts.length - 1
+    ] ||
+    null
+  )
+}
+
+function guessContentType(
+  key: string | null
+) {
+  const value =
+    clean(key)
+      .toLowerCase()
+
+  if (
+    value.endsWith(
+      ".jpg"
+    ) ||
+    value.endsWith(
+      ".jpeg"
+    )
+  ) {
+    return "image/jpeg"
+  }
+
+  if (
+    value.endsWith(
+      ".png"
+    )
+  ) {
+    return "image/png"
+  }
+
+  if (
+    value.endsWith(
+      ".webp"
+    )
+  ) {
+    return "image/webp"
+  }
+
+  if (
+    value.endsWith(
+      ".pdf"
+    )
+  ) {
+    return "application/pdf"
+  }
+
+  if (
+    value.endsWith(
+      ".mp4"
+    )
+  ) {
+    return "video/mp4"
+  }
+
+  if (
+    value.endsWith(
+      ".mov"
+    )
+  ) {
+    return "video/quicktime"
+  }
+
+  return null
+}
+
+async function safeSignedUrl(
+  key: string | null
+) {
+  if (!key) {
+    return null
+  }
+
+  try {
+    return await createR2ReadUrl({
+      key,
+      expiresSeconds:
+        900,
+    })
+  } catch (
+    error
+  ) {
+    console.error(
+      "R2 read URL error:",
+      key,
+      error
+    )
+
+    return null
+  }
+}
+
 export async function GET(
   request: NextRequest
 ) {
@@ -49,6 +159,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Missing Supabase env vars",
         },
@@ -87,6 +198,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Missing token",
         },
@@ -97,12 +209,13 @@ export async function GET(
     }
 
     // =========================================================
-    // 1. VALIDAR TOKEN DE CIERRE
+    // 1. TOKEN DE CIERRE
     // =========================================================
 
     const {
       data:
         accessToken,
+
       error:
         tokenError,
     } =
@@ -131,6 +244,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Invalid token",
         },
@@ -147,6 +261,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Token revoked",
         },
@@ -168,6 +283,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Expired token",
         },
@@ -186,6 +302,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Invalid closing role",
         },
@@ -196,12 +313,13 @@ export async function GET(
     }
 
     // =========================================================
-    // 2. TRAER CONTRATO
+    // 2. CONTRATO
     // =========================================================
 
     const {
       data:
         contract,
+
       error:
         contractError,
     } =
@@ -241,6 +359,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Contract not found",
         },
@@ -249,10 +368,6 @@ export async function GET(
         }
       )
     }
-
-    // =========================================================
-    // 3. VALIDAR CORRESPONDENCIA TOKEN / PARTE
-    // =========================================================
 
     const expectedLeadId =
       accessToken.role ===
@@ -270,6 +385,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Token does not belong to this contract party",
         },
@@ -280,12 +396,13 @@ export async function GET(
     }
 
     // =========================================================
-    // 4. MATCH
+    // 3. MATCH
     // =========================================================
 
     const {
       data:
         match,
+
       error:
         matchError,
     } =
@@ -318,6 +435,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Match not found",
         },
@@ -334,6 +452,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Match is not ready to close",
         },
@@ -356,6 +475,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Contract parties do not match lead match",
         },
@@ -366,12 +486,13 @@ export async function GET(
     }
 
     // =========================================================
-    // 5. TRAER TENANT + OWNER
+    // 4. TENANT + OWNER
     // =========================================================
 
     const {
       data:
         people,
+
       error:
         peopleError,
     } =
@@ -392,7 +513,11 @@ export async function GET(
           property_rooms,
           approx_price,
           approx_price_number,
-          availability_status
+          availability_status,
+          income_proof_type,
+          income_range,
+          income_max,
+          guarantee_types
         `)
         .in(
           "id",
@@ -443,6 +568,7 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
+
           error:
             "Tenant or owner not found",
         },
@@ -453,20 +579,31 @@ export async function GET(
     }
 
     // =========================================================
-    // 6. DNI / VERIFICACIÓN DEL TENANT
+    // 5. VERIFICACIÓN TENANT
     // =========================================================
-    //
-    // El DNI ya se pidió durante tenant validation.
-    // No se lo vamos a volver a pedir si existe.
-    //
-    // Primero buscamos la verificación reusable actual.
-    // Si por compatibilidad histórica no existe, buscamos
-    // cualquier verificación reciente del mismo lead.
-    // =========================================================
+
+    const verificationFields = `
+      id,
+      lead_id,
+      match_id,
+      document_number,
+      dni_front_path,
+      dni_back_path,
+      selfie_path,
+      income_proof_path,
+      employment_status,
+      income_range,
+      guarantee_type,
+      move_notes,
+      status,
+      reviewed_at,
+      created_at
+    `
 
     const {
       data:
         reusableVerification,
+
       error:
         reusableVerificationError,
     } =
@@ -474,18 +611,9 @@ export async function GET(
         .from(
           "tenant_verifications"
         )
-        .select(`
-          id,
-          lead_id,
-          match_id,
-          document_number,
-          employment_status,
-          income_range,
-          guarantee_type,
-          move_notes,
-          status,
-          created_at
-        `)
+        .select(
+          verificationFields
+        )
         .eq(
           "lead_id",
           contract
@@ -523,6 +651,7 @@ export async function GET(
       const {
         data:
           historicalVerification,
+
         error:
           historicalVerificationError,
       } =
@@ -530,18 +659,9 @@ export async function GET(
           .from(
             "tenant_verifications"
           )
-          .select(`
-            id,
-            lead_id,
-            match_id,
-            document_number,
-            employment_status,
-            income_range,
-            guarantee_type,
-            move_notes,
-            status,
-            created_at
-          `)
+          .select(
+            verificationFields
+          )
           .eq(
             "lead_id",
             contract
@@ -571,23 +691,13 @@ export async function GET(
     }
 
     // =========================================================
-    // 7. DATOS COMPLETOS DE LA PROPIEDAD
-    // =========================================================
-    //
-    // IMPORTANTE:
-    //
-    // private_address ES la dirección privada real.
-    //
-    // zone / area_macro / neighborhood_labels
-    // NO SON una dirección contractual.
-    //
-    // NO hacemos fallback de dirección a "CABA, Olivos",
-    // "GBA Norte", etc.
+    // 6. COMPLETION PROPIEDAD
     // =========================================================
 
     const {
       data:
         completion,
+
       error:
         completionError,
     } =
@@ -632,7 +742,282 @@ export async function GET(
     }
 
     // =========================================================
-    // 8. LEGALES GUARDADOS EN TERMS_JSON
+    // 7. MULTIMEDIA DE LA PROPIEDAD
+    // =========================================================
+
+    let propertyMedia:
+      Array<{
+        id: string
+        type: string
+        url: string | null
+        key: string | null
+        filename: string | null
+        content_type: string | null
+        position: number
+        available: boolean
+      }> = []
+
+    if (
+      accessToken.role ===
+        "tenant" &&
+      completion?.id
+    ) {
+      const {
+        data:
+          mediaRows,
+
+        error:
+          mediaError,
+      } =
+        await supabase
+          .from(
+            "owner_property_media"
+          )
+          .select(`
+            id,
+            media_type,
+            r2_key,
+            public_url,
+            original_filename,
+            content_type,
+            position
+          `)
+          .eq(
+            "completion_id",
+            completion.id
+          )
+          .order(
+            "position",
+            {
+              ascending:
+                true,
+            }
+          )
+
+      if (
+        mediaError
+      ) {
+        console.error(
+          "closing property media lookup error:",
+          mediaError
+        )
+      } else {
+        propertyMedia =
+          await Promise.all(
+            (
+              mediaRows ||
+              []
+            ).map(
+              async (
+                item
+              ) => {
+                const key =
+                  nullableString(
+                    item
+                      .r2_key
+                  )
+
+                const signedUrl =
+                  await safeSignedUrl(
+                    key
+                  )
+
+                const fallbackUrl =
+                  nullableString(
+                    item
+                      .public_url
+                  )
+
+                return {
+                  id:
+                    item.id,
+
+                  type:
+                    item
+                      .media_type ||
+                    (
+                      item
+                        .content_type
+                        ?.startsWith(
+                          "video/"
+                        )
+                        ? "video"
+                        : "photo"
+                    ),
+
+                  url:
+                    signedUrl ||
+                    fallbackUrl,
+
+                  key,
+
+                  filename:
+                    nullableString(
+                      item
+                        .original_filename
+                    ) ||
+                    filenameFromKey(
+                      key
+                    ),
+
+                  content_type:
+                    nullableString(
+                      item
+                        .content_type
+                    ) ||
+                    guessContentType(
+                      key
+                    ),
+
+                  position:
+                    Number(
+                      item
+                        .position ||
+                        0
+                    ),
+
+                  available:
+                    Boolean(
+                      key ||
+                      fallbackUrl
+                    ),
+                }
+              }
+            )
+          )
+      }
+    }
+
+    // =========================================================
+    // 8. DOCUMENTOS PRIVADOS DEL TENANT
+    // =========================================================
+
+    let tenantDocuments:
+      Array<{
+        kind: string
+        label: string
+        key: string | null
+        url: string | null
+        filename: string | null
+        content_type: string | null
+        available: boolean
+        readable: boolean
+      }> = []
+
+    if (
+      accessToken.role ===
+      "owner"
+    ) {
+      const rawDocuments =
+        [
+          {
+            kind:
+              "dni_front",
+
+            label:
+              "DNI — frente",
+
+            key:
+              nullableString(
+                tenantVerification
+                  ?.dni_front_path
+              ),
+          },
+          {
+            kind:
+              "dni_back",
+
+            label:
+              "DNI — dorso",
+
+            key:
+              nullableString(
+                tenantVerification
+                  ?.dni_back_path
+              ),
+          },
+          {
+            kind:
+              "selfie",
+
+            label:
+              "Selfie de validación",
+
+            key:
+              nullableString(
+                tenantVerification
+                  ?.selfie_path
+              ),
+          },
+          {
+            kind:
+              "income_proof",
+
+            label:
+              "Comprobante de ingresos",
+
+            key:
+              nullableString(
+                tenantVerification
+                  ?.income_proof_path
+              ),
+          },
+        ]
+
+      tenantDocuments =
+        await Promise.all(
+          rawDocuments.map(
+            async (
+              document
+            ) => {
+              const url =
+                await safeSignedUrl(
+                  document
+                    .key
+                )
+
+              return {
+                kind:
+                  document.kind,
+
+                label:
+                  document.label,
+
+                key:
+                  document.key,
+
+                url,
+
+                filename:
+                  filenameFromKey(
+                    document
+                      .key
+                  ),
+
+                content_type:
+                  guessContentType(
+                    document
+                      .key
+                  ),
+
+                available:
+                  Boolean(
+                    document
+                      .key
+                  ),
+
+                readable:
+                  Boolean(
+                    url
+                  ),
+              }
+            }
+          )
+        )
+    }
+
+    // =========================================================
+    // 9. TERMS JSON
     // =========================================================
 
     const terms =
@@ -649,7 +1034,7 @@ export async function GET(
         : {}
 
     // =========================================================
-    // 9. TENANT LEGAL DATA
+    // 10. TENANT LEGAL
     // =========================================================
 
     const tenantDni =
@@ -662,308 +1047,280 @@ export async function GET(
           ?.document_number
       )
 
-    const tenantLegal =
-      {
-        full_name:
-          nullableString(
-            tenant
-              .full_name
-          ),
+    const tenantLegal = {
+      full_name:
+        nullableString(
+          tenant
+            .full_name
+        ),
 
-        dni:
-          tenantDni,
+      dni:
+        tenantDni,
 
-        tax_id:
-          nullableString(
-            terms
-              .tenant_tax_id
-          ),
+      tax_id:
+        nullableString(
+          terms
+            .tenant_tax_id
+        ),
 
-        civil_status:
-          nullableString(
-            terms
-              .tenant_civil_status
-          ),
+      civil_status:
+        nullableString(
+          terms
+            .tenant_civil_status
+        ),
 
-        legal_address:
-          nullableString(
-            terms
-              .tenant_legal_address
-          ),
+      legal_address:
+        nullableString(
+          terms
+            .tenant_legal_address
+        ),
 
-        city:
-          nullableString(
-            terms
-              .tenant_city
-          ),
+      city:
+        nullableString(
+          terms
+            .tenant_city
+        ),
 
-        province:
-          nullableString(
-            terms
-              .tenant_province
-          ),
+      province:
+        nullableString(
+          terms
+            .tenant_province
+        ),
 
-        country:
-          nullableString(
-            terms
-              .tenant_country
-          ) ||
-          "Argentina",
+      country:
+        nullableString(
+          terms
+            .tenant_country
+        ) ||
+        "Argentina",
 
-        postal_code:
-          nullableString(
-            terms
-              .tenant_postal_code
-          ),
+      postal_code:
+        nullableString(
+          terms
+            .tenant_postal_code
+        ),
 
-        phone:
-          nullableString(
-            tenant
-              .phone_normalized ||
-            tenant
-              .phone
-          ),
+      phone:
+        nullableString(
+          tenant
+            .phone_normalized ||
+          tenant
+            .phone
+        ),
 
-        email:
-          nullableString(
-            tenant
-              .email
-          ),
-      }
-
-    // =========================================================
-    // 10. OWNER LEGAL DATA
-    // =========================================================
-
-    const ownerLegal =
-      {
-        full_name:
-          nullableString(
-            owner
-              .full_name
-          ),
-
-        dni:
-          nullableString(
-            terms
-              .owner_dni
-          ),
-
-        tax_id:
-          nullableString(
-            terms
-              .owner_tax_id
-          ),
-
-        civil_status:
-          nullableString(
-            terms
-              .owner_civil_status
-          ),
-
-        legal_address:
-          nullableString(
-            terms
-              .owner_legal_address
-          ),
-
-        city:
-          nullableString(
-            terms
-              .owner_city
-          ),
-
-        province:
-          nullableString(
-            terms
-              .owner_province
-          ),
-
-        country:
-          nullableString(
-            terms
-              .owner_country
-          ) ||
-          "Argentina",
-
-        postal_code:
-          nullableString(
-            terms
-              .owner_postal_code
-          ),
-
-        phone:
-          nullableString(
-            owner
-              .phone_normalized ||
-            owner
-              .phone
-          ),
-
-        email:
-          nullableString(
-            owner
-              .email
-          ),
-
-        acting_as:
-          nullableString(
-            terms
-              .owner_acting_as
-          ) ||
-          "owner",
-
-        power_details:
-          nullableString(
-            terms
-              .owner_power_details
-          ),
-      }
+      email:
+        nullableString(
+          tenant
+            .email
+        ),
+    }
 
     // =========================================================
-    // 11. LUGAR DE CELEBRACIÓN
-    // =========================================================
-    //
-    // Nunca hardcodeamos CABA.
-    //
-    // Argentina queda como default de producto,
-    // pero país también queda editable.
+    // 11. OWNER LEGAL
     // =========================================================
 
-    const signingPlace =
-      {
-        city:
-          nullableString(
-            terms
-              .signing_city
-          ),
+    const ownerLegal = {
+      full_name:
+        nullableString(
+          owner
+            .full_name
+        ),
 
-        province:
-          nullableString(
-            terms
-              .signing_province
-          ),
+      dni:
+        nullableString(
+          terms
+            .owner_dni
+        ),
 
-        country:
-          nullableString(
-            terms
-              .signing_country
-          ) ||
-          "Argentina",
-      }
+      tax_id:
+        nullableString(
+          terms
+            .owner_tax_id
+        ),
 
-    // =========================================================
-    // 12. DATOS CONTRACTUALES DEL INMUEBLE
-    // =========================================================
-    //
-    // Si todavía no fueron confirmados en Paso 5,
-    // podemos mostrar private_address como referencia,
-    // pero JAMÁS reemplazarlo por zone / area_macro.
-    //
-    // Los campos separados definitivos se van a guardar
-    // desde closing-legal-data.
-    // =========================================================
+      civil_status:
+        nullableString(
+          terms
+            .owner_civil_status
+        ),
 
-    const propertyLegal =
-      {
-        street:
-          nullableString(
-            terms
-              .property_street
-          ),
+      legal_address:
+        nullableString(
+          terms
+            .owner_legal_address
+        ),
 
-        number:
-          nullableString(
-            terms
-              .property_number
-          ),
+      city:
+        nullableString(
+          terms
+            .owner_city
+        ),
 
-        floor:
-          nullableString(
-            terms
-              .property_floor
-          ),
+      province:
+        nullableString(
+          terms
+            .owner_province
+        ),
 
-        unit:
-          nullableString(
-            terms
-              .property_unit
-          ),
+      country:
+        nullableString(
+          terms
+            .owner_country
+        ) ||
+        "Argentina",
 
-        city:
-          nullableString(
-            terms
-              .property_city
-          ),
+      postal_code:
+        nullableString(
+          terms
+            .owner_postal_code
+        ),
 
-        province:
-          nullableString(
-            terms
-              .property_province
-          ),
+      phone:
+        nullableString(
+          owner
+            .phone_normalized ||
+          owner
+            .phone
+        ),
 
-        country:
-          nullableString(
-            terms
-              .property_country
-          ) ||
-          "Argentina",
+      email:
+        nullableString(
+          owner
+            .email
+        ),
 
-        postal_code:
-          nullableString(
-            terms
-              .property_postal_code
-          ),
+      acting_as:
+        nullableString(
+          terms
+            .owner_acting_as
+        ) ||
+        "owner",
 
-        private_address:
-          nullableString(
-            completion
-              ?.private_address
-          ),
-
-        floor_unit:
-          nullableString(
-            completion
-              ?.floor_unit
-          ),
-      }
+      power_details:
+        nullableString(
+          terms
+            .owner_power_details
+        ),
+    }
 
     // =========================================================
-    // 13. CONDICIÓN FINAL DE AMOBLAMIENTO
-    // =========================================================
-    //
-    // En el cierre ya no usamos "da igual".
-    // Acá queda la condición efectivamente acordada.
-    //
-    // Valores esperados después:
-    // furnished
-    // unfurnished
-    // partially_furnished
+    // 12. LUGAR CELEBRACIÓN
     // =========================================================
 
-    const furnishing =
-      {
-        status:
-          nullableString(
-            terms
-              .furnishing_status
-          ),
+    const signingPlace = {
+      city:
+        nullableString(
+          terms
+            .signing_city
+        ),
 
-        inventory:
-          nullableString(
-            terms
-              .furnishing_inventory
-          ),
+      province:
+        nullableString(
+          terms
+            .signing_province
+        ),
 
-        condition_notes:
-          nullableString(
-            terms
-              .furnishing_condition_notes
-          ),
-      }
+      country:
+        nullableString(
+          terms
+            .signing_country
+        ) ||
+        "Argentina",
+    }
 
     // =========================================================
-    // 14. COMPLETITUD LEGAL
+    // 13. INMUEBLE CONTRACTUAL
+    // =========================================================
+
+    const propertyLegal = {
+      street:
+        nullableString(
+          terms
+            .property_street
+        ),
+
+      number:
+        nullableString(
+          terms
+            .property_number
+        ),
+
+      floor:
+        nullableString(
+          terms
+            .property_floor
+        ),
+
+      unit:
+        nullableString(
+          terms
+            .property_unit
+        ),
+
+      city:
+        nullableString(
+          terms
+            .property_city
+        ),
+
+      province:
+        nullableString(
+          terms
+            .property_province
+        ),
+
+      country:
+        nullableString(
+          terms
+            .property_country
+        ) ||
+        "Argentina",
+
+      postal_code:
+        nullableString(
+          terms
+            .property_postal_code
+        ),
+
+      private_address:
+        nullableString(
+          completion
+            ?.private_address
+        ),
+
+      floor_unit:
+        nullableString(
+          completion
+            ?.floor_unit
+        ),
+    }
+
+    // =========================================================
+    // 14. AMOBLAMIENTO
+    // =========================================================
+
+    const furnishing = {
+      status:
+        nullableString(
+          terms
+            .furnishing_status
+        ),
+
+      inventory:
+        nullableString(
+          terms
+            .furnishing_inventory
+        ),
+
+      condition_notes:
+        nullableString(
+          terms
+            .furnishing_condition_notes
+        ),
+    }
+
+    // =========================================================
+    // 15. COMPLETITUD
     // =========================================================
 
     const tenantLegalComplete =
@@ -1043,7 +1400,53 @@ export async function GET(
       furnishingComplete
 
     // =========================================================
-    // 15. RESPONSE
+    // 16. ESTADO DE ASSETS PARA REVISIÓN
+    // =========================================================
+
+    const propertyAssetsExpected =
+      accessToken.role ===
+        "tenant"
+
+    const tenantDocumentsExpected =
+      accessToken.role ===
+        "owner"
+
+    const propertyMediaReadable =
+      !propertyAssetsExpected ||
+      (
+        propertyMedia.length >
+          0 &&
+        propertyMedia.every(
+          item =>
+            Boolean(
+              item.url
+            )
+        )
+      )
+
+    const existingTenantDocuments =
+      tenantDocuments.filter(
+        document =>
+          document.available
+      )
+
+    const tenantDocumentsReadable =
+      !tenantDocumentsExpected ||
+      (
+        existingTenantDocuments.length >
+          0 &&
+        existingTenantDocuments.every(
+          document =>
+            document.readable
+        )
+      )
+
+    const reviewAssetsReady =
+      propertyMediaReadable &&
+      tenantDocumentsReadable
+
+    // =========================================================
+    // 17. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -1225,8 +1628,6 @@ export async function GET(
       },
 
       property: {
-        // Dirección privada real.
-        // NO fallback geográfico.
         address:
           completion
             ?.private_address ||
@@ -1237,7 +1638,6 @@ export async function GET(
             ?.floor_unit ||
           null,
 
-        // Barrio/zona solamente descriptivo.
         neighborhood:
           owner
             .neighborhood_labels?.[0] ||
@@ -1294,8 +1694,106 @@ export async function GET(
             ?.property_notes ||
           null,
       },
+
+      review_assets: {
+        ready:
+          reviewAssetsReady,
+
+        property_media:
+          propertyMedia,
+
+        tenant_profile:
+          accessToken.role ===
+          "owner"
+            ? {
+                full_name:
+                  tenant
+                    .full_name,
+
+                document_number:
+                  tenantDni,
+
+                employment_status:
+                  tenantVerification
+                    ?.employment_status ||
+                  null,
+
+                income_proof_type:
+                  tenant
+                    .income_proof_type ||
+                  null,
+
+                income_range:
+                  tenantVerification
+                    ?.income_range ||
+                  tenant
+                    .income_range ||
+                  null,
+
+                income_max:
+                  tenant
+                    .income_max ??
+                  null,
+
+                guarantee_type:
+                  tenantVerification
+                    ?.guarantee_type ||
+                  null,
+
+                guarantee_types:
+                  Array.isArray(
+                    tenant
+                      .guarantee_types
+                  )
+                    ? tenant
+                        .guarantee_types
+                    : [],
+
+                move_notes:
+                  tenantVerification
+                    ?.move_notes ||
+                  null,
+
+                verification_status:
+                  tenantVerification
+                    ?.status ||
+                  null,
+
+                reviewed_at:
+                  tenantVerification
+                    ?.reviewed_at ||
+                  null,
+              }
+            : null,
+
+        tenant_documents:
+          tenantDocuments,
+
+        checks: {
+          property_media_expected:
+            propertyAssetsExpected,
+
+          property_media_count:
+            propertyMedia.length,
+
+          property_media_readable:
+            propertyMediaReadable,
+
+          tenant_documents_expected:
+            tenantDocumentsExpected,
+
+          tenant_documents_count:
+            existingTenantDocuments
+              .length,
+
+          tenant_documents_readable:
+            tenantDocumentsReadable,
+        },
+      },
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "closing-view error:",
       error
@@ -1317,3 +1815,4 @@ export async function GET(
     )
   }
 }
+
