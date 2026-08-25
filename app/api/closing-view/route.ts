@@ -114,6 +114,80 @@ function guessContentType(
   return null
 }
 
+function extractGuaranteeProofKey(
+  moveNotes: string | null
+) {
+  const text =
+    clean(moveNotes)
+
+  if (!text) {
+    return null
+  }
+
+  const lines =
+    text.split(
+      /\r?\n/
+    )
+
+  const guaranteeLine =
+    lines.find(
+      line =>
+        line
+          .trim()
+          .toLowerCase()
+          .startsWith(
+            "garantía / seguro / caución:"
+          )
+    )
+
+  if (
+    !guaranteeLine
+  ) {
+    return null
+  }
+
+  const value =
+    guaranteeLine
+      .split(":")
+      .slice(1)
+      .join(":")
+      .trim()
+
+  return value ||
+    null
+}
+
+function cleanHumanMoveNotes(
+  moveNotes: string | null
+) {
+  const text =
+    clean(moveNotes)
+
+  if (!text) {
+    return null
+  }
+
+  const cleaned =
+    text
+      .split(
+        /\r?\n/
+      )
+      .filter(
+        line =>
+          !line
+            .trim()
+            .toLowerCase()
+            .startsWith(
+              "garantía / seguro / caución:"
+            )
+      )
+      .join("\n")
+      .trim()
+
+  return cleaned ||
+    null
+}
+
 async function safeSignedUrl(
   key: string | null
 ) {
@@ -690,6 +764,20 @@ export async function GET(
         historicalVerification
     }
 
+    const guaranteeProofKey =
+      extractGuaranteeProofKey(
+        tenantVerification
+          ?.move_notes ||
+        null
+      )
+
+    const humanMoveNotes =
+      cleanHumanMoveNotes(
+        tenantVerification
+          ?.move_notes ||
+        null
+      )
+
     // =========================================================
     // 6. COMPLETION PROPIEDAD
     // =========================================================
@@ -961,6 +1049,16 @@ export async function GET(
                 tenantVerification
                   ?.income_proof_path
               ),
+          },
+          {
+            kind:
+              "guarantee_proof",
+
+            label:
+              "Comprobante de garantía",
+
+            key:
+              guaranteeProofKey,
           },
         ]
 
@@ -1750,9 +1848,7 @@ export async function GET(
                     : [],
 
                 move_notes:
-                  tenantVerification
-                    ?.move_notes ||
-                  null,
+                  humanMoveNotes,
 
                 verification_status:
                   tenantVerification
@@ -1815,4 +1911,3 @@ export async function GET(
     )
   }
 }
-
