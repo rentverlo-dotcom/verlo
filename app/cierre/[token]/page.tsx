@@ -2711,13 +2711,19 @@ export default function ClosingPage() {
 
                     <Info
                       label="Estado de validación"
-                      value={
-                        data
-                          .review_assets
-                          .tenant_profile
-                          .verification_status ||
-                        "—"
-                      }
+                    value={
+  data
+    .review_assets
+    .tenant_profile
+    .verification_status ===
+  "submitted"
+    ? "Documentación cargada"
+    : data
+        .review_assets
+        .tenant_profile
+        .verification_status ||
+      "—"
+}
                     />
                   </div>
                 )}
