@@ -1588,10 +1588,10 @@ function Styles() {
           radial-gradient(
             700px 420px at 85% 0%,
             rgba(
-              236,
-              72,
-              153,
-              0.12
+              195,
+              121,
+              134,
+              0.16
             ),
             transparent 65%
           ),
@@ -1655,7 +1655,7 @@ function Styles() {
       }
 
       .status-pill.completed {
-        background: #ec4899;
+        background: #c37986;
       }
 
       .closing-hero {
@@ -1678,7 +1678,7 @@ function Styles() {
         font-weight: 800;
         letter-spacing:
           0.14em;
-        color: #ec4899;
+        color: #c37986;
       }
 
       .closing-hero h1 {
@@ -1703,7 +1703,7 @@ function Styles() {
           "Times New Roman",
           serif;
         font-weight: 500;
-        color: #ec4899;
+        color: #c37986;
       }
 
       .closing-hero p {
@@ -1779,7 +1779,7 @@ function Styles() {
 
       .success-card
         .card-kicker {
-        color: #ff8bc4;
+        color: #f2a8a9;
       }
 
       .success-card p {
@@ -1793,12 +1793,7 @@ function Styles() {
       }
 
       .final-card {
-        background:
-          linear-gradient(
-            135deg,
-            #ec4899,
-            #ca2f77
-          );
+        background: #c37986;
         color: white;
       }
 
@@ -1867,8 +1862,8 @@ function Styles() {
         padding:
           8px 11px;
         border-radius: 999px;
-        background: #fff0f7;
-        color: #c92f77;
+        background: #fffaf8;
+        color: #c37986;
         font-size: 12px;
         font-weight: 800;
         white-space: nowrap;
@@ -1964,7 +1959,7 @@ function Styles() {
 
       .primary-button {
         border: 0;
-        background: #ec4899;
+        background: #c37986;
         color: #ffffff;
       }
 
@@ -2086,14 +2081,14 @@ function Styles() {
       .field input:focus,
       .field textarea:focus {
         border-color:
-          #ec4899;
+          #c37986;
         box-shadow:
           0 0 0 4px
           rgba(
-            236,
-            72,
-            153,
-            0.12
+            195,
+            121,
+            134,
+            0.16
           );
       }
 
@@ -2122,11 +2117,16 @@ function Styles() {
       }
 
       .success-message {
-        background: #fff0f7;
-        color: #a82967;
+        background: #fffaf8;
+        color: #c37986;
         border:
           1px solid
-          #ffd1e6;
+          rgba(
+            195,
+            121,
+            134,
+            0.28
+          );
       }
 
       .document-actions {
@@ -2198,7 +2198,7 @@ function Styles() {
         margin:
           18px auto
           34px;
-        background: #ec4899;
+        background: #c37986;
       }
 
       .contract-copy {
@@ -2236,12 +2236,17 @@ function Styles() {
         background:
           linear-gradient(
             135deg,
-            #fff8fb,
-            #fff0f7
+            #fffaf8,
+            #f2ebec
           );
         border:
           1px solid
-          #ffd4e7;
+          rgba(
+            195,
+            121,
+            134,
+            0.28
+          );
       }
 
       .agreement-copy h3 {
@@ -2262,15 +2267,15 @@ function Styles() {
         width: 100%;
         margin-top: 20px;
         border: 0;
-        background: #ec4899;
+        background: #c37986;
         color: white;
         box-shadow:
           0 10px 30px
           rgba(
-            236,
-            72,
-            153,
-            0.2
+            195,
+            121,
+            134,
+            0.22
           );
       }
 
@@ -2295,7 +2300,7 @@ function Styles() {
         justify-content:
           center;
         border-radius: 999px;
-        background: #ec4899;
+        background: #c37986;
         color: white;
         font-size: 22px;
         font-weight: 900;
@@ -2349,7 +2354,7 @@ function Styles() {
       }
 
       .step-dot.done {
-        background: #ec4899;
+        background: #c37986;
         color: white;
       }
 
@@ -2374,10 +2379,15 @@ function Styles() {
       }
 
       .complete-box {
-        background: #fff0f7;
+        background: #fffaf8;
         border:
           1px solid
-          #ffd1e6;
+          rgba(
+            195,
+            121,
+            134,
+            0.28
+          );
       }
 
       .waiting-box strong,
@@ -2400,13 +2410,13 @@ function Styles() {
       }
 
       .complete-box strong {
-        color: #b72467;
+        color: #c37986;
         font-size: 14px;
       }
 
       .complete-box span {
         margin-top: 5px;
-        color: #805467;
+        color: #625b5e;
         font-size: 12px;
         line-height: 1.45;
       }
@@ -2622,4 +2632,3 @@ function Styles() {
     `}</style>
   )
 }
-
