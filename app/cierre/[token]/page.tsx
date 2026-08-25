@@ -4,6 +4,7 @@ import {
   FormEvent,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
 import { useParams } from "next/navigation"
@@ -152,6 +153,47 @@ function money(
   ).format(value)
 }
 
+function parseMoneyInput(
+  value: string
+) {
+  const cleaned =
+    String(value || "")
+      .trim()
+      .replace(/\$/g, "")
+      .replace(/\s/g, "")
+      .replace(/\./g, "")
+      .replace(/,/g, "")
+      .replace(/[^\d]/g, "")
+
+  if (!cleaned) {
+    return null
+  }
+
+  const parsed =
+    Number(cleaned)
+
+  if (
+    !Number.isFinite(parsed)
+  ) {
+    return null
+  }
+
+  return parsed
+}
+
+function previewMoney(
+  value: string
+) {
+  const parsed =
+    parseMoneyInput(value)
+
+  if (parsed === null) {
+    return "A definir"
+  }
+
+  return money(parsed)
+}
+
 function humanize(
   value: string | null
 ) {
@@ -214,6 +256,11 @@ export default function ClosingPage() {
     String(
       params?.token ||
         ""
+    )
+
+  const formRef =
+    useRef<HTMLFormElement | null>(
+      null
     )
 
   const [
@@ -402,6 +449,32 @@ export default function ClosingPage() {
     load()
   }, [token])
 
+  useEffect(() => {
+    if (!showForm) {
+      return
+    }
+
+    const timer =
+      window.setTimeout(
+        () => {
+          formRef.current
+            ?.scrollIntoView({
+              behavior:
+                "smooth",
+              block:
+                "start",
+            })
+        },
+        80
+      )
+
+    return () => {
+      window.clearTimeout(
+        timer
+      )
+    }
+  }, [showForm])
+
   const isOwner =
     data?.viewer.role ===
     "owner"
@@ -433,6 +506,12 @@ export default function ClosingPage() {
     )
   }
 
+  function openEditForm() {
+    setError("")
+    setSuccessMessage("")
+    setShowForm(true)
+  }
+
   async function generateContract(
     event:
       FormEvent
@@ -443,6 +522,35 @@ export default function ClosingPage() {
       setGenerating(true)
       setError("")
       setSuccessMessage("")
+
+      const monthlyPrice =
+        parseMoneyInput(
+          form.monthly_price
+        )
+
+      const deposit =
+        parseMoneyInput(
+          form.deposit
+        )
+
+      if (
+        monthlyPrice ===
+          null ||
+        monthlyPrice <= 0
+      ) {
+        throw new Error(
+          "Revisá el valor del alquiler mensual."
+        )
+      }
+
+      if (
+        deposit === null ||
+        deposit < 0
+      ) {
+        throw new Error(
+          "Revisá el valor del depósito."
+        )
+      }
 
       const response =
         await fetch(
@@ -461,14 +569,9 @@ export default function ClosingPage() {
                 token,
 
                 monthly_price:
-                  Number(
-                    form.monthly_price
-                  ),
+                  monthlyPrice,
 
-                deposit:
-                  Number(
-                    form.deposit
-                  ),
+                deposit,
 
                 start_date:
                   form.start_date,
@@ -973,7 +1076,7 @@ export default function ClosingPage() {
                     {contractGenerated
                       ? contractLocked
                         ? "Esta es la versión final aceptada por las dos partes."
-                        : "Revisá el documento completo antes de confirmar."
+                        : "Revisá el documento completo. Si encontrás cualquier error, usá EDITAR CONDICIONES sin salir de esta pantalla."
                       : "Completá las condiciones finales. Verlo genera el contrato a partir de esos datos."}
                   </p>
                 </div>
@@ -983,10 +1086,8 @@ export default function ClosingPage() {
                     <button
                       type="button"
                       className="primary-button"
-                      onClick={() =>
-                        setShowForm(
-                          true
-                        )
+                      onClick={
+                        openEditForm
                       }
                     >
                       {contractGenerated
@@ -999,11 +1100,22 @@ export default function ClosingPage() {
               {showForm &&
                 !contractLocked && (
                   <form
+                    ref={formRef}
                     className="contract-form no-print"
                     onSubmit={
                       generateContract
                     }
                   >
+                    <div className="edit-alert">
+                      <strong>
+                        Editás este mismo contrato
+                      </strong>
+
+                      <span>
+                        No necesitás usar el botón Atrás del navegador. Corregí los datos acá y generá nuevamente el contrato.
+                      </span>
+                    </div>
+
                     <div className="form-section">
                       <h3>
                         Condiciones
@@ -1013,11 +1125,12 @@ export default function ClosingPage() {
                       <div className="form-grid">
                         <Field
                           label="Alquiler mensual"
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           value={
                             form.monthly_price
                           }
-                          placeholder="Ej. 850000"
+                          placeholder="Ej. 700.000"
                           required
                           onChange={value =>
                             updateField(
@@ -1029,11 +1142,12 @@ export default function ClosingPage() {
 
                         <Field
                           label="Depósito"
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           value={
                             form.deposit
                           }
-                          placeholder="Ej. 850000"
+                          placeholder="Ej. 700.000"
                           required
                           onChange={value =>
                             updateField(
@@ -1073,6 +1187,10 @@ export default function ClosingPage() {
                           }
                         />
                       </div>
+
+                      <p className="money-help">
+                        Podés escribir, por ejemplo: 700000, 700.000, 700,000 o $700.000. Verlo interpreta el importe y lo guarda como pesos.
+                      </p>
                     </div>
 
                     <div className="form-section">
@@ -1176,6 +1294,79 @@ export default function ClosingPage() {
                       </label>
                     </div>
 
+                    <div className="review-before-generate">
+                      <span className="card-kicker">
+                        REVISÁ ANTES DE GENERAR
+                      </span>
+
+                      <h3>
+                        Estos valores van a quedar escritos en el contrato
+                      </h3>
+
+                      <div className="review-grid">
+                        <div>
+                          <span>
+                            ALQUILER MENSUAL
+                          </span>
+
+                          <strong>
+                            {previewMoney(
+                              form.monthly_price
+                            )}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>
+                            DEPÓSITO
+                          </span>
+
+                          <strong>
+                            {previewMoney(
+                              form.deposit
+                            )}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>
+                            INICIO
+                          </span>
+
+                          <strong>
+                            {formatDate(
+                              form.start_date ||
+                                null
+                            )}
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>
+                            FINALIZACIÓN
+                          </span>
+
+                          <strong>
+                            {formatDate(
+                              form.end_date ||
+                                null
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="review-adjustment">
+                        <span>
+                          ACTUALIZACIÓN
+                        </span>
+
+                        <strong>
+                          {form.adjustment_method ||
+                            "A definir"}
+                        </strong>
+                      </div>
+                    </div>
+
                     <div className="form-actions">
                       <button
                         type="button"
@@ -1198,7 +1389,9 @@ export default function ClosingPage() {
                       >
                         {generating
                           ? "GENERANDO..."
-                          : "GENERAR CONTRATO"}
+                          : contractGenerated
+                            ? "GUARDAR Y REGENERAR CONTRATO"
+                            : "GENERAR CONTRATO"}
                       </button>
                     </div>
                   </form>
@@ -1221,6 +1414,18 @@ export default function ClosingPage() {
                   .content && (
                   <>
                     <div className="document-actions no-print">
+                      {!contractLocked && (
+                        <button
+                          type="button"
+                          className="secondary-button edit-document-button"
+                          onClick={
+                            openEditForm
+                          }
+                        >
+                          EDITAR CONDICIONES
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         className="secondary-button print-button"
@@ -1230,39 +1435,6 @@ export default function ClosingPage() {
                       >
                         IMPRIMIR / GUARDAR PDF
                       </button>
-                    </div>
-
-                    <div className="document-shell print-area">
-                      <article className="contract-document">
-                        <div className="document-brand">
-                          <VerloBrand
-                            width={28}
-                            showText={
-                              true
-                            }
-                          />
-                        </div>
-
-                        <div className="document-title">
-                          CONTRATO DE
-                          LOCACIÓN
-                        </div>
-
-                        <div className="document-rule" />
-
-                        <div className="contract-copy">
-                          {
-                            data.contract
-                              .content
-                          }
-                        </div>
-
-                        <div className="document-footer">
-                          Documento
-                          generado en
-                          Verlo
-                        </div>
-                      </article>
                     </div>
 
                     <div className="contract-summary no-print">
@@ -1308,6 +1480,39 @@ export default function ClosingPage() {
                       />
                     </div>
 
+                    <div className="document-shell print-area">
+                      <article className="contract-document">
+                        <div className="document-brand">
+                          <VerloBrand
+                            width={28}
+                            showText={
+                              true
+                            }
+                          />
+                        </div>
+
+                        <div className="document-title">
+                          CONTRATO DE
+                          LOCACIÓN
+                        </div>
+
+                        <div className="document-rule" />
+
+                        <div className="contract-copy">
+                          {
+                            data.contract
+                              .content
+                          }
+                        </div>
+
+                        <div className="document-footer">
+                          Documento
+                          generado en
+                          Verlo
+                        </div>
+                      </article>
+                    </div>
+
                     <div className="agreement-panel no-print">
                       {bothAgreed ? (
                         <div className="agreement-complete">
@@ -1347,7 +1552,7 @@ export default function ClosingPage() {
                                 ? otherAgreed
                                   ? "Las dos partes ya confirmaron."
                                   : "Ahora falta que la otra parte confirme esta misma versión."
-                                : "Confirmá únicamente después de leer el documento completo. Si el contrato cambia, las aceptaciones anteriores se eliminan y ambas partes deberán confirmar nuevamente."}
+                                : "Confirmá únicamente después de leer el documento completo. Si detectás un error, usá EDITAR CONDICIONES. Si el contrato cambia, las aceptaciones anteriores se eliminan y ambas partes deberán confirmar nuevamente."}
                             </p>
                           </div>
 
@@ -1467,6 +1672,20 @@ export default function ClosingPage() {
             </div>
           </aside>
         </section>
+
+        {contractGenerated &&
+          !contractLocked &&
+          !showForm && (
+            <button
+              type="button"
+              className="floating-edit-button no-print"
+              onClick={
+                openEditForm
+              }
+            >
+              EDITAR CONDICIONES
+            </button>
+          )}
       </main>
 
       <Styles />
@@ -1497,6 +1716,7 @@ function Info({
 function Field({
   label,
   type,
+  inputMode,
   value,
   placeholder,
   required,
@@ -1504,6 +1724,15 @@ function Field({
 }: {
   label: string
   type: string
+  inputMode?:
+    | "none"
+    | "text"
+    | "tel"
+    | "url"
+    | "email"
+    | "numeric"
+    | "decimal"
+    | "search"
   value: string
   placeholder?: string
   required?: boolean
@@ -1519,6 +1748,9 @@ function Field({
 
       <input
         type={type}
+        inputMode={
+          inputMode
+        }
         value={value}
         placeholder={
           placeholder
@@ -1570,6 +1802,10 @@ function Styles() {
     <style jsx global>{`
       * {
         box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
       }
 
       body {
@@ -1941,7 +2177,8 @@ function Styles() {
 
       .primary-button,
       .secondary-button,
-      .agree-button {
+      .agree-button,
+      .floating-edit-button {
         min-height: 48px;
         border-radius: 14px;
         padding:
@@ -1978,7 +2215,8 @@ function Styles() {
 
       .primary-button:hover,
       .secondary-button:hover,
-      .agree-button:hover {
+      .agree-button:hover,
+      .floating-edit-button:hover {
         transform:
           translateY(
             -1px
@@ -2001,6 +2239,40 @@ function Styles() {
         border-top:
           1px solid
           #eee7e2;
+        scroll-margin-top:
+          100px;
+      }
+
+      .edit-alert {
+        margin-bottom: 28px;
+        padding: 17px 18px;
+        border-radius: 16px;
+        background: #f2ebec;
+        border:
+          1px solid
+          rgba(
+            195,
+            121,
+            134,
+            0.3
+          );
+      }
+
+      .edit-alert strong,
+      .edit-alert span {
+        display: block;
+      }
+
+      .edit-alert strong {
+        color: #050002;
+        font-size: 14px;
+      }
+
+      .edit-alert span {
+        margin-top: 5px;
+        color: #625b5e;
+        font-size: 13px;
+        line-height: 1.5;
       }
 
       .form-section +
@@ -2092,6 +2364,94 @@ function Styles() {
           );
       }
 
+      .money-help {
+        margin-top:
+          10px !important;
+        max-width:
+          none !important;
+        color:
+          #8a8184 !important;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .review-before-generate {
+        margin-top: 30px;
+        padding: 24px;
+        border-radius: 20px;
+        background: #050002;
+        color: white;
+      }
+
+      .review-before-generate
+        .card-kicker {
+        color: #f2a8a9;
+      }
+
+      .review-before-generate h3 {
+        margin:
+          8px 0 20px;
+        max-width: 520px;
+        font-size: 22px;
+        line-height: 1.15;
+        letter-spacing:
+          -0.035em;
+      }
+
+      .review-grid {
+        display: grid;
+        grid-template-columns:
+          repeat(
+            2,
+            minmax(
+              0,
+              1fr
+            )
+          );
+        gap: 10px;
+      }
+
+      .review-grid > div,
+      .review-adjustment {
+        padding: 15px;
+        border-radius: 14px;
+        background:
+          rgba(
+            255,
+            255,
+            255,
+            0.08
+          );
+      }
+
+      .review-grid span,
+      .review-adjustment span {
+        display: block;
+        margin-bottom: 6px;
+        color:
+          rgba(
+            255,
+            255,
+            255,
+            0.58
+          );
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing:
+          0.12em;
+      }
+
+      .review-grid strong,
+      .review-adjustment strong {
+        display: block;
+        font-size: 17px;
+        line-height: 1.35;
+      }
+
+      .review-adjustment {
+        margin-top: 10px;
+      }
+
       .form-actions {
         margin-top: 24px;
         display: flex;
@@ -2134,6 +2494,14 @@ function Styles() {
         display: flex;
         justify-content:
           flex-end;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .edit-document-button {
+        border-color:
+          #c37986;
+        color: #c37986;
       }
 
       .print-button {
@@ -2141,6 +2509,10 @@ function Styles() {
         color: white;
         border-color:
           #050002;
+      }
+
+      .contract-summary {
+        margin-bottom: 18px;
       }
 
       .document-shell {
@@ -2433,6 +2805,24 @@ function Styles() {
         color: #9c9295;
       }
 
+      .floating-edit-button {
+        position: fixed;
+        right: 26px;
+        bottom: 26px;
+        z-index: 100;
+        border: 0;
+        background: #c37986;
+        color: white;
+        box-shadow:
+          0 15px 38px
+          rgba(
+            5,
+            0,
+            2,
+            0.18
+          );
+      }
+
       .closing-centered {
         min-height: 100vh;
         display: flex;
@@ -2531,7 +2921,8 @@ function Styles() {
         .info-grid,
         .info-grid.two,
         .contract-summary,
-        .form-grid {
+        .form-grid,
+        .review-grid {
           grid-template-columns:
             1fr;
         }
@@ -2539,6 +2930,11 @@ function Styles() {
         .primary-button,
         .secondary-button {
           width: 100%;
+        }
+
+        .document-actions {
+          flex-direction:
+            column;
         }
 
         .form-actions {
@@ -2566,6 +2962,16 @@ function Styles() {
         .agreement-complete {
           align-items:
             flex-start;
+        }
+
+        .floating-edit-button {
+          right: 14px;
+          bottom: 14px;
+          left: 14px;
+          width:
+            calc(
+              100% - 28px
+            );
         }
       }
 
