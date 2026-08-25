@@ -7,138 +7,509 @@ import {
   useRef,
   useState,
 } from "react"
-import { useParams } from "next/navigation"
+
+import {
+  useParams,
+} from "next/navigation"
+
 import VerloBrand from "@/components/VerloBrand"
+
+const ARGENTINA_PROVINCES = [
+  "Ciudad Autónoma de Buenos Aires",
+  "Buenos Aires",
+  "Catamarca",
+  "Chaco",
+  "Chubut",
+  "Córdoba",
+  "Corrientes",
+  "Entre Ríos",
+  "Formosa",
+  "Jujuy",
+  "La Pampa",
+  "La Rioja",
+  "Mendoza",
+  "Misiones",
+  "Neuquén",
+  "Río Negro",
+  "Salta",
+  "San Juan",
+  "San Luis",
+  "Santa Cruz",
+  "Santa Fe",
+  "Santiago del Estero",
+  "Tierra del Fuego",
+  "Tucumán",
+]
 
 type ClosingData = {
   ok: boolean
 
   viewer: {
-    role: "tenant" | "owner"
-    lead_id: string
+    role:
+      | "tenant"
+      | "owner"
+
+    lead_id:
+      string
   }
 
   contract: {
-    id: string
-    match_id: string
-    status: string
-    monthly_price: number | null
-    deposit: number | null
-    start_date: string | null
-    end_date: string | null
-    adjustment_method: string | null
+    id:
+      string
 
-    terms: {
-      expenses?: string
-      services?: string
-      special_conditions?: string
-    }
+    match_id:
+      string
 
-    content: string | null
+    status:
+      string
 
-    tenant_agreed: boolean
-    owner_agreed: boolean
+    monthly_price:
+      number | null
+
+    deposit:
+      number | null
+
+    start_date:
+      string | null
+
+    end_date:
+      string | null
+
+    adjustment_method:
+      string | null
+
+    terms:
+      Record<
+        string,
+        unknown
+      >
+
+    content:
+      string | null
+
+    tenant_agreed:
+      boolean
+
+    owner_agreed:
+      boolean
 
     tenant_agreed_at:
-      | string
-      | null
+      string | null
 
     owner_agreed_at:
-      | string
-      | null
+      string | null
+
+    created_at?:
+      string | null
+
+    updated_at?:
+      string | null
   }
 
   match: {
-    id: string
-    score: number
-    status: string
+    id:
+      string
+
+    score:
+      number
+
+    status:
+      string
+
     ready_to_connect_at:
-      | string
-      | null
+      string | null
   }
 
   tenant: {
-    id: string
-    full_name: string
-    email: string
-    phone: string
+    id:
+      string
+
+    full_name:
+      string
+
+    email:
+      string
+
+    phone:
+      string
+
+    document_number?:
+      string | null
+
+    verification_status?:
+      string | null
   }
 
   owner: {
-    id: string
-    full_name: string
-    email: string
-    phone: string
+    id:
+      string
+
+    full_name:
+      string
+
+    email:
+      string
+
+    phone:
+      string
+  }
+
+  legal: {
+    tenant: {
+      full_name:
+        string | null
+
+      dni:
+        string | null
+
+      tax_id:
+        string | null
+
+      civil_status:
+        string | null
+
+      legal_address:
+        string | null
+
+      city:
+        string | null
+
+      province:
+        string | null
+
+      country:
+        string | null
+
+      postal_code:
+        string | null
+
+      phone:
+        string | null
+
+      email:
+        string | null
+    }
+
+    owner: {
+      full_name:
+        string | null
+
+      dni:
+        string | null
+
+      tax_id:
+        string | null
+
+      civil_status:
+        string | null
+
+      legal_address:
+        string | null
+
+      city:
+        string | null
+
+      province:
+        string | null
+
+      country:
+        string | null
+
+      postal_code:
+        string | null
+
+      phone:
+        string | null
+
+      email:
+        string | null
+
+      acting_as:
+        string | null
+
+      power_details:
+        string | null
+    }
+
+    signing_place: {
+      city:
+        string | null
+
+      province:
+        string | null
+
+      country:
+        string | null
+    }
+
+    property: {
+      street:
+        string | null
+
+      number:
+        string | null
+
+      floor:
+        string | null
+
+      unit:
+        string | null
+
+      city:
+        string | null
+
+      province:
+        string | null
+
+      country:
+        string | null
+
+      postal_code:
+        string | null
+
+      private_address:
+        string | null
+
+      floor_unit:
+        string | null
+    }
+
+    furnishing: {
+      status:
+        string | null
+
+      inventory:
+        string | null
+
+      condition_notes:
+        string | null
+    }
+
+    completeness: {
+      tenant:
+        boolean
+
+      owner:
+        boolean
+
+      property:
+        boolean
+
+      signing_place:
+        boolean
+
+      furnishing:
+        boolean
+
+      all:
+        boolean
+    }
   }
 
   property: {
     address:
-      | string
-      | null
+      string | null
 
     floor_unit:
-      | string
-      | null
+      string | null
 
     neighborhood:
-      | string
-      | null
+      string | null
 
     property_type:
-      | string
-      | null
+      string | null
 
     rooms:
-      | string
-      | null
+      string | null
 
     approx_price:
-      | string
-      | null
+      string | null
 
     approx_price_number:
-      | number
-      | null
+      number | null
 
     expenses_amount:
-      | number
-      | null
+      number | null
 
     availability_status:
-      | string
-      | null
+      string | null
 
     requirements:
-      | string
-      | null
+      string | null
 
     visit_conditions:
-      | string
-      | null
+      string | null
 
     notes:
-      | string
-      | null
+      string | null
   }
 }
 
-type FormState = {
-  monthly_price: string
-  deposit: string
-  start_date: string
-  end_date: string
-  adjustment_method: string
-  expenses: string
-  services: string
-  special_conditions: string
+type ContractFormState = {
+  monthly_price:
+    string
+
+  deposit:
+    string
+
+  start_date:
+    string
+
+  end_date:
+    string
+
+  adjustment_method:
+    string
+
+  expenses:
+    string
+
+  services:
+    string
+
+  payment_method:
+    string
+
+  payment_details:
+    string
+
+  guarantee_type:
+    string
+
+  guarantee_details:
+    string
+
+  pets_policy:
+    string
+
+  insurance_terms:
+    string
+
+  special_conditions:
+    string
+}
+
+type TenantLegalForm = {
+  dni:
+    string
+
+  civil_status:
+    string
+
+  legal_address:
+    string
+
+  city:
+    string
+
+  province:
+    string
+
+  country:
+    string
+
+  postal_code:
+    string
+}
+
+type OwnerLegalForm = {
+  dni:
+    string
+
+  tax_id:
+    string
+
+  civil_status:
+    string
+
+  legal_address:
+    string
+
+  city:
+    string
+
+  province:
+    string
+
+  country:
+    string
+
+  postal_code:
+    string
+
+  acting_as:
+    string
+
+  power_details:
+    string
+}
+
+type PropertyLegalForm = {
+  street:
+    string
+
+  number:
+    string
+
+  floor:
+    string
+
+  unit:
+    string
+
+  city:
+    string
+
+  province:
+    string
+
+  country:
+    string
+
+  postal_code:
+    string
+}
+
+type SigningForm = {
+  city:
+    string
+
+  province:
+    string
+
+  country:
+    string
+}
+
+type FurnishingForm = {
+  status:
+    string
+
+  inventory:
+    string
+
+  condition_notes:
+    string
+}
+
+function asString(
+  value: unknown
+) {
+  return typeof value ===
+    "string"
+    ? value
+    : ""
 }
 
 function money(
-  value: number | null
+  value:
+    number | null
 ) {
   if (
     value === null ||
-    Number.isNaN(value)
+    Number.isNaN(
+      value
+    )
   ) {
     return "A definir"
   }
@@ -146,34 +517,62 @@ function money(
   return new Intl.NumberFormat(
     "es-AR",
     {
-      style: "currency",
-      currency: "ARS",
-      maximumFractionDigits: 0,
+      style:
+        "currency",
+
+      currency:
+        "ARS",
+
+      maximumFractionDigits:
+        0,
     }
-  ).format(value)
+  ).format(
+    value
+  )
 }
 
 function parseMoneyInput(
   value: string
 ) {
   const cleaned =
-    String(value || "")
+    String(
+      value || ""
+    )
       .trim()
-      .replace(/\$/g, "")
-      .replace(/\s/g, "")
-      .replace(/\./g, "")
-      .replace(/,/g, "")
-      .replace(/[^\d]/g, "")
+      .replace(
+        /\$/g,
+        ""
+      )
+      .replace(
+        /\s/g,
+        ""
+      )
+      .replace(
+        /\./g,
+        ""
+      )
+      .replace(
+        /,/g,
+        ""
+      )
+      .replace(
+        /[^\d]/g,
+        ""
+      )
 
   if (!cleaned) {
     return null
   }
 
   const parsed =
-    Number(cleaned)
+    Number(
+      cleaned
+    )
 
   if (
-    !Number.isFinite(parsed)
+    !Number.isFinite(
+      parsed
+    )
   ) {
     return null
   }
@@ -185,17 +584,24 @@ function previewMoney(
   value: string
 ) {
   const parsed =
-    parseMoneyInput(value)
+    parseMoneyInput(
+      value
+    )
 
-  if (parsed === null) {
+  if (
+    parsed === null
+  ) {
     return "A definir"
   }
 
-  return money(parsed)
+  return money(
+    parsed
+  )
 }
 
 function humanize(
-  value: string | null
+  value:
+    string | null
 ) {
   if (!value) {
     return "—"
@@ -206,39 +612,51 @@ function humanize(
       string,
       string
     > = {
-      apartment:
-        "Departamento",
+    apartment:
+      "Departamento",
 
-      house:
-        "Casa",
+    house:
+      "Casa",
 
-      ph:
-        "PH",
+    ph:
+      "PH",
 
-      studio:
-        "Monoambiente",
-    }
+    studio:
+      "Monoambiente",
+  }
 
   return (
-    dictionary[value] ||
+    dictionary[
+      value
+    ] ||
     value
-      .replace(/_/g, " ")
-      .replace(/-/g, " ")
+      .replace(
+        /_/g,
+        " "
+      )
+      .replace(
+        /-/g,
+        " "
+      )
   )
 }
 
 function formatDate(
-  value: string | null
+  value:
+    string | null
 ) {
   if (!value) {
     return "—"
   }
 
   const parts =
-    value.split("-")
+    value.split(
+      "-"
+    )
 
   if (
-    parts.length === 3
+    parts.length ===
+    3
   ) {
     return `${parts[2]}/${parts[1]}/${parts[0]}`
   }
@@ -246,10 +664,39 @@ function formatDate(
   return value
 }
 
+function furnishingLabel(
+  value:
+    string | null
+) {
+  if (
+    value ===
+    "furnished"
+  ) {
+    return "Amoblado"
+  }
+
+  if (
+    value ===
+    "partially_furnished"
+  ) {
+    return "Parcialmente amoblado"
+  }
+
+  if (
+    value ===
+    "unfurnished"
+  ) {
+    return "Sin amoblar"
+  }
+
+  return "A definir"
+}
+
 export default function ClosingPage() {
   const params =
     useParams<{
-      token: string
+      token:
+        string
     }>()
 
   const token =
@@ -258,8 +705,17 @@ export default function ClosingPage() {
         ""
     )
 
-  const formRef =
-    useRef<HTMLFormElement | null>(
+  const contractFormRef =
+    useRef<
+      HTMLFormElement | null
+    >(
+      null
+    )
+
+  const legalFormRef =
+    useRef<
+      HTMLDivElement | null
+    >(
       null
     )
 
@@ -269,49 +725,81 @@ export default function ClosingPage() {
   ] =
     useState<
       ClosingData | null
-    >(null)
+    >(
+      null
+    )
 
   const [
     loading,
     setLoading,
   ] =
-    useState(true)
+    useState(
+      true
+    )
 
   const [
     error,
     setError,
   ] =
-    useState("")
-
-  const [
-    showForm,
-    setShowForm,
-  ] =
-    useState(false)
-
-  const [
-    generating,
-    setGenerating,
-  ] =
-    useState(false)
-
-  const [
-    accepting,
-    setAccepting,
-  ] =
-    useState(false)
+    useState(
+      ""
+    )
 
   const [
     successMessage,
     setSuccessMessage,
   ] =
-    useState("")
+    useState(
+      ""
+    )
 
   const [
-    form,
-    setForm,
+    showContractForm,
+    setShowContractForm,
   ] =
-    useState<FormState>({
+    useState(
+      false
+    )
+
+  const [
+    showLegalForm,
+    setShowLegalForm,
+  ] =
+    useState(
+      false
+    )
+
+  const [
+    generating,
+    setGenerating,
+  ] =
+    useState(
+      false
+    )
+
+  const [
+    savingLegal,
+    setSavingLegal,
+  ] =
+    useState(
+      false
+    )
+
+  const [
+    accepting,
+    setAccepting,
+  ] =
+    useState(
+      false
+    )
+
+  const [
+    contractForm,
+    setContractForm,
+  ] =
+    useState<
+      ContractFormState
+    >({
       monthly_price:
         "",
 
@@ -333,23 +821,181 @@ export default function ClosingPage() {
       services:
         "",
 
+      payment_method:
+        "",
+
+      payment_details:
+        "",
+
+      guarantee_type:
+        "",
+
+      guarantee_details:
+        "",
+
+      pets_policy:
+        "",
+
+      insurance_terms:
+        "",
+
       special_conditions:
         "",
     })
 
+  const [
+    tenantLegalForm,
+    setTenantLegalForm,
+  ] =
+    useState<
+      TenantLegalForm
+    >({
+      dni:
+        "",
+
+      civil_status:
+        "",
+
+      legal_address:
+        "",
+
+      city:
+        "",
+
+      province:
+        "",
+
+      country:
+        "Argentina",
+
+      postal_code:
+        "",
+    })
+
+  const [
+    ownerLegalForm,
+    setOwnerLegalForm,
+  ] =
+    useState<
+      OwnerLegalForm
+    >({
+      dni:
+        "",
+
+      tax_id:
+        "",
+
+      civil_status:
+        "",
+
+      legal_address:
+        "",
+
+      city:
+        "",
+
+      province:
+        "",
+
+      country:
+        "Argentina",
+
+      postal_code:
+        "",
+
+      acting_as:
+        "owner",
+
+      power_details:
+        "",
+    })
+
+  const [
+    propertyLegalForm,
+    setPropertyLegalForm,
+  ] =
+    useState<
+      PropertyLegalForm
+    >({
+      street:
+        "",
+
+      number:
+        "",
+
+      floor:
+        "",
+
+      unit:
+        "",
+
+      city:
+        "",
+
+      province:
+        "",
+
+      country:
+        "Argentina",
+
+      postal_code:
+        "",
+    })
+
+  const [
+    signingForm,
+    setSigningForm,
+  ] =
+    useState<
+      SigningForm
+    >({
+      city:
+        "",
+
+      province:
+        "",
+
+      country:
+        "Argentina",
+    })
+
+  const [
+    furnishingForm,
+    setFurnishingForm,
+  ] =
+    useState<
+      FurnishingForm
+    >({
+      status:
+        "",
+
+      inventory:
+        "",
+
+      condition_notes:
+        "",
+    })
+
   async function load(
-    showLoader = true
+    showLoader =
+      true
   ) {
     if (!token) {
       return
     }
 
     try {
-      if (showLoader) {
-        setLoading(true)
+      if (
+        showLoader
+      ) {
+        setLoading(
+          true
+        )
       }
 
-      setError("")
+      setError(
+        ""
+      )
 
       const response =
         await fetch(
@@ -362,6 +1008,702 @@ export default function ClosingPage() {
           }
         )
 
+      const json:
+        ClosingData =
+        await response.json()
+
+      if (
+        !response.ok ||
+        !json?.ok
+      ) {
+        throw new Error(
+          (
+            json as
+              ClosingData & {
+                error?:
+                  string
+              }
+          )?.error ||
+            "No pudimos abrir este cierre."
+        )
+      }
+
+      setData(
+        json
+      )
+
+      setContractForm({
+        monthly_price:
+          json
+            .contract
+            .monthly_price !==
+          null
+            ? String(
+                json
+                  .contract
+                  .monthly_price
+              )
+            : "",
+
+        deposit:
+          json
+            .contract
+            .deposit !==
+          null
+            ? String(
+                json
+                  .contract
+                  .deposit
+              )
+            : "",
+
+        start_date:
+          json
+            .contract
+            .start_date ||
+          "",
+
+        end_date:
+          json
+            .contract
+            .end_date ||
+          "",
+
+        adjustment_method:
+          json
+            .contract
+            .adjustment_method ||
+          "",
+
+        expenses:
+          asString(
+            json
+              .contract
+              .terms
+              ?.expenses
+          ),
+
+        services:
+          asString(
+            json
+              .contract
+              .terms
+              ?.services
+          ),
+
+        payment_method:
+          asString(
+            json
+              .contract
+              .terms
+              ?.payment_method
+          ),
+
+        payment_details:
+          asString(
+            json
+              .contract
+              .terms
+              ?.payment_details
+          ),
+
+        guarantee_type:
+          asString(
+            json
+              .contract
+              .terms
+              ?.guarantee_type
+          ),
+
+        guarantee_details:
+          asString(
+            json
+              .contract
+              .terms
+              ?.guarantee_details
+          ),
+
+        pets_policy:
+          asString(
+            json
+              .contract
+              .terms
+              ?.pets_policy
+          ),
+
+        insurance_terms:
+          asString(
+            json
+              .contract
+              .terms
+              ?.insurance_terms
+          ),
+
+        special_conditions:
+          asString(
+            json
+              .contract
+              .terms
+              ?.special_conditions
+          ),
+      })
+
+      setTenantLegalForm({
+        dni:
+          json
+            .legal
+            .tenant
+            .dni ||
+          json
+            .tenant
+            .document_number ||
+          "",
+
+        civil_status:
+          json
+            .legal
+            .tenant
+            .civil_status ||
+          "",
+
+        legal_address:
+          json
+            .legal
+            .tenant
+            .legal_address ||
+          "",
+
+        city:
+          json
+            .legal
+            .tenant
+            .city ||
+          "",
+
+        province:
+          json
+            .legal
+            .tenant
+            .province ||
+          "",
+
+        country:
+          json
+            .legal
+            .tenant
+            .country ||
+          "Argentina",
+
+        postal_code:
+          json
+            .legal
+            .tenant
+            .postal_code ||
+          "",
+      })
+
+      setOwnerLegalForm({
+        dni:
+          json
+            .legal
+            .owner
+            .dni ||
+          "",
+
+        tax_id:
+          json
+            .legal
+            .owner
+            .tax_id ||
+          "",
+
+        civil_status:
+          json
+            .legal
+            .owner
+            .civil_status ||
+          "",
+
+        legal_address:
+          json
+            .legal
+            .owner
+            .legal_address ||
+          "",
+
+        city:
+          json
+            .legal
+            .owner
+            .city ||
+          "",
+
+        province:
+          json
+            .legal
+            .owner
+            .province ||
+          "",
+
+        country:
+          json
+            .legal
+            .owner
+            .country ||
+          "Argentina",
+
+        postal_code:
+          json
+            .legal
+            .owner
+            .postal_code ||
+          "",
+
+        acting_as:
+          json
+            .legal
+            .owner
+            .acting_as ||
+          "owner",
+
+        power_details:
+          json
+            .legal
+            .owner
+            .power_details ||
+          "",
+      })
+
+      setPropertyLegalForm({
+        street:
+          json
+            .legal
+            .property
+            .street ||
+          "",
+
+        number:
+          json
+            .legal
+            .property
+            .number ||
+          "",
+
+        floor:
+          json
+            .legal
+            .property
+            .floor ||
+          "",
+
+        unit:
+          json
+            .legal
+            .property
+            .unit ||
+          "",
+
+        city:
+          json
+            .legal
+            .property
+            .city ||
+          "",
+
+        province:
+          json
+            .legal
+            .property
+            .province ||
+          "",
+
+        country:
+          json
+            .legal
+            .property
+            .country ||
+          "Argentina",
+
+        postal_code:
+          json
+            .legal
+            .property
+            .postal_code ||
+          "",
+      })
+
+      setSigningForm({
+        city:
+          json
+            .legal
+            .signing_place
+            .city ||
+          "",
+
+        province:
+          json
+            .legal
+            .signing_place
+            .province ||
+          "",
+
+        country:
+          json
+            .legal
+            .signing_place
+            .country ||
+          "Argentina",
+      })
+
+      setFurnishingForm({
+        status:
+          json
+            .legal
+            .furnishing
+            .status ||
+          "",
+
+        inventory:
+          json
+            .legal
+            .furnishing
+            .inventory ||
+          "",
+
+        condition_notes:
+          json
+            .legal
+            .furnishing
+            .condition_notes ||
+          "",
+      })
+    } catch (
+      err
+    ) {
+      setError(
+        err instanceof
+          Error
+          ? err.message
+          : "No pudimos abrir este cierre."
+      )
+    } finally {
+      if (
+        showLoader
+      ) {
+        setLoading(
+          false
+        )
+      }
+    }
+  }
+
+  useEffect(
+    () => {
+      load()
+    },
+    [
+      token,
+    ]
+  )
+
+  useEffect(
+    () => {
+      if (
+        !showContractForm
+      ) {
+        return
+      }
+
+      const timer =
+        window.setTimeout(
+          () => {
+            contractFormRef
+              .current
+              ?.scrollIntoView({
+                behavior:
+                  "smooth",
+
+                block:
+                  "start",
+              })
+          },
+          80
+        )
+
+      return () => {
+        window.clearTimeout(
+          timer
+        )
+      }
+    },
+    [
+      showContractForm,
+    ]
+  )
+
+  useEffect(
+    () => {
+      if (
+        !showLegalForm
+      ) {
+        return
+      }
+
+      const timer =
+        window.setTimeout(
+          () => {
+            legalFormRef
+              .current
+              ?.scrollIntoView({
+                behavior:
+                  "smooth",
+
+                block:
+                  "start",
+              })
+          },
+          80
+        )
+
+      return () => {
+        window.clearTimeout(
+          timer
+        )
+      }
+    },
+    [
+      showLegalForm,
+    ]
+  )
+
+  const isOwner =
+    data?.viewer
+      .role ===
+    "owner"
+
+  const counterpart =
+    useMemo(
+      () => {
+        if (!data) {
+          return null
+        }
+
+        return isOwner
+          ? data
+              .tenant
+          : data
+              .owner
+      },
+      [
+        data,
+        isOwner,
+      ]
+    )
+
+  function updateContractField(
+    field:
+      keyof ContractFormState,
+
+    value:
+      string
+  ) {
+    setContractForm(
+      current => ({
+        ...current,
+
+        [field]:
+          value,
+      })
+    )
+  }
+
+  function updateTenantLegalField(
+    field:
+      keyof TenantLegalForm,
+
+    value:
+      string
+  ) {
+    setTenantLegalForm(
+      current => ({
+        ...current,
+
+        [field]:
+          value,
+      })
+    )
+  }
+
+  function updateOwnerLegalField(
+    field:
+      keyof OwnerLegalForm,
+
+    value:
+      string
+  ) {
+    setOwnerLegalForm(
+      current => ({
+        ...current,
+
+        [field]:
+          value,
+      })
+    )
+  }
+
+  function updatePropertyLegalField(
+    field:
+      keyof PropertyLegalForm,
+
+    value:
+      string
+  ) {
+    setPropertyLegalForm(
+      current => ({
+        ...current,
+
+        [field]:
+          value,
+      })
+    )
+  }
+
+  function updateSigningField(
+    field:
+      keyof SigningForm,
+
+    value:
+      string
+  ) {
+    setSigningForm(
+      current => ({
+        ...current,
+
+        [field]:
+          value,
+      })
+    )
+  }
+
+  function updateFurnishingField(
+    field:
+      keyof FurnishingForm,
+
+    value:
+      string
+  ) {
+    setFurnishingForm(
+      current => ({
+        ...current,
+
+        [field]:
+          value,
+      })
+    )
+  }
+
+  function openLegalForm() {
+    setError(
+      ""
+    )
+
+    setSuccessMessage(
+      ""
+    )
+
+    setShowLegalForm(
+      true
+    )
+  }
+
+  function openContractForm() {
+    setError(
+      ""
+    )
+
+    setSuccessMessage(
+      ""
+    )
+
+    setShowContractForm(
+      true
+    )
+  }
+
+  async function saveLegalData(
+    event:
+      FormEvent
+  ) {
+    event.preventDefault()
+
+    if (!data) {
+      return
+    }
+
+    try {
+      setSavingLegal(
+        true
+      )
+
+      setError(
+        ""
+      )
+
+      setSuccessMessage(
+        ""
+      )
+
+      const payload =
+        data
+          .viewer
+          .role ===
+        "tenant"
+          ? {
+              token,
+
+              tenant: {
+                ...tenantLegalForm,
+              },
+            }
+          : {
+              token,
+
+              owner: {
+                ...ownerLegalForm,
+              },
+
+              property: {
+                ...propertyLegalForm,
+              },
+
+              signing_place: {
+                ...signingForm,
+              },
+
+              furnishing: {
+                ...furnishingForm,
+              },
+            }
+
+      const response =
+        await fetch(
+          "/api/closing-legal-data",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify(
+                payload
+              ),
+          }
+        )
+
       const json =
         await response.json()
 
@@ -371,145 +1713,38 @@ export default function ClosingPage() {
       ) {
         throw new Error(
           json?.error ||
-            "No pudimos abrir este cierre."
+            "No pudimos guardar los datos."
         )
       }
 
-      setData(json)
+      setShowLegalForm(
+        false
+      )
 
-      setForm({
-        monthly_price:
-          json.contract
-            .monthly_price !==
-          null
-            ? String(
-                json.contract
-                  .monthly_price
-              )
-            : "",
+      setSuccessMessage(
+        json
+          .contract_invalidated
+          ? "Datos guardados. Como cambió información del contrato, la versión anterior quedó invalidada y deberá generarse nuevamente."
+          : "Datos legales guardados correctamente."
+      )
 
-        deposit:
-          json.contract
-            .deposit !==
-          null
-            ? String(
-                json.contract
-                  .deposit
-              )
-            : "",
-
-        start_date:
-          json.contract
-            .start_date ||
-          "",
-
-        end_date:
-          json.contract
-            .end_date ||
-          "",
-
-        adjustment_method:
-          json.contract
-            .adjustment_method ||
-          "",
-
-        expenses:
-          json.contract
-            .terms
-            ?.expenses ||
-          "",
-
-        services:
-          json.contract
-            .terms
-            ?.services ||
-          "",
-
-        special_conditions:
-          json.contract
-            .terms
-            ?.special_conditions ||
-          "",
-      })
-    } catch (err) {
+      await load(
+        false
+      )
+    } catch (
+      err
+    ) {
       setError(
         err instanceof
           Error
           ? err.message
-          : "No pudimos abrir este cierre."
+          : "No pudimos guardar los datos."
       )
     } finally {
-      if (showLoader) {
-        setLoading(false)
-      }
-    }
-  }
-
-  useEffect(() => {
-    load()
-  }, [token])
-
-  useEffect(() => {
-    if (!showForm) {
-      return
-    }
-
-    const timer =
-      window.setTimeout(
-        () => {
-          formRef.current
-            ?.scrollIntoView({
-              behavior:
-                "smooth",
-              block:
-                "start",
-            })
-        },
-        80
-      )
-
-    return () => {
-      window.clearTimeout(
-        timer
+      setSavingLegal(
+        false
       )
     }
-  }, [showForm])
-
-  const isOwner =
-    data?.viewer.role ===
-    "owner"
-
-  const counterpart =
-    useMemo(() => {
-      if (!data) {
-        return null
-      }
-
-      return isOwner
-        ? data.tenant
-        : data.owner
-    }, [
-      data,
-      isOwner,
-    ])
-
-  function updateField(
-    field:
-      keyof FormState,
-    value: string
-  ) {
-    setForm(
-      current => ({
-        ...current,
-        [field]: value,
-      })
-    )
-  }
-
-  function openEditForm() {
-    setError("")
-    setSuccessMessage("")
-    setShowForm(true)
   }
 
   async function generateContract(
@@ -518,25 +1753,40 @@ export default function ClosingPage() {
   ) {
     event.preventDefault()
 
+    if (!isOwner) {
+      return
+    }
+
     try {
-      setGenerating(true)
-      setError("")
-      setSuccessMessage("")
+      setGenerating(
+        true
+      )
+
+      setError(
+        ""
+      )
+
+      setSuccessMessage(
+        ""
+      )
 
       const monthlyPrice =
         parseMoneyInput(
-          form.monthly_price
+          contractForm
+            .monthly_price
         )
 
       const deposit =
         parseMoneyInput(
-          form.deposit
+          contractForm
+            .deposit
         )
 
       if (
         monthlyPrice ===
           null ||
-        monthlyPrice <= 0
+        monthlyPrice <=
+          0
       ) {
         throw new Error(
           "Revisá el valor del alquiler mensual."
@@ -544,8 +1794,10 @@ export default function ClosingPage() {
       }
 
       if (
-        deposit === null ||
-        deposit < 0
+        deposit ===
+          null ||
+        deposit <
+          0
       ) {
         throw new Error(
           "Revisá el valor del depósito."
@@ -574,22 +1826,52 @@ export default function ClosingPage() {
                 deposit,
 
                 start_date:
-                  form.start_date,
+                  contractForm
+                    .start_date,
 
                 end_date:
-                  form.end_date,
+                  contractForm
+                    .end_date,
 
                 adjustment_method:
-                  form.adjustment_method,
+                  contractForm
+                    .adjustment_method,
 
                 expenses:
-                  form.expenses,
+                  contractForm
+                    .expenses,
 
                 services:
-                  form.services,
+                  contractForm
+                    .services,
+
+                payment_method:
+                  contractForm
+                    .payment_method,
+
+                payment_details:
+                  contractForm
+                    .payment_details,
+
+                guarantee_type:
+                  contractForm
+                    .guarantee_type,
+
+                guarantee_details:
+                  contractForm
+                    .guarantee_details,
+
+                pets_policy:
+                  contractForm
+                    .pets_policy,
+
+                insurance_terms:
+                  contractForm
+                    .insurance_terms,
 
                 special_conditions:
-                  form.special_conditions,
+                  contractForm
+                    .special_conditions,
               }),
           }
         )
@@ -607,16 +1889,20 @@ export default function ClosingPage() {
         )
       }
 
-      setShowForm(
+      setShowContractForm(
         false
       )
 
       setSuccessMessage(
-        "El contrato fue generado. Revisalo antes de confirmar."
+        "Contrato generado. Revisá cuidadosamente esta versión antes de aceptar."
       )
 
-      await load(false)
-    } catch (err) {
+      await load(
+        false
+      )
+    } catch (
+      err
+    ) {
       setError(
         err instanceof
           Error
@@ -636,30 +1922,46 @@ export default function ClosingPage() {
     }
 
     const alreadyAgreed =
-      data.viewer.role ===
+      data
+        .viewer
+        .role ===
       "tenant"
-        ? data.contract
+        ? data
+            .contract
             .tenant_agreed
-        : data.contract
+        : data
+            .contract
             .owner_agreed
 
-    if (alreadyAgreed) {
+    if (
+      alreadyAgreed
+    ) {
       return
     }
 
     const confirmed =
       window.confirm(
-        "¿Confirmás que leíste el contrato y estás de acuerdo con esta versión?"
+        "¿Confirmás que leíste el contrato completo y estás de acuerdo con esta versión?"
       )
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
       return
     }
 
     try {
-      setAccepting(true)
-      setError("")
-      setSuccessMessage("")
+      setAccepting(
+        true
+      )
+
+      setError(
+        ""
+      )
+
+      setSuccessMessage(
+        ""
+      )
 
       const response =
         await fetch(
@@ -693,10 +1995,13 @@ export default function ClosingPage() {
         )
       }
 
-      await load(false)
+      await load(
+        false
+      )
 
       if (
-        json.both_agreed
+        json
+          .both_agreed
       ) {
         setSuccessMessage(
           "Listo. Las dos partes aceptaron el contrato y el alquiler quedó cerrado en Verlo."
@@ -706,7 +2011,9 @@ export default function ClosingPage() {
           "Tu aceptación quedó registrada. Falta la confirmación de la otra parte."
         )
       }
-    } catch (err) {
+    } catch (
+      err
+    ) {
       setError(
         err instanceof
           Error
@@ -724,16 +2031,16 @@ export default function ClosingPage() {
     window.print()
   }
 
-  if (loading) {
+  if (
+    loading
+  ) {
     return (
       <>
         <main className="closing-centered">
           <VerloBrand />
 
           <p>
-            Cargando tu
-            espacio de
-            cierre...
+            Cargando tu espacio de cierre...
           </p>
         </main>
 
@@ -752,9 +2059,7 @@ export default function ClosingPage() {
           <VerloBrand />
 
           <h1>
-            No pudimos
-            abrir este
-            cierre.
+            No pudimos abrir este cierre.
           </h1>
 
           <p>
@@ -775,36 +2080,75 @@ export default function ClosingPage() {
   }
 
   const contractGenerated =
-    data.contract.status ===
+    data
+      .contract
+      .status ===
       "generated" ||
-    data.contract.status ===
+    data
+      .contract
+      .status ===
       "agreed"
 
+  const contractLocked =
+    data
+      .contract
+      .status ===
+    "agreed"
+
   const bothAgreed =
-    data.contract
+    data
+      .contract
       .tenant_agreed &&
-    data.contract
+    data
+      .contract
       .owner_agreed
 
   const viewerAgreed =
-    data.viewer.role ===
+    data
+      .viewer
+      .role ===
     "tenant"
-      ? data.contract
+      ? data
+          .contract
           .tenant_agreed
-      : data.contract
+      : data
+          .contract
           .owner_agreed
 
   const otherAgreed =
-    data.viewer.role ===
+    data
+      .viewer
+      .role ===
     "tenant"
-      ? data.contract
+      ? data
+          .contract
           .owner_agreed
-      : data.contract
+      : data
+          .contract
           .tenant_agreed
 
-  const contractLocked =
-    data.contract.status ===
-    "agreed"
+  const myLegalComplete =
+    isOwner
+      ? data
+          .legal
+          .completeness
+          .owner &&
+        data
+          .legal
+          .completeness
+          .property &&
+        data
+          .legal
+          .completeness
+          .signing_place &&
+        data
+          .legal
+          .completeness
+          .furnishing
+      : data
+          .legal
+          .completeness
+          .tenant
 
   return (
     <>
@@ -835,24 +2179,16 @@ export default function ClosingPage() {
           {bothAgreed ? (
             <>
               <h1>
-                Alquiler
-                cerrado.
+                Alquiler cerrado.
                 <br />
 
                 <em>
-                  Acuerdo
-                  confirmado.
+                  Acuerdo confirmado.
                 </em>
               </h1>
 
               <p>
-                Las dos partes
-                aceptaron esta
-                versión del
-                contrato. El
-                cierre quedó
-                registrado en
-                Verlo.
+                Las dos partes aceptaron esta versión del contrato. El cierre quedó registrado en Verlo.
               </p>
             </>
           ) : (
@@ -862,21 +2198,12 @@ export default function ClosingPage() {
                 <br />
 
                 <em>
-                  Ahora cierren
-                  el alquiler.
+                  Ahora cierren el alquiler.
                 </em>
               </h1>
 
               <p>
-                Ya hubo acuerdo
-                para avanzar.
-                Desde acá pueden
-                completar las
-                condiciones
-                finales, revisar
-                el contrato y
-                confirmar el
-                acuerdo.
+                Este es el espacio privado para completar los datos legales, definir las condiciones finales y aceptar el contrato.
               </p>
             </>
           )}
@@ -891,19 +2218,11 @@ export default function ClosingPage() {
                 </span>
 
                 <h2>
-                  El alquiler quedó
-                  cerrado.
+                  El alquiler quedó cerrado.
                 </h2>
 
                 <p>
-                  El propietario y
-                  el inquilino
-                  confirmaron el
-                  mismo contrato.
-                  Podés volver a
-                  este enlace para
-                  consultar el
-                  documento.
+                  El propietario y el inquilino confirmaron la misma versión del contrato.
                 </p>
               </article>
             ) : (
@@ -913,17 +2232,11 @@ export default function ClosingPage() {
                 </span>
 
                 <h2>
-                  Los dos quieren
-                  avanzar.
+                  Los dos quieren avanzar.
                 </h2>
 
                 <p>
-                  Verlo habilitó
-                  los datos de
-                  contacto y este
-                  espacio privado
-                  para cerrar el
-                  alquiler.
+                  Ahora falta completar la información contractual y cerrar las condiciones definitivas.
                 </p>
               </article>
             )}
@@ -936,9 +2249,7 @@ export default function ClosingPage() {
               <div className="person-title">
                 <div>
                   <h2>
-                    {
-                      counterpart.full_name
-                    }
+                    {counterpart.full_name}
                   </h2>
 
                   <span>
@@ -949,7 +2260,7 @@ export default function ClosingPage() {
                 </div>
 
                 <div className="verified">
-                  ✓ Confirmado
+                  ✓ Match confirmado
                 </div>
               </div>
 
@@ -973,23 +2284,850 @@ export default function ClosingPage() {
             </article>
 
             <article className="verlo-card no-print">
+              <div className="section-heading">
+                <div>
+                  <span className="card-kicker">
+                    DATOS PARA EL CONTRATO
+                  </span>
+
+                  <h2>
+                    {isOwner
+                      ? "Tus datos, el inmueble y la celebración"
+                      : "Tus datos legales"}
+                  </h2>
+
+                  <p>
+                    {isOwner
+                      ? "Confirmá los datos que identifican legalmente a las partes y al inmueble. La dirección contractual debe ser exacta."
+                      : "Confirmá tus datos legales. Tu DNI se completa automáticamente con la información que ya cargaste en Verlo."}
+                  </p>
+                </div>
+
+                {!contractLocked && (
+                  <button
+                    type="button"
+                    className={
+                      myLegalComplete
+                        ? "secondary-button"
+                        : "primary-button"
+                    }
+                    onClick={
+                      openLegalForm
+                    }
+                  >
+                    {myLegalComplete
+                      ? "EDITAR DATOS"
+                      : "COMPLETAR DATOS"}
+                  </button>
+                )}
+              </div>
+
+              <div className="legal-status-grid">
+                <LegalStatus
+                  label="Datos del inquilino"
+                  done={
+                    data
+                      .legal
+                      .completeness
+                      .tenant
+                  }
+                />
+
+                <LegalStatus
+                  label="Datos del propietario"
+                  done={
+                    data
+                      .legal
+                      .completeness
+                      .owner
+                  }
+                />
+
+                <LegalStatus
+                  label="Dirección exacta"
+                  done={
+                    data
+                      .legal
+                      .completeness
+                      .property
+                  }
+                />
+
+                <LegalStatus
+                  label="Lugar de celebración"
+                  done={
+                    data
+                      .legal
+                      .completeness
+                      .signing_place
+                  }
+                />
+
+                <LegalStatus
+                  label="Amoblamiento final"
+                  done={
+                    data
+                      .legal
+                      .completeness
+                      .furnishing
+                  }
+                />
+              </div>
+
+              {showLegalForm &&
+                !contractLocked && (
+                  <div
+                    ref={
+                      legalFormRef
+                    }
+                    className="legal-form-wrap"
+                  >
+                    {isOwner ? (
+                      <form
+                        onSubmit={
+                          saveLegalData
+                        }
+                      >
+                        <div className="edit-alert">
+                          <strong>
+                            Estos datos forman parte del contrato
+                          </strong>
+
+                          <span>
+                            Si modificás datos después de haber generado el contrato, esa versión se invalida y ambas partes deberán aceptar la nueva.
+                          </span>
+                        </div>
+
+                        <div className="form-section">
+                          <h3>
+                            Datos legales del propietario
+                          </h3>
+
+                          <div className="form-grid">
+                            <Field
+                              label="DNI"
+                              value={
+                                ownerLegalForm.dni
+                              }
+                              placeholder="Ej. 30123456"
+                              onChange={
+                                value =>
+                                  updateOwnerLegalField(
+                                    "dni",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <Field
+                              label="CUIT / CUIL"
+                              value={
+                                ownerLegalForm.tax_id
+                              }
+                              placeholder="Opcional si informás DNI"
+                              onChange={
+                                value =>
+                                  updateOwnerLegalField(
+                                    "tax_id",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <SelectField
+                              label="Estado civil"
+                              value={
+                                ownerLegalForm.civil_status
+                              }
+                              required
+                              options={[
+                                [
+                                  "",
+                                  "Seleccionar",
+                                ],
+                                [
+                                  "soltero/a",
+                                  "Soltero/a",
+                                ],
+                                [
+                                  "casado/a",
+                                  "Casado/a",
+                                ],
+                                [
+                                  "divorciado/a",
+                                  "Divorciado/a",
+                                ],
+                                [
+                                  "viudo/a",
+                                  "Viudo/a",
+                                ],
+                                [
+                                  "unión convivencial",
+                                  "Unión convivencial",
+                                ],
+                              ]}
+                              onChange={
+                                value =>
+                                  updateOwnerLegalField(
+                                    "civil_status",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <SelectField
+                              label="Actúa como"
+                              value={
+                                ownerLegalForm.acting_as
+                              }
+                              required
+                              options={[
+                                [
+                                  "owner",
+                                  "Propietario/a",
+                                ],
+                                [
+                                  "usufructuary",
+                                  "Usufructuario/a",
+                                ],
+                                [
+                                  "attorney",
+                                  "Apoderado/a",
+                                ],
+                                [
+                                  "representative",
+                                  "Representante",
+                                ],
+                              ]}
+                              onChange={
+                                value =>
+                                  updateOwnerLegalField(
+                                    "acting_as",
+                                    value
+                                  )
+                              }
+                            />
+                          </div>
+
+                          {(ownerLegalForm.acting_as ===
+                            "attorney" ||
+                            ownerLegalForm.acting_as ===
+                              "representative") && (
+                            <TextAreaField
+                              label="Datos del poder / representación"
+                              value={
+                                ownerLegalForm.power_details
+                              }
+                              placeholder="Ej. Poder otorgado por escritura..."
+                              onChange={
+                                value =>
+                                  updateOwnerLegalField(
+                                    "power_details",
+                                    value
+                                  )
+                              }
+                            />
+                          )}
+                        </div>
+
+                        <AddressFields
+                          title="Domicilio legal del propietario"
+                          address={
+                            ownerLegalForm.legal_address
+                          }
+                          city={
+                            ownerLegalForm.city
+                          }
+                          province={
+                            ownerLegalForm.province
+                          }
+                          country={
+                            ownerLegalForm.country
+                          }
+                          postalCode={
+                            ownerLegalForm.postal_code
+                          }
+                          onAddress={
+                            value =>
+                              updateOwnerLegalField(
+                                "legal_address",
+                                value
+                              )
+                          }
+                          onCity={
+                            value =>
+                              updateOwnerLegalField(
+                                "city",
+                                value
+                              )
+                          }
+                          onProvince={
+                            value =>
+                              updateOwnerLegalField(
+                                "province",
+                                value
+                              )
+                          }
+                          onCountry={
+                            value =>
+                              updateOwnerLegalField(
+                                "country",
+                                value
+                              )
+                          }
+                          onPostalCode={
+                            value =>
+                              updateOwnerLegalField(
+                                "postal_code",
+                                value
+                              )
+                          }
+                        />
+
+                        <div className="form-section">
+                          <h3>
+                            Dirección contractual del inmueble
+                          </h3>
+
+                          {data
+                            .legal
+                            .property
+                            .private_address && (
+                            <div className="reference-box">
+                              <span>
+                                DIRECCIÓN PRIVADA CARGADA ANTERIORMENTE
+                              </span>
+
+                              <strong>
+                                {
+                                  data
+                                    .legal
+                                    .property
+                                    .private_address
+                                }
+                              </strong>
+
+                              {data
+                                .legal
+                                .property
+                                .floor_unit && (
+                                <small>
+                                  {
+                                    data
+                                      .legal
+                                      .property
+                                      .floor_unit
+                                  }
+                                </small>
+                              )}
+
+                              <p>
+                                Usala solamente como referencia. Confirmá abajo la dirección contractual completa.
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="form-grid">
+                            <Field
+                              label="Calle"
+                              value={
+                                propertyLegalForm.street
+                              }
+                              required
+                              placeholder="Ej. Av. Francisco Beiró"
+                              onChange={
+                                value =>
+                                  updatePropertyLegalField(
+                                    "street",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <Field
+                              label="Número"
+                              value={
+                                propertyLegalForm.number
+                              }
+                              required
+                              placeholder="Ej. 4653"
+                              onChange={
+                                value =>
+                                  updatePropertyLegalField(
+                                    "number",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <Field
+                              label="Piso"
+                              value={
+                                propertyLegalForm.floor
+                              }
+                              placeholder="Ej. 5"
+                              onChange={
+                                value =>
+                                  updatePropertyLegalField(
+                                    "floor",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <Field
+                              label="Departamento / unidad"
+                              value={
+                                propertyLegalForm.unit
+                              }
+                              placeholder="Ej. 6"
+                              onChange={
+                                value =>
+                                  updatePropertyLegalField(
+                                    "unit",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <Field
+                              label="Localidad / ciudad"
+                              value={
+                                propertyLegalForm.city
+                              }
+                              required
+                              placeholder="Ej. Villa Devoto"
+                              onChange={
+                                value =>
+                                  updatePropertyLegalField(
+                                    "city",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <ProvinceField
+                              label="Provincia / jurisdicción"
+                              value={
+                                propertyLegalForm.province
+                              }
+                              country={
+                                propertyLegalForm.country
+                              }
+                              required
+                              onChange={
+                                value =>
+                                  updatePropertyLegalField(
+                                    "province",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <Field
+                              label="País"
+                              value={
+                                propertyLegalForm.country
+                              }
+                              required
+                              onChange={
+                                value =>
+                                  updatePropertyLegalField(
+                                    "country",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <Field
+                              label="Código postal"
+                              value={
+                                propertyLegalForm.postal_code
+                              }
+                              placeholder="Ej. 1419"
+                              onChange={
+                                value =>
+                                  updatePropertyLegalField(
+                                    "postal_code",
+                                    value
+                                  )
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-section">
+                          <h3>
+                            Lugar de celebración
+                          </h3>
+
+                          <p className="section-help">
+                            Es el lugar que figurará al comienzo del contrato. No tiene que coincidir necesariamente con el domicilio del inmueble.
+                          </p>
+
+                          <div className="form-grid">
+                            <Field
+                              label="Ciudad / localidad"
+                              value={
+                                signingForm.city
+                              }
+                              required
+                              onChange={
+                                value =>
+                                  updateSigningField(
+                                    "city",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <ProvinceField
+                              label="Provincia / jurisdicción"
+                              value={
+                                signingForm.province
+                              }
+                              country={
+                                signingForm.country
+                              }
+                              required
+                              onChange={
+                                value =>
+                                  updateSigningField(
+                                    "province",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <Field
+                              label="País"
+                              value={
+                                signingForm.country
+                              }
+                              required
+                              onChange={
+                                value =>
+                                  updateSigningField(
+                                    "country",
+                                    value
+                                  )
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-section">
+                          <h3>
+                            Amoblamiento acordado
+                          </h3>
+
+                          <p className="section-help">
+                            Acá ya no importa cómo estaba planteado al comienzo. Elegí cómo se entregará efectivamente el inmueble según lo acordado entre ustedes.
+                          </p>
+
+                          <SelectField
+                            label="Estado final"
+                            value={
+                              furnishingForm.status
+                            }
+                            required
+                            options={[
+                              [
+                                "",
+                                "Seleccionar",
+                              ],
+                              [
+                                "furnished",
+                                "Amoblado",
+                              ],
+                              [
+                                "unfurnished",
+                                "Sin amoblar",
+                              ],
+                              [
+                                "partially_furnished",
+                                "Parcialmente amoblado",
+                              ],
+                            ]}
+                            onChange={
+                              value =>
+                                updateFurnishingField(
+                                  "status",
+                                  value
+                                )
+                            }
+                          />
+
+                          {(furnishingForm.status ===
+                            "furnished" ||
+                            furnishingForm.status ===
+                              "partially_furnished") && (
+                            <TextAreaField
+                              label="Inventario de muebles, artefactos y bienes incluidos"
+                              value={
+                                furnishingForm.inventory
+                              }
+                              required
+                              placeholder="Ej. Heladera Samsung, mesa con cuatro sillas, cama de dos plazas, dos mesas de luz..."
+                              onChange={
+                                value =>
+                                  updateFurnishingField(
+                                    "inventory",
+                                    value
+                                  )
+                              }
+                            />
+                          )}
+
+                          {furnishingForm.status !==
+                            "unfurnished" && (
+                            <TextAreaField
+                              label="Estado y observaciones"
+                              value={
+                                furnishingForm.condition_notes
+                              }
+                              placeholder="Ej. Muebles en buen estado general, heladera funcionando correctamente..."
+                              onChange={
+                                value =>
+                                  updateFurnishingField(
+                                    "condition_notes",
+                                    value
+                                  )
+                              }
+                            />
+                          )}
+                        </div>
+
+                        <div className="form-actions">
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={
+                              () =>
+                                setShowLegalForm(
+                                  false
+                                )
+                            }
+                          >
+                            CANCELAR
+                          </button>
+
+                          <button
+                            type="submit"
+                            className="primary-button"
+                            disabled={
+                              savingLegal
+                            }
+                          >
+                            {savingLegal
+                              ? "GUARDANDO..."
+                              : "GUARDAR DATOS"}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <form
+                        onSubmit={
+                          saveLegalData
+                        }
+                      >
+                        <div className="edit-alert">
+                          <strong>
+                            Confirmá tus datos personales
+                          </strong>
+
+                          <span>
+                            Estos datos aparecerán en el contrato definitivo.
+                          </span>
+                        </div>
+
+                        <div className="form-section">
+                          <h3>
+                            Identificación
+                          </h3>
+
+                          <div className="form-grid">
+                            <Field
+                              label="DNI"
+                              value={
+                                tenantLegalForm.dni
+                              }
+                              required
+                              placeholder="Ej. 30123456"
+                              onChange={
+                                value =>
+                                  updateTenantLegalField(
+                                    "dni",
+                                    value
+                                  )
+                              }
+                            />
+
+                            <SelectField
+                              label="Estado civil"
+                              value={
+                                tenantLegalForm.civil_status
+                              }
+                              required
+                              options={[
+                                [
+                                  "",
+                                  "Seleccionar",
+                                ],
+                                [
+                                  "soltero/a",
+                                  "Soltero/a",
+                                ],
+                                [
+                                  "casado/a",
+                                  "Casado/a",
+                                ],
+                                [
+                                  "divorciado/a",
+                                  "Divorciado/a",
+                                ],
+                                [
+                                  "viudo/a",
+                                  "Viudo/a",
+                                ],
+                                [
+                                  "unión convivencial",
+                                  "Unión convivencial",
+                                ],
+                              ]}
+                              onChange={
+                                value =>
+                                  updateTenantLegalField(
+                                    "civil_status",
+                                    value
+                                  )
+                              }
+                            />
+                          </div>
+
+                          {data
+                            .tenant
+                            .document_number && (
+                            <p className="section-help">
+                              El DNI fue recuperado de la validación que ya realizaste en Verlo. Revisalo y corregilo solamente si fuese necesario.
+                            </p>
+                          )}
+                        </div>
+
+                        <AddressFields
+                          title="Tu domicilio legal actual"
+                          address={
+                            tenantLegalForm.legal_address
+                          }
+                          city={
+                            tenantLegalForm.city
+                          }
+                          province={
+                            tenantLegalForm.province
+                          }
+                          country={
+                            tenantLegalForm.country
+                          }
+                          postalCode={
+                            tenantLegalForm.postal_code
+                          }
+                          onAddress={
+                            value =>
+                              updateTenantLegalField(
+                                "legal_address",
+                                value
+                              )
+                          }
+                          onCity={
+                            value =>
+                              updateTenantLegalField(
+                                "city",
+                                value
+                              )
+                          }
+                          onProvince={
+                            value =>
+                              updateTenantLegalField(
+                                "province",
+                                value
+                              )
+                          }
+                          onCountry={
+                            value =>
+                              updateTenantLegalField(
+                                "country",
+                                value
+                              )
+                          }
+                          onPostalCode={
+                            value =>
+                              updateTenantLegalField(
+                                "postal_code",
+                                value
+                              )
+                          }
+                        />
+
+                        <div className="form-actions">
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={
+                              () =>
+                                setShowLegalForm(
+                                  false
+                                )
+                            }
+                          >
+                            CANCELAR
+                          </button>
+
+                          <button
+                            type="submit"
+                            className="primary-button"
+                            disabled={
+                              savingLegal
+                            }
+                          >
+                            {savingLegal
+                              ? "GUARDANDO..."
+                              : "GUARDAR MIS DATOS"}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                )}
+            </article>
+
+            <article className="verlo-card no-print">
               <span className="card-kicker">
                 PROPIEDAD
               </span>
 
               <h2>
-                {data.property
-                  .address ||
-                  data.property
-                    .neighborhood ||
-                  "Propiedad del match"}
+                {data
+                  .legal
+                  .property
+                  .street &&
+                data
+                  .legal
+                  .property
+                  .number
+                  ? `${data.legal.property.street} ${data.legal.property.number}`
+                  : data
+                      .property
+                      .address ||
+                    "Dirección contractual pendiente"}
               </h2>
 
-              {data.property
+              {data
+                .property
                 .floor_unit && (
                 <p className="property-subtitle">
                   {
-                    data.property
+                    data
+                      .property
                       .floor_unit
                   }
                 </p>
@@ -997,9 +3135,10 @@ export default function ClosingPage() {
 
               <div className="info-grid">
                 <Info
-                  label="Zona"
+                  label="Zona de búsqueda"
                   value={
-                    data.property
+                    data
+                      .property
                       .neighborhood ||
                     "—"
                   }
@@ -1007,16 +3146,20 @@ export default function ClosingPage() {
 
                 <Info
                   label="Tipo"
-                  value={humanize(
-                    data.property
-                      .property_type
-                  )}
+                  value={
+                    humanize(
+                      data
+                        .property
+                        .property_type
+                    )
+                  }
                 />
 
                 <Info
                   label="Ambientes"
                   value={
-                    data.property
+                    data
+                      .property
                       .rooms ||
                     "—"
                   }
@@ -1025,23 +3168,27 @@ export default function ClosingPage() {
                 <Info
                   label="Precio publicado"
                   value={
-                    data.property
+                    data
+                      .property
                       .approx_price ||
                     money(
-                      data.property
+                      data
+                        .property
                         .approx_price_number
                     )
                   }
                 />
 
                 <Info
-                  label="Expensas"
+                  label="Expensas publicadas"
                   value={
-                    data.property
+                    data
+                      .property
                       .expenses_amount !==
                     null
                       ? money(
-                          data.property
+                          data
+                            .property
                             .expenses_amount
                         )
                       : "A definir"
@@ -1049,11 +3196,14 @@ export default function ClosingPage() {
                 />
 
                 <Info
-                  label="Disponibilidad"
+                  label="Amoblamiento final"
                   value={
-                    data.property
-                      .availability_status ||
-                    "—"
+                    furnishingLabel(
+                      data
+                        .legal
+                        .furnishing
+                        .status
+                    )
                   }
                 />
               </div>
@@ -1069,25 +3219,42 @@ export default function ClosingPage() {
                   <h2>
                     {contractGenerated
                       ? "Contrato del alquiler"
-                      : "Armen el acuerdo final"}
+                      : isOwner
+                        ? "Definí las condiciones finales"
+                        : "Esperando el contrato definitivo"}
                   </h2>
 
                   <p>
                     {contractGenerated
                       ? contractLocked
                         ? "Esta es la versión final aceptada por las dos partes."
-                        : "Revisá el documento completo. Si encontrás cualquier error, usá EDITAR CONDICIONES sin salir de esta pantalla."
-                      : "Completá las condiciones finales. Verlo genera el contrato a partir de esos datos."}
+                        : isOwner
+                          ? "Revisá el documento completo. Si necesitás corregir condiciones, podés regenerarlo desde esta misma pantalla."
+                          : "El propietario generó esta versión. Revisala completa antes de aceptarla."
+                      : isOwner
+                        ? data
+                            .legal
+                            .completeness
+                            .all
+                          ? "Los datos legales están completos. Ya podés definir las condiciones económicas y generar el contrato."
+                          : "Antes de generar el contrato deben estar completos los datos legales del propietario, del inquilino y del inmueble."
+                        : data
+                            .legal
+                            .completeness
+                            .tenant
+                          ? "Tus datos están completos. El propietario debe terminar de definir las condiciones y generar el contrato."
+                          : "Primero completá tus datos legales para poder avanzar."}
                   </p>
                 </div>
 
-                {!showForm &&
+                {isOwner &&
+                  !showContractForm &&
                   !contractLocked && (
                     <button
                       type="button"
                       className="primary-button"
                       onClick={
-                        openEditForm
+                        openContractForm
                       }
                     >
                       {contractGenerated
@@ -1097,10 +3264,13 @@ export default function ClosingPage() {
                   )}
               </div>
 
-              {showForm &&
+              {isOwner &&
+                showContractForm &&
                 !contractLocked && (
                   <form
-                    ref={formRef}
+                    ref={
+                      contractFormRef
+                    }
                     className="contract-form no-print"
                     onSubmit={
                       generateContract
@@ -1108,18 +3278,32 @@ export default function ClosingPage() {
                   >
                     <div className="edit-alert">
                       <strong>
-                        Editás este mismo contrato
+                        Condiciones finales del alquiler
                       </strong>
 
                       <span>
-                        No necesitás usar el botón Atrás del navegador. Corregí los datos acá y generá nuevamente el contrato.
+                        No uses el botón Atrás del navegador. Podés editar y regenerar el contrato desde acá. Cada regeneración invalida cualquier aceptación anterior.
                       </span>
                     </div>
 
+                    {!data
+                      .legal
+                      .completeness
+                      .all && (
+                      <div className="blocking-alert">
+                        <strong>
+                          Todavía faltan datos legales
+                        </strong>
+
+                        <span>
+                          Podés preparar las condiciones, pero el backend no permitirá generar el contrato hasta que ambas partes hayan completado los datos obligatorios.
+                        </span>
+                      </div>
+                    )}
+
                     <div className="form-section">
                       <h3>
-                        Condiciones
-                        económicas
+                        Condiciones económicas
                       </h3>
 
                       <div className="form-grid">
@@ -1128,15 +3312,16 @@ export default function ClosingPage() {
                           type="text"
                           inputMode="numeric"
                           value={
-                            form.monthly_price
+                            contractForm.monthly_price
                           }
                           placeholder="Ej. 700.000"
                           required
-                          onChange={value =>
-                            updateField(
-                              "monthly_price",
-                              value
-                            )
+                          onChange={
+                            value =>
+                              updateContractField(
+                                "monthly_price",
+                                value
+                              )
                           }
                         />
 
@@ -1145,15 +3330,16 @@ export default function ClosingPage() {
                           type="text"
                           inputMode="numeric"
                           value={
-                            form.deposit
+                            contractForm.deposit
                           }
                           placeholder="Ej. 700.000"
                           required
-                          onChange={value =>
-                            updateField(
-                              "deposit",
-                              value
-                            )
+                          onChange={
+                            value =>
+                              updateContractField(
+                                "deposit",
+                                value
+                              )
                           }
                         />
 
@@ -1161,14 +3347,15 @@ export default function ClosingPage() {
                           label="Fecha de inicio"
                           type="date"
                           value={
-                            form.start_date
+                            contractForm.start_date
                           }
                           required
-                          onChange={value =>
-                            updateField(
-                              "start_date",
-                              value
-                            )
+                          onChange={
+                            value =>
+                              updateContractField(
+                                "start_date",
+                                value
+                              )
                           }
                         />
 
@@ -1176,20 +3363,21 @@ export default function ClosingPage() {
                           label="Fecha de finalización"
                           type="date"
                           value={
-                            form.end_date
+                            contractForm.end_date
                           }
                           required
-                          onChange={value =>
-                            updateField(
-                              "end_date",
-                              value
-                            )
+                          onChange={
+                            value =>
+                              updateContractField(
+                                "end_date",
+                                value
+                              )
                           }
                         />
                       </div>
 
                       <p className="money-help">
-                        Podés escribir, por ejemplo: 700000, 700.000, 700,000 o $700.000. Verlo interpreta el importe y lo guarda como pesos.
+                        Podés escribir 700000, 700.000, 700,000 o $700.000. Verlo lo convierte al importe correcto antes de guardarlo.
                       </p>
                     </div>
 
@@ -1198,100 +3386,186 @@ export default function ClosingPage() {
                         Actualización
                       </h3>
 
-                      <label className="field">
-                        <span>
-                          Mecanismo de
-                          actualización
-                        </span>
-
-                        <textarea
-                          value={
-                            form.adjustment_method
-                          }
-                          onChange={event =>
-                            updateField(
+                      <TextAreaField
+                        label="Mecanismo de actualización"
+                        value={
+                          contractForm.adjustment_method
+                        }
+                        required
+                        placeholder="Ej. Actualización trimestral según IPC publicado por INDEC."
+                        onChange={
+                          value =>
+                            updateContractField(
                               "adjustment_method",
-                              event
-                                .target
-                                .value
+                              value
                             )
-                          }
-                          placeholder="Ej. actualización trimestral según IPC."
-                          required
-                        />
-                      </label>
+                        }
+                      />
                     </div>
 
                     <div className="form-section">
                       <h3>
-                        Gastos y
-                        condiciones
+                        Forma de pago
                       </h3>
 
-                      <label className="field">
-                        <span>
-                          Expensas, tasas
-                          y gastos
-                        </span>
+                      <TextAreaField
+                        label="Modalidad"
+                        value={
+                          contractForm.payment_method
+                        }
+                        placeholder="Ej. Transferencia bancaria por mes adelantado, del día 1 al 10 de cada mes."
+                        onChange={
+                          value =>
+                            updateContractField(
+                              "payment_method",
+                              value
+                            )
+                        }
+                      />
 
-                        <textarea
-                          value={
-                            form.expenses
-                          }
-                          onChange={event =>
-                            updateField(
+                      <TextAreaField
+                        label="Datos / instrucciones de pago"
+                        value={
+                          contractForm.payment_details
+                        }
+                        placeholder="Ej. Transferencia al alias..., enviar comprobante a..."
+                        onChange={
+                          value =>
+                            updateContractField(
+                              "payment_details",
+                              value
+                            )
+                        }
+                      />
+                    </div>
+
+                    <div className="form-section">
+                      <h3>
+                        Gastos y servicios
+                      </h3>
+
+                      <TextAreaField
+                        label="Expensas, impuestos, tasas y gastos"
+                        value={
+                          contractForm.expenses
+                        }
+                        placeholder="Ej. Expensas ordinarias a cargo del inquilino; extraordinarias a cargo del propietario; ABL a cargo del propietario."
+                        onChange={
+                          value =>
+                            updateContractField(
                               "expenses",
-                              event
-                                .target
-                                .value
+                              value
                             )
-                          }
-                          placeholder="Indicá cómo se distribuyen las expensas y demás gastos."
-                        />
-                      </label>
+                        }
+                      />
 
-                      <label className="field">
-                        <span>
-                          Servicios
-                        </span>
-
-                        <textarea
-                          value={
-                            form.services
-                          }
-                          onChange={event =>
-                            updateField(
+                      <TextAreaField
+                        label="Servicios"
+                        value={
+                          contractForm.services
+                        }
+                        placeholder="Ej. Electricidad, gas, agua e internet a cargo del inquilino."
+                        onChange={
+                          value =>
+                            updateContractField(
                               "services",
-                              event
-                                .target
-                                .value
+                              value
                             )
-                          }
-                          placeholder="Ej. electricidad, gas e internet a cargo del inquilino."
-                        />
-                      </label>
+                        }
+                      />
+                    </div>
 
-                      <label className="field">
-                        <span>
-                          Condiciones
-                          particulares
-                        </span>
+                    <div className="form-section">
+                      <h3>
+                        Garantía
+                      </h3>
 
-                        <textarea
-                          value={
-                            form.special_conditions
-                          }
-                          onChange={event =>
-                            updateField(
+                      <Field
+                        label="Tipo de garantía"
+                        value={
+                          contractForm.guarantee_type
+                        }
+                        placeholder="Ej. Seguro de caución / garantía propietaria / fiador"
+                        onChange={
+                          value =>
+                            updateContractField(
+                              "guarantee_type",
+                              value
+                            )
+                        }
+                      />
+
+                      <TextAreaField
+                        label="Detalle de la garantía"
+                        value={
+                          contractForm.guarantee_details
+                        }
+                        placeholder="Ej. Póliza emitida por..., CUIT..., número de póliza..."
+                        onChange={
+                          value =>
+                            updateContractField(
+                              "guarantee_details",
+                              value
+                            )
+                        }
+                      />
+                    </div>
+
+                    <div className="form-section">
+                      <h3>
+                        Mascotas y seguro
+                      </h3>
+
+                      <TextAreaField
+                        label="Condición sobre mascotas"
+                        value={
+                          contractForm.pets_policy
+                        }
+                        placeholder="Ej. Se permiten mascotas domésticas respetando el reglamento del edificio."
+                        onChange={
+                          value =>
+                            updateContractField(
+                              "pets_policy",
+                              value
+                            )
+                        }
+                      />
+
+                      <TextAreaField
+                        label="Seguro"
+                        value={
+                          contractForm.insurance_terms
+                        }
+                        placeholder="Ej. El inquilino contratará seguro de incendio durante toda la locación."
+                        onChange={
+                          value =>
+                            updateContractField(
+                              "insurance_terms",
+                              value
+                            )
+                        }
+                      />
+                    </div>
+
+                    <div className="form-section">
+                      <h3>
+                        Condiciones particulares
+                      </h3>
+
+                      <TextAreaField
+                        label="Acuerdos adicionales"
+                        value={
+                          contractForm.special_conditions
+                        }
+                        placeholder="Cualquier condición adicional acordada entre las partes."
+                        onChange={
+                          value =>
+                            updateContractField(
                               "special_conditions",
-                              event
-                                .target
-                                .value
+                              value
                             )
-                          }
-                          placeholder="Cualquier condición adicional acordada entre las partes."
-                        />
-                      </label>
+                        }
+                      />
                     </div>
 
                     <div className="review-before-generate">
@@ -1311,7 +3585,7 @@ export default function ClosingPage() {
 
                           <strong>
                             {previewMoney(
-                              form.monthly_price
+                              contractForm.monthly_price
                             )}
                           </strong>
                         </div>
@@ -1323,7 +3597,7 @@ export default function ClosingPage() {
 
                           <strong>
                             {previewMoney(
-                              form.deposit
+                              contractForm.deposit
                             )}
                           </strong>
                         </div>
@@ -1335,7 +3609,7 @@ export default function ClosingPage() {
 
                           <strong>
                             {formatDate(
-                              form.start_date ||
+                              contractForm.start_date ||
                                 null
                             )}
                           </strong>
@@ -1348,7 +3622,7 @@ export default function ClosingPage() {
 
                           <strong>
                             {formatDate(
-                              form.end_date ||
+                              contractForm.end_date ||
                                 null
                             )}
                           </strong>
@@ -1361,7 +3635,7 @@ export default function ClosingPage() {
                         </span>
 
                         <strong>
-                          {form.adjustment_method ||
+                          {contractForm.adjustment_method ||
                             "A definir"}
                         </strong>
                       </div>
@@ -1371,10 +3645,11 @@ export default function ClosingPage() {
                       <button
                         type="button"
                         className="secondary-button"
-                        onClick={() =>
-                          setShowForm(
-                            false
-                          )
+                        onClick={
+                          () =>
+                            setShowContractForm(
+                              false
+                            )
                         }
                       >
                         CANCELAR
@@ -1410,16 +3685,18 @@ export default function ClosingPage() {
               )}
 
               {contractGenerated &&
-                data.contract
+                data
+                  .contract
                   .content && (
                   <>
                     <div className="document-actions no-print">
-                      {!contractLocked && (
+                      {isOwner &&
+                        !contractLocked && (
                         <button
                           type="button"
                           className="secondary-button edit-document-button"
                           onClick={
-                            openEditForm
+                            openContractForm
                           }
                         >
                           EDITAR CONDICIONES
@@ -1440,42 +3717,67 @@ export default function ClosingPage() {
                     <div className="contract-summary no-print">
                       <Info
                         label="Alquiler mensual"
-                        value={money(
-                          data.contract
-                            .monthly_price
-                        )}
+                        value={
+                          money(
+                            data
+                              .contract
+                              .monthly_price
+                          )
+                        }
                       />
 
                       <Info
                         label="Depósito"
-                        value={money(
-                          data.contract
-                            .deposit
-                        )}
+                        value={
+                          money(
+                            data
+                              .contract
+                              .deposit
+                          )
+                        }
                       />
 
                       <Info
                         label="Inicio"
-                        value={formatDate(
-                          data.contract
-                            .start_date
-                        )}
+                        value={
+                          formatDate(
+                            data
+                              .contract
+                              .start_date
+                          )
+                        }
                       />
 
                       <Info
                         label="Finalización"
-                        value={formatDate(
-                          data.contract
-                            .end_date
-                        )}
+                        value={
+                          formatDate(
+                            data
+                              .contract
+                              .end_date
+                          )
+                        }
                       />
 
                       <Info
                         label="Actualización"
                         value={
-                          data.contract
+                          data
+                            .contract
                             .adjustment_method ||
                           "—"
+                        }
+                      />
+
+                      <Info
+                        label="Amoblamiento"
+                        value={
+                          furnishingLabel(
+                            data
+                              .legal
+                              .furnishing
+                              .status
+                          )
                         }
                       />
                     </div>
@@ -1484,7 +3786,9 @@ export default function ClosingPage() {
                       <article className="contract-document">
                         <div className="document-brand">
                           <VerloBrand
-                            width={28}
+                            width={
+                              28
+                            }
                             showText={
                               true
                             }
@@ -1492,23 +3796,21 @@ export default function ClosingPage() {
                         </div>
 
                         <div className="document-title">
-                          CONTRATO DE
-                          LOCACIÓN
+                          CONTRATO DE LOCACIÓN DE VIVIENDA
                         </div>
 
                         <div className="document-rule" />
 
                         <div className="contract-copy">
                           {
-                            data.contract
+                            data
+                              .contract
                               .content
                           }
                         </div>
 
                         <div className="document-footer">
-                          Documento
-                          generado en
-                          Verlo
+                          Documento generado en Verlo
                         </div>
                       </article>
                     </div>
@@ -1522,15 +3824,11 @@ export default function ClosingPage() {
 
                           <div>
                             <strong>
-                              Contrato
-                              aceptado por
-                              las dos partes
+                              Contrato aceptado por las dos partes
                             </strong>
 
                             <p>
-                              Este alquiler
-                              quedó cerrado
-                              en Verlo.
+                              Este alquiler quedó cerrado en Verlo.
                             </p>
                           </div>
                         </div>
@@ -1552,7 +3850,9 @@ export default function ClosingPage() {
                                 ? otherAgreed
                                   ? "Las dos partes ya confirmaron."
                                   : "Ahora falta que la otra parte confirme esta misma versión."
-                                : "Confirmá únicamente después de leer el documento completo. Si detectás un error, usá EDITAR CONDICIONES. Si el contrato cambia, las aceptaciones anteriores se eliminan y ambas partes deberán confirmar nuevamente."}
+                                : isOwner
+                                  ? "Confirmá solamente después de revisar el documento completo. Si detectás un error, usá EDITAR CONDICIONES antes de aceptar."
+                                  : "Confirmá solamente después de leer el documento completo. Si detectás un dato incorrecto, no aceptes todavía y coordiná la corrección con el propietario."}
                             </p>
                           </div>
 
@@ -1598,6 +3898,36 @@ export default function ClosingPage() {
                 />
 
                 <Step
+                  label="Datos tenant"
+                  done={
+                    data
+                      .legal
+                      .completeness
+                      .tenant
+                  }
+                />
+
+                <Step
+                  label="Datos owner"
+                  done={
+                    data
+                      .legal
+                      .completeness
+                      .owner
+                  }
+                />
+
+                <Step
+                  label="Datos del inmueble"
+                  done={
+                    data
+                      .legal
+                      .completeness
+                      .property
+                  }
+                />
+
+                <Step
                   label="Contrato generado"
                   done={
                     contractGenerated
@@ -1607,7 +3937,8 @@ export default function ClosingPage() {
                 <Step
                   label="Aceptado por inquilino"
                   done={
-                    data.contract
+                    data
+                      .contract
                       .tenant_agreed
                   }
                 />
@@ -1615,7 +3946,8 @@ export default function ClosingPage() {
                 <Step
                   label="Aceptado por propietario"
                   done={
-                    data.contract
+                    data
+                      .contract
                       .owner_agreed
                   }
                 />
@@ -1632,14 +3964,11 @@ export default function ClosingPage() {
                 viewerAgreed && (
                   <div className="waiting-box">
                     <strong>
-                      Tu parte está
-                      lista
+                      Tu parte está lista
                     </strong>
 
                     <span>
-                      Esperamos la
-                      confirmación de
-                      la otra parte.
+                      Esperamos la confirmación de la otra parte.
                     </span>
                   </div>
                 )}
@@ -1647,40 +3976,31 @@ export default function ClosingPage() {
               {bothAgreed && (
                 <div className="complete-box">
                   <strong>
-                    Alquiler
-                    cerrado
+                    Alquiler cerrado
                   </strong>
 
                   <span>
-                    Las dos partes
-                    aceptaron el
-                    contrato.
+                    Las dos partes aceptaron el contrato.
                   </span>
                 </div>
               )}
 
               <p className="sidebar-note">
-                Este enlace es
-                privado y
-                corresponde
-                únicamente a este
-                cierre. Guardalo
-                para volver a
-                consultar el
-                contrato.
+                Este enlace es privado y corresponde únicamente a este cierre. Guardalo para volver a consultar el contrato.
               </p>
             </div>
           </aside>
         </section>
 
-        {contractGenerated &&
+        {isOwner &&
+          contractGenerated &&
           !contractLocked &&
-          !showForm && (
+          !showContractForm && (
             <button
               type="button"
               className="floating-edit-button no-print"
               onClick={
-                openEditForm
+                openContractForm
               }
             >
               EDITAR CONDICIONES
@@ -1697,8 +4017,11 @@ function Info({
   label,
   value,
 }: {
-  label: string
-  value: string
+  label:
+    string
+
+  value:
+    string
 }) {
   return (
     <div className="info-item">
@@ -1713,17 +4036,53 @@ function Info({
   )
 }
 
+function LegalStatus({
+  label,
+  done,
+}: {
+  label:
+    string
+
+  done:
+    boolean
+}) {
+  return (
+    <div
+      className={
+        done
+          ? "legal-status done"
+          : "legal-status"
+      }
+    >
+      <span className="legal-status-icon">
+        {done
+          ? "✓"
+          : "!"}
+      </span>
+
+      <span>
+        {label}
+      </span>
+    </div>
+  )
+}
+
 function Field({
   label,
-  type,
+  type =
+    "text",
   inputMode,
   value,
   placeholder,
   required,
   onChange,
 }: {
-  label: string
-  type: string
+  label:
+    string
+
+  type?:
+    string
+
   inputMode?:
     | "none"
     | "text"
@@ -1733,12 +4092,21 @@ function Field({
     | "numeric"
     | "decimal"
     | "search"
-  value: string
-  placeholder?: string
-  required?: boolean
-  onChange: (
-    value: string
-  ) => void
+
+  value:
+    string
+
+  placeholder?:
+    string
+
+  required?:
+    boolean
+
+  onChange:
+    (
+      value:
+        string
+    ) => void
 }) {
   return (
     <label className="field">
@@ -1747,25 +4115,391 @@ function Field({
       </span>
 
       <input
-        type={type}
+        type={
+          type
+        }
         inputMode={
           inputMode
         }
-        value={value}
+        value={
+          value
+        }
         placeholder={
           placeholder
         }
         required={
           required
         }
-        onChange={event =>
-          onChange(
-            event.target
-              .value
-          )
+        onChange={
+          event =>
+            onChange(
+              event
+                .target
+                .value
+            )
         }
       />
     </label>
+  )
+}
+
+function TextAreaField({
+  label,
+  value,
+  placeholder,
+  required,
+  onChange,
+}: {
+  label:
+    string
+
+  value:
+    string
+
+  placeholder?:
+    string
+
+  required?:
+    boolean
+
+  onChange:
+    (
+      value:
+        string
+    ) => void
+}) {
+  return (
+    <label className="field">
+      <span>
+        {label}
+      </span>
+
+      <textarea
+        value={
+          value
+        }
+        placeholder={
+          placeholder
+        }
+        required={
+          required
+        }
+        onChange={
+          event =>
+            onChange(
+              event
+                .target
+                .value
+            )
+        }
+      />
+    </label>
+  )
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  required,
+  onChange,
+}: {
+  label:
+    string
+
+  value:
+    string
+
+  options:
+    Array<
+      [
+        string,
+        string,
+      ]
+    >
+
+  required?:
+    boolean
+
+  onChange:
+    (
+      value:
+        string
+    ) => void
+}) {
+  return (
+    <label className="field">
+      <span>
+        {label}
+      </span>
+
+      <select
+        value={
+          value
+        }
+        required={
+          required
+        }
+        onChange={
+          event =>
+            onChange(
+              event
+                .target
+                .value
+            )
+        }
+      >
+        {options.map(
+          (
+            [
+              optionValue,
+              optionLabel,
+            ]
+          ) => (
+            <option
+              key={
+                optionValue
+              }
+              value={
+                optionValue
+              }
+            >
+              {
+                optionLabel
+              }
+            </option>
+          )
+        )}
+      </select>
+    </label>
+  )
+}
+
+function ProvinceField({
+  label,
+  value,
+  country,
+  required,
+  onChange,
+}: {
+  label:
+    string
+
+  value:
+    string
+
+  country:
+    string
+
+  required?:
+    boolean
+
+  onChange:
+    (
+      value:
+        string
+    ) => void
+}) {
+  if (
+    country
+      .trim()
+      .toLowerCase() !==
+    "argentina"
+  ) {
+    return (
+      <Field
+        label={
+          label
+        }
+        value={
+          value
+        }
+        required={
+          required
+        }
+        placeholder="Provincia / estado / región"
+        onChange={
+          onChange
+        }
+      />
+    )
+  }
+
+  return (
+    <label className="field">
+      <span>
+        {label}
+      </span>
+
+      <select
+        value={
+          value
+        }
+        required={
+          required
+        }
+        onChange={
+          event =>
+            onChange(
+              event
+                .target
+                .value
+            )
+        }
+      >
+        <option value="">
+          Seleccionar
+        </option>
+
+        {ARGENTINA_PROVINCES.map(
+          province => (
+            <option
+              key={
+                province
+              }
+              value={
+                province
+              }
+            >
+              {
+                province
+              }
+            </option>
+          )
+        )}
+      </select>
+    </label>
+  )
+}
+
+function AddressFields({
+  title,
+  address,
+  city,
+  province,
+  country,
+  postalCode,
+  onAddress,
+  onCity,
+  onProvince,
+  onCountry,
+  onPostalCode,
+}: {
+  title:
+    string
+
+  address:
+    string
+
+  city:
+    string
+
+  province:
+    string
+
+  country:
+    string
+
+  postalCode:
+    string
+
+  onAddress:
+    (
+      value:
+        string
+    ) => void
+
+  onCity:
+    (
+      value:
+        string
+    ) => void
+
+  onProvince:
+    (
+      value:
+        string
+    ) => void
+
+  onCountry:
+    (
+      value:
+        string
+    ) => void
+
+  onPostalCode:
+    (
+      value:
+        string
+    ) => void
+}) {
+  return (
+    <div className="form-section">
+      <h3>
+        {title}
+      </h3>
+
+      <div className="form-grid">
+        <Field
+          label="Domicilio"
+          value={
+            address
+          }
+          required
+          placeholder="Calle, número, piso/depto si corresponde"
+          onChange={
+            onAddress
+          }
+        />
+
+        <Field
+          label="Localidad / ciudad"
+          value={
+            city
+          }
+          required
+          onChange={
+            onCity
+          }
+        />
+
+        <ProvinceField
+          label="Provincia / jurisdicción"
+          value={
+            province
+          }
+          country={
+            country
+          }
+          required
+          onChange={
+            onProvince
+          }
+        />
+
+        <Field
+          label="País"
+          value={
+            country
+          }
+          required
+          onChange={
+            onCountry
+          }
+        />
+
+        <Field
+          label="Código postal"
+          value={
+            postalCode
+          }
+          placeholder="Opcional"
+          onChange={
+            onPostalCode
+          }
+        />
+      </div>
+    </div>
   )
 }
 
@@ -1773,8 +4507,11 @@ function Step({
   label,
   done,
 }: {
-  label: string
-  done: boolean
+  label:
+    string
+
+  done:
+    boolean
 }) {
   return (
     <div className="step">
@@ -1812,10 +4549,14 @@ function Styles() {
         margin: 0;
         background: #f8f6f1;
         color: #050002;
-        font-family:
-          Arial,
-          Helvetica,
-          sans-serif;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font-family: inherit;
       }
 
       .closing-page {
@@ -1823,12 +4564,7 @@ function Styles() {
         background:
           radial-gradient(
             700px 420px at 85% 0%,
-            rgba(
-              195,
-              121,
-              134,
-              0.16
-            ),
+            rgba(195, 121, 134, 0.16),
             transparent 65%
           ),
           #f8f6f1;
@@ -1839,55 +4575,31 @@ function Styles() {
         top: 0;
         z-index: 50;
         height: 76px;
-        background:
-          rgba(
-            242,
-            235,
-            236,
-            0.86
-          );
-        backdrop-filter:
-          blur(18px);
-        -webkit-backdrop-filter:
-          blur(18px);
-        border-bottom:
-          1px solid
-          rgba(
-            5,
-            0,
-            2,
-            0.08
-          );
+        background: rgba(242, 235, 236, 0.86);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border-bottom: 1px solid rgba(5, 0, 2, 0.08);
       }
 
       .closing-header-inner {
-        width:
-          min(
-            1160px,
-            calc(
-              100% - 40px
-            )
-          );
+        width: min(1160px, calc(100% - 40px));
         height: 100%;
         margin: 0 auto;
         display: flex;
         align-items: center;
-        justify-content:
-          space-between;
+        justify-content: space-between;
       }
 
       .status-pill {
         display: inline-flex;
         align-items: center;
-        padding:
-          9px 14px;
+        padding: 9px 14px;
         border-radius: 999px;
         background: #050002;
         color: #ffffff;
         font-size: 11px;
         font-weight: 800;
-        letter-spacing:
-          0.12em;
+        letter-spacing: 0.12em;
       }
 
       .status-pill.completed {
@@ -1895,16 +4607,9 @@ function Styles() {
       }
 
       .closing-hero {
-        width:
-          min(
-            1160px,
-            calc(
-              100% - 40px
-            )
-          );
+        width: min(1160px, calc(100% - 40px));
         margin: 0 auto;
-        padding:
-          72px 0 52px;
+        padding: 72px 0 52px;
       }
 
       .eyebrow,
@@ -1912,38 +4617,27 @@ function Styles() {
         display: inline-block;
         font-size: 11px;
         font-weight: 800;
-        letter-spacing:
-          0.14em;
+        letter-spacing: 0.14em;
         color: #c37986;
       }
 
       .closing-hero h1 {
         max-width: 900px;
-        margin:
-          14px 0 20px;
-        font-size:
-          clamp(
-            48px,
-            7vw,
-            88px
-          );
+        margin: 14px 0 20px;
+        font-size: clamp(48px, 7vw, 88px);
         line-height: 0.94;
-        letter-spacing:
-          -0.055em;
+        letter-spacing: -0.055em;
         font-weight: 800;
       }
 
       .closing-hero h1 em {
-        font-family:
-          Georgia,
-          "Times New Roman",
-          serif;
+        font-family: Georgia, "Times New Roman", serif;
         font-weight: 500;
         color: #c37986;
       }
 
       .closing-hero p {
-        max-width: 600px;
+        max-width: 650px;
         margin: 0;
         font-size: 18px;
         line-height: 1.55;
@@ -1951,23 +4645,11 @@ function Styles() {
       }
 
       .closing-layout {
-        width:
-          min(
-            1160px,
-            calc(
-              100% - 40px
-            )
-          );
+        width: min(1160px, calc(100% - 40px));
         margin: 0 auto;
-        padding:
-          0 0 90px;
+        padding: 0 0 90px;
         display: grid;
-        grid-template-columns:
-          minmax(
-            0,
-            1fr
-          )
-          320px;
+        grid-template-columns: minmax(0, 1fr) 320px;
         gap: 28px;
         align-items: start;
       }
@@ -1980,23 +4662,9 @@ function Styles() {
       .verlo-card,
       .sidebar-card {
         background: #ffffff;
-        border:
-          1px solid
-          rgba(
-            5,
-            0,
-            2,
-            0.08
-          );
+        border: 1px solid rgba(5, 0, 2, 0.08);
         border-radius: 24px;
-        box-shadow:
-          0 20px 60px
-          rgba(
-            30,
-            15,
-            20,
-            0.05
-          );
+        box-shadow: 0 20px 60px rgba(30, 15, 20, 0.05);
       }
 
       .verlo-card {
@@ -2004,28 +4672,20 @@ function Styles() {
       }
 
       .success-card {
-        background:
-          linear-gradient(
-            135deg,
-            #050002 0%,
-            #241318 100%
-          );
+        background: linear-gradient(
+          135deg,
+          #050002 0%,
+          #241318 100%
+        );
         color: white;
       }
 
-      .success-card
-        .card-kicker {
+      .success-card .card-kicker {
         color: #f2a8a9;
       }
 
       .success-card p {
-        color:
-          rgba(
-            255,
-            255,
-            255,
-            0.72
-          );
+        color: rgba(255, 255, 255, 0.72);
       }
 
       .final-card {
@@ -2033,55 +4693,41 @@ function Styles() {
         color: white;
       }
 
-      .final-card
-        .card-kicker {
-        color:
-          rgba(
-            255,
-            255,
-            255,
-            0.78
-          );
+      .final-card .card-kicker {
+        color: rgba(255, 255, 255, 0.78);
       }
 
       .final-card p {
-        color:
-          rgba(
-            255,
-            255,
-            255,
-            0.84
-          );
+        color: rgba(255, 255, 255, 0.84);
       }
 
       .verlo-card h2 {
-        margin:
-          8px 0 10px;
-        font-size:
-          clamp(
-            26px,
-            3vw,
-            38px
-          );
+        margin: 8px 0 10px;
+        font-size: clamp(26px, 3vw, 38px);
         line-height: 1.05;
-        letter-spacing:
-          -0.04em;
+        letter-spacing: -0.04em;
       }
 
       .verlo-card p {
         margin: 0;
-        max-width: 650px;
+        max-width: 690px;
         color: #6e6669;
         line-height: 1.6;
+      }
+
+      .section-heading,
+      .contract-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
       }
 
       .person-title {
         margin-top: 12px;
         display: flex;
-        align-items:
-          flex-start;
-        justify-content:
-          space-between;
+        align-items: flex-start;
+        justify-content: space-between;
         gap: 20px;
       }
 
@@ -2095,8 +4741,7 @@ function Styles() {
       }
 
       .verified {
-        padding:
-          8px 11px;
+        padding: 8px 11px;
         border-radius: 999px;
         background: #fffaf8;
         color: #c37986;
@@ -2113,26 +4758,12 @@ function Styles() {
       .contract-summary {
         margin-top: 24px;
         display: grid;
-        grid-template-columns:
-          repeat(
-            3,
-            minmax(
-              0,
-              1fr
-            )
-          );
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
       }
 
       .info-grid.two {
-        grid-template-columns:
-          repeat(
-            2,
-            minmax(
-              0,
-              1fr
-            )
-          );
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .info-item {
@@ -2140,9 +4771,7 @@ function Styles() {
         padding: 16px;
         border-radius: 16px;
         background: #faf8f5;
-        border:
-          1px solid
-          #eee7e2;
+        border: 1px solid #eee7e2;
       }
 
       .info-item span {
@@ -2151,28 +4780,64 @@ function Styles() {
         color: #9c9194;
         font-size: 10px;
         font-weight: 800;
-        letter-spacing:
-          0.1em;
-        text-transform:
-          uppercase;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
       }
 
       .info-item strong {
         display: block;
-        overflow-wrap:
-          anywhere;
+        overflow-wrap: anywhere;
         color: #050002;
         font-size: 14px;
         line-height: 1.4;
       }
 
-      .contract-heading {
+      .legal-status-grid {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .legal-status {
+        padding: 13px 14px;
+        border-radius: 14px;
         display: flex;
-        align-items:
-          flex-start;
-        justify-content:
-          space-between;
-        gap: 24px;
+        align-items: center;
+        gap: 10px;
+        background: #fff7f8;
+        border: 1px solid #efdadf;
+        color: #786d71;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .legal-status.done {
+        background: #f8f6f1;
+        border-color: #e5ded9;
+        color: #30292c;
+      }
+
+      .legal-status-icon {
+        width: 24px;
+        height: 24px;
+        flex: 0 0 24px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #c37986;
+        color: white;
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .legal-form-wrap,
+      .contract-form {
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 1px solid #eee7e2;
+        scroll-margin-top: 100px;
       }
 
       .primary-button,
@@ -2181,12 +4846,10 @@ function Styles() {
       .floating-edit-button {
         min-height: 48px;
         border-radius: 14px;
-        padding:
-          0 20px;
+        padding: 0 20px;
         font-size: 12px;
         font-weight: 900;
-        letter-spacing:
-          0.055em;
+        letter-spacing: 0.055em;
         cursor: pointer;
         transition:
           transform 160ms ease,
@@ -2201,14 +4864,7 @@ function Styles() {
       }
 
       .secondary-button {
-        border:
-          1px solid
-          rgba(
-            5,
-            0,
-            2,
-            0.14
-          );
+        border: 1px solid rgba(5, 0, 2, 0.14);
         background: white;
         color: #050002;
       }
@@ -2217,15 +4873,11 @@ function Styles() {
       .secondary-button:hover,
       .agree-button:hover,
       .floating-edit-button:hover {
-        transform:
-          translateY(
-            -1px
-          );
+        transform: translateY(-1px);
       }
 
       button:disabled {
-        cursor:
-          not-allowed;
+        cursor: not-allowed;
       }
 
       .primary-button:disabled,
@@ -2233,71 +4885,95 @@ function Styles() {
         opacity: 0.6;
       }
 
-      .contract-form {
-        margin-top: 30px;
-        padding-top: 30px;
-        border-top:
-          1px solid
-          #eee7e2;
-        scroll-margin-top:
-          100px;
-      }
-
-      .edit-alert {
+      .edit-alert,
+      .blocking-alert,
+      .reference-box {
         margin-bottom: 28px;
         padding: 17px 18px;
         border-radius: 16px;
+      }
+
+      .edit-alert {
         background: #f2ebec;
-        border:
-          1px solid
-          rgba(
-            195,
-            121,
-            134,
-            0.3
-          );
+        border: 1px solid rgba(195, 121, 134, 0.3);
+      }
+
+      .blocking-alert {
+        background: #fff3dd;
+        border: 1px solid #efd49e;
+      }
+
+      .reference-box {
+        background: #faf8f5;
+        border: 1px solid #e6ded9;
       }
 
       .edit-alert strong,
-      .edit-alert span {
+      .edit-alert span,
+      .blocking-alert strong,
+      .blocking-alert span,
+      .reference-box > span,
+      .reference-box > strong,
+      .reference-box > small {
         display: block;
       }
 
-      .edit-alert strong {
+      .edit-alert strong,
+      .blocking-alert strong {
         color: #050002;
         font-size: 14px;
       }
 
-      .edit-alert span {
+      .edit-alert span,
+      .blocking-alert span {
         margin-top: 5px;
         color: #625b5e;
         font-size: 13px;
         line-height: 1.5;
       }
 
-      .form-section +
-      .form-section {
-        margin-top: 28px;
+      .reference-box > span {
+        color: #9c9194;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+      }
+
+      .reference-box > strong {
+        margin-top: 7px;
+        font-size: 16px;
+      }
+
+      .reference-box > small {
+        margin-top: 4px;
+        color: #70666a;
+      }
+
+      .reference-box p {
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      .form-section + .form-section {
+        margin-top: 32px;
       }
 
       .form-section h3 {
-        margin:
-          0 0 16px;
-        font-size: 17px;
-        letter-spacing:
-          -0.02em;
+        margin: 0 0 7px;
+        font-size: 18px;
+        letter-spacing: -0.02em;
+      }
+
+      .section-help {
+        margin-bottom: 16px !important;
+        color: #8a8184 !important;
+        font-size: 12px;
+        line-height: 1.5;
       }
 
       .form-grid {
         display: grid;
-        grid-template-columns:
-          repeat(
-            2,
-            minmax(
-              0,
-              1fr
-            )
-          );
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
       }
 
@@ -2305,14 +4981,11 @@ function Styles() {
         display: block;
       }
 
-      .field +
-      .field {
+      .field + .field {
         margin-top: 14px;
       }
 
-      .form-grid
-      .field +
-      .field {
+      .form-grid .field + .field {
         margin-top: 0;
       }
 
@@ -2325,23 +4998,23 @@ function Styles() {
       }
 
       .field input,
-      .field textarea {
+      .field textarea,
+      .field select {
         width: 100%;
-        border:
-          1px solid
-          #e4d9dc;
+        border: 1px solid #e4d9dc;
         border-radius: 14px;
         background: #fffdfb;
         color: #050002;
-        padding:
-          14px 15px;
+        padding: 14px 15px;
         font: inherit;
         outline: none;
         transition:
-          border-color
-            150ms ease,
-          box-shadow
-            150ms ease;
+          border-color 150ms ease,
+          box-shadow 150ms ease;
+      }
+
+      .field select {
+        min-height: 49px;
       }
 
       .field textarea {
@@ -2351,26 +5024,16 @@ function Styles() {
       }
 
       .field input:focus,
-      .field textarea:focus {
-        border-color:
-          #c37986;
-        box-shadow:
-          0 0 0 4px
-          rgba(
-            195,
-            121,
-            134,
-            0.16
-          );
+      .field textarea:focus,
+      .field select:focus {
+        border-color: #c37986;
+        box-shadow: 0 0 0 4px rgba(195, 121, 134, 0.16);
       }
 
       .money-help {
-        margin-top:
-          10px !important;
-        max-width:
-          none !important;
-        color:
-          #8a8184 !important;
+        margin-top: 10px !important;
+        max-width: none !important;
+        color: #8a8184 !important;
         font-size: 12px;
         line-height: 1.5;
       }
@@ -2383,31 +5046,21 @@ function Styles() {
         color: white;
       }
 
-      .review-before-generate
-        .card-kicker {
+      .review-before-generate .card-kicker {
         color: #f2a8a9;
       }
 
       .review-before-generate h3 {
-        margin:
-          8px 0 20px;
+        margin: 8px 0 20px;
         max-width: 520px;
         font-size: 22px;
         line-height: 1.15;
-        letter-spacing:
-          -0.035em;
+        letter-spacing: -0.035em;
       }
 
       .review-grid {
         display: grid;
-        grid-template-columns:
-          repeat(
-            2,
-            minmax(
-              0,
-              1fr
-            )
-          );
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
 
@@ -2415,30 +5068,17 @@ function Styles() {
       .review-adjustment {
         padding: 15px;
         border-radius: 14px;
-        background:
-          rgba(
-            255,
-            255,
-            255,
-            0.08
-          );
+        background: rgba(255, 255, 255, 0.08);
       }
 
       .review-grid span,
       .review-adjustment span {
         display: block;
         margin-bottom: 6px;
-        color:
-          rgba(
-            255,
-            255,
-            255,
-            0.58
-          );
+        color: rgba(255, 255, 255, 0.58);
         font-size: 9px;
         font-weight: 800;
-        letter-spacing:
-          0.12em;
+        letter-spacing: 0.12em;
       }
 
       .review-grid strong,
@@ -2455,16 +5095,14 @@ function Styles() {
       .form-actions {
         margin-top: 24px;
         display: flex;
-        justify-content:
-          flex-end;
+        justify-content: flex-end;
         gap: 10px;
       }
 
       .form-error,
       .success-message {
         margin-top: 20px;
-        padding:
-          14px 16px;
+        padding: 14px 16px;
         border-radius: 14px;
         font-size: 13px;
         font-weight: 700;
@@ -2479,36 +5117,26 @@ function Styles() {
       .success-message {
         background: #fffaf8;
         color: #c37986;
-        border:
-          1px solid
-          rgba(
-            195,
-            121,
-            134,
-            0.28
-          );
+        border: 1px solid rgba(195, 121, 134, 0.28);
       }
 
       .document-actions {
         margin-top: 30px;
         display: flex;
-        justify-content:
-          flex-end;
+        justify-content: flex-end;
         flex-wrap: wrap;
         gap: 10px;
       }
 
       .edit-document-button {
-        border-color:
-          #c37986;
+        border-color: #c37986;
         color: #c37986;
       }
 
       .print-button {
         background: #050002;
         color: white;
-        border-color:
-          #050002;
+        border-color: #050002;
       }
 
       .contract-summary {
@@ -2524,63 +5152,40 @@ function Styles() {
       }
 
       .contract-document {
-        width:
-          min(
-            794px,
-            100%
-          );
+        width: min(794px, 100%);
         min-height: 1123px;
         margin: 0 auto;
-        padding:
-          66px 70px 56px;
+        padding: 66px 70px 56px;
         background: white;
         color: #191517;
-        box-shadow:
-          0 12px 35px
-          rgba(
-            0,
-            0,
-            0,
-            0.08
-          );
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
       }
 
       .document-brand {
         display: flex;
-        justify-content:
-          center;
+        justify-content: center;
         margin-bottom: 34px;
       }
 
       .document-title {
         text-align: center;
-        font-family:
-          Georgia,
-          "Times New Roman",
-          serif;
+        font-family: Georgia, "Times New Roman", serif;
         font-size: 19px;
         font-weight: 700;
-        letter-spacing:
-          0.08em;
+        letter-spacing: 0.08em;
       }
 
       .document-rule {
         width: 56px;
         height: 2px;
-        margin:
-          18px auto
-          34px;
+        margin: 18px auto 34px;
         background: #c37986;
       }
 
       .contract-copy {
-        white-space:
-          pre-wrap;
+        white-space: pre-wrap;
         text-align: justify;
-        font-family:
-          Georgia,
-          "Times New Roman",
-          serif;
+        font-family: Georgia, "Times New Roman", serif;
         font-size: 14.5px;
         line-height: 1.82;
         color: #211d1f;
@@ -2589,15 +5194,11 @@ function Styles() {
       .document-footer {
         margin-top: 60px;
         padding-top: 18px;
-        border-top:
-          1px solid
-          #ddd5d7;
+        border-top: 1px solid #ddd5d7;
         text-align: center;
         font-size: 10px;
-        letter-spacing:
-          0.09em;
-        text-transform:
-          uppercase;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
         color: #9a9194;
       }
 
@@ -2605,29 +5206,19 @@ function Styles() {
         margin-top: 24px;
         padding: 24px;
         border-radius: 20px;
-        background:
-          linear-gradient(
-            135deg,
-            #fffaf8,
-            #f2ebec
-          );
-        border:
-          1px solid
-          rgba(
-            195,
-            121,
-            134,
-            0.28
-          );
+        background: linear-gradient(
+          135deg,
+          #fffaf8,
+          #f2ebec
+        );
+        border: 1px solid rgba(195, 121, 134, 0.28);
       }
 
       .agreement-copy h3 {
-        margin:
-          8px 0 8px;
+        margin: 8px 0 8px;
         font-size: 24px;
         line-height: 1.08;
-        letter-spacing:
-          -0.035em;
+        letter-spacing: -0.035em;
       }
 
       .agreement-copy p {
@@ -2641,14 +5232,7 @@ function Styles() {
         border: 0;
         background: #c37986;
         color: white;
-        box-shadow:
-          0 10px 30px
-          rgba(
-            195,
-            121,
-            134,
-            0.22
-          );
+        box-shadow: 0 10px 30px rgba(195, 121, 134, 0.22);
       }
 
       .agree-button.agreed {
@@ -2665,12 +5249,10 @@ function Styles() {
       .agreement-icon {
         width: 48px;
         height: 48px;
-        flex:
-          0 0 48px;
+        flex: 0 0 48px;
         display: flex;
         align-items: center;
-        justify-content:
-          center;
+        justify-content: center;
         border-radius: 999px;
         background: #c37986;
         color: white;
@@ -2712,12 +5294,10 @@ function Styles() {
       .step-dot {
         width: 27px;
         height: 27px;
-        flex:
-          0 0 27px;
+        flex: 0 0 27px;
         display: flex;
         align-items: center;
-        justify-content:
-          center;
+        justify-content: center;
         border-radius: 999px;
         background: #eee9e6;
         color: #9b9395;
@@ -2745,21 +5325,12 @@ function Styles() {
 
       .waiting-box {
         background: #faf8f5;
-        border:
-          1px solid
-          #e9e0dc;
+        border: 1px solid #e9e0dc;
       }
 
       .complete-box {
         background: #fffaf8;
-        border:
-          1px solid
-          rgba(
-            195,
-            121,
-            134,
-            0.28
-          );
+        border: 1px solid rgba(195, 121, 134, 0.28);
       }
 
       .waiting-box strong,
@@ -2794,12 +5365,9 @@ function Styles() {
       }
 
       .sidebar-note {
-        margin:
-          24px 0 0;
+        margin: 24px 0 0;
         padding-top: 20px;
-        border-top:
-          1px solid
-          #eee7e2;
+        border-top: 1px solid #eee7e2;
         font-size: 11px;
         line-height: 1.5;
         color: #9c9295;
@@ -2813,24 +5381,15 @@ function Styles() {
         border: 0;
         background: #c37986;
         color: white;
-        box-shadow:
-          0 15px 38px
-          rgba(
-            5,
-            0,
-            2,
-            0.18
-          );
+        box-shadow: 0 15px 38px rgba(5, 0, 2, 0.18);
       }
 
       .closing-centered {
         min-height: 100vh;
         display: flex;
-        flex-direction:
-          column;
+        flex-direction: column;
         align-items: center;
-        justify-content:
-          center;
+        justify-content: center;
         text-align: center;
         padding: 30px;
         background: #f8f6f1;
@@ -2838,17 +5397,10 @@ function Styles() {
 
       .closing-centered h1 {
         max-width: 580px;
-        margin:
-          35px 0 12px;
-        font-size:
-          clamp(
-            38px,
-            7vw,
-            64px
-          );
+        margin: 35px 0 12px;
+        font-size: clamp(38px, 7vw, 64px);
         line-height: 0.98;
-        letter-spacing:
-          -0.05em;
+        letter-spacing: -0.05em;
       }
 
       .closing-centered p {
@@ -2857,46 +5409,30 @@ function Styles() {
         line-height: 1.6;
       }
 
-      @media (
-        max-width: 900px
-      ) {
+      @media (max-width: 900px) {
         .closing-layout {
-          grid-template-columns:
-            1fr;
+          grid-template-columns: 1fr;
         }
 
         .closing-sidebar {
           position: static;
         }
 
-        .info-grid {
-          grid-template-columns:
-            repeat(
-              2,
-              minmax(
-                0,
-                1fr
-              )
-            );
+        .info-grid,
+        .contract-summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
 
-      @media (
-        max-width: 640px
-      ) {
+      @media (max-width: 640px) {
         .closing-header-inner,
         .closing-hero,
         .closing-layout {
-          width:
-            min(
-              100% - 28px,
-              1160px
-            );
+          width: min(100% - 28px, 1160px);
         }
 
         .closing-hero {
-          padding:
-            48px 0 34px;
+          padding: 48px 0 34px;
         }
 
         .closing-hero h1 {
@@ -2913,18 +5449,18 @@ function Styles() {
         }
 
         .person-title,
+        .section-heading,
         .contract-heading {
-          flex-direction:
-            column;
+          flex-direction: column;
         }
 
         .info-grid,
         .info-grid.two,
         .contract-summary,
         .form-grid,
-        .review-grid {
-          grid-template-columns:
-            1fr;
+        .review-grid,
+        .legal-status-grid {
+          grid-template-columns: 1fr;
         }
 
         .primary-button,
@@ -2933,13 +5469,11 @@ function Styles() {
         }
 
         .document-actions {
-          flex-direction:
-            column;
+          flex-direction: column;
         }
 
         .form-actions {
-          flex-direction:
-            column-reverse;
+          flex-direction: column-reverse;
         }
 
         .document-shell {
@@ -2950,8 +5484,7 @@ function Styles() {
 
         .contract-document {
           min-height: 0;
-          padding:
-            40px 26px;
+          padding: 40px 26px;
         }
 
         .contract-copy {
@@ -2960,18 +5493,14 @@ function Styles() {
         }
 
         .agreement-complete {
-          align-items:
-            flex-start;
+          align-items: flex-start;
         }
 
         .floating-edit-button {
           right: 14px;
           bottom: 14px;
           left: 14px;
-          width:
-            calc(
-              100% - 28px
-            );
+          width: calc(100% - 28px);
         }
       }
 
