@@ -517,7 +517,87 @@ export async function GET(
     }
 
     // =========================================================
-    // 8. RESPONSE
+    // 8. PAGOS
+    // =========================================================
+
+    const {
+      data:
+        payments,
+
+      error:
+        paymentsError,
+    } =
+      await supabaseAdmin
+        .from(
+          "rental_payments"
+        )
+        .select(`
+          id,
+          rental_id,
+          period_year,
+          period_month,
+          amount,
+          due_date,
+          status,
+          tenant_receipt_key,
+          tenant_receipt_filename,
+          tenant_receipt_content_type,
+          tenant_uploaded_at,
+          owner_confirmed_at,
+          owner_rejected_at,
+          owner_note,
+          created_at,
+          updated_at
+        `)
+        .eq(
+          "rental_id",
+          rental.id
+        )
+        .order(
+          "period_year",
+          {
+            ascending:
+              false,
+          }
+        )
+        .order(
+          "period_month",
+          {
+            ascending:
+              false,
+          }
+        )
+
+    if (
+      paymentsError
+    ) {
+      throw new Error(
+        paymentsError
+          .message
+      )
+    }
+
+    const paymentList =
+      payments || []
+
+    const pendingPayments =
+      paymentList.filter(
+        payment =>
+          payment.status ===
+            "pending" ||
+          payment.status ===
+            "receipt_uploaded"
+      )
+
+    const confirmedPayments =
+      paymentList.filter(
+        payment =>
+          payment.status ===
+          "confirmed"
+      )
+
+    // =========================================================
+    // 9. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -622,6 +702,23 @@ export async function GET(
             .phone_normalized ||
           counterpart
             .phone,
+      },
+
+      payments:
+        paymentList,
+
+      payment_summary: {
+        total:
+          paymentList
+            .length,
+
+        pending:
+          pendingPayments
+            .length,
+
+        confirmed:
+          confirmedPayments
+            .length,
       },
     })
   } catch (
