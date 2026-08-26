@@ -234,6 +234,54 @@ export default function MatchesPage() {
     >([])
 
   useEffect(() => {
+    if (!token) {
+      return
+    }
+
+    async function trackOpen() {
+      try {
+        const response =
+          await fetch(
+            "/api/match-link-open",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                token,
+                role: "tenant",
+              }),
+            }
+          )
+
+        if (!response.ok) {
+          const text =
+            await response
+              .text()
+              .catch(
+                () => ""
+              )
+
+          console.error(
+            "tenant match link open tracking failed:",
+            response.status,
+            text
+          )
+        }
+      } catch (err) {
+        console.error(
+          "tenant match link open tracking error:",
+          err
+        )
+      }
+    }
+
+    trackOpen()
+  }, [token])
+
+  useEffect(() => {
     async function load() {
       try {
         const response =
