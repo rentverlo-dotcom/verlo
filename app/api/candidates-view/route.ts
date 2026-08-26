@@ -89,7 +89,9 @@ export async function GET(
         id,
         owner_lead_id,
         expires_at,
-        revoked_at
+        revoked_at,
+        first_opened_at,
+        open_count
       `)
       .eq(
         "token",
@@ -144,6 +146,44 @@ export async function GET(
       )
     }
 
+    // =========================================================
+    // 1.B TRAZABILIDAD DE APERTURA
+    // =========================================================
+
+    const openedAt =
+      new Date().toISOString()
+
+    const {
+      error: trackingError,
+    } = await supabase
+      .from(
+        "owner_candidates_access_tokens"
+      )
+      .update({
+        first_opened_at:
+          accessToken.first_opened_at ||
+          openedAt,
+
+        last_opened_at:
+          openedAt,
+
+        open_count:
+          Number(
+            accessToken.open_count || 0
+          ) + 1,
+      })
+      .eq(
+        "id",
+        accessToken.id
+      )
+
+    if (trackingError) {
+      console.error(
+        "owner candidates access tracking error:",
+        trackingError
+      )
+    }
+
     const ownerLeadId =
       accessToken.owner_lead_id
 
@@ -160,7 +200,6 @@ export async function GET(
         id,
         full_name,
         zone,
-        
         neighborhood_labels,
         property_type,
         property_rooms,
@@ -279,7 +318,6 @@ export async function GET(
             owner.zone || null,
 
           neighborhood:
-           
             owner.neighborhood_labels?.[0] ||
             null,
 
@@ -341,7 +379,6 @@ export async function GET(
         income_range,
         income_max,
         guarantee_types,
-     
         neighborhood_labels,
         area_macro
       `)
@@ -563,7 +600,6 @@ export async function GET(
                 null,
 
               neighborhood:
-              
                 tenant
                   .neighborhood_labels?.[0] ||
                 tenant.area_macro ||
@@ -671,7 +707,6 @@ export async function GET(
           null,
 
         neighborhood:
-          
           owner.neighborhood_labels?.[0] ||
           null,
 
