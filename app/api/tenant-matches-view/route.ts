@@ -68,7 +68,9 @@ export async function GET(req: NextRequest) {
         id,
         tenant_lead_id,
         expires_at,
-        revoked_at
+        revoked_at,
+        first_opened_at,
+        open_count
       `)
       .eq("token", token)
       .single()
@@ -110,6 +112,42 @@ export async function GET(req: NextRequest) {
         {
           status: 403,
         }
+      )
+    }
+
+    // =========================================================
+    // 1.B TRAZABILIDAD DE APERTURA
+    // =========================================================
+
+    const openedAt =
+      new Date().toISOString()
+
+    const {
+      error: trackingError,
+    } = await supabase
+      .from("tenant_matches_access_tokens")
+      .update({
+        first_opened_at:
+          accessToken.first_opened_at ||
+          openedAt,
+
+        last_opened_at:
+          openedAt,
+
+        open_count:
+          Number(
+            accessToken.open_count || 0
+          ) + 1,
+      })
+      .eq(
+        "id",
+        accessToken.id
+      )
+
+    if (trackingError) {
+      console.error(
+        "tenant matches access tracking error:",
+        trackingError
       )
     }
 
