@@ -303,7 +303,9 @@ export async function GET(
           lead_id,
           role,
           expires_at,
-          revoked_at
+          revoked_at,
+          first_opened_at,
+          open_count
         `)
         .eq(
           "token",
@@ -383,6 +385,51 @@ export async function GET(
         {
           status: 403,
         }
+      )
+    }
+
+    // =========================================================
+    // 1.B TRAZABILIDAD DE APERTURA
+    // =========================================================
+
+    const openedAt =
+      new Date().toISOString()
+
+    const {
+      error:
+        trackingError,
+    } =
+      await supabase
+        .from(
+          "lead_contract_access_tokens"
+        )
+        .update({
+          first_opened_at:
+            accessToken
+              .first_opened_at ||
+            openedAt,
+
+          last_opened_at:
+            openedAt,
+
+          open_count:
+            Number(
+              accessToken
+                .open_count ||
+              0
+            ) + 1,
+        })
+        .eq(
+          "id",
+          accessToken.id
+        )
+
+    if (
+      trackingError
+    ) {
+      console.error(
+        "closing access tracking error:",
+        trackingError
       )
     }
 
