@@ -7,9 +7,13 @@ import { createClient } from "@supabase/supabase-js"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-type Role =
-  | "owner"
-  | "tenant"
+type Role = "owner" | "tenant"
+
+const GHL_BASE_URL =
+  "https://services.leadconnectorhq.com"
+
+const DEFAULT_GHL_LOCATION_ID =
+  "cvNj4z9CkErHpF9tD4BE"
 
 function clean(
   value: unknown
@@ -19,10 +23,267 @@ function clean(
   ).trim()
 }
 
+function normalizePhone(
+  value: string
+) {
+  return value.replace(
+    /\D/g,
+    ""
+  )
+}
+
+async function findGhlContact({
+  token,
+  locationId,
+  phone,
+  email,
+}: {
+  token: string
+  locationId: string
+  phone: string | null
+  email: string | null
+}) {
+  const queries = [
+    phone,
+    email,
+  ].filter(
+    (
+      value
+    ): value is string =>
+      Boolean(
+        value &&
+          value.trim()
+      )
+  )
+
+  for (
+    const query of queries
+  ) {
+    const url =
+      new URL(
+        `${GHL_BASE_URL}/contacts/`
+      )
+
+    url.searchParams.set(
+      "locationId",
+      locationId
+    )
+
+    url.searchParams.set(
+      "query",
+      query
+    )
+
+    url.searchParams.set(
+      "limit",
+      "20"
+    )
+
+    const response =
+      await fetch(
+        url.toString(),
+        {
+          method: "GET",
+
+          headers: {
+            Accept:
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
+
+            Version:
+              "2023-02-21",
+          },
+
+          cache:
+            "no-store",
+        }
+      )
+
+    if (
+      !response.ok
+    ) {
+      const text =
+        await response
+          .text()
+          .catch(
+            () => ""
+          )
+
+      console.error(
+        "GHL contact search error:",
+        response.status,
+        text
+      )
+
+      continue
+    }
+
+    const data =
+      await response
+        .json()
+        .catch(
+          () => null
+        )
+
+    const contacts =
+      Array.isArray(
+        data?.contacts
+      )
+        ? data.contacts
+        : []
+
+    if (
+      contacts.length ===
+      0
+    ) {
+      continue
+    }
+
+    const normalizedPhone =
+      phone
+        ? normalizePhone(
+            phone
+          )
+        : ""
+
+    const normalizedEmail =
+      email
+        ? email
+            .trim()
+            .toLowerCase()
+        : ""
+
+    const exact =
+      contacts.find(
+        (
+          contact: any
+        ) => {
+          const ghlPhone =
+            normalizePhone(
+              clean(
+                contact?.phone
+              )
+            )
+
+          const ghlEmail =
+            clean(
+              contact?.email
+            ).toLowerCase()
+
+          const phoneMatches =
+            Boolean(
+              normalizedPhone &&
+                ghlPhone &&
+                normalizedPhone ===
+                  ghlPhone
+            )
+
+          const emailMatches =
+            Boolean(
+              normalizedEmail &&
+                ghlEmail &&
+                normalizedEmail ===
+                  ghlEmail
+            )
+
+          return (
+            phoneMatches ||
+            emailMatches
+          )
+        }
+      )
+
+    if (
+      exact?.id
+    ) {
+      return exact
+    }
+
+    /*
+     * Si GHL devolvió un único
+     * resultado para esa búsqueda,
+     * lo usamos.
+     */
+    if (
+      contacts.length ===
+        1 &&
+      contacts[0]?.id
+    ) {
+      return contacts[0]
+    }
+  }
+
+  return null
+}
+
+async function addGhlTag({
+  token,
+  contactId,
+  tag,
+}: {
+  token: string
+  contactId: string
+  tag: string
+}) {
+  const response =
+    await fetch(
+      `${GHL_BASE_URL}/contacts/${encodeURIComponent(
+        contactId
+      )}/tags`,
+      {
+        method: "POST",
+
+        headers: {
+          Accept:
+            "application/json",
+
+          "Content-Type":
+            "application/json",
+
+          Authorization:
+            `Bearer ${token}`,
+
+          Version:
+            "v3",
+        },
+
+        body:
+          JSON.stringify({
+            tags: [
+              tag,
+            ],
+          }),
+      }
+    )
+
+  if (
+    !response.ok
+  ) {
+    const text =
+      await response
+        .text()
+        .catch(
+          () => ""
+        )
+
+    throw new Error(
+      `GHL add tag failed ${response.status}: ${text}`
+    )
+  }
+
+  return true
+}
+
 export async function POST(
   req: NextRequest
 ) {
   try {
+    // =========================================================
+    // CONFIG
+    // =========================================================
+
     const supabaseUrl =
       process.env
         .NEXT_PUBLIC_SUPABASE_URL
@@ -31,11 +292,18 @@ export async function POST(
       process.env
         .SUPABASE_SERVICE_ROLE_KEY
 
-    const ghlWebhookUrl =
+    const ghlToken =
       clean(
         process.env
-          .GHL_MATCH_ACTIVITY_WEBHOOK_URL
+          .GHL_PRIVATE_INTEGRATION_TOKEN
       )
+
+    const ghlLocationId =
+      clean(
+        process.env
+          .GHL_LOCATION_ID
+      ) ||
+      DEFAULT_GHL_LOCATION_ID
 
     if (
       !supabaseUrl ||
@@ -52,6 +320,25 @@ export async function POST(
         }
       )
     }
+
+    if (
+      !ghlToken
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Missing GHL_PRIVATE_INTEGRATION_TOKEN",
+        },
+        {
+          status: 500,
+        }
+      )
+    }
+
+    // =========================================================
+    // BODY
+    // =========================================================
 
     const body =
       await req
@@ -75,7 +362,9 @@ export async function POST(
       ![
         "owner",
         "tenant",
-      ].includes(role)
+      ].includes(
+        role
+      )
     ) {
       return NextResponse.json(
         {
@@ -97,6 +386,7 @@ export async function POST(
           auth: {
             persistSession:
               false,
+
             autoRefreshToken:
               false,
           },
@@ -111,7 +401,8 @@ export async function POST(
       | string
       | null = null
 
-    let firstOpened = false
+    let firstOpen =
+      false
 
     // =========================================================
     // OWNER
@@ -126,7 +417,7 @@ export async function POST(
         data:
           accessToken,
         error:
-          tokenError,
+          accessError,
       } =
         await supabase
           .from(
@@ -147,14 +438,14 @@ export async function POST(
           .single()
 
       if (
-        tokenError ||
+        accessError ||
         !accessToken
       ) {
         return NextResponse.json(
           {
             ok: false,
             error:
-              "Invalid token",
+              "Invalid owner token",
           },
           {
             status: 404,
@@ -203,7 +494,7 @@ export async function POST(
         accessToken
           .owner_lead_id
 
-      firstOpened =
+      firstOpen =
         !accessToken
           .first_opened_at
 
@@ -240,7 +531,7 @@ export async function POST(
         trackingError
       ) {
         console.error(
-          "owner link tracking error:",
+          "owner open tracking error:",
           trackingError
         )
       }
@@ -259,7 +550,7 @@ export async function POST(
         data:
           accessToken,
         error:
-          tokenError,
+          accessError,
       } =
         await supabase
           .from(
@@ -279,14 +570,14 @@ export async function POST(
           .single()
 
       if (
-        tokenError ||
+        accessError ||
         !accessToken
       ) {
         return NextResponse.json(
           {
             ok: false,
             error:
-              "Invalid token",
+              "Invalid tenant token",
           },
           {
             status: 404,
@@ -337,20 +628,25 @@ export async function POST(
 
       /*
        * tenant-matches-view
-       * YA registra:
+       * YA actualiza:
        *
        * first_opened_at
        * last_opened_at
        * open_count
        *
-       * Por eso NO volvemos
-       * a incrementar acá.
+       * Acá NO incrementamos
+       * otra vez para evitar
+       * contar doble.
        */
 
-      firstOpened =
+      firstOpen =
         !accessToken
           .first_opened_at
     }
+
+    // =========================================================
+    // LEAD
+    // =========================================================
 
     if (
       !leadId
@@ -359,7 +655,7 @@ export async function POST(
         {
           ok: false,
           error:
-            "Lead not found",
+            "Lead ID missing",
         },
         {
           status: 404,
@@ -367,13 +663,10 @@ export async function POST(
       )
     }
 
-    // =========================================================
-    // DATOS DEL LEAD
-    // =========================================================
-
     const {
       data: lead,
-      error: leadError,
+      error:
+        leadError,
     } =
       await supabase
         .from(
@@ -384,7 +677,6 @@ export async function POST(
           full_name,
           email,
           phone,
-          phone_normalized,
           role
         `)
         .eq(
@@ -410,131 +702,119 @@ export async function POST(
     }
 
     // =========================================================
-    // AVISO A GHL
-    // NO bloqueamos la UX si GHL falla.
+    // TAG
     // =========================================================
 
-    let ghlSent =
+    const tag =
+      role ===
+      "owner"
+        ? "verlo_match_clicked_owner"
+        : "verlo_match_clicked_tenant"
+
+    // =========================================================
+    // BUSCAR CONTACTO EN GHL
+    // =========================================================
+
+    let ghlContactId:
+      | string
+      | null = null
+
+    let ghlTagged =
       false
 
-    if (
-      ghlWebhookUrl
-    ) {
-      try {
-        const ghlResponse =
-          await fetch(
-            ghlWebhookUrl,
-            {
-              method:
-                "POST",
+    try {
+      const contact =
+        await findGhlContact({
+          token:
+            ghlToken,
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
+          locationId:
+            ghlLocationId,
 
-              body:
-                JSON.stringify(
-                  {
-                    event:
-                      "verlo_match_link_opened",
+          phone:
+            clean(
+              lead.phone
+            ) ||
+            null,
 
-                    role,
+          email:
+            clean(
+              lead.email
+            ) ||
+            null,
+        })
 
-                    tag:
-                      role ===
-                      "owner"
-                        ? "verlo_match_clicked_owner"
-                        : "verlo_match_clicked_tenant",
-
-                    lead_id:
-                      lead.id,
-
-                    full_name:
-                      lead.full_name,
-
-                    email:
-                      lead.email,
-
-                    phone:
-                      lead
-                        .phone_normalized ||
-                      lead.phone,
-
-                    token_type:
-                      role ===
-                      "owner"
-                        ? "owner_property"
-                        : "tenant_matches",
-
-                    first_open:
-                      firstOpened,
-
-                    opened_at:
-                      openedAt,
-
-                    source:
-                      "verlo_private_link",
-                  }
-                ),
-            }
-          )
-
-        ghlSent =
-          ghlResponse.ok
-
-        if (
-          !ghlResponse.ok
-        ) {
-          const text =
-            await ghlResponse
-              .text()
-              .catch(
-                () => ""
-              )
-
-          console.error(
-            "GHL match activity webhook error:",
-            ghlResponse.status,
-            text
-          )
-        }
-      } catch (
-        error
+      if (
+        contact?.id
       ) {
+        ghlContactId =
+          String(
+            contact.id
+          )
+
+        await addGhlTag({
+          token:
+            ghlToken,
+
+          contactId:
+            ghlContactId,
+
+          tag,
+        })
+
+        ghlTagged =
+          true
+      } else {
         console.error(
-          "GHL match activity webhook exception:",
-          error
+          "GHL contact not found for lead:",
+          lead.id,
+          lead.phone,
+          lead.email
         )
       }
+    } catch (
+      error
+    ) {
+      /*
+       * IMPORTANTE:
+       * si GHL falla,
+       * NO rompemos la página.
+       *
+       * Supabase sigue siendo
+       * source of truth.
+       */
+      console.error(
+        "GHL tagging error:",
+        error
+      )
     }
 
     // =========================================================
     // RESPONSE
     // =========================================================
 
-    return NextResponse.json(
-      {
-        ok: true,
+    return NextResponse.json({
+      ok: true,
 
-        role,
+      role,
 
-        lead_id:
-          lead.id,
+      lead_id:
+        lead.id,
 
-        tag:
-          role ===
-          "owner"
-            ? "verlo_match_clicked_owner"
-            : "verlo_match_clicked_tenant",
+      tag,
 
-        opened_at:
-          openedAt,
+      opened_at:
+        openedAt,
 
-        ghl_sent:
-          ghlSent,
-      }
-    )
+      first_open:
+        firstOpen,
+
+      ghl_contact_id:
+        ghlContactId,
+
+      ghl_tagged:
+        ghlTagged,
+    })
   } catch (
     error
   ) {
