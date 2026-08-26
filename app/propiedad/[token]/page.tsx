@@ -2,6 +2,7 @@
 
 import {
   ChangeEvent,
+  useEffect,
   useMemo,
   useState,
 } from "react"
@@ -47,6 +48,54 @@ export default function OwnerPropertyPage() {
       })),
     [files]
   )
+
+  useEffect(() => {
+    if (!token) {
+      return
+    }
+
+    async function trackOpen() {
+      try {
+        const response =
+          await fetch(
+            "/api/match-link-open",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                token,
+                role: "owner",
+              }),
+            }
+          )
+
+        if (!response.ok) {
+          const text =
+            await response
+              .text()
+              .catch(
+                () => ""
+              )
+
+          console.error(
+            "owner match link open tracking failed:",
+            response.status,
+            text
+          )
+        }
+      } catch (err) {
+        console.error(
+          "owner match link open tracking error:",
+          err
+        )
+      }
+    }
+
+    trackOpen()
+  }, [token])
 
   function handleFiles(
     event: ChangeEvent<HTMLInputElement>
