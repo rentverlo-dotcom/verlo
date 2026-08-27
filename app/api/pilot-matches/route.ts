@@ -466,10 +466,6 @@ export async function POST(
 
     // =========================================================
     // 4. AGRUPAR POR PERSONA
-    //
-    // Importante:
-    // una persona puede tener varias filas históricas.
-    // No queremos mandar 5 mails a la misma persona.
     // =========================================================
 
     const groups =
@@ -569,9 +565,6 @@ export async function POST(
 
     // =========================================================
     // 5. PRIORIZAR
-    //
-    // Primero score 100.
-    // Después cantidad de matches.
     // =========================================================
 
     const contacts =
@@ -645,26 +638,31 @@ export async function POST(
       const role =
         group.role
 
-// =========================================================
-// TEMPORAL E2E: SOLO ESTOS DOS TELEFONOS PUEDEN IR A GHL
-// BORRAR DESPUES DE TERMINAR LA PRUEBA
-// =========================================================
+      // =========================================================
+      // TEMPORAL E2E:
+      // SOLO ESTOS DOS TELEFONOS PUEDEN IR A GHL
+      // BORRAR DESPUES DE TERMINAR LA PRUEBA
+      // =========================================================
 
-const e2eAllowedPhones = new Set([
-  "5491144478714", // Guillermo
-  "5491133614865", // Juan Manuel
-])
+      const e2eAllowedPhones = new Set([
+        "5491144478714",
+        "5491133614865",
+      ])
 
-const currentPhone = normalizePhone(
-  lead.phone_normalized ||
-  lead.phone
-)
+      const currentPhone =
+        normalizePhone(
+          lead.phone_normalized ||
+            lead.phone
+        )
 
-if (!e2eAllowedPhones.has(currentPhone)) {
-  continue
-}
+      if (
+        !e2eAllowedPhones.has(
+          currentPhone
+        )
+      ) {
+        continue
+      }
 
-      
       const leadMatches =
         Array.from(
           group.matches.values()
@@ -676,19 +674,19 @@ if (!e2eAllowedPhones.has(currentPhone)) {
           leadMatches
         )
 
- const tags = [
-  "verlo_lead",
+      const tags = [
+        "verlo_lead",
 
-  role === "owner"
-    ? "verlo_owner"
-    : "verlo_tenant",
+        role === "owner"
+          ? "verlo_owner"
+          : "verlo_tenant",
 
-  role === "owner"
-    ? "verlo_owner_new_listing"
-    : "verlo_tenant_search",
+        role === "owner"
+          ? "verlo_owner_new_listing"
+          : "verlo_tenant_search",
 
-  "verlo_pilot_match",
-
+        "verlo_pilot_match",
+      ]
 
       const payload = {
         lead_id:
