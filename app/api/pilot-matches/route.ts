@@ -656,19 +656,23 @@ export async function POST(
           leadMatches
         )
 
-      const tags = [
-        "verlo_lead",
+ const tags = [
+  "verlo_lead",
 
-        role === "owner"
-          ? "verlo_owner"
-          : "verlo_tenant",
+  role === "owner"
+    ? "verlo_owner"
+    : "verlo_tenant",
 
-        role === "owner"
-          ? "verlo_owner_new_listing"
-          : "verlo_tenant_search",
+  role === "owner"
+    ? "verlo_owner_new_listing"
+    : "verlo_tenant_search",
 
-        "verlo_pilot_match",
-      ]
+  "verlo_pilot_match",
+
+  // TEMPORAL: gate para prueba E2E.
+  // Sacar después de validar el flujo completo.
+  "verlo_e2e_test",
+]
 
       const payload = {
         lead_id:
