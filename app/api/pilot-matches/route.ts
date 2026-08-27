@@ -645,6 +645,26 @@ export async function POST(
       const role =
         group.role
 
+// =========================================================
+// TEMPORAL E2E: SOLO ESTOS DOS TELEFONOS PUEDEN IR A GHL
+// BORRAR DESPUES DE TERMINAR LA PRUEBA
+// =========================================================
+
+const e2eAllowedPhones = new Set([
+  "5491144478714", // Guillermo
+  "5491133614865", // Juan Manuel
+])
+
+const currentPhone = normalizePhone(
+  lead.phone_normalized ||
+  lead.phone
+)
+
+if (!e2eAllowedPhones.has(currentPhone)) {
+  continue
+}
+
+      
       const leadMatches =
         Array.from(
           group.matches.values()
@@ -669,10 +689,6 @@ export async function POST(
 
   "verlo_pilot_match",
 
-  // TEMPORAL: gate para prueba E2E.
-  // Sacar después de validar el flujo completo.
-  "verlo_e2e_test",
-]
 
       const payload = {
         lead_id:
