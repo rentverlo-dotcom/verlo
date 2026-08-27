@@ -674,6 +674,61 @@ export async function POST(
           leadMatches
         )
 
+
+let verloMatchesToken = ""
+let verloMatchesUrl = ""
+
+if (role === "tenant") {
+  const tokenResponse = await fetch(
+    `${req.nextUrl.origin}/api/tenant-matches-token`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tenant_lead_id: lead.id,
+      }),
+    }
+  )
+
+  const tokenData = await tokenResponse
+    .json()
+    .catch(() => null)
+
+  if (
+    !tokenResponse.ok ||
+    !tokenData?.ok ||
+    !tokenData?.token
+  ) {
+    console.error(
+      "tenant matches token error:",
+      tokenData
+    )
+
+    results.push({
+      lead_id: lead.id,
+      name: lead.full_name,
+      email: lead.email,
+      role,
+      sent: false,
+      dry_run: false,
+      error: "No se pudo generar verlo_matches_token",
+      token_status: tokenResponse.status,
+      token_response: tokenData,
+    })
+
+    continue
+  }
+
+  verloMatchesToken =
+    String(tokenData.token || "")
+
+  verloMatchesUrl =
+    String(tokenData.matches_url || "")
+}
+
+      
       const tags = [
         "verlo_lead",
 
@@ -688,49 +743,55 @@ export async function POST(
         "verlo_pilot_match",
       ]
 
-      const payload = {
-        lead_id:
-          lead.id,
+    const payload = {
+  lead_id:
+    lead.id,
 
-        lead_ids:
-          Array.from(
-            group.leadIds
-          ),
+  lead_ids:
+    Array.from(
+      group.leadIds
+    ),
 
-        full_name:
-          lead.full_name,
+  full_name:
+    lead.full_name,
 
-        first_name:
-          clean(
-            lead.full_name
-          ).split(/\s+/)[0] ||
-          "",
+  first_name:
+    clean(
+      lead.full_name
+    ).split(/\s+/)[0] ||
+    "",
 
-        email:
-          normalizeEmail(
-            lead.email
-          ),
+  email:
+    normalizeEmail(
+      lead.email
+    ),
 
-        phone:
-          clean(
-            lead.phone_normalized ||
-              lead.phone
-          ),
+  phone:
+    clean(
+      lead.phone_normalized ||
+        lead.phone
+    ),
 
-        role,
+  role,
 
-        intent:
-          role === "owner"
-            ? "owner_new_listing"
-            : "tenant_search",
+  intent:
+    role === "owner"
+      ? "owner_new_listing"
+      : "tenant_search",
 
-        tags,
+  verlo_matches_token:
+    verloMatchesToken,
 
-        ...matchFields,
+  verlo_matches_url:
+    verloMatchesUrl,
 
-        source:
-          "verlo_pilot_match_v2",
-      }
+  tags,
+
+  ...matchFields,
+
+  source:
+    "verlo_pilot_match_v2",
+}
 
       // =======================================================
       // DRY RUN
