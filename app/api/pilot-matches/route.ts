@@ -39,7 +39,7 @@ const MAX_LIMIT = 200
 
 const E2E_ALLOWED_PHONES =
   new Set([
-    "5491144478714", // Guillermo
+    "5491156906473", // Guillermo
     "5491133614865", // Juan Manuel
   ])
 
