@@ -1,66 +1,168 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server"
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+import {
+  createClient,
+} from "@supabase/supabase-js"
+
+export const runtime =
+  "nodejs"
+
+export const dynamic =
+  "force-dynamic"
 
 const GHL_PILOT_MATCH_WEBHOOK_URL =
   "https://services.leadconnectorhq.com/hooks/cvNj4z9CkErHpF9tD4BE/webhook-trigger/295302fb-a1ee-459e-a075-ec639b80177d"
 
-const ACTIVE_MATCH_STATUSES = ["new", "reviewed", "contacted"]
+const ACTIVE_MATCH_STATUSES = [
+  "new",
+  "reviewed",
+  "contacted",
+]
 
 const MIN_MATCH_SCORE = 80
 const DEFAULT_LIMIT = 25
 const MAX_LIMIT = 200
 
+// ============================================================
+// TEMPORAL E2E
+//
+// ESTA ES LA ÚNICA DIFERENCIA ENTRE E2E Y PRODUCCIÓN.
+//
+// Cuando terminemos correctamente el E2E,
+// eliminamos este Set + el .filter correspondiente.
+//
+// NO cambia ninguna otra parte de la arquitectura.
+// ============================================================
+
+const E2E_ALLOWED_PHONES =
+  new Set([
+    "5491144478714", // Guillermo
+    "5491133614865", // Juan Manuel
+  ])
+
 type MatchRow = {
   id: string
-  tenant_lead_id: string
-  owner_lead_id: string
-  score: number | string
-  status: string
-  reasons: Record<string, any> | null
+
+  tenant_lead_id:
+    string
+
+  owner_lead_id:
+    string
+
+  score:
+    number | string
+
+  status:
+    string
+
+  reasons:
+    Record<
+      string,
+      any
+    > | null
 }
 
 type LeadRow = {
   id: string
-  full_name: string | null
-  email: string | null
-  phone: string | null
-  phone_normalized: string | null
-  role: string | null
-  intent: string | null
-  lead_quality: string | null
+
+  full_name:
+    string | null
+
+  email:
+    string | null
+
+  phone:
+    string | null
+
+  phone_normalized:
+    string | null
+
+  role:
+    string | null
+
+  intent:
+    string | null
+
+  lead_quality:
+    string | null
 }
 
-function clean(value: unknown) {
-  return String(value || "").trim()
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
 }
 
-function normalizeEmail(value: unknown) {
-  return clean(value).toLowerCase()
+function normalizeEmail(
+  value: unknown
+) {
+  return clean(
+    value
+  ).toLowerCase()
 }
 
-function normalizePhone(value: unknown) {
-  return clean(value).replace(/\D/g, "")
+function normalizePhone(
+  value: unknown
+) {
+  return clean(
+    value
+  ).replace(
+    /\D/g,
+    ""
+  )
 }
 
-function money(value: unknown) {
-  const n = Number(value || 0)
+function firstName(
+  value: unknown
+) {
+  return (
+    clean(value)
+      .split(/\s+/)[0] ||
+    ""
+  )
+}
 
-  if (!Number.isFinite(n) || n <= 0) {
+function money(
+  value: unknown
+) {
+  const n =
+    Number(
+      value || 0
+    )
+
+  if (
+    !Number.isFinite(n) ||
+    n <= 0
+  ) {
     return ""
   }
 
-  return `$ ${Math.round(n).toLocaleString("es-AR")}`
+  return `$ ${Math.round(
+    n
+  ).toLocaleString(
+    "es-AR"
+  )}`
 }
 
-function roleFromLead(lead: LeadRow) {
-  if (lead.intent === "owner_new_listing") {
+function roleFromLead(
+  lead: LeadRow
+) {
+  if (
+    lead.intent ===
+    "owner_new_listing"
+  ) {
     return "owner"
   }
 
-  if (lead.intent === "tenant_search") {
+  if (
+    lead.intent ===
+    "tenant_search"
+  ) {
     return "tenant"
   }
 
@@ -71,15 +173,20 @@ function contactKey(
   lead: LeadRow,
   role: string
 ) {
-  const email = normalizeEmail(lead.email)
+  const email =
+    normalizeEmail(
+      lead.email
+    )
 
   if (email) {
     return `${role}|email:${email}`
   }
 
-  const phone = normalizePhone(
-    lead.phone_normalized || lead.phone
-  )
+  const phone =
+    normalizePhone(
+      lead.phone_normalized ||
+        lead.phone
+    )
 
   if (phone) {
     return `${role}|phone:${phone}`
@@ -92,78 +199,138 @@ function buildMatchFields(
   role: string,
   matches: MatchRow[]
 ) {
-  const ordered = [...matches].sort(
-    (a, b) =>
-      Number(b.score || 0) -
-      Number(a.score || 0)
+  const ordered = [
+    ...matches,
+  ].sort(
+    (
+      a,
+      b
+    ) =>
+      Number(
+        b.score || 0
+      ) -
+      Number(
+        a.score || 0
+      )
   )
 
-  const best = ordered[0] || null
+  const best =
+    ordered[0] ||
+    null
 
   const reasons =
-    best?.reasons || {}
+    best?.reasons ||
+    {}
 
   const matches100 =
     ordered.filter(
       (match) =>
-        Number(match.score) === 100
+        Number(
+          match.score
+        ) === 100
     ).length
 
   const matches80 =
     ordered.filter(
       (match) =>
-        Number(match.score) === 80
+        Number(
+          match.score
+        ) === 80
     ).length
 
   const bestZone =
     role === "owner"
-      ? reasons.matched_tenant_neighborhood ||
-        reasons.owner_neighborhood_slug ||
+      ? reasons
+          .matched_tenant_neighborhood ||
+        reasons
+          .owner_neighborhood_slug ||
         ""
-      : reasons.owner_neighborhood_slug ||
-        reasons.matched_tenant_neighborhood ||
+      : reasons
+          .owner_neighborhood_slug ||
+        reasons
+          .matched_tenant_neighborhood ||
         ""
 
   const bestTiming =
     role === "owner"
-      ? reasons.tenant_move_timing || ""
-      : reasons.owner_availability_status || ""
+      ? reasons
+          .tenant_move_timing ||
+        ""
+      : reasons
+          .owner_availability_status ||
+        ""
 
   const bestPropertyType =
     role === "owner"
-      ? reasons.tenant_type || ""
-      : reasons.owner_type || ""
+      ? reasons
+          .tenant_type ||
+        ""
+      : reasons
+          .owner_type ||
+        ""
 
   const bestRooms =
     role === "owner"
-      ? reasons.tenant_rooms || ""
-      : reasons.owner_rooms || ""
+      ? reasons
+          .tenant_rooms ||
+        ""
+      : reasons
+          .owner_rooms ||
+        ""
 
   const bestPrice =
     role === "owner"
-      ? money(reasons.tenant_budget_max)
-      : money(reasons.owner_price)
+      ? money(
+          reasons
+            .tenant_budget_max
+        )
+      : money(
+          reasons
+            .owner_price
+        )
 
-  const matchesOn: string[] = []
+  const matchesOn:
+    string[] = []
 
-  if (reasons.neighborhood_ok) {
-    matchesOn.push("zona")
+  if (
+    reasons
+      .neighborhood_ok
+  ) {
+    matchesOn.push(
+      "zona"
+    )
   }
 
-  if (reasons.type_ok) {
-    matchesOn.push("tipo de propiedad")
+  if (
+    reasons.type_ok
+  ) {
+    matchesOn.push(
+      "tipo de propiedad"
+    )
   }
 
-  if (reasons.rooms_ok) {
-    matchesOn.push("ambientes")
+  if (
+    reasons.rooms_ok
+  ) {
+    matchesOn.push(
+      "ambientes"
+    )
   }
 
-  if (reasons.price_ok) {
-    matchesOn.push("presupuesto")
+  if (
+    reasons.price_ok
+  ) {
+    matchesOn.push(
+      "presupuesto"
+    )
   }
 
-  if (reasons.time_ok) {
-    matchesOn.push("momento de mudanza")
+  if (
+    reasons.time_ok
+  ) {
+    matchesOn.push(
+      "momento de mudanza"
+    )
   }
 
   return {
@@ -178,7 +345,9 @@ function buildMatchFields(
 
     verlo_best_match_score:
       best
-        ? Number(best.score)
+        ? Number(
+            best.score
+          )
         : 0,
 
     verlo_best_zone:
@@ -197,7 +366,9 @@ function buildMatchFields(
       bestPrice,
 
     verlo_best_matches_on:
-      matchesOn.join(", "),
+      matchesOn.join(
+        ", "
+      ),
 
     verlo_match_summary:
       `${matches100} matches al 100% y ${matches80} matches al 80%`,
@@ -206,20 +377,37 @@ function buildMatchFields(
       role,
 
     verlo_match_updated_at:
-      new Date().toISOString(),
+      new Date()
+        .toISOString(),
   }
 }
 
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    endpoint: "pilot-matches",
-    source: "lead_matches",
-    min_score: MIN_MATCH_SCORE,
+
+    endpoint:
+      "pilot-matches",
+
+    source:
+      "lead_matches",
+
+    min_score:
+      MIN_MATCH_SCORE,
+
     active_statuses:
       ACTIVE_MATCH_STATUSES,
+
     default_limit:
       DEFAULT_LIMIT,
+
+    e2e_mode:
+      true,
+
+    e2e_allowed_phones:
+      Array.from(
+        E2E_ALLOWED_PHONES
+      ),
 
     note:
       "POST con { send: true } para enviar a GHL. Sin send:true funciona como dry-run.",
@@ -257,10 +445,13 @@ export async function POST(
     const body =
       await req
         .json()
-        .catch(() => ({}))
+        .catch(
+          () => ({})
+        )
 
     const send =
-      body?.send === true
+      body?.send ===
+      true
 
     const requestedLimit =
       Number(
@@ -288,11 +479,16 @@ export async function POST(
         ? body.lead_ids
             .map(
               (
-                value: unknown
+                value:
+                  unknown
               ) =>
-                clean(value)
+                clean(
+                  value
+                )
             )
-            .filter(Boolean)
+            .filter(
+              Boolean
+            )
         : []
 
     const supabase =
@@ -315,8 +511,11 @@ export async function POST(
     // =========================================================
 
     const {
-      data: matchesRaw,
-      error: matchesError,
+      data:
+        matchesRaw,
+
+      error:
+        matchesError,
     } =
       await supabase
         .from(
@@ -341,27 +540,36 @@ export async function POST(
         .order(
           "score",
           {
-            ascending: false,
+            ascending:
+              false,
           }
         )
 
-    if (matchesError) {
+    if (
+      matchesError
+    ) {
       throw new Error(
         matchesError.message
       )
     }
 
     let matches =
-      (matchesRaw ||
-        []) as MatchRow[]
+      (
+        matchesRaw ||
+        []
+      ) as MatchRow[]
 
     // =========================================================
-    // OPCIONAL: SOLO LEADS ESPECÍFICOS
+    // 2. SI EL CALLER MANDA LEAD IDS, SOLO TRABAJAMOS MATCHES
+    //    RELACIONADOS CON ESOS LEADS.
+    //
+    //    El match incluye ambos lados, por lo tanto el flujo
+    //    real puede notificar tenant + owner.
     // =========================================================
 
     if (
-      requestedLeadIds.length >
-      0
+      requestedLeadIds
+        .length > 0
     ) {
       const requestedSet =
         new Set(
@@ -372,16 +580,18 @@ export async function POST(
         matches.filter(
           (match) =>
             requestedSet.has(
-              match.tenant_lead_id
+              match
+                .tenant_lead_id
             ) ||
             requestedSet.has(
-              match.owner_lead_id
+              match
+                .owner_lead_id
             )
         )
     }
 
     // =========================================================
-    // 2. LEADS INVOLUCRADOS
+    // 3. LEADS INVOLUCRADOS
     // =========================================================
 
     const leadIds =
@@ -389,29 +599,43 @@ export async function POST(
         new Set(
           matches.flatMap(
             (match) => [
-              match.tenant_lead_id,
-              match.owner_lead_id,
+              match
+                .tenant_lead_id,
+
+              match
+                .owner_lead_id,
             ]
           )
         )
       )
 
     if (
-      leadIds.length === 0
+      leadIds.length ===
+      0
     ) {
       return NextResponse.json({
         ok: true,
         send,
-        matches_found: 0,
-        contacts_ready: 0,
-        processed: 0,
+
+        matches_found:
+          0,
+
+        contacts_ready:
+          0,
+
+        processed:
+          0,
+
         results: [],
       })
     }
 
     const {
-      data: leadsRaw,
-      error: leadsError,
+      data:
+        leadsRaw,
+
+      error:
+        leadsError,
     } =
       await supabase
         .from(
@@ -432,25 +656,31 @@ export async function POST(
           leadIds
         )
 
-    if (leadsError) {
+    if (
+      leadsError
+    ) {
       throw new Error(
         leadsError.message
       )
     }
 
     // =========================================================
-    // 3. EXCLUIR LEADS QUE NO DEBEN OPERARSE
+    // 4. EXCLUIR DUPLICATES / NEEDS_RECLASSIFICATION
     // =========================================================
 
     const leads =
       (
-        (leadsRaw ||
-          []) as LeadRow[]
+        (
+          leadsRaw ||
+          []
+        ) as LeadRow[]
       ).filter(
         (lead) =>
-          lead.lead_quality !==
+          lead
+            .lead_quality !==
             "duplicate" &&
-          lead.lead_quality !==
+          lead
+            .lead_quality !==
             "needs_reclassification"
       )
 
@@ -465,41 +695,56 @@ export async function POST(
       )
 
     // =========================================================
-    // 4. AGRUPAR POR PERSONA
+    // 5. AGRUPAR POR PERSONA
     // =========================================================
 
     const groups =
       new Map<
         string,
         {
-          role: string
-          lead: LeadRow
-          leadIds: Set<string>
-          matches: Map<
-            string,
-            MatchRow
-          >
+          role:
+            string
+
+          lead:
+            LeadRow
+
+          leadIds:
+            Set<string>
+
+          matches:
+            Map<
+              string,
+              MatchRow
+            >
         }
       >()
 
     for (
-      const match of matches
+      const match
+      of matches
     ) {
       const sides = [
         {
-          role: "tenant",
+          role:
+            "tenant",
+
           leadId:
-            match.tenant_lead_id,
+            match
+              .tenant_lead_id,
         },
         {
-          role: "owner",
+          role:
+            "owner",
+
           leadId:
-            match.owner_lead_id,
+            match
+              .owner_lead_id,
         },
       ]
 
       for (
-        const side of sides
+        const side
+        of sides
       ) {
         const lead =
           leadsById.get(
@@ -511,7 +756,9 @@ export async function POST(
         }
 
         const actualRole =
-          roleFromLead(lead)
+          roleFromLead(
+            lead
+          )
 
         if (
           actualRole !==
@@ -527,7 +774,9 @@ export async function POST(
           )
 
         if (
-          !groups.has(key)
+          !groups.has(
+            key
+          )
         ) {
           groups.set(
             key,
@@ -538,7 +787,9 @@ export async function POST(
               lead,
 
               leadIds:
-                new Set<string>(),
+                new Set<
+                  string
+                >(),
 
               matches:
                 new Map<
@@ -550,21 +801,34 @@ export async function POST(
         }
 
         const group =
-          groups.get(key)!
+          groups.get(
+            key
+          )!
 
-        group.leadIds.add(
-          lead.id
-        )
+        group
+          .leadIds
+          .add(
+            lead.id
+          )
 
-        group.matches.set(
-          match.id,
-          match
-        )
+        group
+          .matches
+          .set(
+            match.id,
+            match
+          )
       }
     }
 
     // =========================================================
-    // 5. PRIORIZAR
+    // 6. E2E ALLOWLIST ANTES DEL LIMIT
+    //
+    // Esto corrige el problema que vimos donde Juan/Guillermo
+    // podían quedar afuera de los primeros 25.
+    //
+    // PRODUCCIÓN:
+    // borrar solamente este .filter(...)
+    // y la constante E2E_ALLOWED_PHONES de arriba.
     // =========================================================
 
     const contacts =
@@ -573,19 +837,49 @@ export async function POST(
       )
         .filter(
           (group) =>
-            group.matches
+            group
+              .matches
               .size > 0
         )
+
+        .filter(
+          (group) => {
+            const phone =
+              normalizePhone(
+                group
+                  .lead
+                  .phone_normalized ||
+                  group
+                    .lead
+                    .phone
+              )
+
+            return (
+              E2E_ALLOWED_PHONES
+                .has(
+                  phone
+                )
+            )
+          }
+        )
+
         .sort(
-          (a, b) => {
+          (
+            a,
+            b
+          ) => {
             const aBest =
               Math.max(
                 ...Array.from(
-                  a.matches.values()
+                  a.matches
+                    .values()
                 ).map(
-                  (match) =>
+                  (
+                    match
+                  ) =>
                     Number(
-                      match.score
+                      match
+                        .score
                     )
                 )
               )
@@ -593,11 +887,15 @@ export async function POST(
             const bBest =
               Math.max(
                 ...Array.from(
-                  b.matches.values()
+                  b.matches
+                    .values()
                 ).map(
-                  (match) =>
+                  (
+                    match
+                  ) =>
                     Number(
-                      match.score
+                      match
+                        .score
                     )
                 )
               )
@@ -613,8 +911,10 @@ export async function POST(
             }
 
             return (
-              b.matches.size -
-              a.matches.size
+              b.matches
+                .size -
+              a.matches
+                .size
             )
           }
         )
@@ -623,14 +923,19 @@ export async function POST(
           limit
         )
 
-    const results = []
+    const results:
+      Record<
+        string,
+        unknown
+      >[] = []
 
     // =========================================================
-    // 6. PREPARAR / ENVIAR A GHL
+    // 7. PREPARAR / ENVIAR A GHL
     // =========================================================
 
     for (
-      const group of contacts
+      const group
+      of contacts
     ) {
       const lead =
         group.lead
@@ -638,34 +943,11 @@ export async function POST(
       const role =
         group.role
 
-      // =========================================================
-      // TEMPORAL E2E:
-      // SOLO ESTOS DOS TELEFONOS PUEDEN IR A GHL
-      // BORRAR DESPUES DE TERMINAR LA PRUEBA
-      // =========================================================
-
-      const e2eAllowedPhones = new Set([
-        "5491144478714",
-        "5491133614865",
-      ])
-
-      const currentPhone =
-        normalizePhone(
-          lead.phone_normalized ||
-            lead.phone
-        )
-
-      if (
-        !e2eAllowedPhones.has(
-          currentPhone
-        )
-      ) {
-        continue
-      }
-
       const leadMatches =
         Array.from(
-          group.matches.values()
+          group
+            .matches
+            .values()
         )
 
       const matchFields =
@@ -674,127 +956,288 @@ export async function POST(
           leadMatches
         )
 
+      // =======================================================
+      // 7A. TOKEN TENANT
+      // =======================================================
 
-let verloMatchesToken = ""
-let verloMatchesUrl = ""
+      let verloMatchesToken =
+        ""
 
-if (role === "tenant") {
-  const tokenResponse = await fetch(
-    `${req.nextUrl.origin}/api/tenant-matches-token`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        tenant_lead_id: lead.id,
-      }),
-    }
-  )
+      let verloMatchesUrl =
+        ""
 
-  const tokenData = await tokenResponse
-    .json()
-    .catch(() => null)
+      if (
+        role ===
+        "tenant"
+      ) {
+        const tokenResponse =
+          await fetch(
+            `${req.nextUrl.origin}/api/tenant-matches-token`,
+            {
+              method:
+                "POST",
 
-  if (
-    !tokenResponse.ok ||
-    !tokenData?.ok ||
-    !tokenData?.token
-  ) {
-    console.error(
-      "tenant matches token error:",
-      tokenData
-    )
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
 
-    results.push({
-      lead_id: lead.id,
-      name: lead.full_name,
-      email: lead.email,
-      role,
-      sent: false,
-      dry_run: false,
-      error: "No se pudo generar verlo_matches_token",
-      token_status: tokenResponse.status,
-      token_response: tokenData,
-    })
+              body:
+                JSON.stringify(
+                  {
+                    tenant_lead_id:
+                      lead.id,
+                  }
+                ),
+            }
+          )
 
-    continue
-  }
+        const tokenData =
+          await tokenResponse
+            .json()
+            .catch(
+              () =>
+                null
+            )
 
-  verloMatchesToken =
-    String(tokenData.token || "")
+        if (
+          !tokenResponse.ok ||
+          !tokenData?.ok ||
+          !tokenData?.token
+        ) {
+          console.error(
+            "tenant matches token error:",
+            tokenData
+          )
 
-  verloMatchesUrl =
-    String(tokenData.matches_url || "")
-}
+          results.push({
+            lead_id:
+              lead.id,
 
-      
+            name:
+              lead.full_name,
+
+            email:
+              lead.email,
+
+            role,
+
+            sent:
+              false,
+
+            dry_run:
+              !send,
+
+            error:
+              "No se pudo generar verlo_matches_token",
+
+            token_status:
+              tokenResponse.status,
+
+            token_response:
+              tokenData,
+          })
+
+          continue
+        }
+
+        verloMatchesToken =
+          String(
+            tokenData
+              .token ||
+              ""
+          )
+
+        verloMatchesUrl =
+          String(
+            tokenData
+              .matches_url ||
+              ""
+          )
+      }
+
+      // =======================================================
+      // 7B. TOKEN OWNER
+      // =======================================================
+
+      let verloPropertyToken =
+        ""
+
+      let verloPropertyUrl =
+        ""
+
+      if (
+        role ===
+        "owner"
+      ) {
+        const tokenResponse =
+          await fetch(
+            `${req.nextUrl.origin}/api/owner-property-token`,
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify(
+                  {
+                    owner_lead_id:
+                      lead.id,
+                  }
+                ),
+            }
+          )
+
+        const tokenData =
+          await tokenResponse
+            .json()
+            .catch(
+              () =>
+                null
+            )
+
+        if (
+          !tokenResponse.ok ||
+          !tokenData?.ok ||
+          !tokenData?.token
+        ) {
+          console.error(
+            "owner property token error:",
+            tokenData
+          )
+
+          results.push({
+            lead_id:
+              lead.id,
+
+            name:
+              lead.full_name,
+
+            email:
+              lead.email,
+
+            role,
+
+            sent:
+              false,
+
+            dry_run:
+              !send,
+
+            error:
+              "No se pudo generar verlo_property_token",
+
+            token_status:
+              tokenResponse.status,
+
+            token_response:
+              tokenData,
+          })
+
+          continue
+        }
+
+        verloPropertyToken =
+          String(
+            tokenData
+              .token ||
+              ""
+          )
+
+        verloPropertyUrl =
+          String(
+            tokenData
+              .property_url ||
+              ""
+          )
+      }
+
       const tags = [
         "verlo_lead",
 
-        role === "owner"
+        role ===
+        "owner"
           ? "verlo_owner"
           : "verlo_tenant",
 
-        role === "owner"
+        role ===
+        "owner"
           ? "verlo_owner_new_listing"
           : "verlo_tenant_search",
 
         "verlo_pilot_match",
       ]
 
-    const payload = {
-  lead_id:
-    lead.id,
+      // =======================================================
+      // 8. PAYLOAD ÚNICO PARA GHL
+      // =======================================================
 
-  lead_ids:
-    Array.from(
-      group.leadIds
-    ),
+      const payload = {
+        lead_id:
+          lead.id,
 
-  full_name:
-    lead.full_name,
+        lead_ids:
+          Array.from(
+            group.leadIds
+          ),
 
-  first_name:
-    clean(
-      lead.full_name
-    ).split(/\s+/)[0] ||
-    "",
+        full_name:
+          lead.full_name,
 
-  email:
-    normalizeEmail(
-      lead.email
-    ),
+        first_name:
+          firstName(
+            lead.full_name
+          ),
 
-  phone:
-    clean(
-      lead.phone_normalized ||
-        lead.phone
-    ),
+        email:
+          normalizeEmail(
+            lead.email
+          ),
 
-  role,
+        phone:
+          normalizePhone(
+            lead.phone_normalized ||
+              lead.phone
+          ),
 
-  intent:
-    role === "owner"
-      ? "owner_new_listing"
-      : "tenant_search",
+        role,
 
-  verlo_matches_token:
-    verloMatchesToken,
+        intent:
+          role ===
+          "owner"
+            ? "owner_new_listing"
+            : "tenant_search",
 
-  verlo_matches_url:
-    verloMatchesUrl,
+        // Tenant
 
-  tags,
+        verlo_matches_token:
+          verloMatchesToken,
 
-  ...matchFields,
+        verlo_matches_url:
+          verloMatchesUrl,
 
-  source:
-    "verlo_pilot_match_v2",
-}
+        // Owner
+
+        verlo_property_token:
+          verloPropertyToken,
+
+        verlo_property_url:
+          verloPropertyUrl,
+
+        tags,
+
+        ...matchFields,
+
+        source:
+          "verlo_pilot_match_v2",
+      }
 
       // =======================================================
-      // DRY RUN
+      // 9. DRY RUN
       // =======================================================
 
       if (!send) {
@@ -807,6 +1250,9 @@ if (role === "tenant") {
 
           email:
             lead.email,
+
+          phone:
+            payload.phone,
 
           role,
 
@@ -826,15 +1272,30 @@ if (role === "tenant") {
             matchFields
               .verlo_best_match_score,
 
-          sent: false,
-          dry_run: true,
+          verlo_matches_token:
+            verloMatchesToken,
+
+          verlo_matches_url:
+            verloMatchesUrl,
+
+          verlo_property_token:
+            verloPropertyToken,
+
+          verlo_property_url:
+            verloPropertyUrl,
+
+          sent:
+            false,
+
+          dry_run:
+            true,
         })
 
         continue
       }
 
       // =======================================================
-      // ENVÍO REAL A GHL
+      // 10. ÚNICO ENVÍO REAL HACIA EL WORKFLOW GHL
       // =======================================================
 
       const response =
@@ -873,6 +1334,9 @@ if (role === "tenant") {
         email:
           lead.email,
 
+        phone:
+          payload.phone,
+
         role,
 
         matches:
@@ -890,6 +1354,18 @@ if (role === "tenant") {
         best_score:
           matchFields
             .verlo_best_match_score,
+
+        verlo_matches_token:
+          verloMatchesToken,
+
+        verlo_matches_url:
+          verloMatchesUrl,
+
+        verlo_property_token:
+          verloPropertyToken,
+
+        verlo_property_url:
+          verloPropertyUrl,
 
         sent:
           response.ok,
@@ -916,11 +1392,14 @@ if (role === "tenant") {
       min_score:
         MIN_MATCH_SCORE,
 
+      e2e_mode:
+        true,
+
       matches_found:
         matches.length,
 
       contacts_ready:
-        groups.size,
+        contacts.length,
 
       processed:
         results.length,
@@ -929,7 +1408,9 @@ if (role === "tenant") {
 
       results,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "pilot matches v2 error:",
       error
@@ -940,7 +1421,8 @@ if (role === "tenant") {
         ok: false,
 
         error:
-          error instanceof Error
+          error instanceof
+          Error
             ? error.message
             : "Error procesando matches actuales",
       },
