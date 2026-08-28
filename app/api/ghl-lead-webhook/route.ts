@@ -1870,20 +1870,7 @@ if (Number(matchSummary.verlo_match_count || 0) > 0) {
     console.error("pilot match trigger error:", err)
   }
 }
-    
- const ghl = await sendToGhlWebhook({
-  ...leadPayload,
-
-  lead_id: leadRecord.id,
-
-  match_result: matchResult,
-
-  ...matchSummary,
-})
-
-    if (!ghl.ok) {
-      console.error("ghl webhook error:", ghl.error)
-    }
+  
 
     const eventId =
       clean(body.event_id) ||
@@ -1921,15 +1908,14 @@ if (Number(matchSummary.verlo_match_count || 0) > 0) {
     }
 
     return NextResponse.json({
-      ok: true,
-      ghl,
-      meta,
-      tags,
-      match_result: matchResult,
-      pilot_match: pilotMatch,
-      event_id: eventId,
-      lead_id: leadRecord?.id || null,
-    })
+  ok: true,
+  meta,
+  tags,
+  match_result: matchResult,
+  pilot_match: pilotMatch,
+  event_id: eventId,
+  lead_id: leadRecord?.id || null,
+})
   } catch (err) {
     console.error("ghl lead webhook api error:", err)
 
