@@ -13,8 +13,11 @@ function clean(value: unknown) {
 
 export async function GET(req: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseUrl =
+      process.env.NEXT_PUBLIC_SUPABASE_URL
+
+    const serviceRoleKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !serviceRoleKey) {
       return NextResponse.json(
@@ -189,7 +192,13 @@ export async function GET(req: NextRequest) {
 
     // =========================================================
     // 3. TODOS LOS MATCHES DEL TENANT
-    // SOLO LOS QUE YA TIENEN OWNER COMPLETO
+    //
+    // YA NO EXIGIMOS owner_completed_at.
+    //
+    // El match puede ser visible desde el momento en que
+    // el owner tenga al menos una foto inicial cargada.
+    //
+    // La existencia de media se valida más abajo.
     // =========================================================
 
     const {
@@ -219,11 +228,6 @@ export async function GET(req: NextRequest) {
       .in(
         "status",
         ACTIVE_MATCH_STATUSES
-      )
-      .not(
-        "owner_completed_at",
-        "is",
-        null
       )
       .order(
         "score",
@@ -321,7 +325,17 @@ export async function GET(req: NextRequest) {
 
     // =========================================================
     // 5. COMPLETIONS SUBMITTED
-    // TOMAMOS LA ÚLTIMA DE CADA OWNER
+    //
+    // AHORA SON OPCIONALES.
+    //
+    // Si existen, enriquecen la propiedad con:
+    // expensas
+    // piso/unidad
+    // requisitos
+    // condiciones de visita
+    // notas
+    //
+    // Pero NO son requisito para mostrar el match.
     // =========================================================
 
     const {
@@ -383,22 +397,27 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const completionIds =
-      Array.from(
-        completionByOwnerId.values()
-      ).map(
-        (completion) =>
-          completion.id
-      )
-
     // =========================================================
-    // 6. MEDIA
+    // 6. TODA LA MEDIA DE LOS OWNERS
+    //
+    // CLAVE DEL NUEVO FLUJO:
+    //
+    // Buscamos media directamente por lead_id.
+    //
+    // Esto incluye:
+    //
+    // - fotos iniciales
+    //   completion_id = null
+    //
+    // - fotos posteriores
+    //   completion_id = completion real
+    //
     // =========================================================
 
     let media: any[] = []
 
     if (
-      completionIds.length > 0
+      ownerLeadIds.length > 0
     ) {
       const {
         data: mediaRows,
@@ -409,6 +428,7 @@ export async function GET(req: NextRequest) {
         )
         .select(`
           id,
+          lead_id,
           completion_id,
           media_type,
           public_url,
@@ -418,8 +438,8 @@ export async function GET(req: NextRequest) {
           position
         `)
         .in(
-          "completion_id",
-          completionIds
+          "lead_id",
+          ownerLeadIds
         )
         .order(
           "position",
@@ -438,7 +458,11 @@ export async function GET(req: NextRequest) {
         mediaRows || []
     }
 
-    const mediaByCompletionId =
+    // =========================================================
+    // 7. AGRUPAR MEDIA POR OWNER
+    // =========================================================
+
+    const mediaByOwnerId =
       new Map<
         string,
         any[]
@@ -447,22 +471,41 @@ export async function GET(req: NextRequest) {
     for (
       const item of media
     ) {
+      const ownerLeadId =
+        clean(
+          item.lead_id
+        )
+
+      if (!ownerLeadId) {
+        continue
+      }
+
       const list =
-        mediaByCompletionId.get(
-          item.completion_id
+        mediaByOwnerId.get(
+          ownerLeadId
         ) || []
 
       list.push(item)
 
-      mediaByCompletionId.set(
-        item.completion_id,
+      mediaByOwnerId.set(
+        ownerLeadId,
         list
       )
     }
 
     // =========================================================
-    // 7. ARMAR MATCHES VISIBLES
-    // SOLO COMPLETION + MEDIA
+    // 8. ARMAR MATCHES VISIBLES
+    //
+    // REGLA NUEVA:
+    //
+    // Un match es visible si:
+    //
+    // 1. existe owner
+    // 2. score >= 80
+    // 3. status activo
+    // 4. owner tiene al menos una FOTO
+    //
+    // Ya NO exigimos completion.
     // =========================================================
 
     const visibleMatches =
@@ -473,32 +516,37 @@ export async function GET(req: NextRequest) {
               match.owner_lead_id
             )
 
+          if (!owner) {
+            return []
+          }
+
           const completion =
             completionByOwnerId.get(
               match.owner_lead_id
             )
 
-          if (
-            !owner ||
-            !completion
-          ) {
-            return []
-          }
-
-          const completionMedia =
-            mediaByCompletionId.get(
-              completion.id
+          const ownerMedia =
+            mediaByOwnerId.get(
+              match.owner_lead_id
             ) || []
 
+          const photoMedia =
+            ownerMedia.filter(
+              (item) =>
+                item.media_type ===
+                "photo"
+            )
+
           if (
-            completionMedia.length === 0
+            photoMedia.length === 0
           ) {
             return []
           }
 
           return [
             {
-              id: match.id,
+              id:
+                match.id,
 
               score:
                 Number(
@@ -523,6 +571,11 @@ export async function GET(req: NextRequest) {
                   match.ready_to_connect_at
                 ),
 
+              owner_completed:
+                Boolean(
+                  match.owner_completed_at
+                ),
+
               property: {
                 neighborhood:
                   owner.neighborhood_slug,
@@ -538,28 +591,33 @@ export async function GET(req: NextRequest) {
 
                 availability:
                   completion
-                    .availability_status ||
+                    ?.availability_status ||
                   owner.availability_status,
 
                 expenses:
                   completion
-                    .expenses_amount,
+                    ?.expenses_amount ??
+                  null,
 
                 floor_unit:
                   completion
-                    .floor_unit,
+                    ?.floor_unit ??
+                  null,
 
                 requirements:
                   completion
-                    .requirements,
+                    ?.requirements ??
+                  null,
 
                 visit_conditions:
                   completion
-                    .visit_conditions,
+                    ?.visit_conditions ??
+                  null,
 
                 notes:
                   completion
-                    .property_notes,
+                    ?.property_notes ??
+                  null,
 
                 accepted_income_proof_types:
                   owner
@@ -576,7 +634,7 @@ export async function GET(req: NextRequest) {
               },
 
               media:
-                completionMedia.map(
+                ownerMedia.map(
                   (item) => ({
                     id:
                       item.id,
@@ -595,6 +653,9 @@ export async function GET(req: NextRequest) {
 
                     filename:
                       item.original_filename,
+
+                    completion_id:
+                      item.completion_id,
                   })
                 ),
             },
@@ -603,7 +664,7 @@ export async function GET(req: NextRequest) {
       )
 
     // =========================================================
-    // 8. RESPONSE
+    // 9. RESPONSE
     // =========================================================
 
     return NextResponse.json({
