@@ -113,14 +113,14 @@ export default function PropietariosPage() {
 
     const website = String(formData.get("website") || "").trim()
 
-if (website) {
-  form.reset()
-  setStatus("success")
-  setMessage(
-    "Listo. Recibimos los datos mínimos de tu propiedad. Te vamos a escribir si encontramos compatibilidad con búsquedas activas."
-  )
-  return
-}
+    if (website) {
+      form.reset()
+      setStatus("success")
+      setMessage(
+        "Listo. Recibimos los datos de tu propiedad. Te vamos a escribir si encontramos compatibilidad con búsquedas activas."
+      )
+      return
+    }
 
     const fullName = String(formData.get("full_name") || "").trim()
     const email = String(formData.get("email") || "").trim()
@@ -137,6 +137,31 @@ if (website) {
     const approxPrice = String(formData.get("approx_price") || "").trim()
     const availabilityStatus = String(formData.get("availability_status") || "").trim()
     const notes = String(formData.get("notes") || "").trim()
+
+    const photoFiles = formData
+      .getAll("property_photos")
+      .filter(
+        (item): item is File =>
+          item instanceof File &&
+          item.size > 0
+      )
+
+    if (photoFiles.length === 0) {
+      setStatus("error")
+      setMessage("Subí al menos una foto de la propiedad.")
+      return
+    }
+
+    const invalidPhoto = photoFiles.find(
+      (file) =>
+        !file.type.startsWith("image/")
+    )
+
+    if (invalidPhoto) {
+      setStatus("error")
+      setMessage("Las fotos deben ser archivos de imagen.")
+      return
+    }
 
     const payload = {
       full_name: fullName,
@@ -178,9 +203,103 @@ if (website) {
         throw new Error(data?.error || "No pudimos guardar tus datos")
       }
 
+      const leadId = String(data?.lead_id || "").trim()
+
+      if (!leadId) {
+        throw new Error("No pudimos identificar la propiedad creada")
+      }
+
+      const uploadedMedia: Array<{
+        key: string
+        publicUrl: string | null
+        filename: string
+        contentType: string
+        size: number
+      }> = []
+
+      for (const file of photoFiles) {
+        const presignRes = await fetch("/api/r2/presign", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            folder: "owner-media",
+            id: leadId,
+            filename: file.name,
+            contentType: file.type,
+          }),
+        })
+
+        const presignData = await presignRes
+          .json()
+          .catch(() => null)
+
+        if (
+          !presignRes.ok ||
+          !presignData?.uploadUrl ||
+          !presignData?.key
+        ) {
+          throw new Error("No pudimos preparar una de las fotos")
+        }
+
+        const uploadRes = await fetch(
+          presignData.uploadUrl,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": file.type,
+            },
+            body: file,
+          }
+        )
+
+        if (!uploadRes.ok) {
+          throw new Error("No pudimos subir una de las fotos")
+        }
+
+        uploadedMedia.push({
+          key: String(presignData.key),
+          publicUrl: presignData.publicUrl
+            ? String(presignData.publicUrl)
+            : null,
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        })
+      }
+
+      if (uploadedMedia.length === 0) {
+        throw new Error("No pudimos subir las fotos de la propiedad")
+      }
+
+      const mediaRes = await fetch("/api/owner-initial-media", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          owner_lead_id: leadId,
+          media: uploadedMedia,
+        }),
+      })
+
+      const mediaData = await mediaRes
+        .json()
+        .catch(() => null)
+
+      if (!mediaRes.ok || !mediaData?.ok) {
+        throw new Error(
+          mediaData?.error ||
+            "La propiedad se guardó pero no pudimos registrar las fotos"
+        )
+      }
+
       form.reset()
       setStatus("success")
-      setMessage("Listo. Recibimos los datos mínimos de tu propiedad. Te vamos a escribir si encontramos compatibilidad con búsquedas activas.")
+      setMessage(
+        "Listo. Recibimos tu propiedad y las fotos. Te vamos a escribir si encontramos compatibilidad con búsquedas activas."
+      )
     } catch (error) {
       setStatus("error")
       setMessage(error instanceof Error ? error.message : "Error inesperado")
@@ -217,7 +336,7 @@ if (website) {
             </p>
 
             <p className="hero-copy secondary">
-              Si tenés una propiedad, podés revisar gratis si matchea con búsquedas activas. No te pedimos fotos, videos ni domicilio exacto para empezar. Solo datos mínimos.
+              Si tenés una propiedad, podés revisar gratis si matchea con búsquedas activas. Cargá los datos principales y al menos una foto. No publicamos tu domicilio exacto.
             </p>
 
             <div className="hero-actions">
@@ -227,7 +346,7 @@ if (website) {
 
             <div className="trust-row">
               <span>No pedimos domicilio exacto</span>
-              <span>No pedimos fotos para empezar</span>
+              <span>Solo necesitás 1 foto para empezar</span>
               <span>El propietario no paga nada</span>
               <span>Contrato y renovación ordenados</span>
             </div>
@@ -249,7 +368,7 @@ if (website) {
             </div>
 
             <div className="hero-note">
-              Si hay compatibilidad real, recién ahí te pedimos fotos, videos o más detalles para contactarte con inquilinos calificados.
+              Con los datos principales y al menos una foto podemos mostrar tu propiedad a inquilinos compatibles. Si hay interés real, después podés completar más información.
             </div>
           </aside>
         </div>
@@ -282,17 +401,17 @@ if (website) {
         <div className="container">
           <div className="section-head">
             <p className="eyebrow">Proceso</p>
-            <h2>El propietario deja datos mínimos. Verlo hace el resto.</h2>
+            <h2>El propietario deja los datos principales. Verlo hace el resto.</h2>
             <p>
-              No publicás tu dirección, no subís fotos de entrada y no pagás nada. Verlo revisa si tu propiedad puede matchear con búsquedas activas.
+              No publicás tu dirección exacta y no pagás nada. Cargás los datos principales y al menos una foto para que podamos mostrar la propiedad cuando aparezca un inquilino compatible.
             </p>
           </div>
 
           <div className="steps-grid">
             <article>
               <b>1</b>
-              <h3>Dejás datos mínimos</h3>
-              <p>Barrio, tipo, ambientes, precio estimado y disponibilidad. No pedimos domicilio exacto, fotos ni videos para empezar.</p>
+              <h3>Cargás la propiedad</h3>
+              <p>Barrio, tipo, ambientes, precio estimado, disponibilidad y al menos una foto. Podés subir varias si querés.</p>
             </article>
 
             <article>
@@ -303,14 +422,14 @@ if (website) {
 
             <article>
               <b>3</b>
-              <h3>Pedimos más detalles solo si hay match</h3>
-              <p>Si hay compatibilidad real, recién ahí te pedimos fotos, videos o más detalles para contactarte con inquilinos calificados.</p>
+              <h3>Los compatibles pueden verla</h3>
+              <p>Si hay match, el inquilino puede ver los datos principales y las fotos que cargaste antes de indicar si le interesa.</p>
             </article>
 
             <article>
               <b>4</b>
               <h3>Verlo coordina hasta contrato</h3>
-              <p>Nos ocupamos de coordinación, validación, contrato, firma y datos guardados para futuras renovaciones.</p>
+              <p>Si aparece interés real, completamos lo necesario y avanzamos con validación, coordinación, contrato y firma.</p>
             </article>
           </div>
         </div>
@@ -320,37 +439,44 @@ if (website) {
         <div className="container form-grid">
           <div>
             <p className="eyebrow">Revisar compatibilidad</p>
-            <h2>Decinos lo mínimo para ver si hay match</h2>
+            <h2>Decinos lo necesario para ver si hay match</h2>
             <p>
-              No es una publicación. No te pedimos fotos, videos ni domicilio exacto. Solo los datos necesarios para cruzar tu propiedad con búsquedas activas.
+              Cargá los datos principales y al menos una foto de la propiedad. Podés subir varias. No publicamos tu domicilio exacto.
             </p>
 
             <div className="promise-card">
               <strong>El propietario no paga nada</strong>
               <span>
-                Si hay compatibilidad, Verlo avanza con coordinación, validación, contrato, firma y guardado de datos para futuras renovaciones.
+                Si hay compatibilidad, los inquilinos pueden conocer la propiedad y marcar interés. Verlo después avanza con coordinación, validación, contrato y firma.
               </span>
             </div>
           </div>
 
           <form className="owner-form" onSubmit={handleSubmit}>
             <div
-  style={{
-    marginBottom: "22px",
-    padding: "14px 18px",
-    background: "#050002",
-    color: "#f2a8a9",
-    borderRadius: "18px",
-    textAlign: "center",
-    fontSize: "20px",
-    fontWeight: 950,
-    letterSpacing: ".03em",
-    textTransform: "uppercase",
-  }}
->
-  SOLO PARA PROPIETARIOS
-</div>
-            <input name="website" type="text" tabIndex={-1} autoComplete="off" className="honeypot" />
+              style={{
+                marginBottom: "22px",
+                padding: "14px 18px",
+                background: "#050002",
+                color: "#f2a8a9",
+                borderRadius: "18px",
+                textAlign: "center",
+                fontSize: "20px",
+                fontWeight: 950,
+                letterSpacing: ".03em",
+                textTransform: "uppercase",
+              }}
+            >
+              SOLO PARA PROPIETARIOS
+            </div>
+
+            <input
+              name="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              className="honeypot"
+            />
 
             <label>
               Nombre
@@ -424,6 +550,20 @@ if (website) {
             </label>
 
             <label>
+              Fotos de la propiedad
+              <span className="field-help">
+                Subí al menos una foto. Podés seleccionar varias.
+              </span>
+              <input
+                name="property_photos"
+                type="file"
+                accept="image/*"
+                multiple
+                required
+              />
+            </label>
+
+            <label>
               Comentario opcional
               <textarea
                 name="notes"
@@ -452,13 +592,13 @@ if (website) {
             <p>Alquiler directo, seguro y sin comisión.</p>
           </div>
 
-         <nav className="footer-links">
-  <a href="/terminos">Términos y condiciones</a>
-  <a href="/privacidad">Política de privacidad</a>
-  <a href="mailto:hola@verlo.lat?subject=Consulta%20Verlo">
-    Contacto
-  </a>
-</nav>
+          <nav className="footer-links">
+            <a href="/terminos">Términos y condiciones</a>
+            <a href="/privacidad">Política de privacidad</a>
+            <a href="mailto:hola@verlo.lat?subject=Consulta%20Verlo">
+              Contacto
+            </a>
+          </nav>
         </div>
       </footer>
     </main>
@@ -852,6 +992,14 @@ const styles = `
     color: rgba(5,0,2,.72);
   }
 
+  .field-help {
+    display: block;
+    color: rgba(5,0,2,.54);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
   .owner-form input,
   .owner-form select,
   .owner-form textarea {
@@ -864,6 +1012,24 @@ const styles = `
     font-size: 15px;
     padding: 15px 16px;
     outline: none;
+  }
+
+  .owner-form input[type="file"] {
+    padding: 12px;
+    cursor: pointer;
+  }
+
+  .owner-form input[type="file"]::file-selector-button {
+    border: 0;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    padding: 10px 14px;
+    margin-right: 12px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
   }
 
   .owner-form textarea {
