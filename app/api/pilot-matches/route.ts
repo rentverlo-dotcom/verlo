@@ -456,6 +456,34 @@ export async function POST(
       body?.send ===
       true
 
+    const notifyRoles =
+      Array.isArray(
+        body?.notify_roles
+      )
+        ? new Set(
+            body.notify_roles
+              .map(
+                (
+                  value:
+                    unknown
+                ) =>
+                  clean(
+                    value
+                  )
+              )
+              .filter(
+                (
+                  value:
+                    string
+                ) =>
+                  value ===
+                    "owner" ||
+                  value ===
+                    "tenant"
+              )
+          )
+        : null
+
     const requestedLimit =
       Number(
         body?.limit ||
@@ -620,6 +648,13 @@ export async function POST(
         ok: true,
         send,
 
+        notify_roles:
+          notifyRoles
+            ? Array.from(
+                notifyRoles
+              )
+            : null,
+
         matches_found:
           0,
 
@@ -698,7 +733,101 @@ export async function POST(
       )
 
     // =========================================================
-    // 5. AGRUPAR POR PERSONA
+    // 5. OWNERS QUE YA TIENEN AL MENOS UNA FOTO
+    //
+    // El owner puede ser notificado apenas existe match.
+    //
+    // El tenant, en cambio, solo debe recibir su WhatsApp
+    // cuando la propiedad del otro lado ya tenga al menos
+    // una foto cargada.
+    //
+    // Las fotos iniciales viven en owner_property_media
+    // relacionadas directamente por lead_id.
+    // =========================================================
+
+    const ownerLeadIds =
+      Array.from(
+        new Set(
+          matches.map(
+            (match) =>
+              match
+                .owner_lead_id
+          )
+        )
+      )
+
+    const ownersWithMedia =
+      new Set<string>()
+
+    if (
+      ownerLeadIds.length >
+      0
+    ) {
+      const {
+        data:
+          ownerMediaRows,
+
+        error:
+          ownerMediaError,
+      } =
+        await supabase
+          .from(
+            "owner_property_media"
+          )
+          .select(`
+            lead_id
+          `)
+          .in(
+            "lead_id",
+            ownerLeadIds
+          )
+          .eq(
+            "media_type",
+            "photo"
+          )
+
+      if (
+        ownerMediaError
+      ) {
+        throw new Error(
+          ownerMediaError.message
+        )
+      }
+
+      for (
+        const item
+        of ownerMediaRows ||
+          []
+      ) {
+        const ownerLeadId =
+          clean(
+            item.lead_id
+          )
+
+        if (
+          ownerLeadId
+        ) {
+          ownersWithMedia.add(
+            ownerLeadId
+          )
+        }
+      }
+    }
+
+    // =========================================================
+    // 6. AGRUPAR POR PERSONA
+    //
+    // IMPORTANTE:
+    //
+    // OWNER:
+    // Puede entrar al flujo apenas existe un match >= 80.
+    //
+    // TENANT:
+    // Solo entra al grupo si el owner de ESE match ya tiene
+    // al menos una foto cargada.
+    //
+    // Así nunca generamos un WhatsApp tenant hacia una
+    // propiedad que todavía no tiene nada visual para mostrar.
     // =========================================================
 
     const groups =
@@ -749,6 +878,21 @@ export async function POST(
         const side
         of sides
       ) {
+        // =====================================================
+        // TENANT SOLO SI LA PROPIEDAD YA TIENE FOTO
+        // =====================================================
+
+        if (
+          side.role ===
+            "tenant" &&
+          !ownersWithMedia.has(
+            match
+              .owner_lead_id
+          )
+        ) {
+          continue
+        }
+
         const lead =
           leadsById.get(
             side.leadId
@@ -824,14 +968,22 @@ export async function POST(
     }
 
     // =========================================================
-    // 6. E2E ALLOWLIST ANTES DEL LIMIT
+    // 7. E2E ALLOWLIST + FILTRO DE ROLE ANTES DEL LIMIT
     //
     // Esto corrige el problema que vimos donde Juan/Guillermo
     // podían quedar afuera de los primeros 25.
     //
+    // notify_roles permite llamadas específicas:
+    //
+    // ["owner"]
+    // ["tenant"]
+    // ["owner", "tenant"]
+    //
+    // Si no viene notify_roles, mantiene comportamiento general.
+    //
     // PRODUCCIÓN:
-    // borrar solamente este .filter(...)
-    // y la constante E2E_ALLOWED_PHONES de arriba.
+    // borrar solamente el filtro de E2E y la constante
+    // E2E_ALLOWED_PHONES de arriba.
     // =========================================================
 
     const contacts =
@@ -843,6 +995,16 @@ export async function POST(
             group
               .matches
               .size > 0
+        )
+
+        .filter(
+          (group) =>
+            !notifyRoles ||
+            notifyRoles.size ===
+              0 ||
+            notifyRoles.has(
+              group.role
+            )
         )
 
         .filter(
@@ -933,7 +1095,7 @@ export async function POST(
       >[] = []
 
     // =========================================================
-    // 7. PREPARAR / ENVIAR A GHL
+    // 8. PREPARAR / ENVIAR A GHL
     // =========================================================
 
     for (
@@ -960,7 +1122,7 @@ export async function POST(
         )
 
       // =======================================================
-      // 7A. TOKEN TENANT
+      // 8A. TOKEN TENANT
       // =======================================================
 
       let verloMatchesToken =
@@ -1060,7 +1222,7 @@ export async function POST(
       }
 
       // =======================================================
-      // 7B. TOKEN OWNER
+      // 8B. TOKEN OWNER
       // =======================================================
 
       let verloPropertyToken =
@@ -1176,7 +1338,7 @@ export async function POST(
       ]
 
       // =======================================================
-      // 8. PAYLOAD ÚNICO PARA GHL
+      // 9. PAYLOAD ÚNICO PARA GHL
       // =======================================================
 
       const payload = {
@@ -1240,7 +1402,7 @@ export async function POST(
       }
 
       // =======================================================
-      // 9. DRY RUN
+      // 10. DRY RUN
       // =======================================================
 
       if (!send) {
@@ -1298,7 +1460,7 @@ export async function POST(
       }
 
       // =======================================================
-      // 10. ÚNICO ENVÍO REAL HACIA EL WORKFLOW GHL
+      // 11. ÚNICO ENVÍO REAL HACIA EL WORKFLOW GHL
       // =======================================================
 
       const response =
@@ -1389,6 +1551,13 @@ export async function POST(
 
       send,
 
+      notify_roles:
+        notifyRoles
+          ? Array.from(
+              notifyRoles
+            )
+          : null,
+
       source:
         "lead_matches",
 
@@ -1397,6 +1566,9 @@ export async function POST(
 
       e2e_mode:
         true,
+
+      owners_with_media:
+        ownersWithMedia.size,
 
       matches_found:
         matches.length,
