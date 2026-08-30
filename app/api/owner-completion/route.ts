@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { randomBytes } from "crypto"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -24,10 +23,6 @@ function clean(value: unknown) {
   return String(value || "").trim()
 }
 
-function normalizePhone(value: unknown) {
-  return clean(value).replace(/\D/g, "")
-}
-
 export async function POST(
   request: Request
 ) {
@@ -37,10 +32,6 @@ export async function POST(
 
     const serviceRoleKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    const tenantReadyWebhook =
-      process.env
-        .GHL_TENANT_MATCH_READY_WEBHOOK_URL
 
     const r2Bucket =
       process.env.R2_BUCKET || "verlo"
@@ -92,21 +83,6 @@ export async function POST(
           ok: false,
           error:
             "Missing token",
-        },
-        {
-          status: 400,
-        }
-      )
-    }
-
-    if (
-      media.length === 0
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "At least one media item is required",
         },
         {
           status: 400,
@@ -211,7 +187,90 @@ export async function POST(
       accessToken.completion_id
 
     // =========================================================
-    // 2. MARCAR PROPIEDAD COMPLETA
+    // 2. VALIDAR QUE LA PROPIEDAD YA TENGA AL MENOS UNA FOTO
+    //
+    // NUEVO FLUJO:
+    //
+    // El owner ya tuvo que cargar al menos una foto
+    // en el formulario inicial.
+    //
+    // En esta segunda etapa puede subir más fotos/videos,
+    // pero NO está obligado a agregar otra foto.
+    // =========================================================
+
+    const {
+      data: existingOwnerPhotos,
+      error: existingOwnerPhotosError,
+    } = await supabase
+      .from(
+        "owner_property_media"
+      )
+      .select(`
+        id,
+        r2_key
+      `)
+      .eq(
+        "lead_id",
+        ownerLeadId
+      )
+      .eq(
+        "media_type",
+        "photo"
+      )
+      .limit(1)
+
+    if (
+      existingOwnerPhotosError
+    ) {
+      throw new Error(
+        existingOwnerPhotosError.message
+      )
+    }
+
+    const incomingHasPhoto =
+      (
+        media as MediaItem[]
+      ).some(
+        (item) =>
+          item?.key &&
+          (
+            item.mediaType ===
+              "photo" ||
+            (
+              !item.mediaType &&
+              !item.contentType
+                ?.startsWith(
+                  "video/"
+                )
+            )
+          )
+      )
+
+    const hasExistingPhoto =
+      Boolean(
+        existingOwnerPhotos &&
+        existingOwnerPhotos.length >
+          0
+      )
+
+    if (
+      !hasExistingPhoto &&
+      !incomingHasPhoto
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "At least one property photo is required",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // =========================================================
+    // 3. MARCAR PROPIEDAD COMPLETA
     // =========================================================
 
     const {
@@ -253,7 +312,18 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. GUARDAR MEDIA SIN DUPLICAR
+    // 4. GUARDAR MEDIA ADICIONAL SIN DUPLICAR
+    //
+    // IMPORTANTE:
+    //
+    // Las fotos iniciales siguen vinculadas al owner por lead_id
+    // y pueden tener completion_id = null.
+    //
+    // Las fotos/videos agregados ahora sí quedan vinculados
+    // a esta completion.
+    //
+    // tenant-matches-view busca toda la media por lead_id,
+    // por lo que ambas conviven correctamente.
     // =========================================================
 
     const {
@@ -268,8 +338,8 @@ export async function POST(
         "r2_key"
       )
       .eq(
-        "completion_id",
-        completionId
+        "lead_id",
+        ownerLeadId
       )
 
     if (
@@ -398,7 +468,59 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. MATCHES DE ESTA PROPIEDAD
+    // 5. CONFIRMAR QUE SIGUE EXISTIENDO AL MENOS UNA FOTO
+    //
+    // Esto también contempla una eventual llamada donde
+    // la primera foto venga junto con esta completion.
+    // =========================================================
+
+    const {
+      data: finalPhotoCheck,
+      error: finalPhotoCheckError,
+    } = await supabase
+      .from(
+        "owner_property_media"
+      )
+      .select(`
+        id
+      `)
+      .eq(
+        "lead_id",
+        ownerLeadId
+      )
+      .eq(
+        "media_type",
+        "photo"
+      )
+      .limit(1)
+
+    if (
+      finalPhotoCheckError
+    ) {
+      throw new Error(
+        finalPhotoCheckError.message
+      )
+    }
+
+    if (
+      !finalPhotoCheck ||
+      finalPhotoCheck.length ===
+        0
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Property requires at least one photo",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    // =========================================================
+    // 6. MATCHES DE ESTA PROPIEDAD
     // =========================================================
 
     const {
@@ -445,9 +567,17 @@ export async function POST(
       )
     }
 
+    // =========================================================
+    // 7. SI NO HAY MATCHES
+    //
+    // La completion igualmente queda submitted.
+    // Cerramos el token y terminamos.
+    // =========================================================
+
     if (
       !matches ||
-      matches.length === 0
+      matches.length ===
+        0
     ) {
       await supabase
         .from(
@@ -472,10 +602,17 @@ export async function POST(
         completion_id:
           completionId,
 
-        media_count:
+        media_added:
           cleanMedia.length,
 
-        matches_found: 0,
+        has_photo:
+          true,
+
+        matches_found:
+          0,
+
+        owner_completed_matches:
+          0,
 
         tenants_notified:
           0,
@@ -483,7 +620,17 @@ export async function POST(
     }
 
     // =========================================================
-    // 5. MARCAR OWNER COMPLETO EN TODOS SUS MATCHES
+    // 8. MARCAR OWNER COMPLETO EN TODOS SUS MATCHES
+    //
+    // owner_completed_at ahora significa:
+    //
+    // "El propietario completó la segunda etapa".
+    //
+    // YA NO significa:
+    // "recién ahora el tenant puede ver la propiedad".
+    //
+    // El tenant pudo verla antes, desde que existió
+    // match >= 80 + al menos una foto inicial.
     // =========================================================
 
     const now =
@@ -522,443 +669,37 @@ export async function POST(
     }
 
     // =========================================================
-    // 6. AGRUPAR POR TENANT
+    // 9. NO VOLVER A NOTIFICAR AL TENANT
     //
-    // UN TENANT PUEDE TENER MUCHAS PROPIEDADES.
-    // NO GENERAMOS UN TOKEN POR MATCH.
+    // FLUJO NUEVO:
+    //
+    // FORM OWNER INICIAL
+    // ↓
+    // MATCH
+    // ↓
+    // FOTO INICIAL GUARDADA
+    // ↓
+    // owner-initial-media
+    // ↓
+    // pilot-matches notify_roles:["tenant"]
+    // ↓
+    // TENANT RECIBE SU WHATSAPP
+    //
+    // Por lo tanto esta completion NO debe volver a mandar
+    // GHL_TENANT_MATCH_READY_WEBHOOK_URL ni generar otra
+    // notificación del mismo match.
+    //
+    // Esta etapa solamente enriquece la propiedad y marca
+    // owner_completed_at.
     // =========================================================
-
-    const tenantLeadIds =
-      Array.from(
-        new Set(
-          matches.map(
-            (match) =>
-              match
-                .tenant_lead_id
-          )
-        )
-      )
-
-    const {
-      data: tenants,
-      error: tenantsError,
-    } = await supabase
-      .from(
-        "lead_intake"
-      )
-      .select(`
-        id,
-        full_name,
-        phone,
-        phone_normalized,
-        email
-      `)
-      .in(
-        "id",
-        tenantLeadIds
-      )
-
-    if (
-      tenantsError
-    ) {
-      throw new Error(
-        tenantsError.message
-      )
-    }
-
-    const tenantsById =
-      new Map(
-        (
-          tenants ||
-          []
-        ).map(
-          (tenant) => [
-            tenant.id,
-            tenant,
-          ]
-        )
-      )
-
-    const notificationResults:
-      Array<{
-        tenant_lead_id:
-          string
-
-        matches_url:
-          string
-
-        match_count:
-          number
-
-        sent:
-          boolean
-      }> = []
-
-    // =========================================================
-    // 7. UN TOKEN AGREGADO POR TENANT
-    // =========================================================
-
-    for (
-      const tenantLeadId
-      of tenantLeadIds
-    ) {
-      const tenant =
-        tenantsById.get(
-          tenantLeadId
-        )
-
-      if (!tenant) {
-        continue
-      }
-
-      // =======================================================
-      // MATCHES ACTUALMENTE VISIBLES PARA ESTE TENANT
-      // =======================================================
-
-      const {
-        data:
-          tenantReadyMatches,
-        error:
-          tenantReadyError,
-      } = await supabase
-        .from(
-          "lead_matches"
-        )
-        .select(`
-          id,
-          score,
-          notified_at
-        `)
-        .eq(
-          "tenant_lead_id",
-          tenantLeadId
-        )
-        .gte(
-          "score",
-          80
-        )
-        .in(
-          "status",
-          ACTIVE_MATCH_STATUSES
-        )
-        .not(
-          "owner_completed_at",
-          "is",
-          null
-        )
-        .order(
-          "score",
-          {
-            ascending: false,
-          }
-        )
-
-      if (
-        tenantReadyError
-      ) {
-        throw new Error(
-          tenantReadyError
-            .message
-        )
-      }
-
-      if (
-        !tenantReadyMatches ||
-        tenantReadyMatches.length ===
-          0
-      ) {
-        continue
-      }
-
-      // =======================================================
-      // SI NO HAY MATCH NUEVO SIN NOTIFICAR,
-      // NO VOLVEMOS A MANDAR EL MISMO WHATSAPP
-      // =======================================================
-
-      const unnotifiedMatches =
-        tenantReadyMatches.filter(
-          (match) =>
-            !match.notified_at
-        )
-
-      if (
-        unnotifiedMatches.length ===
-        0
-      ) {
-        continue
-      }
-
-      // =======================================================
-      // BUSCAR TOKEN AGREGADO ACTIVO
-      // =======================================================
-
-      const {
-        data:
-          existingToken,
-        error:
-          tokenLookupError,
-      } = await supabase
-        .from(
-          "tenant_matches_access_tokens"
-        )
-        .select(`
-          id,
-          token,
-          expires_at
-        `)
-        .eq(
-          "tenant_lead_id",
-          tenantLeadId
-        )
-        .is(
-          "revoked_at",
-          null
-        )
-        .or(
-          `expires_at.is.null,expires_at.gt.${now}`
-        )
-        .order(
-          "created_at",
-          {
-            ascending: false,
-          }
-        )
-        .limit(1)
-        .maybeSingle()
-
-      if (
-        tokenLookupError
-      ) {
-        throw new Error(
-          tokenLookupError
-            .message
-        )
-      }
-
-      let tenantToken:
-        string
-
-      if (
-        existingToken
-      ) {
-        tenantToken =
-          existingToken.token
-      } else {
-        tenantToken =
-          randomBytes(32)
-            .toString(
-              "hex"
-            )
-
-        const expiresAt =
-          new Date(
-            Date.now() +
-              30 *
-                24 *
-                60 *
-                60 *
-                1000
-          ).toISOString()
-
-        const {
-          error:
-            tokenInsertError,
-        } = await supabase
-          .from(
-            "tenant_matches_access_tokens"
-          )
-          .insert({
-            tenant_lead_id:
-              tenantLeadId,
-
-            token:
-              tenantToken,
-
-            expires_at:
-              expiresAt,
-          })
-
-        if (
-          tokenInsertError
-        ) {
-          throw new Error(
-            tokenInsertError
-              .message
-          )
-        }
-      }
-
-      const matchesUrl =
-        `https://verlo.lat/matches/${tenantToken}`
-
-      let sent =
-        false
-
-      // =======================================================
-      // 8. UN SOLO WEBHOOK PARA EL TENANT
-      // =======================================================
-
-      if (
-        tenantReadyWebhook
-      ) {
-        try {
-          const response =
-            await fetch(
-              tenantReadyWebhook,
-              {
-                method:
-                  "POST",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
-
-                body:
-                  JSON.stringify({
-                    lead_id:
-                      tenant.id,
-
-                    full_name:
-                      tenant.full_name,
-
-                    first_name:
-                      clean(
-                        tenant
-                          .full_name
-                      ).split(
-                        /\s+/
-                      )[0] ||
-                      "",
-
-                    phone:
-                      normalizePhone(
-                        tenant
-                          .phone_normalized ||
-                          tenant.phone
-                      ),
-
-                    email:
-                      clean(
-                        tenant.email
-                      ).toLowerCase(),
-
-                    role:
-                      "tenant",
-
-                    verlo_matches_token:
-                      tenantToken,
-
-                    verlo_matches_url:
-                      matchesUrl,
-
-                    verlo_match_count:
-                      tenantReadyMatches.length,
-
-                    verlo_new_match_count:
-                      unnotifiedMatches.length,
-
-                    verlo_best_match_score:
-                      Number(
-                        tenantReadyMatches[
-                          0
-                        ]?.score ||
-                          0
-                      ),
-
-                    source:
-                      "verlo_matches_ready",
-
-                    tags: [
-                      "verlo_lead",
-                      "verlo_tenant",
-                      "verlo_matches_ready",
-                    ],
-                  }),
-              }
-            )
-
-          sent =
-            response.ok
-
-          if (
-            !response.ok
-          ) {
-            console.error(
-              "GHL tenant matches notify failed",
-              tenantLeadId,
-              response.status
-            )
-          }
-        } catch (
-          webhookError
-        ) {
-          console.error(
-            "GHL tenant matches webhook error",
-            tenantLeadId,
-            webhookError
-          )
-        }
-      }
-
-      // =======================================================
-      // 9. SOLO SI GHL RECIBIÓ EL EVENTO
-      // MARCAMOS ESOS MATCHES COMO NOTIFICADOS
-      // =======================================================
-
-      if (sent) {
-        const ids =
-          unnotifiedMatches.map(
-            (match) =>
-              match.id
-          )
-
-        const {
-          error:
-            notifiedError,
-        } = await supabase
-          .from(
-            "lead_matches"
-          )
-          .update({
-            notified_at:
-              new Date()
-                .toISOString(),
-          })
-          .in(
-            "id",
-            ids
-          )
-
-        if (
-          notifiedError
-        ) {
-          console.error(
-            "Could not mark matches notified:",
-            notifiedError
-          )
-        }
-      }
-
-      notificationResults.push({
-        tenant_lead_id:
-          tenantLeadId,
-
-        matches_url:
-          matchesUrl,
-
-        match_count:
-          tenantReadyMatches.length,
-
-        sent,
-      })
-    }
 
     // =========================================================
     // 10. CERRAR TOKEN DE CARGA DEL OWNER
     // =========================================================
 
-    await supabase
+    const {
+      error: revokeError,
+    } = await supabase
       .from(
         "owner_property_access_tokens"
       )
@@ -972,8 +713,64 @@ export async function POST(
         accessToken.id
       )
 
+    if (
+      revokeError
+    ) {
+      console.error(
+        "owner property token revoke error:",
+        revokeError
+      )
+    }
+
     // =========================================================
-    // 11. RESPONSE
+    // 11. CONTAR MEDIA TOTAL ACTUAL DE LA PROPIEDAD
+    // =========================================================
+
+    const {
+      data: allMedia,
+      error: allMediaError,
+    } = await supabase
+      .from(
+        "owner_property_media"
+      )
+      .select(`
+        id,
+        media_type
+      `)
+      .eq(
+        "lead_id",
+        ownerLeadId
+      )
+
+    if (
+      allMediaError
+    ) {
+      console.error(
+        "owner total media fetch error:",
+        allMediaError
+      )
+    }
+
+    const totalMedia =
+      allMedia ||
+      []
+
+    const totalPhotos =
+      totalMedia.filter(
+        (item) =>
+          item.media_type ===
+          "photo"
+      ).length
+
+    const totalVideos =
+      totalMedia.filter(
+        (item) =>
+          item.media_type ===
+          "video"
+      ).length
+
+    // =========================================================
+    // 12. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -985,23 +782,32 @@ export async function POST(
       completion_id:
         completionId,
 
-      media_count:
+      media_added:
         cleanMedia.length,
+
+      total_media:
+        totalMedia.length,
+
+      total_photos:
+        totalPhotos,
+
+      total_videos:
+        totalVideos,
+
+      has_photo:
+        totalPhotos > 0,
 
       matches_found:
         matches.length,
 
-      tenants_ready:
-        tenantLeadIds.length,
+      owner_completed_matches:
+        matchIds.length,
 
       tenants_notified:
-        notificationResults.filter(
-          (result) =>
-            result.sent
-        ).length,
+        0,
 
-      notifications:
-        notificationResults,
+      tenant_notification:
+        "handled_before_completion",
     })
   } catch (error) {
     console.error(
