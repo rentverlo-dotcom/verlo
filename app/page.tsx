@@ -1,11 +1,25 @@
 "use client"
 
-import { FormEvent, useMemo, useState } from "react"
+import {
+  ChangeEvent,
+  FormEvent,
+  useMemo,
+  useState,
+} from "react"
 import VerloBrand from "@/components/VerloBrand"
+
 const CONTACT_HREF =
   "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
 type Path = "tenant" | "owner" | "renewal"
+
+type UploadedMedia = {
+  key: string
+  publicUrl: string | null
+  filename: string
+  contentType: string
+  size: number
+}
 
 const AREA_GROUPS = {
   caba: {
@@ -124,7 +138,6 @@ const AREA_GROUPS = {
   },
 } as const
 
-
 const OWNER_PRICE_RANGES = [
   { label: "Hasta $500.000", value: "hasta-500000", max: 500000 },
   { label: "$500.001 a $700.000", value: "500001-700000", max: 700000 },
@@ -134,7 +147,6 @@ const OWNER_PRICE_RANGES = [
   { label: "$1.500.001 a $2.000.000", value: "1500001-2000000", max: 2000000 },
   { label: "Más de $2.000.000", value: "2000000-plus", max: 999999999 },
 ] as const
-
 
 const TENANT_BUDGET_RANGES = [
   {
@@ -174,7 +186,6 @@ const TENANT_BUDGET_RANGES = [
   },
 ] as const
 
-
 const INCOME_RANGES = [
   { label: "Hasta $500.000", value: "0-500000", max: 500000 },
   { label: "$500.001 a $1.000.000", value: "500001-1000000", max: 1000000 },
@@ -183,7 +194,6 @@ const INCOME_RANGES = [
   { label: "$2.000.001 a $3.000.000", value: "2000001-3000000", max: 3000000 },
   { label: "Más de $3.000.000", value: "3000001-plus", max: 999999999 },
 ] as const
-
 
 const ALL_NEIGHBORHOODS = Object.values(AREA_GROUPS).flatMap(
   (group) => group.neighborhoods
@@ -211,10 +221,11 @@ const pathConfig = {
   },
   owner: {
     title: "Tengo una propiedad",
-    subtitle: "Decinos en qué barrio está, qué tipo es y a qué precio se alquilaría.",
+    subtitle:
+      "Decinos en qué barrio está, qué tipo es, a qué precio se alquilaría y subí al menos una foto.",
     role: "owner",
     intent: "owner_new_listing",
-    button: "Dejar mis datos",
+    button: "Publicar mi propiedad",
   },
   renewal: {
     title: "Quiero renovar",
@@ -612,6 +623,15 @@ const styles = `
     display: grid;
     gap: 24px;
     align-content: start;
+    cursor: pointer;
+  }
+
+  .mock-item:hover .mini-phone {
+    transform: translateY(-4px);
+  }
+
+  .mini-phone {
+    transition: transform 180ms ease;
   }
 
   .mock-copy h3 {
@@ -712,15 +732,15 @@ const styles = `
     display: grid;
     gap: 14px;
   }
-  
-.honeypot {
-  position: absolute !important;
-  left: -9999px !important;
-  width: 1px !important;
-  height: 1px !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
+
+  .honeypot {
+    position: absolute !important;
+    left: -9999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
 
   .row {
     display: grid;
@@ -821,6 +841,60 @@ const styles = `
     accent-color: var(--black);
   }
 
+  .owner-media-box {
+    border: 2px solid var(--black);
+    border-radius: 24px;
+    background: white;
+    padding: 20px;
+  }
+
+  .owner-media-box strong {
+    display: block;
+    font-size: 17px;
+    margin-bottom: 7px;
+  }
+
+  .owner-media-box p {
+    margin: 0 0 15px;
+    color: rgba(5, 0, 2, 0.62);
+    font-size: 14px;
+    line-height: 1.4;
+    font-weight: 700;
+  }
+
+  .owner-media-input {
+    width: 100%;
+    min-height: 54px;
+    padding: 9px;
+    border: 1px solid rgba(5, 0, 2, 0.12);
+    border-radius: 16px;
+    background: var(--soft);
+    color: var(--black);
+    font: inherit;
+  }
+
+  .owner-media-input::file-selector-button {
+    border: 0;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    padding: 10px 14px;
+    margin-right: 12px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .owner-media-status {
+    margin-top: 12px;
+    padding: 11px 13px;
+    border-radius: 14px;
+    background: rgba(116, 190, 220, 0.16);
+    font-size: 13px;
+    font-weight: 850;
+  }
+
   .submit {
     width: 100%;
     min-height: 58px;
@@ -906,6 +980,99 @@ const styles = `
     font-weight: 800;
   }
 
+  .launch-ticket {
+    position: relative;
+    display: inline-block;
+    margin: 22px 0 30px;
+    padding: 7px;
+    background: #f2a8a9;
+    border-radius: 22px;
+    box-shadow: 0 12px 35px rgba(5, 0, 2, 0.12);
+  }
+
+  .launch-ticket::before,
+  .launch-ticket::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 18px;
+    height: 36px;
+    background: #f5eaea;
+    border-radius: 50%;
+    transform: translateY(-50%);
+  }
+
+  .launch-ticket::before {
+    left: -9px;
+  }
+
+  .launch-ticket::after {
+    right: -9px;
+  }
+
+  .launch-ticket-inner {
+    min-width: 300px;
+    padding: 14px 24px 16px;
+    border: 2px dashed rgba(5, 0, 2, 0.35);
+    border-radius: 16px;
+    text-align: center;
+    color: #050002;
+  }
+
+  .launch-ticket-label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+  }
+
+  .launch-ticket-price {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+  }
+
+  .launch-ticket-old {
+    position: relative;
+    font-size: 22px;
+    font-weight: 700;
+    opacity: 0.55;
+  }
+
+  .launch-ticket-old::after {
+    content: "";
+    position: absolute;
+    left: -5px;
+    right: -5px;
+    top: 50%;
+    height: 3px;
+    background: #050002;
+    transform: rotate(-7deg);
+  }
+
+  .launch-ticket-free {
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -0.055em;
+  }
+
+  .launch-ticket-line {
+    width: 75%;
+    height: 1px;
+    margin: 10px auto 8px;
+    background: rgba(5, 0, 2, 0.28);
+  }
+
+  .launch-ticket-copy {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
   @media (max-width: 1060px) {
     .hero-grid {
       grid-template-columns: 1fr;
@@ -986,118 +1153,6 @@ const styles = `
     .footer-links {
       justify-content: flex-start;
     }
-    .honeypot {
-  position: absolute;
-  left: -9999px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.mock-item {
-  cursor: pointer;
-}
-
-.mock-item:hover .mini-phone {
-  transform: translateY(-4px);
-}
-
-.mini-phone {
-  transition: transform 180ms ease;
-}
-
-.launch-ticket {
-  position: relative;
-  display: inline-block;
-  margin: 22px 0 30px;
-  padding: 7px;
-  background: #f2a8a9;
-  border-radius: 22px;
-  box-shadow: 0 12px 35px rgba(5, 0, 2, 0.12);
-}
-
-.launch-ticket::before,
-.launch-ticket::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 18px;
-  height: 36px;
-  background: #f5eaea;
-  border-radius: 50%;
-  transform: translateY(-50%);
-}
-
-.launch-ticket::before {
-  left: -9px;
-}
-
-.launch-ticket::after {
-  right: -9px;
-}
-
-.launch-ticket-inner {
-  min-width: 300px;
-  padding: 14px 24px 16px;
-  border: 2px dashed rgba(5, 0, 2, 0.35);
-  border-radius: 16px;
-  text-align: center;
-  color: #050002;
-}
-
-.launch-ticket-label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-}
-
-.launch-ticket-price {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-}
-
-.launch-ticket-old {
-  position: relative;
-  font-size: 22px;
-  font-weight: 700;
-  opacity: 0.55;
-}
-
-.launch-ticket-old::after {
-  content: "";
-  position: absolute;
-  left: -5px;
-  right: -5px;
-  top: 50%;
-  height: 3px;
-  background: #050002;
-  transform: rotate(-7deg);
-}
-
-.launch-ticket-free {
-  font-size: 42px;
-  line-height: 1;
-  font-weight: 900;
-  letter-spacing: -0.055em;
-}
-
-.launch-ticket-line {
-  width: 75%;
-  height: 1px;
-  margin: 10px auto 8px;
-  background: rgba(5, 0, 2, 0.28);
-}
-
-.launch-ticket-copy {
-  display: block;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-
   }
 `
 
@@ -1261,14 +1316,14 @@ function MiniPhone({ type }: { type: Path }) {
       <div className="mini-phone">
         <PhoneContent
           badge="Propietario"
-          title="Dejá tus datos"
-          copy="Barrio, tipo, precio y disponibilidad. Fotos, videos y datos privados, solo cuando haya match y vos lo apruebes."
-          button="Dejar datos"
+          title="Publicá tu propiedad"
+          copy="Barrio, tipo, precio, disponibilidad y al menos una foto para mostrarla a personas compatibles."
+          button="Publicar"
           rows={[
             { label: "Barrio", value: "Vicente López" },
             { label: "Tipo", value: "Departamento" },
             { label: "Precio", value: "$650k" },
-            { label: "Disponible", value: "Pronto" },
+            { label: "Fotos", value: "1 o más" },
           ]}
         />
       </div>
@@ -1299,18 +1354,37 @@ export default function PageDePrueba() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [ownerFiles, setOwnerFiles] = useState<File[]>([])
 
   const selected = pathConfig[path]
 
   const submitLabel = useMemo(() => {
-    if (loading) return "Guardando..."
+    if (loading) {
+      return path === "owner"
+        ? "Publicando propiedad..."
+        : "Guardando..."
+    }
+
     return selected.button
-  }, [loading, selected.button])
+  }, [loading, selected.button, path])
 
   function choosePath(nextPath: Path) {
     setPath(nextPath)
     setError("")
     setSuccess("")
+  }
+
+  function handleOwnerFiles(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const selectedFiles = Array.from(
+      event.target.files || []
+    ).filter((file) =>
+      file.type.startsWith("image/")
+    )
+
+    setOwnerFiles(selectedFiles)
+    setError("")
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -1322,483 +1396,1044 @@ export default function PageDePrueba() {
 
     const form = e.currentTarget
     const formData = new FormData(form)
-    const eventId = `lead_${Date.now()}_${Math.random().toString(36).slice(2)}`
-const selectedBudgetRange = String(
-  formData.get("budget_range") || ""
-).trim()
 
-const selectedBudgetOption = TENANT_BUDGET_RANGES.find(
-  (option) => option.value === selectedBudgetRange
-)
+    const website = String(formData.get("website") || "").trim()
 
-const tenantBudgetMax = selectedBudgetOption?.max ?? null
-    
-const selectedOwnerPriceRange = String(
-  formData.get("approx_price") || ""
-).trim()
+    if (website) {
+      form.reset()
+      setOwnerFiles([])
+      setLoading(false)
+      setSuccess("Listo.")
+      return
+    }
 
-const selectedOwnerPriceOption = OWNER_PRICE_RANGES.find(
-  (option) => option.value === selectedOwnerPriceRange
-)
+    const eventId = `lead_${Date.now()}_${Math.random()
+      .toString(36)
+      .slice(2)}`
 
-const ownerPriceNumber = selectedOwnerPriceOption?.max ?? null
+    const selectedBudgetRange = String(
+      formData.get("budget_range") || ""
+    ).trim()
 
-const selectedIncomeRange = String(
-  formData.get("income_range") || ""
-).trim()
+    const selectedBudgetOption = TENANT_BUDGET_RANGES.find(
+      (option) => option.value === selectedBudgetRange
+    )
 
-const selectedIncomeOption = INCOME_RANGES.find(
-  (option) => option.value === selectedIncomeRange
-)
+    const tenantBudgetMax =
+      selectedBudgetOption?.max ?? null
 
-const tenantIncomeMax = selectedIncomeOption?.max ?? null
+    const selectedOwnerPriceRange = String(
+      formData.get("approx_price") || ""
+    ).trim()
 
-const tenantGuaranteeTypes = formData.getAll("guarantee_types").map(String)
-const acceptedIncomeProofTypes = formData.getAll("accepted_income_proof_types").map(String)
-const acceptedGuaranteeTypes = formData.getAll("accepted_guarantee_types").map(String)
+    const selectedOwnerPriceOption = OWNER_PRICE_RANGES.find(
+      (option) => option.value === selectedOwnerPriceRange
+    )
 
-   const tenantNeighborhoods = formData.getAll("tenant_neighborhoods").map(String)
-const tenantOtherNeighborhood = String(formData.get("tenant_other_neighborhood") || "").trim()
+    const ownerPriceNumber =
+      selectedOwnerPriceOption?.max ?? null
 
-const normalizedTenantNeighborhoods = normalizeNeighborhoods(
-  tenantNeighborhoods,
-  tenantOtherNeighborhood
-)
+    const selectedIncomeRange = String(
+      formData.get("income_range") || ""
+    ).trim()
 
-if (path === "tenant" && normalizedTenantNeighborhoods.labels.length === 0) {
-  setError("Elegí al menos un barrio o escribí otra zona donde buscarías alquilar.")
-  setLoading(false)
-  return
-}
+    const selectedIncomeOption = INCOME_RANGES.find(
+      (option) => option.value === selectedIncomeRange
+    )
 
-if (path === "tenant" && tenantGuaranteeTypes.length === 0) {
-  setError("Elegí al menos una opción de garantía.")
-  setLoading(false)
-  return
-}
+    const tenantIncomeMax =
+      selectedIncomeOption?.max ?? null
 
-if (
-  path === "tenant" &&
-  tenantGuaranteeTypes.includes("none") &&
-  tenantGuaranteeTypes.length > 1
-) {
-  setError("Si elegís 'No tengo garantía', no marques otra garantía.")
-  setLoading(false)
-  return
-}
+    const tenantGuaranteeTypes =
+      formData
+        .getAll("guarantee_types")
+        .map(String)
 
-if (path === "owner" && acceptedIncomeProofTypes.length === 0) {
-  setError("Elegí al menos una demostración de ingresos aceptada.")
-  setLoading(false)
-  return
-}
+    const acceptedIncomeProofTypes =
+      formData
+        .getAll("accepted_income_proof_types")
+        .map(String)
 
-if (path === "owner" && acceptedGuaranteeTypes.length === 0) {
-  setError("Elegí al menos una garantía aceptada.")
-  setLoading(false)
-  return
-}
+    const acceptedGuaranteeTypes =
+      formData
+        .getAll("accepted_guarantee_types")
+        .map(String)
 
-    const ownerNeighborhood = String(formData.get("owner_neighborhood") || "").trim()
-    const renewalNeighborhood = String(formData.get("renewal_neighborhood") || "").trim()
+    const tenantNeighborhoods =
+      formData
+        .getAll("tenant_neighborhoods")
+        .map(String)
 
-   const zone =
-  path === "tenant"
-    ? normalizedTenantNeighborhoods.text
-    : path === "owner"
-      ? ownerNeighborhood
-      : renewalNeighborhood
+    const tenantOtherNeighborhood =
+      String(
+        formData.get("tenant_other_neighborhood") || ""
+      ).trim()
+
+    const normalizedTenantNeighborhoods =
+      normalizeNeighborhoods(
+        tenantNeighborhoods,
+        tenantOtherNeighborhood
+      )
+
+    if (
+      path === "tenant" &&
+      normalizedTenantNeighborhoods.labels.length === 0
+    ) {
+      setError(
+        "Elegí al menos un barrio o escribí otra zona donde buscarías alquilar."
+      )
+      setLoading(false)
+      return
+    }
+
+    if (
+      path === "tenant" &&
+      tenantGuaranteeTypes.length === 0
+    ) {
+      setError(
+        "Elegí al menos una opción de garantía."
+      )
+      setLoading(false)
+      return
+    }
+
+    if (
+      path === "tenant" &&
+      tenantGuaranteeTypes.includes("none") &&
+      tenantGuaranteeTypes.length > 1
+    ) {
+      setError(
+        "Si elegís 'No tengo garantía', no marques otra garantía."
+      )
+      setLoading(false)
+      return
+    }
+
+    if (
+      path === "owner" &&
+      acceptedIncomeProofTypes.length === 0
+    ) {
+      setError(
+        "Elegí al menos una demostración de ingresos aceptada."
+      )
+      setLoading(false)
+      return
+    }
+
+    if (
+      path === "owner" &&
+      acceptedGuaranteeTypes.length === 0
+    ) {
+      setError(
+        "Elegí al menos una garantía aceptada."
+      )
+      setLoading(false)
+      return
+    }
+
+    if (
+      path === "owner" &&
+      ownerFiles.length === 0
+    ) {
+      setError(
+        "Subí al menos una foto de la propiedad."
+      )
+      setLoading(false)
+      return
+    }
+
+    const invalidOwnerFile =
+      ownerFiles.find(
+        (file) =>
+          !file.type.startsWith("image/")
+      )
+
+    if (
+      path === "owner" &&
+      invalidOwnerFile
+    ) {
+      setError(
+        "Las fotos deben ser archivos de imagen."
+      )
+      setLoading(false)
+      return
+    }
+
+    const ownerNeighborhood =
+      String(
+        formData.get("owner_neighborhood") || ""
+      ).trim()
+
+    const renewalNeighborhood =
+      String(
+        formData.get("renewal_neighborhood") || ""
+      ).trim()
+
+    const zone =
+      path === "tenant"
+        ? normalizedTenantNeighborhoods.text
+        : path === "owner"
+          ? ownerNeighborhood
+          : renewalNeighborhood
 
     const payload = {
-      full_name: String(formData.get("full_name") || "").trim(),
-      email: String(formData.get("email") || "").trim(),
-      phone: String(formData.get("phone") || "").trim(),
+      full_name:
+        String(
+          formData.get("full_name") || ""
+        ).trim(),
+
+      email:
+        String(
+          formData.get("email") || ""
+        ).trim(),
+
+      phone:
+        String(
+          formData.get("phone") || ""
+        ).trim(),
+
       role:
         path === "renewal"
-          ? String(formData.get("renewal_role") || "both").trim()
+          ? String(
+              formData.get("renewal_role") || "both"
+            ).trim()
           : selected.role,
-      intent: selected.intent,
-      zone,
-      property_type: String(formData.get("property_type") || "").trim(),
-      property_rooms: String(formData.get("property_rooms") || "").trim(),
-      availability_status: String(formData.get("availability_status") || "").trim(),
-      approx_price: String(formData.get("approx_price") || "").trim(),
-      approx_price_number: ownerPriceNumber,
-      desired_property_type: String(formData.get("desired_property_type") || "").trim(),
-      desired_rooms: String(formData.get("desired_rooms") || "").trim(),
-      budget_range: String(formData.get("budget_range") || "").trim(),
-      budget_max: tenantBudgetMax,
-      move_timing: String(formData.get("move_timing") || "").trim(),
-      income_proof_type: String(formData.get("income_proof_type") || "").trim(),
-      income_range: selectedIncomeRange,
-      income_max: tenantIncomeMax,
-      guarantee_types: tenantGuaranteeTypes,
-      accepted_income_proof_types: acceptedIncomeProofTypes,
-      min_income_ratio: formData.get("min_income_ratio")
-        ? Number(formData.get("min_income_ratio"))
-        : null,
-      accepted_guarantee_types: acceptedGuaranteeTypes,
-      renewal_role: String(formData.get("renewal_role") || "").trim(),
-      contract_expiration: String(formData.get("contract_expiration") || "").trim(),
-      other_party_status: String(formData.get("other_party_status") || "").trim(),
-      renewal_need: String(formData.get("renewal_need") || "").trim(),
-      event_id: eventId,
-      event_source_url: window.location.href,
-      fbp: getCookie("_fbp"),
-      fbc: getMetaFbc(),
-     source: "verlo_home",
 
-metadata: {
-  path,
-  page: "verlo_home",
-       tenant_area: selectedArea,
-tenant_area_label: AREA_GROUPS[selectedArea].label,
-tenant_neighborhoods: normalizedTenantNeighborhoods.labels,
-tenant_neighborhood_slugs: normalizedTenantNeighborhoods.slugs,
-tenant_other_neighborhood: tenantOtherNeighborhood,
-neighborhood: zone,
-neighborhood_slug: normalizeText(zone),
+      intent:
+        selected.intent,
+
+      zone,
+
+      property_type:
+        String(
+          formData.get("property_type") || ""
+        ).trim(),
+
+      property_rooms:
+        String(
+          formData.get("property_rooms") || ""
+        ).trim(),
+
+      availability_status:
+        String(
+          formData.get("availability_status") || ""
+        ).trim(),
+
+      approx_price:
+        String(
+          formData.get("approx_price") || ""
+        ).trim(),
+
+      approx_price_number:
+        ownerPriceNumber,
+
+      desired_property_type:
+        String(
+          formData.get("desired_property_type") || ""
+        ).trim(),
+
+      desired_rooms:
+        String(
+          formData.get("desired_rooms") || ""
+        ).trim(),
+
+      budget_range:
+        String(
+          formData.get("budget_range") || ""
+        ).trim(),
+
+      budget_max:
+        tenantBudgetMax,
+
+      move_timing:
+        String(
+          formData.get("move_timing") || ""
+        ).trim(),
+
+      income_proof_type:
+        String(
+          formData.get("income_proof_type") || ""
+        ).trim(),
+
+      income_range:
+        selectedIncomeRange,
+
+      income_max:
+        tenantIncomeMax,
+
+      guarantee_types:
+        tenantGuaranteeTypes,
+
+      accepted_income_proof_types:
+        acceptedIncomeProofTypes,
+
+      min_income_ratio:
+        formData.get("min_income_ratio")
+          ? Number(formData.get("min_income_ratio"))
+          : null,
+
+      accepted_guarantee_types:
+        acceptedGuaranteeTypes,
+
+      renewal_role:
+        String(
+          formData.get("renewal_role") || ""
+        ).trim(),
+
+      contract_expiration:
+        String(
+          formData.get("contract_expiration") || ""
+        ).trim(),
+
+      other_party_status:
+        String(
+          formData.get("other_party_status") || ""
+        ).trim(),
+
+      renewal_need:
+        String(
+          formData.get("renewal_need") || ""
+        ).trim(),
+
+      event_id:
+        eventId,
+
+      event_source_url:
+        window.location.href,
+
+      fbp:
+        getCookie("_fbp"),
+
+      fbc:
+        getMetaFbc(),
+
+      source:
+        "verlo_home",
+
+      metadata: {
+        path,
+        page: "verlo_home",
+        tenant_area: selectedArea,
+        tenant_area_label:
+          AREA_GROUPS[selectedArea].label,
+        tenant_neighborhoods:
+          normalizedTenantNeighborhoods.labels,
+        tenant_neighborhood_slugs:
+          normalizedTenantNeighborhoods.slugs,
+        tenant_other_neighborhood:
+          tenantOtherNeighborhood,
+        neighborhood:
+          zone,
+        neighborhood_slug:
+          normalizeText(zone),
       },
     }
 
     try {
-      const res = await fetch("/api/ghl-lead-webhook", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
+      // =======================================================
+      // 1. CREAR LEAD + MATCHES
+      // =======================================================
 
-      const data = await res.json().catch(() => null)
+      const res = await fetch(
+        "/api/ghl-lead-webhook",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body:
+            JSON.stringify(payload),
+        }
+      )
 
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || "No pudimos guardar tus datos")
+      const data =
+        await res
+          .json()
+          .catch(() => null)
+
+      if (
+        !res.ok ||
+        !data?.ok
+      ) {
+        throw new Error(
+          data?.error ||
+          "No pudimos guardar tus datos"
+        )
       }
 
-      trackMetaLead(eventId, {
-        path,
-        role: payload.role,
-        intent: payload.intent,
-      })
+      // =======================================================
+      // 2. SI ES OWNER, SUBIR FOTOS INICIALES
+      // =======================================================
+
+      if (
+        path === "owner"
+      ) {
+        const ownerLeadId =
+          String(
+            data?.lead_id || ""
+          ).trim()
+
+        if (!ownerLeadId) {
+          throw new Error(
+            "La propiedad se guardó pero no pudimos identificarla para subir las fotos."
+          )
+        }
+
+        const uploadedMedia:
+          UploadedMedia[] = []
+
+        for (
+          let i = 0;
+          i < ownerFiles.length;
+          i++
+        ) {
+          const file =
+            ownerFiles[i]
+
+          const presignResponse =
+            await fetch(
+              "/api/r2/presign",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+                body:
+                  JSON.stringify({
+                    folder:
+                      "owner-media",
+                    id:
+                      ownerLeadId,
+                    filename:
+                      file.name,
+                    contentType:
+                      file.type,
+                  }),
+              }
+            )
+
+          const presignData =
+            await presignResponse
+              .json()
+              .catch(
+                () => null
+              )
+
+          if (
+            !presignResponse.ok ||
+            !presignData?.uploadUrl ||
+            !presignData?.key
+          ) {
+            throw new Error(
+              presignData?.error ||
+              `No pudimos preparar la foto ${i + 1}.`
+            )
+          }
+
+          let uploadResponse:
+            Response
+
+          try {
+            uploadResponse =
+              await fetch(
+                presignData.uploadUrl,
+                {
+                  method:
+                    "PUT",
+                  headers: {
+                    "Content-Type":
+                      file.type,
+                  },
+                  body:
+                    file,
+                }
+              )
+          } catch (
+            uploadError
+          ) {
+            throw new Error(
+              `No pudimos subir la foto ${i + 1}. ${
+                uploadError instanceof Error
+                  ? uploadError.message
+                  : ""
+              }`
+            )
+          }
+
+          if (
+            !uploadResponse.ok
+          ) {
+            const uploadText =
+              await uploadResponse
+                .text()
+                .catch(
+                  () => ""
+                )
+
+            throw new Error(
+              `No pudimos subir la foto ${i + 1}. HTTP ${uploadResponse.status}. ${uploadText}`
+            )
+          }
+
+          uploadedMedia.push({
+            key:
+              String(
+                presignData.key
+              ),
+
+            publicUrl:
+              presignData.publicUrl
+                ? String(
+                    presignData.publicUrl
+                  )
+                : null,
+
+            filename:
+              file.name,
+
+            contentType:
+              file.type,
+
+            size:
+              file.size,
+          })
+        }
+
+        if (
+          uploadedMedia.length === 0
+        ) {
+          throw new Error(
+            "La propiedad se guardó pero no pudimos subir ninguna foto."
+          )
+        }
+
+        // =====================================================
+        // 3. REGISTRAR MEDIA EN SUPABASE
+        // =====================================================
+
+        const mediaResponse =
+          await fetch(
+            "/api/owner-initial-media",
+            {
+              method:
+                "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body:
+                JSON.stringify({
+                  owner_lead_id:
+                    ownerLeadId,
+                  media:
+                    uploadedMedia,
+                }),
+            }
+          )
+
+        const mediaData =
+          await mediaResponse
+            .json()
+            .catch(
+              () => null
+            )
+
+        if (
+          !mediaResponse.ok ||
+          !mediaData?.ok
+        ) {
+          throw new Error(
+            mediaData?.error ||
+            "La propiedad se guardó pero no pudimos registrar las fotos."
+          )
+        }
+      }
+
+      trackMetaLead(
+        eventId,
+        {
+          path,
+          role:
+            payload.role,
+          intent:
+            payload.intent,
+        }
+      )
 
       form.reset()
-      setSuccess("Listo. Guardamos tus datos y te vamos a contactar por WhatsApp o e-mail.")
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message)
+      setOwnerFiles([])
+
+      if (
+        path === "owner"
+      ) {
+        setSuccess(
+          "Listo. Publicamos los datos iniciales de tu propiedad y las fotos. Te vamos a avisar por WhatsApp si encontramos personas compatibles."
+        )
       } else {
-        setError("No pudimos guardar tus datos")
+        setSuccess(
+          "Listo. Guardamos tus datos y te vamos a contactar por WhatsApp o e-mail."
+        )
+      }
+    } catch (err) {
+      if (
+        err instanceof Error
+      ) {
+        setError(
+          err.message
+        )
+      } else {
+        setError(
+          "No pudimos guardar tus datos"
+        )
       }
     } finally {
       setLoading(false)
     }
   }
 
-    return (
-  <main className="test-root">
+  return (
+    <main className="test-root">
       <style>{styles}</style>
 
       <header className="nav">
         <div className="container nav-inner">
           <VerloBrand width={112} />
 
-        <nav className="nav-links">
-  <a
-    href="#sumate"
-    onClick={() => choosePath("tenant")}
-  >
-    Alquilar
-  </a>
+          <nav className="nav-links">
+            <a
+              href="#sumate"
+              onClick={() =>
+                choosePath("tenant")
+              }
+            >
+              Alquilar
+            </a>
 
-  <a
-    href="#sumate"
-    onClick={() => choosePath("owner")}
-  >
-    Publicar
-  </a>
+            <a
+              href="#sumate"
+              onClick={() =>
+                choosePath("owner")
+              }
+            >
+              Publicar
+            </a>
 
-  <a
-    href="#sumate"
-    onClick={() => choosePath("renewal")}
-  >
-    Renovar
-  </a>
+            <a
+              href="#sumate"
+              onClick={() =>
+                choosePath("renewal")
+              }
+            >
+              Renovar
+            </a>
 
-  <a href="#sumate" className="nav-cta">
-    Sumate
-  </a>
-</nav>
+            <a
+              href="#sumate"
+              className="nav-cta"
+            >
+              Sumate
+            </a>
+          </nav>
         </div>
       </header>
 
-   <section className="hero">
-  <div className="container hero-grid">
-    <div>
-      <h1>
-        Alquilá directo. <em>Encontrá tu match.</em>
-      </h1>
+      <section className="hero">
+        <div className="container hero-grid">
+          <div>
+            <h1>
+              Alquilá directo.{" "}
+              <em>Encontrá tu match.</em>
+            </h1>
 
-      <p className="hero-subtitle">
-        Encontrá una propiedad o un inquilino compatible sin pagar una comisión inmobiliaria enorme.
-      </p>
+            <p className="hero-subtitle">
+              Encontrá una propiedad o un inquilino compatible sin pagar una comisión inmobiliaria enorme.
+            </p>
 
-<div
-  style={{
-    display: "inline-block",
-    margin: "22px 0 30px",
-    background: "#f2a8a9",
-    padding: "7px",
-    borderRadius: "22px",
-    boxShadow: "0 12px 35px rgba(5,0,2,.12)",
-  }}
->
-  <div
-    style={{
-      minWidth: "300px",
-      padding: "14px 24px 16px",
-      border: "2px dashed rgba(5,0,2,.35)",
-      borderRadius: "16px",
-      textAlign: "center",
-      color: "#050002",
-    }}
-  >
-    <div
-      style={{
-        fontSize: "11px",
-        fontWeight: 800,
-        letterSpacing: ".16em",
-        marginBottom: "6px",
-      }}
-    >
-      LANZAMIENTO VERLO
-    </div>
+            <div
+              style={{
+                display:
+                  "inline-block",
+                margin:
+                  "22px 0 30px",
+                background:
+                  "#f2a8a9",
+                padding:
+                  "7px",
+                borderRadius:
+                  "22px",
+                boxShadow:
+                  "0 12px 35px rgba(5,0,2,.12)",
+              }}
+            >
+              <div
+                style={{
+                  minWidth:
+                    "300px",
+                  padding:
+                    "14px 24px 16px",
+                  border:
+                    "2px dashed rgba(5,0,2,.35)",
+                  borderRadius:
+                    "16px",
+                  textAlign:
+                    "center",
+                  color:
+                    "#050002",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize:
+                      "11px",
+                    fontWeight:
+                      800,
+                    letterSpacing:
+                      ".16em",
+                    marginBottom:
+                      "6px",
+                  }}
+                >
+                  LANZAMIENTO VERLO
+                </div>
 
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "16px",
-      }}
-    >
-      <span
-        style={{
-          fontSize: "22px",
-          fontWeight: 700,
-          textDecoration: "line-through",
-          textDecorationThickness: "3px",
-          opacity: 0.5,
-        }}
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    alignItems:
+                      "center",
+                    justifyContent:
+                      "center",
+                    gap:
+                      "16px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize:
+                        "22px",
+                      fontWeight:
+                        700,
+                      textDecoration:
+                        "line-through",
+                      textDecorationThickness:
+                        "3px",
+                      opacity:
+                        0.5,
+                    }}
+                  >
+                    $70.000
+                  </span>
+
+                  <span
+                    style={{
+                      fontSize:
+                        "42px",
+                      lineHeight:
+                        1,
+                      fontWeight:
+                        900,
+                      letterSpacing:
+                        "-0.055em",
+                    }}
+                  >
+                    GRATIS
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    width:
+                      "75%",
+                    height:
+                      "1px",
+                    background:
+                      "rgba(5,0,2,.25)",
+                    margin:
+                      "10px auto 8px",
+                  }}
+                />
+
+                <div
+                  style={{
+                    fontSize:
+                      "12px",
+                    fontWeight:
+                      800,
+                    letterSpacing:
+                      ".08em",
+                  }}
+                >
+                  PRIMEROS 20 CONTRATOS
+                </div>
+              </div>
+            </div>
+
+            <div className="hero-actions">
+              <a
+                className="btn btn-primary"
+                href="#sumate"
+                onClick={() =>
+                  choosePath("tenant")
+                }
+              >
+                Busco alquilar
+              </a>
+
+              <a
+                className="btn btn-secondary"
+                href="#sumate"
+                onClick={() =>
+                  choosePath("owner")
+                }
+              >
+                Tengo una propiedad
+              </a>
+
+              <a
+                className="btn btn-secondary"
+                href="#sumate"
+                onClick={() =>
+                  choosePath("renewal")
+                }
+              >
+                Quiero renovar
+              </a>
+            </div>
+
+            <div className="trust-row">
+              <span className="pill">
+                Sin comisión inmobiliaria
+              </span>
+              <span className="pill">
+                Matching gratis
+              </span>
+              <span className="pill">
+                Publicar gratis
+              </span>
+            </div>
+          </div>
+
+          <HeroPhone />
+        </div>
+      </section>
+
+      <section
+        className="section"
+        id="caminos"
       >
-        $70.000
-      </span>
-
-      <span
-        style={{
-          fontSize: "42px",
-          lineHeight: 1,
-          fontWeight: 900,
-          letterSpacing: "-0.055em",
-        }}
-      >
-        GRATIS
-      </span>
-    </div>
-
-    <div
-      style={{
-        width: "75%",
-        height: "1px",
-        background: "rgba(5,0,2,.25)",
-        margin: "10px auto 8px",
-      }}
-    />
-
-    <div
-      style={{
-        fontSize: "12px",
-        fontWeight: 800,
-        letterSpacing: ".08em",
-      }}
-    >
-      PRIMEROS 20 CONTRATOS
-    </div>
-  </div>
-</div>
-
-      
-
-      <div className="hero-actions">
-        <a
-          className="btn btn-primary"
-          href="#sumate"
-          onClick={() => choosePath("tenant")}
-        >
-          Busco alquilar
-        </a>
-
-        <a
-          className="btn btn-secondary"
-          href="#sumate"
-          onClick={() => choosePath("owner")}
-        >
-          Tengo una propiedad
-        </a>
-
-        <a
-          className="btn btn-secondary"
-          href="#sumate"
-          onClick={() => choosePath("renewal")}
-        >
-          Quiero renovar
-        </a>
-      </div>
-
-      <div className="trust-row">
-        <span className="pill">Sin comisión inmobiliaria</span>
-        <span className="pill">Matching gratis</span>
-        <span className="pill">Publicar gratis</span>
-      </div>
-    </div>
-
-    <HeroPhone />
-  </div>
-</section>
-
-      <section className="section" id="caminos">
         <div className="container">
           <div className="section-header">
-            <p className="kicker">Elegí tu camino</p>
+            <p className="kicker">
+              Elegí tu camino
+            </p>
 
             <h2 className="section-title">
-              Datos simples para <em>matchear mejor.</em>
+              Datos simples para{" "}
+              <em>matchear mejor.</em>
             </h2>
 
             <p className="section-copy">
-              Inquilinos dicen en qué barrios vivirían. Propietarios dicen en qué barrio
-              tienen la propiedad. Con eso empezamos a ordenar la demanda real.
+              Inquilinos dicen en qué barrios vivirían. Propietarios dicen en qué barrio tienen la propiedad. Con eso empezamos a ordenar la demanda real.
             </p>
           </div>
 
-
           <div className="mock-grid">
-  <article
-    className="mock-item"
-    role="button"
-    tabIndex={0}
-    onClick={() => {
-      choosePath("tenant")
-      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-    }}
-    onKeyDown={(e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        choosePath("tenant")
-        document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-      }
-    }}
-  >
-    <MiniPhone type="tenant" />
+            <article
+              className="mock-item"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                choosePath("tenant")
+                document
+                  .getElementById(
+                    "sumate"
+                  )
+                  ?.scrollIntoView({
+                    behavior:
+                      "smooth",
+                  })
+              }}
+              onKeyDown={(e) => {
+                if (
+                  e.key ===
+                    "Enter" ||
+                  e.key === " "
+                ) {
+                  choosePath(
+                    "tenant"
+                  )
+                  document
+                    .getElementById(
+                      "sumate"
+                    )
+                    ?.scrollIntoView({
+                      behavior:
+                        "smooth",
+                    })
+                }
+              }}
+            >
+              <MiniPhone type="tenant" />
 
-    <div className="mock-copy">
-      <h3>Buscá por barrios</h3>
-      <p>
-        Marcá más de un barrio si te sirve. Así podemos matchearte con propiedades
-        compatibles aunque no estén en tu primera opción.
-      </p>
-      <a
-        href="#sumate"
-        onClick={(e) => {
-          e.stopPropagation()
-          choosePath("tenant")
-        }}
-      >
-        Busco alquilar
-      </a>
-    </div>
-  </article>
+              <div className="mock-copy">
+                <h3>
+                  Buscá por barrios
+                </h3>
+                <p>
+                  Marcá más de un barrio si te sirve. Así podemos matchearte con propiedades compatibles aunque no estén en tu primera opción.
+                </p>
+                <a
+                  href="#sumate"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    choosePath(
+                      "tenant"
+                    )
+                  }}
+                >
+                  Busco alquilar
+                </a>
+              </div>
+            </article>
 
-  <article
-    className="mock-item"
-    role="button"
-    tabIndex={0}
-    onClick={() => {
-      choosePath("owner")
-      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-    }}
-    onKeyDown={(e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        choosePath("owner")
-        document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-      }
-    }}
-  >
-    <MiniPhone type="owner" />
+            <article
+              className="mock-item"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                choosePath("owner")
+                document
+                  .getElementById(
+                    "sumate"
+                  )
+                  ?.scrollIntoView({
+                    behavior:
+                      "smooth",
+                  })
+              }}
+              onKeyDown={(e) => {
+                if (
+                  e.key ===
+                    "Enter" ||
+                  e.key === " "
+                ) {
+                  choosePath(
+                    "owner"
+                  )
+                  document
+                    .getElementById(
+                      "sumate"
+                    )
+                    ?.scrollIntoView({
+                      behavior:
+                        "smooth",
+                    })
+                }
+              }}
+            >
+              <MiniPhone type="owner" />
 
-    <div className="mock-copy">
-      <h3>Tenés una propiedad</h3>
-      <p>
-        Dejanos barrio, tipo, precio y disponibilidad. No tenés que subir fotos ni
-        publicar nada todavía.
-      </p>
-      <a
-        href="#sumate"
-        onClick={(e) => {
-          e.stopPropagation()
-          choosePath("owner")
-        }}
-      >
-        Tengo una propiedad
-      </a>
-    </div>
-  </article>
+              <div className="mock-copy">
+                <h3>
+                  Tenés una propiedad
+                </h3>
+                <p>
+                  Dejanos barrio, tipo, precio, disponibilidad y al menos una foto para poder mostrarla a inquilinos compatibles.
+                </p>
+                <a
+                  href="#sumate"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    choosePath(
+                      "owner"
+                    )
+                  }}
+                >
+                  Tengo una propiedad
+                </a>
+              </div>
+            </article>
 
-  <article
-    className="mock-item"
-    role="button"
-    tabIndex={0}
-    onClick={() => {
-      choosePath("renewal")
-      document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-    }}
-    onKeyDown={(e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        choosePath("renewal")
-        document.getElementById("sumate")?.scrollIntoView({ behavior: "smooth" })
-      }
-    }}
-  >
-    <MiniPhone type="renewal" />
+            <article
+              className="mock-item"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                choosePath(
+                  "renewal"
+                )
+                document
+                  .getElementById(
+                    "sumate"
+                  )
+                  ?.scrollIntoView({
+                    behavior:
+                      "smooth",
+                  })
+              }}
+              onKeyDown={(e) => {
+                if (
+                  e.key ===
+                    "Enter" ||
+                  e.key === " "
+                ) {
+                  choosePath(
+                    "renewal"
+                  )
+                  document
+                    .getElementById(
+                      "sumate"
+                    )
+                    ?.scrollIntoView({
+                      behavior:
+                        "smooth",
+                    })
+                }
+              }}
+            >
+              <MiniPhone type="renewal" />
 
-    <div className="mock-copy">
-      <h3>Renová sin comisión</h3>
-      <p>
-        Ordená la renovación directo, rápido y sin costos inmobiliarios de renovación.
-      </p>
-      <a
-        href="#sumate"
-        onClick={(e) => {
-          e.stopPropagation()
-          choosePath("renewal")
-        }}
-      >
-        Quiero renovar
-      </a>
-    </div>
-  </article>
-          
+              <div className="mock-copy">
+                <h3>
+                  Renová sin comisión
+                </h3>
+                <p>
+                  Ordená la renovación directo, rápido y sin costos inmobiliarios de renovación.
+                </p>
+                <a
+                  href="#sumate"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    choosePath(
+                      "renewal"
+                    )
+                  }}
+                >
+                  Quiero renovar
+                </a>
+              </div>
+            </article>
           </div>
         </div>
       </section>
 
-      <section className="section" id="sumate">
+      <section
+        className="section"
+        id="sumate"
+      >
         <div className="container">
           <div className="form-card">
             <div className="section-header">
-              <p className="kicker">Sumate a Verlo</p>
+              <p className="kicker">
+                Sumate a Verlo
+              </p>
 
               <h2 className="section-title">
-                Dejá tus datos y seguimos <em>de inmediato.</em>
+                Dejá tus datos y seguimos{" "}
+                <em>de inmediato.</em>
               </h2>
 
               <p className="section-copy">
@@ -1809,48 +2444,103 @@ neighborhood_slug: normalizeText(zone),
             <div className="path-grid">
               <button
                 type="button"
-                className={`path-card ${path === "tenant" ? "active" : ""}`}
-                onClick={() => choosePath("tenant")}
+                className={`path-card ${
+                  path ===
+                  "tenant"
+                    ? "active"
+                    : ""
+                }`}
+                onClick={() =>
+                  choosePath(
+                    "tenant"
+                  )
+                }
               >
-                <strong>Busco alquilar</strong>
-                <span>Barrios, presupuesto y fecha de mudanza.</span>
+                <strong>
+                  Busco alquilar
+                </strong>
+                <span>
+                  Barrios, presupuesto y fecha de mudanza.
+                </span>
               </button>
 
               <button
                 type="button"
-                className={`path-card ${path === "owner" ? "active" : ""}`}
-                onClick={() => choosePath("owner")}
+                className={`path-card ${
+                  path ===
+                  "owner"
+                    ? "active"
+                    : ""
+                }`}
+                onClick={() =>
+                  choosePath(
+                    "owner"
+                  )
+                }
               >
-                <strong>Tengo una propiedad</strong>
-                <span>Barrio, tipo, precio y disponibilidad.</span>
+                <strong>
+                  Tengo una propiedad
+                </strong>
+                <span>
+                  Barrio, tipo, precio, disponibilidad y fotos.
+                </span>
               </button>
 
               <button
                 type="button"
-                className={`path-card ${path === "renewal" ? "active" : ""}`}
-                onClick={() => choosePath("renewal")}
+                className={`path-card ${
+                  path ===
+                  "renewal"
+                    ? "active"
+                    : ""
+                }`}
+                onClick={() =>
+                  choosePath(
+                    "renewal"
+                  )
+                }
               >
-                <strong>Quiero renovar</strong>
-                <span>Barrio, contrato, partes y vencimiento.</span>
+                <strong>
+                  Quiero renovar
+                </strong>
+                <span>
+                  Barrio, contrato, partes y vencimiento.
+                </span>
               </button>
             </div>
 
             <div className="form-head">
-              <h3>{selected.title}</h3>
-              <p>{selected.subtitle}</p>
+              <h3>
+                {selected.title}
+              </h3>
+              <p>
+                {selected.subtitle}
+              </p>
             </div>
 
-            <form className="form" onSubmit={handleSubmit}>
+            <form
+              className="form"
+              onSubmit={
+                handleSubmit
+              }
+            >
               <input
-  type="text"
-  name="website"
-  tabIndex={-1}
-  autoComplete="off"
-  className="honeypot"
-  aria-hidden="true"
-/>
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                className="honeypot"
+                aria-hidden="true"
+              />
+
               <div className="row">
-                <input className="input" name="full_name" placeholder="Nombre y apellido" required />
+                <input
+                  className="input"
+                  name="full_name"
+                  placeholder="Nombre y apellido"
+                  required
+                />
+
                 <input
                   className="input"
                   name="phone"
@@ -1860,96 +2550,208 @@ neighborhood_slug: normalizeText(zone),
                 />
               </div>
 
-              <input className="input" name="email" type="email" placeholder="Email" required />
+              <input
+                className="input"
+                name="email"
+                type="email"
+                placeholder="Email"
+                required
+              />
 
               {path === "tenant" && (
                 <>
-<div className="neighborhood-box">
-  <strong>¿Dónde buscarías alquilar?</strong>
+                  <div className="neighborhood-box">
+                    <strong>
+                      ¿Dónde buscarías alquilar?
+                    </strong>
 
-  <div className="area-tabs">
-    {(Object.keys(AREA_GROUPS) as AreaKey[]).map((areaKey) => (
-      <button
-        key={areaKey}
-        type="button"
-        className={`area-tab ${selectedArea === areaKey ? "active" : ""}`}
-        onClick={() => setSelectedArea(areaKey)}
-      >
-        {AREA_GROUPS[areaKey].label}
-      </button>
-    ))}
-  </div>
+                    <div className="area-tabs">
+                      {(
+                        Object.keys(
+                          AREA_GROUPS
+                        ) as AreaKey[]
+                      ).map(
+                        (
+                          areaKey
+                        ) => (
+                          <button
+                            key={
+                              areaKey
+                            }
+                            type="button"
+                            className={`area-tab ${
+                              selectedArea ===
+                              areaKey
+                                ? "active"
+                                : ""
+                            }`}
+                            onClick={() =>
+                              setSelectedArea(
+                                areaKey
+                              )
+                            }
+                          >
+                            {
+                              AREA_GROUPS[
+                                areaKey
+                              ].label
+                            }
+                          </button>
+                        )
+                      )}
+                    </div>
 
-  <div className="neighborhood-grid">
-    {AREA_GROUPS[selectedArea].neighborhoods.map((neighborhood) => (
-      <label className="check-pill" key={neighborhood}>
-        <input
-          type="checkbox"
-          name="tenant_neighborhoods"
-          value={neighborhood}
-        />
-        {neighborhood}
-      </label>
-    ))}
-  </div>
+                    <div className="neighborhood-grid">
+                      {AREA_GROUPS[
+                        selectedArea
+                      ].neighborhoods.map(
+                        (
+                          neighborhood
+                        ) => (
+                          <label
+                            className="check-pill"
+                            key={
+                              neighborhood
+                            }
+                          >
+                            <input
+                              type="checkbox"
+                              name="tenant_neighborhoods"
+                              value={
+                                neighborhood
+                              }
+                            />
+                            {
+                              neighborhood
+                            }
+                          </label>
+                        )
+                      )}
+                    </div>
 
-  <input
-    className="input other-neighborhood"
-    name="tenant_other_neighborhood"
-    placeholder="Otro barrio o localidad"
-  />
-</div>
+                    <input
+                      className="input other-neighborhood"
+                      name="tenant_other_neighborhood"
+                      placeholder="Otro barrio o localidad"
+                    />
+                  </div>
 
-                            <div className="row">
-                    <select className="select" name="desired_property_type" required defaultValue="">
-                      <option value="" disabled>
+                  <div className="row">
+                    <select
+                      className="select"
+                      name="desired_property_type"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
                         Tipo de propiedad
                       </option>
-                      <option>Departamento</option>
-                      <option>Casa</option>
-                      <option>PH</option>
-                      <option>Habitación</option>
-                      <option>Otro</option>
+                      <option>
+                        Departamento
+                      </option>
+                      <option>
+                        Casa
+                      </option>
+                      <option>
+                        PH
+                      </option>
+                      <option>
+                        Habitación
+                      </option>
+                      <option>
+                        Otro
+                      </option>
                     </select>
 
-                    <select className="select" name="desired_rooms" required defaultValue="">
-                      <option value="" disabled>
+                    <select
+                      className="select"
+                      name="desired_rooms"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
                         Ambientes que buscás
                       </option>
-                      <option>Monoambiente</option>
-                      <option>2 ambientes</option>
-                      <option>3 ambientes</option>
-                      <option>4 ambientes</option>
-                      <option>5 o más ambientes</option>
+                      <option>
+                        Monoambiente
+                      </option>
+                      <option>
+                        2 ambientes
+                      </option>
+                      <option>
+                        3 ambientes
+                      </option>
+                      <option>
+                        4 ambientes
+                      </option>
+                      <option>
+                        5 o más ambientes
+                      </option>
                     </select>
                   </div>
 
                   <div className="row">
-                  <select
-  className="select"
-  name="budget_range"
-  required
-  defaultValue=""
->
-  <option value="" disabled>
-    Presupuesto mensual máximo
-  </option>
+                    <select
+                      className="select"
+                      name="budget_range"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
+                        Presupuesto mensual máximo
+                      </option>
 
-  {TENANT_BUDGET_RANGES.map((option) => (
-    <option key={option.value} value={option.value}>
-      {option.label}
-    </option>
-  ))}
-</select>
+                      {TENANT_BUDGET_RANGES.map(
+                        (
+                          option
+                        ) => (
+                          <option
+                            key={
+                              option.value
+                            }
+                            value={
+                              option.value
+                            }
+                          >
+                            {
+                              option.label
+                            }
+                          </option>
+                        )
+                      )}
+                    </select>
 
-                 <select className="select" name="move_timing" required defaultValue="">
-  <option value="" disabled>
-    Cuándo querés mudarte
-  </option>
-  <option value="Ahora">Ahora</option>
-  <option value="En 1 a 3 meses">En 1 a 3 meses</option>
-  <option value="En 6 meses o más">En 6 meses o más</option>
-</select>
+                    <select
+                      className="select"
+                      name="move_timing"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
+                        Cuándo querés mudarte
+                      </option>
+                      <option value="Ahora">
+                        Ahora
+                      </option>
+                      <option value="En 1 a 3 meses">
+                        En 1 a 3 meses
+                      </option>
+                      <option value="En 6 meses o más">
+                        En 6 meses o más
+                      </option>
+                    </select>
                   </div>
 
                   <div className="row">
@@ -1959,11 +2761,18 @@ neighborhood_slug: normalizeText(zone),
                       required
                       defaultValue=""
                     >
-                      <option value="" disabled>
+                      <option
+                        value=""
+                        disabled
+                      >
                         Cómo demostrás tus ingresos
                       </option>
-                      <option value="salary_receipt">Recibo de sueldo</option>
-                      <option value="monotributo">Monotributista</option>
+                      <option value="salary_receipt">
+                        Recibo de sueldo
+                      </option>
+                      <option value="monotributo">
+                        Monotributista
+                      </option>
                       <option value="self_employed">
                         Autónomo / socio / director de empresa
                       </option>
@@ -1981,20 +2790,38 @@ neighborhood_slug: normalizeText(zone),
                       required
                       defaultValue=""
                     >
-                      <option value="" disabled>
+                      <option
+                        value=""
+                        disabled
+                      >
                         Ingreso mensual demostrable
                       </option>
 
-                      {INCOME_RANGES.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                      {INCOME_RANGES.map(
+                        (
+                          option
+                        ) => (
+                          <option
+                            key={
+                              option.value
+                            }
+                            value={
+                              option.value
+                            }
+                          >
+                            {
+                              option.label
+                            }
+                          </option>
+                        )
+                      )}
                     </select>
                   </div>
 
                   <div className="neighborhood-box">
-                    <strong>¿Qué garantía podrías presentar?</strong>
+                    <strong>
+                      ¿Qué garantía podrías presentar?
+                    </strong>
 
                     <div className="neighborhood-grid">
                       <label className="check-pill">
@@ -2049,70 +2876,164 @@ neighborhood_slug: normalizeText(zone),
               {path === "owner" && (
                 <>
                   <div className="row">
-                    <select className="select" name="owner_neighborhood" required defaultValue="">
-                      <option value="" disabled>
+                    <select
+                      className="select"
+                      name="owner_neighborhood"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
                         Barrio donde está la propiedad
                       </option>
-                      {ALL_NEIGHBORHOODS.map((neighborhood) => (
-                        <option key={neighborhood}>{neighborhood}</option>
-                      ))}
-                      <option>Otro</option>
+
+                      {ALL_NEIGHBORHOODS.map(
+                        (
+                          neighborhood
+                        ) => (
+                          <option
+                            key={
+                              neighborhood
+                            }
+                          >
+                            {
+                              neighborhood
+                            }
+                          </option>
+                        )
+                      )}
+
+                      <option>
+                        Otro
+                      </option>
                     </select>
 
-                    <select className="select" name="property_type" required defaultValue="">
-                      <option value="" disabled>
+                    <select
+                      className="select"
+                      name="property_type"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
                         Tipo de propiedad
                       </option>
-                      <option>Departamento</option>
-                      <option>Casa</option>
-                      <option>PH</option>
-                      <option>Local</option>
-                      <option>Oficina</option>
-                      <option>Otro</option>
+                      <option>
+                        Departamento
+                      </option>
+                      <option>
+                        Casa
+                      </option>
+                      <option>
+                        PH
+                      </option>
+                      <option>
+                        Local
+                      </option>
+                      <option>
+                        Oficina
+                      </option>
+                      <option>
+                        Otro
+                      </option>
                     </select>
                   </div>
 
                   <div className="row">
-                    <select className="select" name="property_rooms" required defaultValue="">
-                      <option value="" disabled>
+                    <select
+                      className="select"
+                      name="property_rooms"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
                         Ambientes de la propiedad
                       </option>
-                      <option>Monoambiente</option>
-                      <option>2 ambientes</option>
-                      <option>3 ambientes</option>
-                      <option>4 ambientes</option>
-                      <option>5 o más ambientes</option>
+                      <option>
+                        Monoambiente
+                      </option>
+                      <option>
+                        2 ambientes
+                      </option>
+                      <option>
+                        3 ambientes
+                      </option>
+                      <option>
+                        4 ambientes
+                      </option>
+                      <option>
+                        5 o más ambientes
+                      </option>
                     </select>
 
-                   <select
-  className="select"
-  name="approx_price"
-  required
-  defaultValue=""
->
-  <option value="" disabled>
-    Precio mensual esperado
-  </option>
+                    <select
+                      className="select"
+                      name="approx_price"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
+                        Precio mensual esperado
+                      </option>
 
-  {OWNER_PRICE_RANGES.map((option) => (
-    <option key={option.value} value={option.value}>
-      {option.label}
-    </option>
-  ))}
-</select>
+                      {OWNER_PRICE_RANGES.map(
+                        (
+                          option
+                        ) => (
+                          <option
+                            key={
+                              option.value
+                            }
+                            value={
+                              option.value
+                            }
+                          >
+                            {
+                              option.label
+                            }
+                          </option>
+                        )
+                      )}
+                    </select>
                   </div>
 
-               <select className="select" name="availability_status" required defaultValue="">
-  <option value="" disabled>
-    Cuándo estará disponible
-  </option>
-  <option value="Ahora">Ahora</option>
-  <option value="En 1 a 3 meses">En 1 a 3 meses</option>
-  <option value="En 6 meses o más">En 6 meses o más</option>
-</select>
+                  <select
+                    className="select"
+                    name="availability_status"
+                    required
+                    defaultValue=""
+                  >
+                    <option
+                      value=""
+                      disabled
+                    >
+                      Cuándo estará disponible
+                    </option>
+                    <option value="Ahora">
+                      Ahora
+                    </option>
+                    <option value="En 1 a 3 meses">
+                      En 1 a 3 meses
+                    </option>
+                    <option value="En 6 meses o más">
+                      En 6 meses o más
+                    </option>
+                  </select>
 
                   <div className="neighborhood-box">
-                    <strong>¿Qué demostraciones de ingresos aceptarías?</strong>
+                    <strong>
+                      ¿Qué demostraciones de ingresos aceptarías?
+                    </strong>
 
                     <div className="neighborhood-grid">
                       <label className="check-pill">
@@ -2168,17 +3089,30 @@ neighborhood_slug: normalizeText(zone),
                     required
                     defaultValue=""
                   >
-                    <option value="" disabled>
+                    <option
+                      value=""
+                      disabled
+                    >
                       Ingreso mínimo en relación al alquiler
                     </option>
-                    <option value="2">2 veces el alquiler</option>
-                    <option value="2.5">2,5 veces el alquiler</option>
-                    <option value="3">3 veces el alquiler</option>
-                    <option value="4">4 veces el alquiler</option>
+                    <option value="2">
+                      2 veces el alquiler
+                    </option>
+                    <option value="2.5">
+                      2,5 veces el alquiler
+                    </option>
+                    <option value="3">
+                      3 veces el alquiler
+                    </option>
+                    <option value="4">
+                      4 veces el alquiler
+                    </option>
                   </select>
 
                   <div className="neighborhood-box">
-                    <strong>¿Qué garantías aceptarías?</strong>
+                    <strong>
+                      ¿Qué garantías aceptarías?
+                    </strong>
 
                     <div className="neighborhood-grid">
                       <label className="check-pill">
@@ -2227,28 +3161,96 @@ neighborhood_slug: normalizeText(zone),
                       </label>
                     </div>
                   </div>
+
+                  <div className="owner-media-box">
+                    <strong>
+                      Fotos de la propiedad
+                    </strong>
+
+                    <p>
+                      Subí al menos una foto para que las personas compatibles puedan ver la propiedad. Podés seleccionar varias.
+                    </p>
+
+                    <input
+                      className="owner-media-input"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      required
+                      onChange={
+                        handleOwnerFiles
+                      }
+                    />
+
+                    {ownerFiles.length >
+                      0 && (
+                      <div className="owner-media-status">
+                        {ownerFiles.length}{" "}
+                        {ownerFiles.length ===
+                        1
+                          ? "foto seleccionada"
+                          : "fotos seleccionadas"}
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
               {path === "renewal" && (
                 <>
                   <div className="row">
-                    <select className="select" name="renewal_role" required defaultValue="">
-                      <option value="" disabled>
+                    <select
+                      className="select"
+                      name="renewal_role"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
                         En la renovación soy...
                       </option>
-                      <option value="owner">Propietario</option>
-                      <option value="tenant">Inquilino</option>
+                      <option value="owner">
+                        Propietario
+                      </option>
+                      <option value="tenant">
+                        Inquilino
+                      </option>
                     </select>
 
-                    <select className="select" name="renewal_neighborhood" required defaultValue="">
-                      <option value="" disabled>
+                    <select
+                      className="select"
+                      name="renewal_neighborhood"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
                         Barrio de la propiedad
                       </option>
-                    {ALL_NEIGHBORHOODS.map((neighborhood) => (
-  <option key={neighborhood}>{neighborhood}</option>
-))}
-<option>Otro</option>
+
+                      {ALL_NEIGHBORHOODS.map(
+                        (
+                          neighborhood
+                        ) => (
+                          <option
+                            key={
+                              neighborhood
+                            }
+                          >
+                            {
+                              neighborhood
+                            }
+                          </option>
+                        )
+                      )}
+
+                      <option>
+                        Otro
+                      </option>
                     </select>
                   </div>
 
@@ -2260,32 +3262,77 @@ neighborhood_slug: normalizeText(zone),
                       required
                     />
 
-                    <select className="select" name="other_party_status" required defaultValue="">
-                      <option value="" disabled>
+                    <select
+                      className="select"
+                      name="other_party_status"
+                      required
+                      defaultValue=""
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
                         ¿Lo sabe ya tu contraparte?
                       </option>
-                      <option>Sí, ya lo hablamos</option>
-                      <option>Todavía no</option>
-                      <option>No estoy seguro</option>
+                      <option>
+                        Sí, ya lo hablamos
+                      </option>
+                      <option>
+                        Todavía no
+                      </option>
+                      <option>
+                        No estoy seguro
+                      </option>
                     </select>
                   </div>
 
-                  <select className="select" name="renewal_need" required defaultValue="">
-                    <option value="" disabled>
+                  <select
+                    className="select"
+                    name="renewal_need"
+                    required
+                    defaultValue=""
+                  >
+                    <option
+                      value=""
+                      disabled
+                    >
                       ¿Qué querés lograr con esta renovación?
                     </option>
-                    <option>Renovar con condiciones parecidas</option>
-                    <option>Actualizar precio y renovar</option>
-                    <option>Cambiar plazo del contrato</option>
-                    <option>Todavía no lo sé, quiero que me guíen</option>
+                    <option>
+                      Renovar con condiciones parecidas
+                    </option>
+                    <option>
+                      Actualizar precio y renovar
+                    </option>
+                    <option>
+                      Cambiar plazo del contrato
+                    </option>
+                    <option>
+                      Todavía no lo sé, quiero que me guíen
+                    </option>
                   </select>
                 </>
               )}
 
-              {error && <p className="error">{error}</p>}
-              {success && <p className="success">{success}</p>}
+              {error && (
+                <p className="error">
+                  {error}
+                </p>
+              )}
 
-              <button className="submit" type="submit" disabled={loading}>
+              {success && (
+                <p className="success">
+                  {success}
+                </p>
+              )}
+
+              <button
+                className="submit"
+                type="submit"
+                disabled={
+                  loading
+                }
+              >
                 {submitLabel}
               </button>
             </form>
@@ -2297,18 +3344,30 @@ neighborhood_slug: normalizeText(zone),
         <div className="container footer-inner">
           <div className="footer-brand">
             <VerloBrand width={86} />
-            <p>Alquiler directo, seguro y sin comisión.</p>
+            <p>
+              Alquiler directo, seguro y sin comisión.
+            </p>
           </div>
 
           <nav className="footer-links">
-            <a href="/terminos">Términos y condiciones</a>
-            <a href="/privacidad">Política de privacidad</a>
-            <a href={CONTACT_HREF} target="_blank" rel="noopener noreferrer">
-  Contacto
-</a>
+            <a href="/terminos">
+              Términos y condiciones
+            </a>
+
+            <a href="/privacidad">
+              Política de privacidad
+            </a>
+
+            <a
+              href={CONTACT_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Contacto
+            </a>
           </nav>
         </div>
       </footer>
-  </main> 
+    </main>
   )
 }
