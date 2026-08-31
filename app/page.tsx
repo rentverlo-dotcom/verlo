@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  ChangeEvent,
   FormEvent,
   useMemo,
   useState,
@@ -11,6 +12,131 @@ const CONTACT_HREF =
   "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
 type Path = "tenant" | "owner" | "renewal"
+
+type UploadedOwnerMedia = {
+  key: string
+  publicUrl: string | null
+  filename: string
+  contentType: string
+  size: number
+  mediaType: "photo" | "video"
+}
+
+async function uploadOwnerFileToR2(
+  file: File,
+  ownerLeadId: string
+): Promise<UploadedOwnerMedia> {
+  const presignResponse =
+    await fetch(
+      "/api/r2/presign",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          folder:
+            "owner-media",
+          id:
+            ownerLeadId,
+          filename:
+            file.name,
+          contentType:
+            file.type,
+        }),
+      }
+    )
+
+  const presignData =
+    await presignResponse
+      .json()
+      .catch(
+        () => null
+      )
+
+  if (
+    !presignResponse.ok ||
+    !presignData?.ok ||
+    !presignData?.uploadUrl ||
+    !presignData?.key
+  ) {
+    throw new Error(
+      presignData?.error ||
+        `No pudimos preparar ${file.name}`
+    )
+  }
+
+  let uploadResponse: Response
+
+  try {
+    uploadResponse =
+      await fetch(
+        presignData.uploadUrl,
+        {
+          method: "PUT",
+          body: file,
+        }
+      )
+  } catch (error) {
+    throw new Error(
+      `No pudimos subir ${file.name}: ${
+        error instanceof Error
+          ? error.message
+          : String(error)
+      }`
+    )
+  }
+
+  if (
+    !uploadResponse.ok
+  ) {
+    const raw =
+      await uploadResponse
+        .text()
+        .catch(
+          () => ""
+        )
+
+    throw new Error(
+      `R2 rechazó ${file.name}. HTTP ${uploadResponse.status}${
+        raw
+          ? ` - ${raw}`
+          : ""
+      }`
+    )
+  }
+
+  return {
+    key:
+      String(
+        presignData.key
+      ),
+
+    publicUrl:
+      presignData.publicUrl
+        ? String(
+            presignData.publicUrl
+          )
+        : null,
+
+    filename:
+      file.name,
+
+    contentType:
+      file.type,
+
+    size:
+      file.size,
+
+    mediaType:
+      file.type.startsWith(
+        "video/"
+      )
+        ? "video"
+        : "photo",
+  }
+}
 
 const AREA_GROUPS = {
   caba: {
@@ -899,6 +1025,132 @@ const styles = `
     accent-color: var(--black);
   }
 
+  .owner-media-box {
+    border: 1px solid rgba(5, 0, 2, 0.12);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 18px;
+    display: grid;
+    gap: 14px;
+  }
+
+  .owner-media-head {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .owner-media-head strong {
+    font-size: 16px;
+  }
+
+  .owner-media-head span {
+    color: rgba(5, 0, 2, 0.58);
+    font-size: 14px;
+    line-height: 1.4;
+    font-weight: 700;
+  }
+
+  .owner-media-picker {
+    min-height: 88px;
+    border: 2px dashed rgba(5, 0, 2, 0.22);
+    border-radius: 20px;
+    background: white;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+  }
+
+  .owner-media-picker:hover {
+    border-color: var(--pink-dark);
+    background: rgba(242, 168, 169, 0.06);
+  }
+
+  .owner-media-picker input {
+    display: none;
+  }
+
+  .owner-media-plus {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--pink);
+    color: var(--black);
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 900;
+  }
+
+  .owner-media-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .owner-media-copy b {
+    font-size: 15px;
+  }
+
+  .owner-media-copy small {
+    color: rgba(5, 0, 2, 0.55);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .owner-media-selected {
+    display: grid;
+    gap: 10px;
+  }
+
+  .owner-media-selected > strong {
+    font-size: 14px;
+  }
+
+  .owner-media-list {
+    display: grid;
+    gap: 7px;
+  }
+
+  .owner-media-file {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 11px;
+    border-radius: 14px;
+    background: rgba(242, 235, 236, 0.8);
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .owner-media-file span:nth-child(2) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .owner-media-file small {
+    color: rgba(5, 0, 2, 0.52);
+    white-space: nowrap;
+    font-weight: 800;
+  }
+
+  .owner-media-progress {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(116, 190, 220, 0.18);
+    color: var(--black);
+    font-size: 13px;
+    font-weight: 900;
+  }
+
   .submit {
     width: 100%;
     min-height: 58px;
@@ -1147,6 +1399,14 @@ const styles = `
     .form-card {
       padding: 28px;
       border-radius: 32px;
+    }
+
+    .owner-media-file {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .owner-media-file small {
+      grid-column: 2;
     }
 
     .footer-inner {
@@ -1573,6 +1833,20 @@ export default function PageDePrueba() {
   ] =
     useState("")
 
+  const [
+    ownerFiles,
+    setOwnerFiles,
+  ] =
+    useState<File[]>(
+      []
+    )
+
+  const [
+    ownerUploadProgress,
+    setOwnerUploadProgress,
+  ] =
+    useState("")
+
   const selected =
     pathConfig[path]
 
@@ -1581,7 +1855,8 @@ export default function PageDePrueba() {
       if (loading) {
         return path ===
           "owner"
-          ? "Publicando propiedad..."
+          ? ownerUploadProgress ||
+              "Publicando propiedad..."
           : "Guardando..."
       }
 
@@ -1590,6 +1865,7 @@ export default function PageDePrueba() {
       loading,
       selected.button,
       path,
+      ownerUploadProgress,
     ])
 
   function choosePath(
@@ -1598,6 +1874,34 @@ export default function PageDePrueba() {
     setPath(nextPath)
     setError("")
     setSuccess("")
+    setOwnerUploadProgress("")
+  }
+
+  function handleOwnerFiles(
+    event:
+      ChangeEvent<HTMLInputElement>
+  ) {
+    const selectedFiles =
+      Array.from(
+        event.target.files ||
+          []
+      ).filter(
+        (file) =>
+          file.type.startsWith(
+            "image/"
+          ) ||
+          file.type.startsWith(
+            "video/"
+          )
+      )
+
+    setOwnerFiles(
+      selectedFiles
+    )
+
+    setError("")
+    setSuccess("")
+    setOwnerUploadProgress("")
   }
 
   async function handleSubmit(
@@ -1608,6 +1912,7 @@ export default function PageDePrueba() {
     setLoading(true)
     setError("")
     setSuccess("")
+    setOwnerUploadProgress("")
 
     const form =
       e.currentTarget
@@ -1803,6 +2108,20 @@ export default function PageDePrueba() {
     ) {
       setError(
         "Elegí al menos una garantía aceptada."
+      )
+
+      setLoading(false)
+      return
+    }
+
+    if (
+      path ===
+        "owner" &&
+      ownerFiles.length ===
+        0
+    ) {
+      setError(
+        "Subí al menos una foto o video de la propiedad."
       )
 
       setLoading(false)
@@ -2011,6 +2330,7 @@ export default function PageDePrueba() {
 
       metadata: {
         path,
+
         page:
           "verlo_home",
 
@@ -2079,6 +2399,100 @@ export default function PageDePrueba() {
         )
       }
 
+      if (
+        path ===
+        "owner"
+      ) {
+        const ownerLeadId =
+          String(
+            data?.lead_id ||
+              ""
+          ).trim()
+
+        if (
+          !ownerLeadId
+        ) {
+          throw new Error(
+            "La propiedad se creó pero no recibimos el lead_id del propietario."
+          )
+        }
+
+        const uploadedMedia:
+          UploadedOwnerMedia[] =
+          []
+
+        for (
+          let index = 0;
+          index <
+          ownerFiles.length;
+          index++
+        ) {
+          const file =
+            ownerFiles[index]
+
+          setOwnerUploadProgress(
+            `Subiendo ${index + 1} de ${ownerFiles.length}: ${file.name}`
+          )
+
+          const uploaded =
+            await uploadOwnerFileToR2(
+              file,
+              ownerLeadId
+            )
+
+          uploadedMedia.push(
+            uploaded
+          )
+        }
+
+        setOwnerUploadProgress(
+          "Guardando fotos y videos..."
+        )
+
+        const mediaResponse =
+          await fetch(
+            "/api/owner-initial-media",
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  owner_lead_id:
+                    ownerLeadId,
+
+                  media:
+                    uploadedMedia,
+                }),
+            }
+          )
+
+        const mediaData =
+          await mediaResponse
+            .json()
+            .catch(
+              () =>
+                null
+            )
+
+        if (
+          !mediaResponse.ok ||
+          !mediaData?.ok
+        ) {
+          throw new Error(
+            mediaData?.error ||
+              "La propiedad se creó pero no pudimos registrar sus fotos y videos."
+          )
+        }
+
+        setOwnerUploadProgress("")
+      }
+
       trackMetaLead(
         eventId,
         {
@@ -2098,8 +2512,11 @@ export default function PageDePrueba() {
         path ===
         "owner"
       ) {
+        setOwnerFiles([])
+        setOwnerUploadProgress("")
+
         setSuccess(
-          "Listo. Publicamos los datos iniciales de tu propiedad. Te vamos a avisar por WhatsApp si encontramos personas compatibles."
+          "Listo. Publicamos tu propiedad con sus fotos y videos. Te vamos a avisar por WhatsApp cuando encontremos personas compatibles."
         )
       } else {
         setSuccess(
@@ -2109,6 +2526,8 @@ export default function PageDePrueba() {
     } catch (
       err
     ) {
+      setOwnerUploadProgress("")
+
       if (
         err instanceof
         Error
@@ -3461,6 +3880,103 @@ export default function PageDePrueba() {
                         Cualquiera de las anteriores
                       </label>
                     </div>
+                  </div>
+
+                  <div className="owner-media-box">
+                    <div className="owner-media-head">
+                      <strong>
+                        Fotos y videos de la propiedad
+                      </strong>
+
+                      <span>
+                        Subí todas las fotos o videos que quieras.
+                      </span>
+                    </div>
+
+                    <label className="owner-media-picker">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,video/*"
+                        onChange={
+                          handleOwnerFiles
+                        }
+                      />
+
+                      <span className="owner-media-plus">
+                        +
+                      </span>
+
+                      <span className="owner-media-copy">
+                        <b>
+                          Elegir fotos o videos
+                        </b>
+
+                        <small>
+                          Desde tu computadora o teléfono
+                        </small>
+                      </span>
+                    </label>
+
+                    {ownerFiles.length >
+                      0 && (
+                      <div className="owner-media-selected">
+                        <strong>
+                          {ownerFiles.length}{" "}
+                          {ownerFiles.length ===
+                          1
+                            ? "archivo seleccionado"
+                            : "archivos seleccionados"}
+                        </strong>
+
+                        <div className="owner-media-list">
+                          {ownerFiles.map(
+                            (
+                              file,
+                              index
+                            ) => (
+                              <div
+                                key={`${file.name}-${file.size}-${index}`}
+                                className="owner-media-file"
+                              >
+                                <span>
+                                  {file.type.startsWith(
+                                    "video/"
+                                  )
+                                    ? "VIDEO"
+                                    : "FOTO"}
+                                </span>
+
+                                <span>
+                                  {
+                                    file.name
+                                  }
+                                </span>
+
+                                <small>
+                                  {(
+                                    file.size /
+                                    1024 /
+                                    1024
+                                  ).toFixed(
+                                    1
+                                  )}{" "}
+                                  MB
+                                </small>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {ownerUploadProgress && (
+                      <div className="owner-media-progress">
+                        {
+                          ownerUploadProgress
+                        }
+                      </div>
+                    )}
                   </div>
                 </>
               )}
