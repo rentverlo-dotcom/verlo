@@ -78,40 +78,100 @@ export async function POST(
       )
     }
 
-    const body =
-      await req
-        .json()
-        .catch(
-          () => ({})
-        )
+    // =========================================================
+    // 1. RECIBIR ARCHIVO DESDE VERLO
+    //
+    // IMPORTANTE:
+    // El navegador YA NO sube directo a R2.
+    //
+    // navegador -> verlo.lat -> R2
+    // =========================================================
+
+    let formData:
+      FormData
+
+    try {
+      formData =
+        await req.formData()
+    } catch {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Invalid multipart form data",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
 
     const token =
       clean(
-        body?.token
+        formData.get(
+          "token"
+        )
       )
+
+    const fileValue =
+      formData.get(
+        "file"
+      )
+
+    if (
+      !token
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Missing token",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    if (
+      !(fileValue instanceof File)
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Missing file",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    const file =
+      fileValue
 
     const filename =
       safeFilename(
         clean(
-          body?.filename
+          file.name
         ) ||
           "archivo"
       )
 
     const contentType =
       clean(
-        body?.contentType
+        file.type
       )
 
     if (
-      !token ||
       !contentType
     ) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            "Missing token or contentType",
+            "Missing contentType",
         },
         {
           status: 400,
@@ -145,6 +205,10 @@ export async function POST(
       )
     }
 
+    // =========================================================
+    // 2. VALIDAR TOKEN DEL OWNER
+    // =========================================================
+
     const supabase =
       createClient(
         supabaseUrl,
@@ -159,10 +223,6 @@ export async function POST(
           },
         }
       )
-
-    // =========================================================
-    // 1. VALIDAR TOKEN DEL OWNER
-    // =========================================================
 
     const {
       data:
@@ -286,9 +346,7 @@ export async function POST(
       )
 
     // =========================================================
-    // 2. GENERAR KEY USANDO EL MISMO HELPER CENTRAL DE R2
-    //
-    // Mantiene owner + completion separados dentro del path.
+    // 3. GENERAR KEY EN R2
     // =========================================================
 
     const key =
@@ -303,14 +361,10 @@ export async function POST(
       })
 
     // =========================================================
-    // 3. GENERAR URL PRESIGNADA
+    // 4. GENERAR URL PRESIGNADA
     //
-    // IMPORTANTE:
-    // usamos EXACTAMENTE createR2UploadUrl de lib/r2.ts
-    // igual que /api/r2/presign.
-    //
-    // Eliminamos completamente el segundo implementador
-    // manual de AWS Signature V4 que tenía este endpoint.
+    // Esta URL ahora se consume DESDE EL SERVIDOR.
+    // El celular nunca la recibe.
     // =========================================================
 
     const uploadUrl =
@@ -320,7 +374,97 @@ export async function POST(
       })
 
     // =========================================================
-    // 4. URL PÚBLICA
+    // 5. LEER ARCHIVO RECIBIDO
+    // =========================================================
+
+    const arrayBuffer =
+      await file.arrayBuffer()
+
+    const fileBuffer =
+      Buffer.from(
+        arrayBuffer
+      )
+
+    // =========================================================
+    // 6. SERVIDOR VERLO -> R2
+    //
+    // ESTE ES EL CAMBIO CENTRAL.
+    // Ya no existe:
+    //
+    // navegador -> r2.cloudflarestorage.com
+    //
+    // Ahora:
+    //
+    // navegador -> verlo.lat -> R2
+    // =========================================================
+
+    const r2Response =
+      await fetch(
+        uploadUrl,
+        {
+          method:
+            "PUT",
+
+          headers: {
+            "Content-Type":
+              contentType,
+          },
+
+          body:
+            fileBuffer,
+        }
+      )
+
+    if (
+      !r2Response.ok
+    ) {
+      const r2Text =
+        await r2Response
+          .text()
+          .catch(
+            () => ""
+          )
+
+      console.error(
+        "owner-property-upload R2 error:",
+        {
+          status:
+            r2Response.status,
+
+          statusText:
+            r2Response.statusText,
+
+          body:
+            r2Text,
+
+          key,
+
+          contentType,
+
+          size:
+            file.size,
+        }
+      )
+
+      return NextResponse.json(
+        {
+          ok: false,
+
+          error:
+            `R2 upload failed. HTTP ${r2Response.status}`,
+
+          detail:
+            r2Text ||
+            null,
+        },
+        {
+          status: 502,
+        }
+      )
+    }
+
+    // =========================================================
+    // 7. URL PÚBLICA
     // =========================================================
 
     const publicUrl =
@@ -329,17 +473,14 @@ export async function POST(
       )
 
     // =========================================================
-    // 5. RESPONSE
+    // 8. RESPONSE
     //
-    // MANTENEMOS LOS MISMOS NOMBRES QUE YA CONSUME
-    // app/propiedad/[token]/page.tsx
+    // Devuelve directamente el archivo YA SUBIDO.
+    // NO devuelve upload_url al navegador.
     // =========================================================
 
     return NextResponse.json({
       ok: true,
-
-      upload_url:
-        uploadUrl,
 
       key,
 
@@ -350,6 +491,14 @@ export async function POST(
         isVideo
           ? "video"
           : "photo",
+
+      filename,
+
+      content_type:
+        contentType,
+
+      size:
+        file.size,
 
       owner_lead_id:
         ownerLeadId,
