@@ -6,7 +6,11 @@ import {
   useMemo,
   useState,
 } from "react"
-import { useParams } from "next/navigation"
+
+import {
+  useParams,
+} from "next/navigation"
+
 import VerloBrand from "@/components/VerloBrand"
 
 type UploadedMedia = {
@@ -18,115 +22,420 @@ type UploadedMedia = {
   mediaType: "photo" | "video"
 }
 
+const MAX_DIRECT_SERVER_FILE_SIZE =
+  3 * 1024 * 1024
+
+const MAX_IMAGE_DIMENSION =
+  1800
+
+function createImageElement(
+  url: string
+) {
+  return new Promise<HTMLImageElement>(
+    (
+      resolve,
+      reject
+    ) => {
+      const image =
+        new Image()
+
+      image.onload =
+        () =>
+          resolve(
+            image
+          )
+
+      image.onerror =
+        () =>
+          reject(
+            new Error(
+              "No pudimos procesar esta imagen."
+            )
+          )
+
+      image.src =
+        url
+    }
+  )
+}
+
+async function compressImage(
+  file: File
+) {
+  if (
+    !file.type.startsWith(
+      "image/"
+    )
+  ) {
+    return file
+  }
+
+  if (
+    file.size <=
+    MAX_DIRECT_SERVER_FILE_SIZE
+  ) {
+    return file
+  }
+
+  const objectUrl =
+    URL.createObjectURL(
+      file
+    )
+
+  try {
+    const image =
+      await createImageElement(
+        objectUrl
+      )
+
+    let width =
+      image.naturalWidth
+
+    let height =
+      image.naturalHeight
+
+    if (
+      width >
+        MAX_IMAGE_DIMENSION ||
+      height >
+        MAX_IMAGE_DIMENSION
+    ) {
+      const scale =
+        Math.min(
+          MAX_IMAGE_DIMENSION /
+            width,
+
+          MAX_IMAGE_DIMENSION /
+            height
+        )
+
+      width =
+        Math.round(
+          width *
+            scale
+        )
+
+      height =
+        Math.round(
+          height *
+            scale
+        )
+    }
+
+    const canvas =
+      document.createElement(
+        "canvas"
+      )
+
+    canvas.width =
+      width
+
+    canvas.height =
+      height
+
+    const context =
+      canvas.getContext(
+        "2d"
+      )
+
+    if (
+      !context
+    ) {
+      throw new Error(
+        "No pudimos preparar la imagen."
+      )
+    }
+
+    context.drawImage(
+      image,
+      0,
+      0,
+      width,
+      height
+    )
+
+    const createBlob =
+      (
+        quality:
+          number
+      ) =>
+        new Promise<Blob | null>(
+          (
+            resolve
+          ) => {
+            canvas.toBlob(
+              resolve,
+              "image/jpeg",
+              quality
+            )
+          }
+        )
+
+    let quality =
+      0.86
+
+    let blob =
+      await createBlob(
+        quality
+      )
+
+    while (
+      blob &&
+      blob.size >
+        MAX_DIRECT_SERVER_FILE_SIZE &&
+      quality >
+        0.5
+    ) {
+      quality -=
+        0.08
+
+      blob =
+        await createBlob(
+          quality
+        )
+    }
+
+    if (!blob) {
+      throw new Error(
+        "No pudimos comprimir la imagen."
+      )
+    }
+
+    if (
+      blob.size >
+      MAX_DIRECT_SERVER_FILE_SIZE
+    ) {
+      throw new Error(
+        "La foto es demasiado pesada. Elegí otra foto."
+      )
+    }
+
+    const baseName =
+      file.name.replace(
+        /\.[^.]+$/,
+        ""
+      )
+
+    return new File(
+      [
+        blob,
+      ],
+      `${baseName}.jpg`,
+      {
+        type:
+          "image/jpeg",
+
+        lastModified:
+          Date.now(),
+      }
+    )
+  } finally {
+    URL.revokeObjectURL(
+      objectUrl
+    )
+  }
+}
+
 export default function OwnerPropertyPage() {
   const params =
-    useParams<{ token: string }>()
+    useParams<{
+      token: string
+    }>()
 
   const token =
-    String(params?.token || "")
+    String(
+      params?.token ||
+        ""
+    )
 
-  const [files, setFiles] =
-    useState<File[]>([])
+  const [
+    files,
+    setFiles,
+  ] =
+    useState<File[]>(
+      []
+    )
 
-  const [uploading, setUploading] =
-    useState(false)
+  const [
+    uploading,
+    setUploading,
+  ] =
+    useState(
+      false
+    )
 
-  const [progress, setProgress] =
-    useState("")
+  const [
+    progress,
+    setProgress,
+  ] =
+    useState(
+      ""
+    )
 
-  const [done, setDone] =
-    useState(false)
+  const [
+    done,
+    setDone,
+  ] =
+    useState(
+      false
+    )
 
-  const [error, setError] =
-    useState("")
+  const [
+    error,
+    setError,
+  ] =
+    useState(
+      ""
+    )
 
-  const previews = useMemo(
-    () =>
-      files.map((file) => ({
-        file,
-        url: URL.createObjectURL(file),
-      })),
-    [files]
-  )
+  const previews =
+    useMemo(
+      () =>
+        files.map(
+          (
+            file
+          ) => ({
+            file,
 
-  useEffect(() => {
-    if (!token) {
-      return
-    }
+            url:
+              URL.createObjectURL(
+                file
+              ),
+          })
+        ),
 
-    async function trackOpen() {
-      try {
-        const response =
-          await fetch(
-            "/api/match-link-open",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                token,
-                role: "owner",
-              }),
-            }
-          )
+      [
+        files,
+      ]
+    )
 
-        if (!response.ok) {
-          const text =
-            await response
-              .text()
-              .catch(
-                () => ""
-              )
+  useEffect(
+    () => {
+      if (
+        !token
+      ) {
+        return
+      }
 
+      async function trackOpen() {
+        try {
+          const response =
+            await fetch(
+              "/api/match-link-open",
+              {
+                method:
+                  "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body:
+                  JSON.stringify(
+                    {
+                      token,
+
+                      role:
+                        "owner",
+                    }
+                  ),
+              }
+            )
+
+          if (
+            !response.ok
+          ) {
+            const text =
+              await response
+                .text()
+                .catch(
+                  () =>
+                    ""
+                )
+
+            console.error(
+              "owner match link open tracking failed:",
+              response.status,
+              text
+            )
+          }
+        } catch (
+          err
+        ) {
           console.error(
-            "owner match link open tracking failed:",
-            response.status,
-            text
+            "owner match link open tracking error:",
+            err
           )
         }
-      } catch (err) {
-        console.error(
-          "owner match link open tracking error:",
-          err
-        )
       }
-    }
 
-    trackOpen()
-  }, [token])
+      trackOpen()
+    },
+
+    [
+      token,
+    ]
+  )
 
   function handleFiles(
-    event: ChangeEvent<HTMLInputElement>
+    event:
+      ChangeEvent<HTMLInputElement>
   ) {
     const selected =
       Array.from(
-        event.target.files || []
+        event
+          .target
+          .files ||
+          []
       )
 
-    setFiles(selected)
-    setError("")
+    setFiles(
+      selected
+    )
+
+    setError(
+      ""
+    )
   }
 
   async function uploadAll() {
-    if (!token) {
-      setError("Link inválido.")
+    if (
+      !token
+    ) {
+      setError(
+        "Link inválido."
+      )
+
       return
     }
 
-    if (files.length === 0) {
+    if (
+      files.length ===
+      0
+    ) {
       setError(
         "Seleccioná al menos una foto o video."
       )
+
       return
     }
 
-    setUploading(true)
-    setError("")
-    setDone(false)
+    setUploading(
+      true
+    )
 
-    const uploaded: UploadedMedia[] = []
+    setError(
+      ""
+    )
+
+    setDone(
+      false
+    )
+
+    const uploaded:
+      UploadedMedia[] =
+      []
 
     let stage =
       "INICIO"
@@ -134,138 +443,180 @@ export default function OwnerPropertyPage() {
     try {
       for (
         let i = 0;
-        i < files.length;
+        i <
+        files.length;
         i++
       ) {
-        const file = files[i]
+        const originalFile =
+          files[i]
+
+        setProgress(
+          `Preparando ${i + 1} de ${files.length}...`
+        )
+
+        // =====================================================
+        // ETAPA 1
+        // PREPARAR ARCHIVO
+        //
+        // Fotos chicas quedan intactas.
+        // Fotos grandes se reducen antes de enviarse a Vercel.
+        // =====================================================
+
+        stage =
+          `ETAPA 1 - preparar archivo ${i + 1}`
+
+        let file =
+          originalFile
+
+        if (
+          originalFile.type.startsWith(
+            "image/"
+          )
+        ) {
+          file =
+            await compressImage(
+              originalFile
+            )
+        }
+
+        if (
+          file.type.startsWith(
+            "video/"
+          ) &&
+          file.size >
+            MAX_DIRECT_SERVER_FILE_SIZE
+        ) {
+          throw new Error(
+            `ETAPA 1 - El video ${file.name} es demasiado pesado para esta carga. Probá primero con fotos.`
+          )
+        }
 
         setProgress(
           `Subiendo ${i + 1} de ${files.length}...`
         )
 
         // =====================================================
-        // ETAPA 1
-        // PEDIR URL FIRMADA A VERLO
-        // =====================================================
-
-        stage =
-          `ETAPA 1 - owner-property-upload - archivo ${i + 1}`
-
-        let signResponse: Response
-
-        try {
-          signResponse =
-            await fetch(
-              "/api/owner-property-upload",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
-                body: JSON.stringify({
-                  token,
-                  filename: file.name,
-                  contentType: file.type,
-                }),
-              }
-            )
-        } catch (fetchError) {
-          throw new Error(
-            `${stage}: FETCH FALLÓ. ${
-              fetchError instanceof Error
-                ? fetchError.message
-                : String(fetchError)
-            }`
-          )
-        }
-
-        let signData: any = null
-
-        try {
-          signData =
-            await signResponse.json()
-        } catch {
-          const raw =
-            await signResponse
-              .text()
-              .catch(() => "")
-
-          throw new Error(
-            `${stage}: respuesta inválida. HTTP ${signResponse.status}. ${raw}`
-          )
-        }
-
-        if (
-          !signResponse.ok ||
-          !signData?.upload_url
-        ) {
-          throw new Error(
-            `${stage}: HTTP ${signResponse.status}. ${
-              signData?.error ||
-              "No se pudo preparar la carga."
-            }`
-          )
-        }
-
-        // =====================================================
         // ETAPA 2
-        // SUBIDA DIRECTA DEL ARCHIVO A R2
+        // MÓVIL / BROWSER -> VERLO
+        //
+        // YA NO EXISTE UN FETCH DIRECTO A R2.
         // =====================================================
 
         stage =
-          `ETAPA 2 - PUT R2 - archivo ${i + 1} - ${file.name}`
+          `ETAPA 2 - subir a Verlo - archivo ${i + 1}`
 
-        let uploadResponse: Response
+        const uploadFormData =
+          new FormData()
+
+        uploadFormData.append(
+          "token",
+          token
+        )
+
+        uploadFormData.append(
+          "file",
+          file,
+          file.name
+        )
+
+        let uploadResponse:
+          Response
 
         try {
           uploadResponse =
             await fetch(
-              signData.upload_url,
+              "/api/owner-property-upload",
               {
-                method: "PUT",
-                headers: {
-                  "Content-Type":
-                    file.type,
-                },
-                body: file,
+                method:
+                  "POST",
+
+                body:
+                  uploadFormData,
               }
             )
-        } catch (fetchError) {
+        } catch (
+          fetchError
+        ) {
           throw new Error(
             `${stage}: FETCH FALLÓ. ${
-              fetchError instanceof Error
+              fetchError instanceof
+              Error
                 ? fetchError.message
-                : String(fetchError)
+                : String(
+                    fetchError
+                  )
             }`
           )
         }
 
-        if (!uploadResponse.ok) {
-          const uploadText =
+        let uploadData:
+          any =
+          null
+
+        try {
+          uploadData =
+            await uploadResponse.json()
+        } catch {
+          const raw =
             await uploadResponse
               .text()
-              .catch(() => "")
+              .catch(
+                () =>
+                  ""
+              )
 
           throw new Error(
-            `${stage}: HTTP ${uploadResponse.status}. ${uploadText || "R2 rechazó la subida."}`
+            `${stage}: respuesta inválida. HTTP ${uploadResponse.status}. ${raw}`
           )
         }
 
-        uploaded.push({
-          key: signData.key,
-          publicUrl:
-            signData.public_url || null,
-          filename: file.name,
-          contentType: file.type,
-          size: file.size,
-          mediaType:
-            file.type.startsWith(
-              "video/"
-            )
-              ? "video"
-              : "photo",
-        })
+        if (
+          !uploadResponse.ok ||
+          !uploadData?.ok ||
+          !uploadData?.key
+        ) {
+          throw new Error(
+            `${stage}: HTTP ${uploadResponse.status}. ${
+              uploadData?.error ||
+              "No se pudo subir el archivo."
+            }${
+              uploadData?.detail
+                ? ` ${uploadData.detail}`
+                : ""
+            }`
+          )
+        }
+
+        uploaded.push(
+          {
+            key:
+              uploadData.key,
+
+            publicUrl:
+              uploadData.public_url ||
+              null,
+
+            filename:
+              uploadData.filename ||
+              file.name,
+
+            contentType:
+              uploadData.content_type ||
+              file.type,
+
+            size:
+              Number(
+                uploadData.size ||
+                  file.size
+              ),
+
+            mediaType:
+              uploadData.media_type ===
+              "video"
+                ? "video"
+                : "photo",
+          }
+        )
       }
 
       setProgress(
@@ -280,35 +631,51 @@ export default function OwnerPropertyPage() {
       stage =
         "ETAPA 3 - owner-completion"
 
-      let completeResponse: Response
+      let completeResponse:
+        Response
 
       try {
         completeResponse =
           await fetch(
             "/api/owner-completion",
             {
-              method: "POST",
+              method:
+                "POST",
+
               headers: {
                 "Content-Type":
                   "application/json",
               },
-              body: JSON.stringify({
-                token,
-                media: uploaded,
-              }),
+
+              body:
+                JSON.stringify(
+                  {
+                    token,
+
+                    media:
+                      uploaded,
+                  }
+                ),
             }
           )
-      } catch (fetchError) {
+      } catch (
+        fetchError
+      ) {
         throw new Error(
           `${stage}: FETCH FALLÓ. ${
-            fetchError instanceof Error
+            fetchError instanceof
+            Error
               ? fetchError.message
-              : String(fetchError)
+              : String(
+                  fetchError
+                )
           }`
         )
       }
 
-      let completeData: any = null
+      let completeData:
+        any =
+        null
 
       try {
         completeData =
@@ -317,14 +684,19 @@ export default function OwnerPropertyPage() {
         const raw =
           await completeResponse
             .text()
-            .catch(() => "")
+            .catch(
+              () =>
+                ""
+            )
 
         throw new Error(
           `${stage}: respuesta inválida. HTTP ${completeResponse.status}. ${raw}`
         )
       }
 
-      if (!completeResponse.ok) {
+      if (
+        !completeResponse.ok
+      ) {
         throw new Error(
           `${stage}: HTTP ${completeResponse.status}. ${
             completeData?.error ||
@@ -333,30 +705,45 @@ export default function OwnerPropertyPage() {
         )
       }
 
-      setDone(true)
-      setProgress("")
-    } catch (err) {
+      setDone(
+        true
+      )
+
+      setProgress(
+        ""
+      )
+    } catch (
+      err
+    ) {
       console.error(
         "OWNER UPLOAD ERROR",
         {
           stage,
-          error: err,
+          error:
+            err,
         }
       )
 
-      setProgress("")
+      setProgress(
+        ""
+      )
 
       setError(
-        err instanceof Error
+        err instanceof
+        Error
           ? err.message
           : `${stage}: Ocurrió un error.`
       )
     } finally {
-      setUploading(false)
+      setUploading(
+        false
+      )
     }
   }
 
-  if (done) {
+  if (
+    done
+  ) {
     return (
       <>
         <style jsx global>{`
@@ -630,7 +1017,9 @@ export default function OwnerPropertyPage() {
               type="file"
               multiple
               accept="image/*,video/*"
-              onChange={handleFiles}
+              onChange={
+                handleFiles
+              }
             />
 
             <div className="upload-icon">
@@ -652,7 +1041,8 @@ export default function OwnerPropertyPage() {
             </div>
           </label>
 
-          {previews.length > 0 && (
+          {previews.length >
+            0 && (
             <div className="preview-section">
               <div className="preview-head">
                 <strong>
@@ -661,7 +1051,8 @@ export default function OwnerPropertyPage() {
 
                 <span>
                   {files.length}{" "}
-                  {files.length === 1
+                  {files.length ===
+                  1
                     ? "archivo"
                     : "archivos"}
                 </span>
@@ -669,7 +1060,13 @@ export default function OwnerPropertyPage() {
 
               <div className="preview-grid">
                 {previews.map(
-                  ({ file, url }, index) => (
+                  (
+                    {
+                      file,
+                      url,
+                    },
+                    index
+                  ) => (
                     <div
                       className="preview-card"
                       key={`${file.name}-${index}`}
@@ -678,26 +1075,35 @@ export default function OwnerPropertyPage() {
                         "video/"
                       ) ? (
                         <video
-                          src={url}
+                          src={
+                            url
+                          }
                           className="preview-media"
                           muted
                           playsInline
                         />
                       ) : (
                         <img
-                          src={url}
-                          alt={file.name}
+                          src={
+                            url
+                          }
+                          alt={
+                            file.name
+                          }
                           className="preview-media"
                         />
                       )}
 
                       <div className="preview-meta">
                         <span>
-                          {index + 1}
+                          {index +
+                            1}
                         </span>
 
                         <small>
-                          {file.name}
+                          {
+                            file.name
+                          }
                         </small>
                       </div>
                     </div>
@@ -721,10 +1127,13 @@ export default function OwnerPropertyPage() {
 
           <button
             className="publish-button"
-            onClick={uploadAll}
+            onClick={
+              uploadAll
+            }
             disabled={
               uploading ||
-              files.length === 0
+              files.length ===
+                0
             }
           >
             {uploading
