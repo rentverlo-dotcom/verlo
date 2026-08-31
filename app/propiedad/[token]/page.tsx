@@ -128,6 +128,9 @@ export default function OwnerPropertyPage() {
 
     const uploaded: UploadedMedia[] = []
 
+    let stage =
+      "INICIO"
+
     try {
       for (
         let i = 0;
@@ -140,52 +143,112 @@ export default function OwnerPropertyPage() {
           `Subiendo ${i + 1} de ${files.length}...`
         )
 
-        const signResponse =
-          await fetch(
-            "/api/owner-property-upload",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                token,
-                filename: file.name,
-                contentType: file.type,
-              }),
-            }
-          )
+        // =====================================================
+        // ETAPA 1
+        // PEDIR URL FIRMADA A VERLO
+        // =====================================================
 
-        const signData =
-          await signResponse.json()
+        stage =
+          `ETAPA 1 - owner-property-upload - archivo ${i + 1}`
+
+        let signResponse: Response
+
+        try {
+          signResponse =
+            await fetch(
+              "/api/owner-property-upload",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+                body: JSON.stringify({
+                  token,
+                  filename: file.name,
+                  contentType: file.type,
+                }),
+              }
+            )
+        } catch (fetchError) {
+          throw new Error(
+            `${stage}: FETCH FALLÓ. ${
+              fetchError instanceof Error
+                ? fetchError.message
+                : String(fetchError)
+            }`
+          )
+        }
+
+        let signData: any = null
+
+        try {
+          signData =
+            await signResponse.json()
+        } catch {
+          const raw =
+            await signResponse
+              .text()
+              .catch(() => "")
+
+          throw new Error(
+            `${stage}: respuesta inválida. HTTP ${signResponse.status}. ${raw}`
+          )
+        }
 
         if (
           !signResponse.ok ||
           !signData?.upload_url
         ) {
           throw new Error(
-            signData?.error ||
+            `${stage}: HTTP ${signResponse.status}. ${
+              signData?.error ||
               "No se pudo preparar la carga."
+            }`
           )
         }
 
-        const uploadResponse =
-          await fetch(
-            signData.upload_url,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type":
-                  file.type,
-              },
-              body: file,
-            }
+        // =====================================================
+        // ETAPA 2
+        // SUBIDA DIRECTA DEL ARCHIVO A R2
+        // =====================================================
+
+        stage =
+          `ETAPA 2 - PUT R2 - archivo ${i + 1} - ${file.name}`
+
+        let uploadResponse: Response
+
+        try {
+          uploadResponse =
+            await fetch(
+              signData.upload_url,
+              {
+                method: "PUT",
+                headers: {
+                  "Content-Type":
+                    file.type,
+                },
+                body: file,
+              }
+            )
+        } catch (fetchError) {
+          throw new Error(
+            `${stage}: FETCH FALLÓ. ${
+              fetchError instanceof Error
+                ? fetchError.message
+                : String(fetchError)
+            }`
           )
+        }
 
         if (!uploadResponse.ok) {
+          const uploadText =
+            await uploadResponse
+              .text()
+              .catch(() => "")
+
           throw new Error(
-            `No se pudo subir ${file.name}.`
+            `${stage}: HTTP ${uploadResponse.status}. ${uploadText || "R2 rechazó la subida."}`
           )
         }
 
@@ -209,41 +272,84 @@ export default function OwnerPropertyPage() {
         "Guardando tu propiedad..."
       )
 
-      const completeResponse =
-        await fetch(
-          "/api/owner-completion",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              token,
-              media: uploaded,
-            }),
-          }
-        )
+      // =======================================================
+      // ETAPA 3
+      // FINALIZAR COMPLETION
+      // =======================================================
 
-      const completeData =
-        await completeResponse.json()
+      stage =
+        "ETAPA 3 - owner-completion"
+
+      let completeResponse: Response
+
+      try {
+        completeResponse =
+          await fetch(
+            "/api/owner-completion",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                token,
+                media: uploaded,
+              }),
+            }
+          )
+      } catch (fetchError) {
+        throw new Error(
+          `${stage}: FETCH FALLÓ. ${
+            fetchError instanceof Error
+              ? fetchError.message
+              : String(fetchError)
+          }`
+        )
+      }
+
+      let completeData: any = null
+
+      try {
+        completeData =
+          await completeResponse.json()
+      } catch {
+        const raw =
+          await completeResponse
+            .text()
+            .catch(() => "")
+
+        throw new Error(
+          `${stage}: respuesta inválida. HTTP ${completeResponse.status}. ${raw}`
+        )
+      }
 
       if (!completeResponse.ok) {
         throw new Error(
-          completeData?.error ||
+          `${stage}: HTTP ${completeResponse.status}. ${
+            completeData?.error ||
             "Las fotos se subieron pero no pudimos finalizar."
+          }`
         )
       }
 
       setDone(true)
       setProgress("")
     } catch (err) {
-      console.error(err)
+      console.error(
+        "OWNER UPLOAD ERROR",
+        {
+          stage,
+          error: err,
+        }
+      )
+
+      setProgress("")
 
       setError(
         err instanceof Error
           ? err.message
-          : "Ocurrió un error."
+          : `${stage}: Ocurrió un error.`
       )
     } finally {
       setUploading(false)
