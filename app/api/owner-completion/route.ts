@@ -92,6 +92,14 @@ export async function POST(
 
     // =========================================================
     // 1. VALIDAR TOKEN DE CARGA DEL OWNER
+    //
+    // IMPORTANTE:
+    //
+    // Este token NO se revoca al subir multimedia.
+    //
+    // El propietario tiene que poder volver al mismo enlace
+    // y seguir agregando fotos/videos mientras el token
+    // no esté vencido o revocado manualmente.
     // =========================================================
 
     const {
@@ -187,81 +195,68 @@ export async function POST(
       accessToken.completion_id
 
     // =========================================================
-    // 2. VALIDAR QUE LA PROPIEDAD YA TENGA AL MENOS UNA FOTO
+    // 2. LEER MULTIMEDIA YA EXISTENTE
     //
-    // NUEVO FLUJO:
+    // La propiedad necesita como mínimo UNA pieza multimedia:
     //
-    // El owner ya tuvo que cargar al menos una foto
-    // en el formulario inicial.
+    // - foto
+    // - video
     //
-    // En esta segunda etapa puede subir más fotos/videos,
-    // pero NO está obligado a agregar otra foto.
+    // Puede haber sido cargada previamente o venir ahora.
     // =========================================================
 
     const {
-      data: existingOwnerPhotos,
-      error: existingOwnerPhotosError,
+      data: existingMediaBefore,
+      error: existingMediaBeforeError,
     } = await supabase
       .from(
         "owner_property_media"
       )
       .select(`
         id,
-        r2_key
+        r2_key,
+        media_type
       `)
       .eq(
         "lead_id",
         ownerLeadId
       )
-      .eq(
-        "media_type",
-        "photo"
-      )
-      .limit(1)
 
     if (
-      existingOwnerPhotosError
+      existingMediaBeforeError
     ) {
       throw new Error(
-        existingOwnerPhotosError.message
+        existingMediaBeforeError.message
       )
     }
 
-    const incomingHasPhoto =
+    const hadMediaBefore =
+      Boolean(
+        existingMediaBefore &&
+        existingMediaBefore.length > 0
+      )
+
+    const incomingHasMedia =
       (
         media as MediaItem[]
       ).some(
         (item) =>
-          item?.key &&
-          (
-            item.mediaType ===
-              "photo" ||
-            (
-              !item.mediaType &&
-              !item.contentType
-                ?.startsWith(
-                  "video/"
-                )
+          Boolean(
+            clean(
+              item?.key
             )
           )
       )
 
-    const hasExistingPhoto =
-      Boolean(
-        existingOwnerPhotos &&
-        existingOwnerPhotos.length >
-          0
-      )
-
     if (
-      !hasExistingPhoto &&
-      !incomingHasPhoto
+      !hadMediaBefore &&
+      !incomingHasMedia
     ) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            "At least one property photo is required",
+            "At least one property photo or video is required",
         },
         {
           status: 400,
@@ -271,6 +266,10 @@ export async function POST(
 
     // =========================================================
     // 3. MARCAR PROPIEDAD COMPLETA
+    //
+    // submitted significa que el owner ya completó esta etapa.
+    //
+    // NO significa que no pueda volver a cargar multimedia.
     // =========================================================
 
     const {
@@ -312,48 +311,13 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. GUARDAR MEDIA ADICIONAL SIN DUPLICAR
-    //
-    // IMPORTANTE:
-    //
-    // Las fotos iniciales siguen vinculadas al owner por lead_id
-    // y pueden tener completion_id = null.
-    //
-    // Las fotos/videos agregados ahora sí quedan vinculados
-    // a esta completion.
-    //
-    // tenant-matches-view busca toda la media por lead_id,
-    // por lo que ambas conviven correctamente.
+    // 4. PREPARAR MULTIMEDIA NUEVA SIN DUPLICAR
     // =========================================================
-
-    const {
-      data: existingMedia,
-      error:
-        existingMediaError,
-    } = await supabase
-      .from(
-        "owner_property_media"
-      )
-      .select(
-        "r2_key"
-      )
-      .eq(
-        "lead_id",
-        ownerLeadId
-      )
-
-    if (
-      existingMediaError
-    ) {
-      throw new Error(
-        existingMediaError.message
-      )
-    }
 
     const existingKeys =
       new Set(
         (
-          existingMedia ||
+          existingMediaBefore ||
           []
         ).map(
           (item) =>
@@ -368,69 +332,93 @@ export async function POST(
         media as MediaItem[]
       )
         .filter(
-          (item) =>
-            item?.key &&
-            !existingKeys.has(
+          (item) => {
+            const key =
               clean(
-                item.key
+                item?.key
+              )
+
+            return (
+              Boolean(key) &&
+              !existingKeys.has(
+                key
               )
             )
+          }
         )
         .map(
           (
             item,
             index
-          ) => ({
-            completion_id:
-              completionId,
-
-            lead_id:
-              ownerLeadId,
-
-            owner_prospect_id:
-              null,
-
-            match_id:
-              null,
-
-            media_type:
-              item.mediaType ||
-              (
+          ) => {
+            const contentType =
+              clean(
                 item.contentType
-                  ?.startsWith(
-                    "video/"
-                  )
-                  ? "video"
-                  : "photo"
-              ),
+              )
 
-            r2_bucket:
-              r2Bucket,
+            const mediaType =
+              item.mediaType ===
+              "video"
+                ? "video"
+                : item.mediaType ===
+                  "photo"
+                  ? "photo"
+                  : contentType.startsWith(
+                        "video/"
+                      )
+                    ? "video"
+                    : "photo"
 
-            r2_key:
-              item.key,
+            return {
+              completion_id:
+                completionId,
 
-            public_url:
-              item.publicUrl ||
-              null,
+              lead_id:
+                ownerLeadId,
 
-            original_filename:
-              item.filename ||
-              null,
+              owner_prospect_id:
+                null,
 
-            content_type:
-              item.contentType ||
-              null,
+              match_id:
+                null,
 
-            size_bytes:
-              item.size ||
-              null,
+              media_type:
+                mediaType,
 
-            position:
-              existingKeys.size +
-              index,
-          })
+              r2_bucket:
+                r2Bucket,
+
+              r2_key:
+                clean(
+                  item.key
+                ),
+
+              public_url:
+                item.publicUrl ||
+                null,
+
+              original_filename:
+                item.filename ||
+                null,
+
+              content_type:
+                item.contentType ||
+                null,
+
+              size_bytes:
+                item.size ||
+                null,
+
+              position:
+                existingKeys.size +
+                index,
+            }
+          }
         )
+
+    // =========================================================
+    // 5. GUARDAR MULTIMEDIA NUEVA
+    // =========================================================
 
     if (
       cleanMedia.length >
@@ -468,50 +456,44 @@ export async function POST(
     }
 
     // =========================================================
-    // 5. CONFIRMAR QUE SIGUE EXISTIENDO AL MENOS UNA FOTO
-    //
-    // Esto también contempla una eventual llamada donde
-    // la primera foto venga junto con esta completion.
+    // 6. CONFIRMAR QUE EXISTE AL MENOS UNA FOTO O VIDEO
     // =========================================================
 
     const {
-      data: finalPhotoCheck,
-      error: finalPhotoCheckError,
+      data: finalMediaCheck,
+      error: finalMediaCheckError,
     } = await supabase
       .from(
         "owner_property_media"
       )
       .select(`
-        id
+        id,
+        media_type
       `)
       .eq(
         "lead_id",
         ownerLeadId
       )
-      .eq(
-        "media_type",
-        "photo"
-      )
       .limit(1)
 
     if (
-      finalPhotoCheckError
+      finalMediaCheckError
     ) {
       throw new Error(
-        finalPhotoCheckError.message
+        finalMediaCheckError.message
       )
     }
 
     if (
-      !finalPhotoCheck ||
-      finalPhotoCheck.length ===
+      !finalMediaCheck ||
+      finalMediaCheck.length ===
         0
     ) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            "Property requires at least one photo",
+            "Property requires at least one photo or video",
         },
         {
           status: 409,
@@ -520,7 +502,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 6. MATCHES DE ESTA PROPIEDAD
+    // 7. BUSCAR MATCHES DE ESTA PROPIEDAD
     // =========================================================
 
     const {
@@ -567,70 +549,14 @@ export async function POST(
       )
     }
 
-    // =========================================================
-    // 7. SI NO HAY MATCHES
-    //
-    // La completion igualmente queda submitted.
-    // Cerramos el token y terminamos.
-    // =========================================================
-
-    if (
-      !matches ||
-      matches.length ===
-        0
-    ) {
-      await supabase
-        .from(
-          "owner_property_access_tokens"
-        )
-        .update({
-          revoked_at:
-            new Date()
-              .toISOString(),
-        })
-        .eq(
-          "id",
-          accessToken.id
-        )
-
-      return NextResponse.json({
-        ok: true,
-
-        owner_lead_id:
-          ownerLeadId,
-
-        completion_id:
-          completionId,
-
-        media_added:
-          cleanMedia.length,
-
-        has_photo:
-          true,
-
-        matches_found:
-          0,
-
-        owner_completed_matches:
-          0,
-
-        tenants_notified:
-          0,
-      })
-    }
+    const activeMatches =
+      matches || []
 
     // =========================================================
     // 8. MARCAR OWNER COMPLETO EN TODOS SUS MATCHES
     //
-    // owner_completed_at ahora significa:
-    //
-    // "El propietario completó la segunda etapa".
-    //
-    // YA NO significa:
-    // "recién ahora el tenant puede ver la propiedad".
-    //
-    // El tenant pudo verla antes, desde que existió
-    // match >= 80 + al menos una foto inicial.
+    // Si ya estaba completo, simplemente actualizamos
+    // owner_completed_at.
     // =========================================================
 
     const now =
@@ -638,92 +564,186 @@ export async function POST(
         .toISOString()
 
     const matchIds =
-      matches.map(
+      activeMatches.map(
         (match) =>
           match.id
       )
 
-    const {
-      error:
-        ownerCompletedError,
-    } = await supabase
-      .from(
-        "lead_matches"
-      )
-      .update({
-        owner_completed_at:
-          now,
-      })
-      .in(
-        "id",
-        matchIds
-      )
-
     if (
-      ownerCompletedError
+      matchIds.length >
+      0
     ) {
-      throw new Error(
+      const {
+        error:
+          ownerCompletedError,
+      } = await supabase
+        .from(
+          "lead_matches"
+        )
+        .update({
+          owner_completed_at:
+            now,
+        })
+        .in(
+          "id",
+          matchIds
+        )
+
+      if (
         ownerCompletedError
-          .message
-      )
+      ) {
+        throw new Error(
+          ownerCompletedError.message
+        )
+      }
     }
 
     // =========================================================
-    // 9. NO VOLVER A NOTIFICAR AL TENANT
+    // 9. NOTIFICAR TENANTS CUANDO APARECE LA PRIMERA MULTIMEDIA
     //
-    // FLUJO NUEVO:
+    // IMPORTANTE:
     //
-    // FORM OWNER INICIAL
-    // ↓
-    // MATCH
-    // ↓
-    // FOTO INICIAL GUARDADA
-    // ↓
-    // owner-initial-media
-    // ↓
-    // pilot-matches notify_roles:["tenant"]
-    // ↓
-    // TENANT RECIBE SU WHATSAPP
+    // NO notificamos nuevamente cada vez que el owner agrega
+    // otra foto o video.
     //
-    // Por lo tanto esta completion NO debe volver a mandar
-    // GHL_TENANT_MATCH_READY_WEBHOOK_URL ni generar otra
-    // notificación del mismo match.
+    // Solo hacemos la llamada cuando:
     //
-    // Esta etapa solamente enriquece la propiedad y marca
-    // owner_completed_at.
+    // - antes no tenía multimedia
+    // - ahora sí tiene multimedia
+    //
+    // pilot-matches sigue siendo quien decide qué tenant
+    // realmente puede entrar al flujo.
     // =========================================================
 
-    // =========================================================
-    // 10. CERRAR TOKEN DE CARGA DEL OWNER
-    // =========================================================
+    let tenantNotificationAttempted =
+      false
 
-    const {
-      error: revokeError,
-    } = await supabase
-      .from(
-        "owner_property_access_tokens"
-      )
-      .update({
-        revoked_at:
-          new Date()
-            .toISOString(),
-      })
-      .eq(
-        "id",
-        accessToken.id
-      )
+    let tenantNotificationOk =
+      false
+
+    let tenantNotificationStatus:
+      number | null =
+      null
+
+    let tenantNotificationResponse:
+      unknown =
+      null
 
     if (
-      revokeError
+      !hadMediaBefore &&
+      cleanMedia.length > 0 &&
+      matchIds.length > 0
     ) {
-      console.error(
-        "owner property token revoke error:",
-        revokeError
-      )
+      tenantNotificationAttempted =
+        true
+
+      try {
+        const origin =
+          new URL(
+            request.url
+          ).origin
+
+        const pilotResponse =
+          await fetch(
+            `${origin}/api/pilot-matches`,
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  send: true,
+
+                  lead_ids: [
+                    ownerLeadId,
+                  ],
+
+                  notify_roles: [
+                    "tenant",
+                  ],
+                }),
+            }
+          )
+
+        tenantNotificationStatus =
+          pilotResponse.status
+
+        const pilotData =
+          await pilotResponse
+            .json()
+            .catch(
+              async () => {
+                const text =
+                  await pilotResponse
+                    .text()
+                    .catch(
+                      () =>
+                        ""
+                    )
+
+                return {
+                  raw:
+                    text,
+                }
+              }
+            )
+
+        tenantNotificationResponse =
+          pilotData
+
+        tenantNotificationOk =
+          pilotResponse.ok
+
+        if (
+          !pilotResponse.ok
+        ) {
+          console.error(
+            "tenant notification after owner media failed:",
+            {
+              status:
+                pilotResponse.status,
+
+              response:
+                pilotData,
+
+              ownerLeadId,
+            }
+          )
+        }
+      } catch (
+        notificationError
+      ) {
+        console.error(
+          "tenant notification after owner media error:",
+          notificationError
+        )
+
+        tenantNotificationResponse =
+          notificationError instanceof
+          Error
+            ? notificationError.message
+            : String(
+                notificationError
+              )
+      }
     }
 
     // =========================================================
-    // 11. CONTAR MEDIA TOTAL ACTUAL DE LA PROPIEDAD
+    // 10. TOKEN
+    //
+    // NO SE REVOCA.
+    //
+    // El owner puede volver al mismo link y seguir cargando
+    // fotos/videos mientras expires_at siga vigente.
+    // =========================================================
+
+    // =========================================================
+    // 11. CONTAR MULTIMEDIA TOTAL ACTUAL
     // =========================================================
 
     const {
@@ -794,22 +814,45 @@ export async function POST(
       total_videos:
         totalVideos,
 
+      has_media:
+        totalMedia.length >
+        0,
+
       has_photo:
-        totalPhotos > 0,
+        totalPhotos >
+        0,
+
+      has_video:
+        totalVideos >
+        0,
 
       matches_found:
-        matches.length,
+        activeMatches.length,
 
       owner_completed_matches:
         matchIds.length,
 
-      tenants_notified:
-        0,
+      token_reusable:
+        true,
 
-      tenant_notification:
-        "handled_before_completion",
+      token_expires_at:
+        accessToken.expires_at,
+
+      tenant_notification_attempted:
+        tenantNotificationAttempted,
+
+      tenant_notification_ok:
+        tenantNotificationOk,
+
+      tenant_notification_status:
+        tenantNotificationStatus,
+
+      tenant_notification_response:
+        tenantNotificationResponse,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "owner completion error:",
       error
@@ -818,8 +861,12 @@ export async function POST(
     return NextResponse.json(
       {
         ok: false,
+
         error:
-          "Unexpected server error",
+          error instanceof
+          Error
+            ? error.message
+            : "Unexpected server error",
       },
       {
         status: 500,
