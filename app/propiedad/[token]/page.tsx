@@ -22,218 +22,102 @@ type UploadedMedia = {
   mediaType: "photo" | "video"
 }
 
-const MAX_DIRECT_SERVER_FILE_SIZE =
-  3 * 1024 * 1024
-
-const MAX_IMAGE_DIMENSION =
-  1800
-
-function createImageElement(
-  url: string
+function uploadFileToR2(
+  uploadUrl: string,
+  file: File,
+  onProgress?: (
+    percent: number
+  ) => void
 ) {
-  return new Promise<HTMLImageElement>(
+  return new Promise<void>(
     (
       resolve,
       reject
     ) => {
-      const image =
-        new Image()
+      const xhr =
+        new XMLHttpRequest()
 
-      image.onload =
-        () =>
-          resolve(
-            image
+      xhr.open(
+        "PUT",
+        uploadUrl,
+        true
+      )
+
+      xhr.timeout = 0
+
+      xhr.upload.onprogress =
+        (
+          event
+        ) => {
+          if (
+            !event.lengthComputable
+          ) {
+            return
+          }
+
+          const percent =
+            Math.round(
+              (
+                event.loaded /
+                event.total
+              ) *
+                100
+            )
+
+          onProgress?.(
+            percent
           )
+        }
 
-      image.onerror =
-        () =>
+      xhr.onload =
+        () => {
+          if (
+            xhr.status >= 200 &&
+            xhr.status < 300
+          ) {
+            resolve()
+            return
+          }
+
           reject(
             new Error(
-              "No pudimos procesar esta imagen."
+              `R2 rechazó la carga. HTTP ${xhr.status}. ${xhr.responseText || ""}`
             )
           )
+        }
 
-      image.src =
-        url
+      xhr.onerror =
+        () => {
+          reject(
+            new Error(
+              "No se pudo conectar con R2 para subir el archivo."
+            )
+          )
+        }
+
+      xhr.onabort =
+        () => {
+          reject(
+            new Error(
+              "La carga fue cancelada."
+            )
+          )
+        }
+
+      xhr.ontimeout =
+        () => {
+          reject(
+            new Error(
+              "La carga agotó el tiempo de espera."
+            )
+          )
+        }
+
+      xhr.send(
+        file
+      )
     }
   )
-}
-
-async function compressImage(
-  file: File
-) {
-  if (
-    !file.type.startsWith(
-      "image/"
-    )
-  ) {
-    return file
-  }
-
-  if (
-    file.size <=
-    MAX_DIRECT_SERVER_FILE_SIZE
-  ) {
-    return file
-  }
-
-  const objectUrl =
-    URL.createObjectURL(
-      file
-    )
-
-  try {
-    const image =
-      await createImageElement(
-        objectUrl
-      )
-
-    let width =
-      image.naturalWidth
-
-    let height =
-      image.naturalHeight
-
-    if (
-      width >
-        MAX_IMAGE_DIMENSION ||
-      height >
-        MAX_IMAGE_DIMENSION
-    ) {
-      const scale =
-        Math.min(
-          MAX_IMAGE_DIMENSION /
-            width,
-
-          MAX_IMAGE_DIMENSION /
-            height
-        )
-
-      width =
-        Math.round(
-          width *
-            scale
-        )
-
-      height =
-        Math.round(
-          height *
-            scale
-        )
-    }
-
-    const canvas =
-      document.createElement(
-        "canvas"
-      )
-
-    canvas.width =
-      width
-
-    canvas.height =
-      height
-
-    const context =
-      canvas.getContext(
-        "2d"
-      )
-
-    if (
-      !context
-    ) {
-      throw new Error(
-        "No pudimos preparar la imagen."
-      )
-    }
-
-    context.drawImage(
-      image,
-      0,
-      0,
-      width,
-      height
-    )
-
-    const createBlob =
-      (
-        quality:
-          number
-      ) =>
-        new Promise<Blob | null>(
-          (
-            resolve
-          ) => {
-            canvas.toBlob(
-              resolve,
-              "image/jpeg",
-              quality
-            )
-          }
-        )
-
-    let quality =
-      0.86
-
-    let blob =
-      await createBlob(
-        quality
-      )
-
-    while (
-      blob &&
-      blob.size >
-        MAX_DIRECT_SERVER_FILE_SIZE &&
-      quality >
-        0.5
-    ) {
-      quality -=
-        0.08
-
-      blob =
-        await createBlob(
-          quality
-        )
-    }
-
-    if (!blob) {
-      throw new Error(
-        "No pudimos comprimir la imagen."
-      )
-    }
-
-    if (
-      blob.size >
-      MAX_DIRECT_SERVER_FILE_SIZE
-    ) {
-      throw new Error(
-        "La foto es demasiado pesada. Elegí otra foto."
-      )
-    }
-
-    const baseName =
-      file.name.replace(
-        /\.[^.]+$/,
-        ""
-      )
-
-    return new File(
-      [
-        blob,
-      ],
-      `${baseName}.jpg`,
-      {
-        type:
-          "image/jpeg",
-
-        lastModified:
-          Date.now(),
-      }
-    )
-  } finally {
-    URL.revokeObjectURL(
-      objectUrl
-    )
-  }
 }
 
 export default function OwnerPropertyPage() {
@@ -447,91 +331,75 @@ export default function OwnerPropertyPage() {
         files.length;
         i++
       ) {
-        const originalFile =
+        const file =
           files[i]
 
-        setProgress(
-          `Preparando ${i + 1} de ${files.length}...`
-        )
+        const isPhoto =
+          file.type.startsWith(
+            "image/"
+          )
+
+        const isVideo =
+          file.type.startsWith(
+            "video/"
+          )
+
+        if (
+          !isPhoto &&
+          !isVideo
+        ) {
+          throw new Error(
+            `El archivo ${file.name} no es una foto ni un video compatible.`
+          )
+        }
 
         // =====================================================
         // ETAPA 1
-        // PREPARAR ARCHIVO
+        // PEDIR A VERLO UNA URL FIRMADA PARA R2
         //
-        // Fotos chicas quedan intactas.
-        // Fotos grandes se reducen antes de enviarse a Vercel.
+        // Solo enviamos metadata.
+        // El archivo NO pasa por Vercel.
+        // No hay límite artificial de 3 MB.
         // =====================================================
 
         stage =
           `ETAPA 1 - preparar archivo ${i + 1}`
 
-        let file =
-          originalFile
-
-        if (
-          originalFile.type.startsWith(
-            "image/"
-          )
-        ) {
-          file =
-            await compressImage(
-              originalFile
-            )
-        }
-
-        if (
-          file.type.startsWith(
-            "video/"
-          ) &&
-          file.size >
-            MAX_DIRECT_SERVER_FILE_SIZE
-        ) {
-          throw new Error(
-            `ETAPA 1 - El video ${file.name} es demasiado pesado para esta carga. Probá primero con fotos.`
-          )
-        }
-
         setProgress(
-          `Subiendo ${i + 1} de ${files.length}...`
+          `Preparando ${i + 1} de ${files.length}...`
         )
 
-        // =====================================================
-        // ETAPA 2
-        // MÓVIL / BROWSER -> VERLO
-        //
-        // YA NO EXISTE UN FETCH DIRECTO A R2.
-        // =====================================================
-
-        stage =
-          `ETAPA 2 - subir a Verlo - archivo ${i + 1}`
-
-        const uploadFormData =
-          new FormData()
-
-        uploadFormData.append(
-          "token",
-          token
-        )
-
-        uploadFormData.append(
-          "file",
-          file,
-          file.name
-        )
-
-        let uploadResponse:
+        let signResponse:
           Response
 
         try {
-          uploadResponse =
+          signResponse =
             await fetch(
               "/api/owner-property-upload",
               {
                 method:
                   "POST",
 
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
                 body:
-                  uploadFormData,
+                  JSON.stringify(
+                    {
+                      token,
+
+                      filename:
+                        file.name,
+
+                      contentType:
+                        file.type,
+
+                      size:
+                        file.size,
+                    }
+                  ),
               }
             )
         } catch (
@@ -549,69 +417,87 @@ export default function OwnerPropertyPage() {
           )
         }
 
-        let uploadData:
-          any =
-          null
-
-        try {
-          uploadData =
-            await uploadResponse.json()
-        } catch {
-          const raw =
-            await uploadResponse
-              .text()
-              .catch(
-                () =>
-                  ""
-              )
-
-          throw new Error(
-            `${stage}: respuesta inválida. HTTP ${uploadResponse.status}. ${raw}`
-          )
-        }
+        const signData =
+          await signResponse
+            .json()
+            .catch(
+              () =>
+                null
+            )
 
         if (
-          !uploadResponse.ok ||
-          !uploadData?.ok ||
-          !uploadData?.key
+          !signResponse.ok ||
+          !signData?.ok ||
+          !signData?.upload_url ||
+          !signData?.key
         ) {
           throw new Error(
-            `${stage}: HTTP ${uploadResponse.status}. ${
-              uploadData?.error ||
-              "No se pudo subir el archivo."
-            }${
-              uploadData?.detail
-                ? ` ${uploadData.detail}`
-                : ""
+            `${stage}: HTTP ${signResponse.status}. ${
+              signData?.error ||
+              "No se pudo preparar el archivo."
             }`
           )
         }
 
+        // =====================================================
+        // ETAPA 2
+        // DESKTOP / MÓVIL -> R2 DIRECTO
+        //
+        // Usamos XMLHttpRequest para una carga binaria simple.
+        // NO seteamos Content-Type manualmente.
+        // NO comprimimos.
+        // NO ponemos límite de tamaño.
+        // NO mandamos el archivo a Vercel.
+        // =====================================================
+
+        stage =
+          `ETAPA 2 - subir a R2 - archivo ${i + 1}`
+
+        await uploadFileToR2(
+          String(
+            signData.upload_url
+          ),
+          file,
+          (
+            percent
+          ) => {
+            setProgress(
+              `Subiendo ${i + 1} de ${files.length}: ${percent}%`
+            )
+          }
+        )
+
         uploaded.push(
           {
             key:
-              uploadData.key,
-
-            publicUrl:
-              uploadData.public_url ||
-              null,
-
-            filename:
-              uploadData.filename ||
-              file.name,
-
-            contentType:
-              uploadData.content_type ||
-              file.type,
-
-            size:
-              Number(
-                uploadData.size ||
-                  file.size
+              String(
+                signData.key
               ),
 
+            publicUrl:
+              signData.public_url
+                ? String(
+                    signData.public_url
+                  )
+                : null,
+
+            filename:
+              String(
+                signData.filename ||
+                  file.name
+              ),
+
+            contentType:
+              String(
+                signData.content_type ||
+                  file.type
+              ),
+
+            size:
+              file.size,
+
             mediaType:
-              uploadData.media_type ===
+              signData.media_type ===
               "video"
                 ? "video"
                 : "photo",
@@ -619,17 +505,17 @@ export default function OwnerPropertyPage() {
         )
       }
 
-      setProgress(
-        "Guardando tu propiedad..."
-      )
-
       // =======================================================
       // ETAPA 3
-      // FINALIZAR COMPLETION
+      // GUARDAR METADATA / COMPLETION
       // =======================================================
 
       stage =
         "ETAPA 3 - owner-completion"
+
+      setProgress(
+        "Guardando tu propiedad..."
+      )
 
       let completeResponse:
         Response
@@ -673,34 +559,22 @@ export default function OwnerPropertyPage() {
         )
       }
 
-      let completeData:
-        any =
-        null
-
-      try {
-        completeData =
-          await completeResponse.json()
-      } catch {
-        const raw =
-          await completeResponse
-            .text()
-            .catch(
-              () =>
-                ""
-            )
-
-        throw new Error(
-          `${stage}: respuesta inválida. HTTP ${completeResponse.status}. ${raw}`
-        )
-      }
+      const completeData =
+        await completeResponse
+          .json()
+          .catch(
+            () =>
+              null
+          )
 
       if (
-        !completeResponse.ok
+        !completeResponse.ok ||
+        !completeData?.ok
       ) {
         throw new Error(
           `${stage}: HTTP ${completeResponse.status}. ${
             completeData?.error ||
-            "Las fotos se subieron pero no pudimos finalizar."
+            "Los archivos se subieron pero no pudimos finalizar."
           }`
         )
       }
