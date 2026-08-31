@@ -1,14 +1,33 @@
 import crypto from "crypto"
 
-const accountId = process.env.R2_ACCOUNT_ID
-const accessKeyId = process.env.R2_ACCESS_KEY_ID
-const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY
-const bucket = process.env.R2_BUCKET || "verlo"
-const publicUrl = process.env.R2_PUBLIC_URL
-const prefix = process.env.R2_PREFIX || "Verlo MVP/"
+const accountId =
+  process.env.R2_ACCOUNT_ID
 
-if (!accountId || !accessKeyId || !secretAccessKey) {
-  throw new Error("Missing R2 env vars")
+const accessKeyId =
+  process.env.R2_ACCESS_KEY_ID
+
+const secretAccessKey =
+  process.env.R2_SECRET_ACCESS_KEY
+
+const bucket =
+  process.env.R2_BUCKET ||
+  "verlo"
+
+const publicUrl =
+  process.env.R2_PUBLIC_URL
+
+const prefix =
+  process.env.R2_PREFIX ||
+  "Verlo MVP/"
+
+if (
+  !accountId ||
+  !accessKeyId ||
+  !secretAccessKey
+) {
+  throw new Error(
+    "Missing R2 env vars"
+  )
 }
 
 function hmac(
@@ -16,22 +35,43 @@ function hmac(
   value: string
 ) {
   return crypto
-    .createHmac("sha256", key)
-    .update(value, "utf8")
+    .createHmac(
+      "sha256",
+      key
+    )
+    .update(
+      value,
+      "utf8"
+    )
     .digest()
 }
 
-function sha256Hex(value: string) {
+function sha256Hex(
+  value: string
+) {
   return crypto
-    .createHash("sha256")
-    .update(value, "utf8")
-    .digest("hex")
+    .createHash(
+      "sha256"
+    )
+    .update(
+      value,
+      "utf8"
+    )
+    .digest(
+      "hex"
+    )
 }
 
-function encodeRfc3986(value: string) {
-  return encodeURIComponent(value).replace(
+function encodeRfc3986(
+  value: string
+) {
+  return encodeURIComponent(
+    value
+  ).replace(
     /[!'()*]/g,
-    (char) =>
+    (
+      char
+    ) =>
       `%${char
         .charCodeAt(0)
         .toString(16)
@@ -39,10 +79,14 @@ function encodeRfc3986(value: string) {
   )
 }
 
-function encodeKeyForPath(key: string) {
+function encodeKeyForPath(
+  key: string
+) {
   return key
     .split("/")
-    .map(encodeRfc3986)
+    .map(
+      encodeRfc3986
+    )
     .join("/")
 }
 
@@ -50,20 +94,23 @@ function getSigningKey(
   secret: string,
   date: string
 ) {
-  const kDate = hmac(
-    `AWS4${secret}`,
-    date
-  )
+  const kDate =
+    hmac(
+      `AWS4${secret}`,
+      date
+    )
 
-  const kRegion = hmac(
-    kDate,
-    "auto"
-  )
+  const kRegion =
+    hmac(
+      kDate,
+      "auto"
+    )
 
-  const kService = hmac(
-    kRegion,
-    "s3"
-  )
+  const kService =
+    hmac(
+      kRegion,
+      "s3"
+    )
 
   return hmac(
     kService,
@@ -71,30 +118,83 @@ function getSigningKey(
   )
 }
 
-export function buildR2Key(params: {
-  folder: string
-  id: string
-  filename: string
-}) {
-  const safeFilename =
-    params.filename
+export function buildR2Key(
+  params: {
+    folder: string
+    id: string
+    filename: string
+  }
+) {
+  const original =
+    String(
+      params.filename ||
+        "archivo"
+    )
+
+  const extension =
+    original.includes(".")
+      ? `.${original
+          .split(".")
+          .pop()
+          ?.toLowerCase()
+          .replace(
+            /[^a-z0-9]/g,
+            ""
+          )}`
+      : ""
+
+  const base =
+    original
+      .replace(
+        /\.[^.]+$/,
+        ""
+      )
+      .normalize(
+        "NFD"
+      )
+      .replace(
+        /[\u0300-\u036f]/g,
+        ""
+      )
       .toLowerCase()
       .replace(
-        /[^a-z0-9.\-_]+/g,
+        /[^a-z0-9_-]+/g,
         "-"
       )
       .replace(
         /-+/g,
         "-"
       )
+      .replace(
+        /^-+|-+$/g,
+        ""
+      )
+      .slice(
+        0,
+        80
+      ) ||
+    "archivo"
 
-  return `${prefix}${params.folder}/${params.id}/${Date.now()}-${safeFilename}`
+  const random =
+    crypto
+      .randomBytes(8)
+      .toString("hex")
+
+  return (
+    `${prefix}` +
+    `${params.folder}/` +
+    `${params.id}/` +
+    `${Date.now()}-` +
+    `${random}-` +
+    `${base}` +
+    `${extension}`
+  )
 }
 
 export async function createR2UploadUrl(
   params: {
     key: string
-    contentType: string
+    contentType?: string
   }
 ) {
   const now =
@@ -109,7 +209,10 @@ export async function createR2UploadUrl(
       )
 
   const dateStamp =
-    amzDate.slice(0, 8)
+    amzDate.slice(
+      0,
+      8
+    )
 
   const host =
     `${accountId}.r2.cloudflarestorage.com`
@@ -125,6 +228,17 @@ export async function createR2UploadUrl(
   const canonicalUri =
     `/${bucket}/${encodedKey}`
 
+  /*
+   * IMPORTANTE:
+   *
+   * Firmamos SOLO host.
+   *
+   * NO firmamos Content-Type.
+   *
+   * Esto evita que Android / iOS / Chrome / Safari
+   * rompan la firma si interpretan el MIME de una
+   * foto o video de forma levemente diferente.
+   */
   const queryParams:
     Record<
       string,
@@ -139,11 +253,18 @@ export async function createR2UploadUrl(
     "X-Amz-Date":
       amzDate,
 
+    /*
+     * Una hora.
+     *
+     * Permite videos grandes / conexiones móviles
+     * lentas sin que la autorización muera a los
+     * cinco minutos.
+     */
     "X-Amz-Expires":
-      "300",
+      "3600",
 
     "X-Amz-SignedHeaders":
-      "content-type;host",
+      "host",
   }
 
   const canonicalQueryString =
@@ -152,7 +273,9 @@ export async function createR2UploadUrl(
     )
       .sort()
       .map(
-        (key) =>
+        (
+          key
+        ) =>
           `${encodeRfc3986(
             key
           )}=${encodeRfc3986(
@@ -164,11 +287,10 @@ export async function createR2UploadUrl(
       .join("&")
 
   const canonicalHeaders =
-    `content-type:${params.contentType}\n` +
     `host:${host}\n`
 
   const signedHeaders =
-    "content-type;host"
+    "host"
 
   const payloadHash =
     "UNSIGNED-PAYLOAD"
@@ -209,7 +331,9 @@ export async function createR2UploadUrl(
         stringToSign,
         "utf8"
       )
-      .digest("hex")
+      .digest(
+        "hex"
+      )
 
   return (
     `https://${host}` +
@@ -227,7 +351,8 @@ export async function createR2ReadUrl(
 ) {
   const key =
     String(
-      params.key || ""
+      params.key ||
+        ""
     ).trim()
 
   if (!key) {
@@ -308,7 +433,9 @@ export async function createR2ReadUrl(
     )
       .sort()
       .map(
-        (queryKey) =>
+        (
+          queryKey
+        ) =>
           `${encodeRfc3986(
             queryKey
           )}=${encodeRfc3986(
@@ -364,7 +491,9 @@ export async function createR2ReadUrl(
         stringToSign,
         "utf8"
       )
-      .digest("hex")
+      .digest(
+        "hex"
+      )
 
   return (
     `https://${host}` +
