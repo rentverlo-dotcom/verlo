@@ -69,9 +69,7 @@ function encodeRfc3986(
     value
   ).replace(
     /[!'()*]/g,
-    (
-      char
-    ) =>
+    (char) =>
       `%${char
         .charCodeAt(0)
         .toString(16)
@@ -125,26 +123,24 @@ export function buildR2Key(
     filename: string
   }
 ) {
-  const original =
+  const originalFilename =
     String(
       params.filename ||
         "archivo"
     )
 
+  const extensionMatch =
+    originalFilename.match(
+      /\.([a-zA-Z0-9]+)$/
+    )
+
   const extension =
-    original.includes(".")
-      ? `.${original
-          .split(".")
-          .pop()
-          ?.toLowerCase()
-          .replace(
-            /[^a-z0-9]/g,
-            ""
-          )}`
+    extensionMatch
+      ? `.${extensionMatch[1].toLowerCase()}`
       : ""
 
-  const base =
-    original
+  const baseName =
+    originalFilename
       .replace(
         /\.[^.]+$/,
         ""
@@ -171,14 +167,16 @@ export function buildR2Key(
       )
       .slice(
         0,
-        80
+        100
       ) ||
     "archivo"
 
   const random =
     crypto
       .randomBytes(8)
-      .toString("hex")
+      .toString(
+        "hex"
+      )
 
   return (
     `${prefix}` +
@@ -186,7 +184,7 @@ export function buildR2Key(
     `${params.id}/` +
     `${Date.now()}-` +
     `${random}-` +
-    `${base}` +
+    `${baseName}` +
     `${extension}`
   )
 }
@@ -195,8 +193,33 @@ export async function createR2UploadUrl(
   params: {
     key: string
     contentType?: string
+    expiresSeconds?: number
   }
 ) {
+  const key =
+    String(
+      params.key ||
+        ""
+    ).trim()
+
+  if (!key) {
+    throw new Error(
+      "Missing R2 key"
+    )
+  }
+
+  const expiresSeconds =
+    Math.max(
+      60,
+      Math.min(
+        Number(
+          params.expiresSeconds ||
+            3600
+        ),
+        604800
+      )
+    )
+
   const now =
     new Date()
 
@@ -222,22 +245,23 @@ export async function createR2UploadUrl(
 
   const encodedKey =
     encodeKeyForPath(
-      params.key
+      key
     )
 
   const canonicalUri =
     `/${bucket}/${encodedKey}`
 
   /*
-   * IMPORTANTE:
+   * IMPORTANTE
    *
-   * Firmamos SOLO host.
+   * Para upload desde navegadores desktop / Android / iPhone
+   * firmamos únicamente HOST.
    *
-   * NO firmamos Content-Type.
+   * Content-Type NO forma parte de la firma.
    *
-   * Esto evita que Android / iOS / Chrome / Safari
-   * rompan la firma si interpretan el MIME de una
-   * foto o video de forma levemente diferente.
+   * El archivo puede ser foto o video y el navegador puede
+   * representar el MIME de manera distinta sin invalidar
+   * la URL firmada.
    */
   const queryParams:
     Record<
@@ -253,15 +277,10 @@ export async function createR2UploadUrl(
     "X-Amz-Date":
       amzDate,
 
-    /*
-     * Una hora.
-     *
-     * Permite videos grandes / conexiones móviles
-     * lentas sin que la autorización muera a los
-     * cinco minutos.
-     */
     "X-Amz-Expires":
-      "3600",
+      String(
+        expiresSeconds
+      ),
 
     "X-Amz-SignedHeaders":
       "host",
@@ -273,14 +292,12 @@ export async function createR2UploadUrl(
     )
       .sort()
       .map(
-        (
-          key
-        ) =>
+        (queryKey) =>
           `${encodeRfc3986(
-            key
+            queryKey
           )}=${encodeRfc3986(
             queryParams[
-              key
+              queryKey
             ]
           )}`
       )
@@ -433,9 +450,7 @@ export async function createR2ReadUrl(
     )
       .sort()
       .map(
-        (
-          queryKey
-        ) =>
+        (queryKey) =>
           `${encodeRfc3986(
             queryKey
           )}=${encodeRfc3986(
