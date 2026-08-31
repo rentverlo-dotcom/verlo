@@ -30,8 +30,16 @@ function clean(
 function safeFilename(
   value: string
 ) {
-  return value
-    .normalize("NFD")
+  const filename =
+    clean(
+      value
+    ) ||
+    "archivo"
+
+  return filename
+    .normalize(
+      "NFD"
+    )
     .replace(
       /[\u0300-\u036f]/g,
       ""
@@ -46,7 +54,7 @@ function safeFilename(
     )
     .slice(
       0,
-      120
+      160
     )
 }
 
@@ -78,49 +86,45 @@ export async function POST(
       )
     }
 
-    // =========================================================
-    // 1. RECIBIR ARCHIVO DESDE VERLO
-    //
-    // IMPORTANTE:
-    // El navegador YA NO sube directo a R2.
-    //
-    // navegador -> verlo.lat -> R2
-    // =========================================================
-
-    let formData:
-      FormData
-
-    try {
-      formData =
-        await req.formData()
-    } catch {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Invalid multipart form data",
-        },
-        {
-          status: 400,
-        }
-      )
-    }
+    /*
+     * Este endpoint NO recibe el archivo.
+     *
+     * Recibe únicamente metadata.
+     *
+     * Así no existe límite de tamaño de archivo
+     * impuesto por Vercel.
+     */
+    const body =
+      await req
+        .json()
+        .catch(
+          () => ({})
+        )
 
     const token =
       clean(
-        formData.get(
-          "token"
+        body?.token
+      )
+
+    const filename =
+      safeFilename(
+        clean(
+          body?.filename
         )
       )
 
-    const fileValue =
-      formData.get(
-        "file"
+    const contentType =
+      clean(
+        body?.contentType
       )
 
-    if (
-      !token
-    ) {
+    const size =
+      Number(
+        body?.size ||
+          0
+      )
+
+    if (!token) {
       return NextResponse.json(
         {
           ok: false,
@@ -133,45 +137,12 @@ export async function POST(
       )
     }
 
-    if (
-      !(fileValue instanceof File)
-    ) {
+    if (!filename) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            "Missing file",
-        },
-        {
-          status: 400,
-        }
-      )
-    }
-
-    const file =
-      fileValue
-
-    const filename =
-      safeFilename(
-        clean(
-          file.name
-        ) ||
-          "archivo"
-      )
-
-    const contentType =
-      clean(
-        file.type
-      )
-
-    if (
-      !contentType
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Missing contentType",
+            "Missing filename",
         },
         {
           status: 400,
@@ -205,10 +176,6 @@ export async function POST(
       )
     }
 
-    // =========================================================
-    // 2. VALIDAR TOKEN DEL OWNER
-    // =========================================================
-
     const supabase =
       createClient(
         supabaseUrl,
@@ -223,6 +190,10 @@ export async function POST(
           },
         }
       )
+
+    // =========================================================
+    // VALIDAR TOKEN
+    // =========================================================
 
     const {
       data:
@@ -346,7 +317,7 @@ export async function POST(
       )
 
     // =========================================================
-    // 3. GENERAR KEY EN R2
+    // CREAR KEY ÚNICA
     // =========================================================
 
     const key =
@@ -361,126 +332,28 @@ export async function POST(
       })
 
     // =========================================================
-    // 4. GENERAR URL PRESIGNADA
+    // CREAR URL FIRMADA
     //
-    // Esta URL ahora se consume DESDE EL SERVIDOR.
-    // El celular nunca la recibe.
+    // NO firma Content-Type.
+    // NO recibe archivo.
+    // NO limita tamaño.
     // =========================================================
 
     const uploadUrl =
       await createR2UploadUrl({
         key,
-        contentType,
       })
-
-    // =========================================================
-    // 5. LEER ARCHIVO RECIBIDO
-    // =========================================================
-
-    const arrayBuffer =
-      await file.arrayBuffer()
-
-    const fileBuffer =
-      Buffer.from(
-        arrayBuffer
-      )
-
-    // =========================================================
-    // 6. SERVIDOR VERLO -> R2
-    //
-    // ESTE ES EL CAMBIO CENTRAL.
-    // Ya no existe:
-    //
-    // navegador -> r2.cloudflarestorage.com
-    //
-    // Ahora:
-    //
-    // navegador -> verlo.lat -> R2
-    // =========================================================
-
-    const r2Response =
-      await fetch(
-        uploadUrl,
-        {
-          method:
-            "PUT",
-
-          headers: {
-            "Content-Type":
-              contentType,
-          },
-
-          body:
-            fileBuffer,
-        }
-      )
-
-    if (
-      !r2Response.ok
-    ) {
-      const r2Text =
-        await r2Response
-          .text()
-          .catch(
-            () => ""
-          )
-
-      console.error(
-        "owner-property-upload R2 error:",
-        {
-          status:
-            r2Response.status,
-
-          statusText:
-            r2Response.statusText,
-
-          body:
-            r2Text,
-
-          key,
-
-          contentType,
-
-          size:
-            file.size,
-        }
-      )
-
-      return NextResponse.json(
-        {
-          ok: false,
-
-          error:
-            `R2 upload failed. HTTP ${r2Response.status}`,
-
-          detail:
-            r2Text ||
-            null,
-        },
-        {
-          status: 502,
-        }
-      )
-    }
-
-    // =========================================================
-    // 7. URL PÚBLICA
-    // =========================================================
 
     const publicUrl =
       getR2PublicUrl(
         key
       )
 
-    // =========================================================
-    // 8. RESPONSE
-    //
-    // Devuelve directamente el archivo YA SUBIDO.
-    // NO devuelve upload_url al navegador.
-    // =========================================================
-
     return NextResponse.json({
       ok: true,
+
+      upload_url:
+        uploadUrl,
 
       key,
 
@@ -497,8 +370,7 @@ export async function POST(
       content_type:
         contentType,
 
-      size:
-        file.size,
+      size,
 
       owner_lead_id:
         ownerLeadId,
