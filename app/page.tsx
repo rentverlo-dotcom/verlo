@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  ChangeEvent,
   FormEvent,
   useMemo,
   useState,
@@ -12,14 +11,6 @@ const CONTACT_HREF =
   "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
 
 type Path = "tenant" | "owner" | "renewal"
-
-type UploadedMedia = {
-  key: string
-  publicUrl: string | null
-  filename: string
-  contentType: string
-  size: number
-}
 
 const AREA_GROUPS = {
   caba: {
@@ -139,13 +130,41 @@ const AREA_GROUPS = {
 } as const
 
 const OWNER_PRICE_RANGES = [
-  { label: "Hasta $500.000", value: "hasta-500000", max: 500000 },
-  { label: "$500.001 a $700.000", value: "500001-700000", max: 700000 },
-  { label: "$700.001 a $900.000", value: "700001-900000", max: 900000 },
-  { label: "$900.001 a $1.200.000", value: "900001-1200000", max: 1200000 },
-  { label: "$1.200.001 a $1.500.000", value: "1200001-1500000", max: 1500000 },
-  { label: "$1.500.001 a $2.000.000", value: "1500001-2000000", max: 2000000 },
-  { label: "Más de $2.000.000", value: "2000000-plus", max: 999999999 },
+  {
+    label: "Hasta $500.000",
+    value: "hasta-500000",
+    max: 500000,
+  },
+  {
+    label: "$500.001 a $700.000",
+    value: "500001-700000",
+    max: 700000,
+  },
+  {
+    label: "$700.001 a $900.000",
+    value: "700001-900000",
+    max: 900000,
+  },
+  {
+    label: "$900.001 a $1.200.000",
+    value: "900001-1200000",
+    max: 1200000,
+  },
+  {
+    label: "$1.200.001 a $1.500.000",
+    value: "1200001-1500000",
+    max: 1500000,
+  },
+  {
+    label: "$1.500.001 a $2.000.000",
+    value: "1500001-2000000",
+    max: 2000000,
+  },
+  {
+    label: "Más de $2.000.000",
+    value: "2000000-plus",
+    max: 999999999,
+  },
 ] as const
 
 const TENANT_BUDGET_RANGES = [
@@ -187,34 +206,72 @@ const TENANT_BUDGET_RANGES = [
 ] as const
 
 const INCOME_RANGES = [
-  { label: "Hasta $500.000", value: "0-500000", max: 500000 },
-  { label: "$500.001 a $1.000.000", value: "500001-1000000", max: 1000000 },
-  { label: "$1.000.001 a $1.500.000", value: "1000001-1500000", max: 1500000 },
-  { label: "$1.500.001 a $2.000.000", value: "1500001-2000000", max: 2000000 },
-  { label: "$2.000.001 a $3.000.000", value: "2000001-3000000", max: 3000000 },
-  { label: "Más de $3.000.000", value: "3000001-plus", max: 999999999 },
+  {
+    label: "Hasta $500.000",
+    value: "0-500000",
+    max: 500000,
+  },
+  {
+    label: "$500.001 a $1.000.000",
+    value: "500001-1000000",
+    max: 1000000,
+  },
+  {
+    label: "$1.000.001 a $1.500.000",
+    value: "1000001-1500000",
+    max: 1500000,
+  },
+  {
+    label: "$1.500.001 a $2.000.000",
+    value: "1500001-2000000",
+    max: 2000000,
+  },
+  {
+    label: "$2.000.001 a $3.000.000",
+    value: "2000001-3000000",
+    max: 3000000,
+  },
+  {
+    label: "Más de $3.000.000",
+    value: "3000001-plus",
+    max: 999999999,
+  },
 ] as const
 
-const ALL_NEIGHBORHOODS = Object.values(AREA_GROUPS).flatMap(
-  (group) => group.neighborhoods
-)
+const ALL_NEIGHBORHOODS =
+  Object.values(AREA_GROUPS).flatMap(
+    (group) => group.neighborhoods
+  )
 
-type AreaKey = keyof typeof AREA_GROUPS
+type AreaKey =
+  keyof typeof AREA_GROUPS
 
-function normalizeText(value: string) {
+function normalizeText(
+  value: string
+) {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(
+      /[^a-z0-9]+/g,
+      "-"
+    )
+    .replace(
+      /^-+|-+$/g,
+      ""
+    )
 }
 
 const pathConfig = {
   tenant: {
     title: "Busco alquilar",
-    subtitle: "Marcá los barrios donde buscarías y completá tu presupuesto.",
+    subtitle:
+      "Marcá los barrios donde buscarías y completá tu presupuesto.",
     role: "tenant",
     intent: "tenant_search",
     button: "Cargar mi búsqueda",
@@ -222,14 +279,15 @@ const pathConfig = {
   owner: {
     title: "Tengo una propiedad",
     subtitle:
-      "Decinos en qué barrio está, qué tipo es, a qué precio se alquilaría y subí al menos una foto.",
+      "Decinos en qué barrio está, qué tipo es, a qué precio se alquilaría y cuándo estará disponible.",
     role: "owner",
     intent: "owner_new_listing",
     button: "Publicar mi propiedad",
   },
   renewal: {
     title: "Quiero renovar",
-    subtitle: "Contanos el barrio, cuándo vence y qué necesitás resolver.",
+    subtitle:
+      "Contanos el barrio, cuándo vence y qué necesitás resolver.",
     role: "both",
     intent: "contract_renewal",
     button: "Quiero renovar",
@@ -841,60 +899,6 @@ const styles = `
     accent-color: var(--black);
   }
 
-  .owner-media-box {
-    border: 2px solid var(--black);
-    border-radius: 24px;
-    background: white;
-    padding: 20px;
-  }
-
-  .owner-media-box strong {
-    display: block;
-    font-size: 17px;
-    margin-bottom: 7px;
-  }
-
-  .owner-media-box p {
-    margin: 0 0 15px;
-    color: rgba(5, 0, 2, 0.62);
-    font-size: 14px;
-    line-height: 1.4;
-    font-weight: 700;
-  }
-
-  .owner-media-input {
-    width: 100%;
-    min-height: 54px;
-    padding: 9px;
-    border: 1px solid rgba(5, 0, 2, 0.12);
-    border-radius: 16px;
-    background: var(--soft);
-    color: var(--black);
-    font: inherit;
-  }
-
-  .owner-media-input::file-selector-button {
-    border: 0;
-    border-radius: 999px;
-    background: var(--black);
-    color: white;
-    padding: 10px 14px;
-    margin-right: 12px;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 900;
-    cursor: pointer;
-  }
-
-  .owner-media-status {
-    margin-top: 12px;
-    padding: 11px 13px;
-    border-radius: 14px;
-    background: rgba(116, 190, 220, 0.16);
-    font-size: 13px;
-    font-weight: 850;
-  }
-
   .submit {
     width: 100%;
     min-height: 58px;
@@ -1156,35 +1160,83 @@ const styles = `
   }
 `
 
-function getCookie(name: string) {
-  if (typeof document === "undefined") return ""
+function getCookie(
+  name: string
+) {
+  if (
+    typeof document ===
+    "undefined"
+  ) {
+    return ""
+  }
 
   return (
     document.cookie
       .split("; ")
-      .find((row) => row.startsWith(`${name}=`))
-      ?.split("=")[1] || ""
+      .find((row) =>
+        row.startsWith(
+          `${name}=`
+        )
+      )
+      ?.split("=")[1] ||
+    ""
   )
 }
 
 function getMetaFbc() {
-  if (typeof window === "undefined") return ""
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return ""
+  }
 
-  const cookieFbc = getCookie("_fbc")
-  if (cookieFbc) return cookieFbc
+  const cookieFbc =
+    getCookie("_fbc")
 
-  const fbclid = new URLSearchParams(window.location.search).get("fbclid")
-  if (!fbclid) return ""
+  if (cookieFbc) {
+    return cookieFbc
+  }
+
+  const fbclid =
+    new URLSearchParams(
+      window.location.search
+    ).get("fbclid")
+
+  if (!fbclid) {
+    return ""
+  }
 
   return `fb.1.${Date.now()}.${fbclid}`
 }
 
-function trackMetaLead(eventId: string, params?: Record<string, string>) {
-  if (typeof window === "undefined") return
+function trackMetaLead(
+  eventId: string,
+  params?: Record<
+    string,
+    string
+  >
+) {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return
+  }
 
-  const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq
+  const fbq =
+    (
+      window as unknown as {
+        fbq?: (
+          ...args: unknown[]
+        ) => void
+      }
+    ).fbq
 
-  if (typeof fbq === "function") {
+  if (
+    typeof fbq ===
+    "function"
+  ) {
     fbq(
       "track",
       "Lead",
@@ -1193,21 +1245,47 @@ function trackMetaLead(eventId: string, params?: Record<string, string>) {
         currency: "ARS",
         ...(params || {}),
       },
-      { eventID: eventId }
+      {
+        eventID:
+          eventId,
+      }
     )
   }
 }
 
-function normalizeNeighborhoods(values: string[], otherValue?: string) {
-  const cleanValues = values.map((value) => value.trim()).filter(Boolean)
+function normalizeNeighborhoods(
+  values: string[],
+  otherValue?: string
+) {
+  const cleanValues =
+    values
+      .map((value) =>
+        value.trim()
+      )
+      .filter(Boolean)
 
-  const other = otherValue?.trim()
-  if (other) cleanValues.push(other)
+  const other =
+    otherValue?.trim()
+
+  if (other) {
+    cleanValues.push(
+      other
+    )
+  }
 
   return {
-    labels: cleanValues,
-    text: cleanValues.join(", "),
-    slugs: cleanValues.map(normalizeText),
+    labels:
+      cleanValues,
+
+    text:
+      cleanValues.join(
+        ", "
+      ),
+
+    slugs:
+      cleanValues.map(
+        normalizeText
+      ),
   }
 }
 
@@ -1231,13 +1309,19 @@ function PhoneContent({
   badge: string
   title: string
   copy: string
-  rows: { label: string; value: string }[]
+  rows: {
+    label: string
+    value: string
+  }[]
   button: string
 }) {
   return (
     <>
       <div className="phone-top">
-        <div className="phone-brand">verlo</div>
+        <div className="phone-brand">
+          verlo
+        </div>
+
         <Dots />
       </div>
 
@@ -1247,20 +1331,43 @@ function PhoneContent({
           {badge}
         </div>
 
-        <h3 className="phone-title">{title}</h3>
+        <h3 className="phone-title">
+          {title}
+        </h3>
 
-        <p className="phone-copy">{copy}</p>
+        <p className="phone-copy">
+          {copy}
+        </p>
 
         <div className="phone-card">
-          {rows.map((row) => (
-            <div className="phone-row" key={row.label}>
-              <span>{row.label}</span>
-              <strong>{row.value}</strong>
-            </div>
-          ))}
+          {rows.map(
+            (row) => (
+              <div
+                className="phone-row"
+                key={
+                  row.label
+                }
+              >
+                <span>
+                  {
+                    row.label
+                  }
+                </span>
+
+                <strong>
+                  {
+                    row.value
+                  }
+                </strong>
+              </div>
+            )
+          )}
         </div>
 
-        <button className="phone-button" type="button">
+        <button
+          className="phone-button"
+          type="button"
+        >
           {button}
         </button>
       </div>
@@ -1270,7 +1377,10 @@ function PhoneContent({
 
 function HeroPhone() {
   return (
-    <div className="phone-wrap" aria-hidden="true">
+    <div
+      className="phone-wrap"
+      aria-hidden="true"
+    >
       <div className="phone-glow" />
 
       <div className="phone-frame">
@@ -1280,10 +1390,22 @@ function HeroPhone() {
           copy="Verlo ordena datos reales para matchear inquilinos y propietarios por barrio. Te cuida a vos y tu bolsillo."
           button="Empezar"
           rows={[
-            { label: "Barrio", value: "Olivos" },
-            { label: "Tipo", value: "2 ambientes" },
-            { label: "Presupuesto", value: "$650k" },
-            { label: "Estado", value: "Match posible" },
+            {
+              label: "Barrio",
+              value: "Olivos",
+            },
+            {
+              label: "Tipo",
+              value: "2 ambientes",
+            },
+            {
+              label: "Presupuesto",
+              value: "$650k",
+            },
+            {
+              label: "Estado",
+              value: "Match posible",
+            },
           ]}
         />
       </div>
@@ -1291,8 +1413,14 @@ function HeroPhone() {
   )
 }
 
-function MiniPhone({ type }: { type: Path }) {
-  if (type === "tenant") {
+function MiniPhone({
+  type,
+}: {
+  type: Path
+}) {
+  if (
+    type === "tenant"
+  ) {
     return (
       <div className="mini-phone">
         <PhoneContent
@@ -1301,29 +1429,71 @@ function MiniPhone({ type }: { type: Path }) {
           copy="Marcá los barrios donde buscás y tu presupuesto real."
           button="Cargar búsqueda"
           rows={[
-            { label: "Barrios", value: "Olivos + Núñez" },
-            { label: "Tipo", value: "2 ambientes" },
-            { label: "Presupuesto", value: "$500k - $700k" },
-            { label: "Mudanza", value: "30 días" },
+            {
+              label:
+                "Barrios",
+              value:
+                "Olivos + Núñez",
+            },
+            {
+              label:
+                "Tipo",
+              value:
+                "2 ambientes",
+            },
+            {
+              label:
+                "Presupuesto",
+              value:
+                "$500k - $700k",
+            },
+            {
+              label:
+                "Mudanza",
+              value:
+                "30 días",
+            },
           ]}
         />
       </div>
     )
   }
 
-  if (type === "owner") {
+  if (
+    type === "owner"
+  ) {
     return (
       <div className="mini-phone">
         <PhoneContent
           badge="Propietario"
           title="Publicá tu propiedad"
-          copy="Barrio, tipo, precio, disponibilidad y al menos una foto para mostrarla a personas compatibles."
+          copy="Barrio, tipo, precio y disponibilidad para encontrar personas compatibles."
           button="Publicar"
           rows={[
-            { label: "Barrio", value: "Vicente López" },
-            { label: "Tipo", value: "Departamento" },
-            { label: "Precio", value: "$650k" },
-            { label: "Fotos", value: "1 o más" },
+            {
+              label:
+                "Barrio",
+              value:
+                "Vicente López",
+            },
+            {
+              label:
+                "Tipo",
+              value:
+                "Departamento",
+            },
+            {
+              label:
+                "Precio",
+              value:
+                "$650k",
+            },
+            {
+              label:
+                "Disponibilidad",
+              value:
+                "Ahora",
+            },
           ]}
         />
       </div>
@@ -1338,10 +1508,30 @@ function MiniPhone({ type }: { type: Path }) {
         copy="Digitalizá tu contrato rápido, con firma digital y sin costos de renovación."
         button="Renovar"
         rows={[
-          { label: "Barrio", value: "Belgrano" },
-          { label: "Contrato", value: "Por vencer" },
-          { label: "Partes", value: "Ambas" },
-          { label: "Firma", value: "Digital" },
+          {
+            label:
+              "Barrio",
+            value:
+              "Belgrano",
+          },
+          {
+            label:
+              "Contrato",
+            value:
+              "Por vencer",
+          },
+          {
+            label:
+              "Partes",
+            value:
+              "Ambas",
+          },
+          {
+            label:
+              "Firma",
+            value:
+              "Digital",
+          },
         ]}
       />
     </div>
@@ -1349,124 +1539,193 @@ function MiniPhone({ type }: { type: Path }) {
 }
 
 export default function PageDePrueba() {
-  const [path, setPath] = useState<Path>("tenant")
-  const [selectedArea, setSelectedArea] = useState<AreaKey>("caba")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const [ownerFiles, setOwnerFiles] = useState<File[]>([])
+  const [
+    path,
+    setPath,
+  ] =
+    useState<Path>(
+      "tenant"
+    )
 
-  const selected = pathConfig[path]
+  const [
+    selectedArea,
+    setSelectedArea,
+  ] =
+    useState<AreaKey>(
+      "caba"
+    )
 
-  const submitLabel = useMemo(() => {
-    if (loading) {
-      return path === "owner"
-        ? "Publicando propiedad..."
-        : "Guardando..."
-    }
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(false)
 
-    return selected.button
-  }, [loading, selected.button, path])
+  const [
+    error,
+    setError,
+  ] =
+    useState("")
 
-  function choosePath(nextPath: Path) {
+  const [
+    success,
+    setSuccess,
+  ] =
+    useState("")
+
+  const selected =
+    pathConfig[path]
+
+  const submitLabel =
+    useMemo(() => {
+      if (loading) {
+        return path ===
+          "owner"
+          ? "Publicando propiedad..."
+          : "Guardando..."
+      }
+
+      return selected.button
+    }, [
+      loading,
+      selected.button,
+      path,
+    ])
+
+  function choosePath(
+    nextPath: Path
+  ) {
     setPath(nextPath)
     setError("")
     setSuccess("")
   }
 
-  function handleOwnerFiles(
-    event: ChangeEvent<HTMLInputElement>
+  async function handleSubmit(
+    e: FormEvent<HTMLFormElement>
   ) {
-    const selectedFiles = Array.from(
-      event.target.files || []
-    ).filter((file) =>
-      file.type.startsWith("image/")
-    )
-
-    setOwnerFiles(selectedFiles)
-    setError("")
-  }
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
     setLoading(true)
     setError("")
     setSuccess("")
 
-    const form = e.currentTarget
-    const formData = new FormData(form)
+    const form =
+      e.currentTarget
 
-    const website = String(formData.get("website") || "").trim()
+    const formData =
+      new FormData(
+        form
+      )
+
+    const website =
+      String(
+        formData.get(
+          "website"
+        ) || ""
+      ).trim()
 
     if (website) {
       form.reset()
-      setOwnerFiles([])
       setLoading(false)
       setSuccess("Listo.")
       return
     }
 
-    const eventId = `lead_${Date.now()}_${Math.random()
-      .toString(36)
-      .slice(2)}`
+    const eventId =
+      `lead_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2)}`
 
-    const selectedBudgetRange = String(
-      formData.get("budget_range") || ""
-    ).trim()
+    const selectedBudgetRange =
+      String(
+        formData.get(
+          "budget_range"
+        ) || ""
+      ).trim()
 
-    const selectedBudgetOption = TENANT_BUDGET_RANGES.find(
-      (option) => option.value === selectedBudgetRange
-    )
+    const selectedBudgetOption =
+      TENANT_BUDGET_RANGES.find(
+        (option) =>
+          option.value ===
+          selectedBudgetRange
+      )
 
     const tenantBudgetMax =
-      selectedBudgetOption?.max ?? null
+      selectedBudgetOption
+        ?.max ??
+      null
 
-    const selectedOwnerPriceRange = String(
-      formData.get("approx_price") || ""
-    ).trim()
+    const selectedOwnerPriceRange =
+      String(
+        formData.get(
+          "approx_price"
+        ) || ""
+      ).trim()
 
-    const selectedOwnerPriceOption = OWNER_PRICE_RANGES.find(
-      (option) => option.value === selectedOwnerPriceRange
-    )
+    const selectedOwnerPriceOption =
+      OWNER_PRICE_RANGES.find(
+        (option) =>
+          option.value ===
+          selectedOwnerPriceRange
+      )
 
     const ownerPriceNumber =
-      selectedOwnerPriceOption?.max ?? null
+      selectedOwnerPriceOption
+        ?.max ??
+      null
 
-    const selectedIncomeRange = String(
-      formData.get("income_range") || ""
-    ).trim()
+    const selectedIncomeRange =
+      String(
+        formData.get(
+          "income_range"
+        ) || ""
+      ).trim()
 
-    const selectedIncomeOption = INCOME_RANGES.find(
-      (option) => option.value === selectedIncomeRange
-    )
+    const selectedIncomeOption =
+      INCOME_RANGES.find(
+        (option) =>
+          option.value ===
+          selectedIncomeRange
+      )
 
     const tenantIncomeMax =
-      selectedIncomeOption?.max ?? null
+      selectedIncomeOption
+        ?.max ??
+      null
 
     const tenantGuaranteeTypes =
       formData
-        .getAll("guarantee_types")
+        .getAll(
+          "guarantee_types"
+        )
         .map(String)
 
     const acceptedIncomeProofTypes =
       formData
-        .getAll("accepted_income_proof_types")
+        .getAll(
+          "accepted_income_proof_types"
+        )
         .map(String)
 
     const acceptedGuaranteeTypes =
       formData
-        .getAll("accepted_guarantee_types")
+        .getAll(
+          "accepted_guarantee_types"
+        )
         .map(String)
 
     const tenantNeighborhoods =
       formData
-        .getAll("tenant_neighborhoods")
+        .getAll(
+          "tenant_neighborhoods"
+        )
         .map(String)
 
     const tenantOtherNeighborhood =
       String(
-        formData.get("tenant_other_neighborhood") || ""
+        formData.get(
+          "tenant_other_neighborhood"
+        ) || ""
       ).trim()
 
     const normalizedTenantNeighborhoods =
@@ -1476,126 +1735,132 @@ export default function PageDePrueba() {
       )
 
     if (
-      path === "tenant" &&
-      normalizedTenantNeighborhoods.labels.length === 0
+      path ===
+        "tenant" &&
+      normalizedTenantNeighborhoods
+        .labels
+        .length ===
+        0
     ) {
       setError(
         "Elegí al menos un barrio o escribí otra zona donde buscarías alquilar."
       )
+
       setLoading(false)
       return
     }
 
     if (
-      path === "tenant" &&
-      tenantGuaranteeTypes.length === 0
+      path ===
+        "tenant" &&
+      tenantGuaranteeTypes.length ===
+        0
     ) {
       setError(
         "Elegí al menos una opción de garantía."
       )
+
       setLoading(false)
       return
     }
 
     if (
-      path === "tenant" &&
-      tenantGuaranteeTypes.includes("none") &&
-      tenantGuaranteeTypes.length > 1
+      path ===
+        "tenant" &&
+      tenantGuaranteeTypes.includes(
+        "none"
+      ) &&
+      tenantGuaranteeTypes.length >
+        1
     ) {
       setError(
         "Si elegís 'No tengo garantía', no marques otra garantía."
       )
+
       setLoading(false)
       return
     }
 
     if (
-      path === "owner" &&
-      acceptedIncomeProofTypes.length === 0
+      path ===
+        "owner" &&
+      acceptedIncomeProofTypes.length ===
+        0
     ) {
       setError(
         "Elegí al menos una demostración de ingresos aceptada."
       )
+
       setLoading(false)
       return
     }
 
     if (
-      path === "owner" &&
-      acceptedGuaranteeTypes.length === 0
+      path ===
+        "owner" &&
+      acceptedGuaranteeTypes.length ===
+        0
     ) {
       setError(
         "Elegí al menos una garantía aceptada."
       )
-      setLoading(false)
-      return
-    }
 
-    if (
-      path === "owner" &&
-      ownerFiles.length === 0
-    ) {
-      setError(
-        "Subí al menos una foto de la propiedad."
-      )
-      setLoading(false)
-      return
-    }
-
-    const invalidOwnerFile =
-      ownerFiles.find(
-        (file) =>
-          !file.type.startsWith("image/")
-      )
-
-    if (
-      path === "owner" &&
-      invalidOwnerFile
-    ) {
-      setError(
-        "Las fotos deben ser archivos de imagen."
-      )
       setLoading(false)
       return
     }
 
     const ownerNeighborhood =
       String(
-        formData.get("owner_neighborhood") || ""
+        formData.get(
+          "owner_neighborhood"
+        ) || ""
       ).trim()
 
     const renewalNeighborhood =
       String(
-        formData.get("renewal_neighborhood") || ""
+        formData.get(
+          "renewal_neighborhood"
+        ) || ""
       ).trim()
 
     const zone =
       path === "tenant"
         ? normalizedTenantNeighborhoods.text
-        : path === "owner"
+        : path ===
+            "owner"
           ? ownerNeighborhood
           : renewalNeighborhood
 
     const payload = {
       full_name:
         String(
-          formData.get("full_name") || ""
+          formData.get(
+            "full_name"
+          ) || ""
         ).trim(),
 
       email:
         String(
-          formData.get("email") || ""
+          formData.get(
+            "email"
+          ) || ""
         ).trim(),
 
       phone:
         String(
-          formData.get("phone") || ""
+          formData.get(
+            "phone"
+          ) || ""
         ).trim(),
 
       role:
-        path === "renewal"
+        path ===
+        "renewal"
           ? String(
-              formData.get("renewal_role") || "both"
+              formData.get(
+                "renewal_role"
+              ) ||
+                "both"
             ).trim()
           : selected.role,
 
@@ -1606,22 +1871,30 @@ export default function PageDePrueba() {
 
       property_type:
         String(
-          formData.get("property_type") || ""
+          formData.get(
+            "property_type"
+          ) || ""
         ).trim(),
 
       property_rooms:
         String(
-          formData.get("property_rooms") || ""
+          formData.get(
+            "property_rooms"
+          ) || ""
         ).trim(),
 
       availability_status:
         String(
-          formData.get("availability_status") || ""
+          formData.get(
+            "availability_status"
+          ) || ""
         ).trim(),
 
       approx_price:
         String(
-          formData.get("approx_price") || ""
+          formData.get(
+            "approx_price"
+          ) || ""
         ).trim(),
 
       approx_price_number:
@@ -1629,17 +1902,23 @@ export default function PageDePrueba() {
 
       desired_property_type:
         String(
-          formData.get("desired_property_type") || ""
+          formData.get(
+            "desired_property_type"
+          ) || ""
         ).trim(),
 
       desired_rooms:
         String(
-          formData.get("desired_rooms") || ""
+          formData.get(
+            "desired_rooms"
+          ) || ""
         ).trim(),
 
       budget_range:
         String(
-          formData.get("budget_range") || ""
+          formData.get(
+            "budget_range"
+          ) || ""
         ).trim(),
 
       budget_max:
@@ -1647,12 +1926,16 @@ export default function PageDePrueba() {
 
       move_timing:
         String(
-          formData.get("move_timing") || ""
+          formData.get(
+            "move_timing"
+          ) || ""
         ).trim(),
 
       income_proof_type:
         String(
-          formData.get("income_proof_type") || ""
+          formData.get(
+            "income_proof_type"
+          ) || ""
         ).trim(),
 
       income_range:
@@ -1668,8 +1951,14 @@ export default function PageDePrueba() {
         acceptedIncomeProofTypes,
 
       min_income_ratio:
-        formData.get("min_income_ratio")
-          ? Number(formData.get("min_income_ratio"))
+        formData.get(
+          "min_income_ratio"
+        )
+          ? Number(
+              formData.get(
+                "min_income_ratio"
+              )
+            )
           : null,
 
       accepted_guarantee_types:
@@ -1677,22 +1966,30 @@ export default function PageDePrueba() {
 
       renewal_role:
         String(
-          formData.get("renewal_role") || ""
+          formData.get(
+            "renewal_role"
+          ) || ""
         ).trim(),
 
       contract_expiration:
         String(
-          formData.get("contract_expiration") || ""
+          formData.get(
+            "contract_expiration"
+          ) || ""
         ).trim(),
 
       other_party_status:
         String(
-          formData.get("other_party_status") || ""
+          formData.get(
+            "other_party_status"
+          ) || ""
         ).trim(),
 
       renewal_need:
         String(
-          formData.get("renewal_need") || ""
+          formData.get(
+            "renewal_need"
+          ) || ""
         ).trim(),
 
       event_id:
@@ -1702,7 +1999,9 @@ export default function PageDePrueba() {
         window.location.href,
 
       fbp:
-        getCookie("_fbp"),
+        getCookie(
+          "_fbp"
+        ),
 
       fbc:
         getMetaFbc(),
@@ -1712,45 +2011,63 @@ export default function PageDePrueba() {
 
       metadata: {
         path,
-        page: "verlo_home",
-        tenant_area: selectedArea,
+        page:
+          "verlo_home",
+
+        tenant_area:
+          selectedArea,
+
         tenant_area_label:
-          AREA_GROUPS[selectedArea].label,
+          AREA_GROUPS[
+            selectedArea
+          ].label,
+
         tenant_neighborhoods:
           normalizedTenantNeighborhoods.labels,
+
         tenant_neighborhood_slugs:
           normalizedTenantNeighborhoods.slugs,
+
         tenant_other_neighborhood:
           tenantOtherNeighborhood,
+
         neighborhood:
           zone,
+
         neighborhood_slug:
-          normalizeText(zone),
+          normalizeText(
+            zone
+          ),
       },
     }
 
     try {
-      // =======================================================
-      // 1. CREAR LEAD + MATCHES
-      // =======================================================
+      const res =
+        await fetch(
+          "/api/ghl-lead-webhook",
+          {
+            method:
+              "POST",
 
-      const res = await fetch(
-        "/api/ghl-lead-webhook",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body:
-            JSON.stringify(payload),
-        }
-      )
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify(
+                payload
+              ),
+          }
+        )
 
       const data =
         await res
           .json()
-          .catch(() => null)
+          .catch(
+            () =>
+              null
+          )
 
       if (
         !res.ok ||
@@ -1758,227 +2075,43 @@ export default function PageDePrueba() {
       ) {
         throw new Error(
           data?.error ||
-          "No pudimos guardar tus datos"
+            "No pudimos guardar tus datos"
         )
-      }
-
-      // =======================================================
-      // 2. SI ES OWNER, SUBIR FOTOS INICIALES
-      // =======================================================
-
-      if (
-        path === "owner"
-      ) {
-        const ownerLeadId =
-          String(
-            data?.lead_id || ""
-          ).trim()
-
-        if (!ownerLeadId) {
-          throw new Error(
-            "La propiedad se guardó pero no pudimos identificarla para subir las fotos."
-          )
-        }
-
-        const uploadedMedia:
-          UploadedMedia[] = []
-
-        for (
-          let i = 0;
-          i < ownerFiles.length;
-          i++
-        ) {
-          const file =
-            ownerFiles[i]
-
-          const presignResponse =
-            await fetch(
-              "/api/r2/presign",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
-                body:
-                  JSON.stringify({
-                    folder:
-                      "owner-media",
-                    id:
-                      ownerLeadId,
-                    filename:
-                      file.name,
-                    contentType:
-                      file.type,
-                  }),
-              }
-            )
-
-          const presignData =
-            await presignResponse
-              .json()
-              .catch(
-                () => null
-              )
-
-          if (
-            !presignResponse.ok ||
-            !presignData?.uploadUrl ||
-            !presignData?.key
-          ) {
-            throw new Error(
-              presignData?.error ||
-              `No pudimos preparar la foto ${i + 1}.`
-            )
-          }
-
-          let uploadResponse:
-            Response
-
-          try {
-            uploadResponse =
-              await fetch(
-                presignData.uploadUrl,
-                {
-                  method:
-                    "PUT",
-                  headers: {
-                    "Content-Type":
-                      file.type,
-                  },
-                  body:
-                    file,
-                }
-              )
-          } catch (
-            uploadError
-          ) {
-            throw new Error(
-              `No pudimos subir la foto ${i + 1}. ${
-                uploadError instanceof Error
-                  ? uploadError.message
-                  : ""
-              }`
-            )
-          }
-
-          if (
-            !uploadResponse.ok
-          ) {
-            const uploadText =
-              await uploadResponse
-                .text()
-                .catch(
-                  () => ""
-                )
-
-            throw new Error(
-              `No pudimos subir la foto ${i + 1}. HTTP ${uploadResponse.status}. ${uploadText}`
-            )
-          }
-
-          uploadedMedia.push({
-            key:
-              String(
-                presignData.key
-              ),
-
-            publicUrl:
-              presignData.publicUrl
-                ? String(
-                    presignData.publicUrl
-                  )
-                : null,
-
-            filename:
-              file.name,
-
-            contentType:
-              file.type,
-
-            size:
-              file.size,
-          })
-        }
-
-        if (
-          uploadedMedia.length === 0
-        ) {
-          throw new Error(
-            "La propiedad se guardó pero no pudimos subir ninguna foto."
-          )
-        }
-
-        // =====================================================
-        // 3. REGISTRAR MEDIA EN SUPABASE
-        // =====================================================
-
-        const mediaResponse =
-          await fetch(
-            "/api/owner-initial-media",
-            {
-              method:
-                "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body:
-                JSON.stringify({
-                  owner_lead_id:
-                    ownerLeadId,
-                  media:
-                    uploadedMedia,
-                }),
-            }
-          )
-
-        const mediaData =
-          await mediaResponse
-            .json()
-            .catch(
-              () => null
-            )
-
-        if (
-          !mediaResponse.ok ||
-          !mediaData?.ok
-        ) {
-          throw new Error(
-            mediaData?.error ||
-            "La propiedad se guardó pero no pudimos registrar las fotos."
-          )
-        }
       }
 
       trackMetaLead(
         eventId,
         {
           path,
+
           role:
             payload.role,
+
           intent:
             payload.intent,
         }
       )
 
       form.reset()
-      setOwnerFiles([])
 
       if (
-        path === "owner"
+        path ===
+        "owner"
       ) {
         setSuccess(
-          "Listo. Publicamos los datos iniciales de tu propiedad y las fotos. Te vamos a avisar por WhatsApp si encontramos personas compatibles."
+          "Listo. Publicamos los datos iniciales de tu propiedad. Te vamos a avisar por WhatsApp si encontramos personas compatibles."
         )
       } else {
         setSuccess(
           "Listo. Guardamos tus datos y te vamos a contactar por WhatsApp o e-mail."
         )
       }
-    } catch (err) {
+    } catch (
+      err
+    ) {
       if (
-        err instanceof Error
+        err instanceof
+        Error
       ) {
         setError(
           err.message
@@ -1989,23 +2122,31 @@ export default function PageDePrueba() {
         )
       }
     } finally {
-      setLoading(false)
+      setLoading(
+        false
+      )
     }
   }
 
   return (
     <main className="test-root">
-      <style>{styles}</style>
+      <style>
+        {styles}
+      </style>
 
       <header className="nav">
         <div className="container nav-inner">
-          <VerloBrand width={112} />
+          <VerloBrand
+            width={112}
+          />
 
           <nav className="nav-links">
             <a
               href="#sumate"
               onClick={() =>
-                choosePath("tenant")
+                choosePath(
+                  "tenant"
+                )
               }
             >
               Alquilar
@@ -2014,7 +2155,9 @@ export default function PageDePrueba() {
             <a
               href="#sumate"
               onClick={() =>
-                choosePath("owner")
+                choosePath(
+                  "owner"
+                )
               }
             >
               Publicar
@@ -2023,7 +2166,9 @@ export default function PageDePrueba() {
             <a
               href="#sumate"
               onClick={() =>
-                choosePath("renewal")
+                choosePath(
+                  "renewal"
+                )
               }
             >
               Renovar
@@ -2044,7 +2189,9 @@ export default function PageDePrueba() {
           <div>
             <h1>
               Alquilá directo.{" "}
-              <em>Encontrá tu match.</em>
+              <em>
+                Encontrá tu match.
+              </em>
             </h1>
 
             <p className="hero-subtitle">
@@ -2055,14 +2202,19 @@ export default function PageDePrueba() {
               style={{
                 display:
                   "inline-block",
+
                 margin:
                   "22px 0 30px",
+
                 background:
                   "#f2a8a9",
+
                 padding:
                   "7px",
+
                 borderRadius:
                   "22px",
+
                 boxShadow:
                   "0 12px 35px rgba(5,0,2,.12)",
               }}
@@ -2071,14 +2223,19 @@ export default function PageDePrueba() {
                 style={{
                   minWidth:
                     "300px",
+
                   padding:
                     "14px 24px 16px",
+
                   border:
                     "2px dashed rgba(5,0,2,.35)",
+
                   borderRadius:
                     "16px",
+
                   textAlign:
                     "center",
+
                   color:
                     "#050002",
                 }}
@@ -2087,10 +2244,13 @@ export default function PageDePrueba() {
                   style={{
                     fontSize:
                       "11px",
+
                     fontWeight:
                       800,
+
                     letterSpacing:
                       ".16em",
+
                     marginBottom:
                       "6px",
                   }}
@@ -2102,10 +2262,13 @@ export default function PageDePrueba() {
                   style={{
                     display:
                       "flex",
+
                     alignItems:
                       "center",
+
                     justifyContent:
                       "center",
+
                     gap:
                       "16px",
                   }}
@@ -2114,12 +2277,16 @@ export default function PageDePrueba() {
                     style={{
                       fontSize:
                         "22px",
+
                       fontWeight:
                         700,
+
                       textDecoration:
                         "line-through",
+
                       textDecorationThickness:
                         "3px",
+
                       opacity:
                         0.5,
                     }}
@@ -2131,10 +2298,13 @@ export default function PageDePrueba() {
                     style={{
                       fontSize:
                         "42px",
+
                       lineHeight:
                         1,
+
                       fontWeight:
                         900,
+
                       letterSpacing:
                         "-0.055em",
                     }}
@@ -2147,10 +2317,13 @@ export default function PageDePrueba() {
                   style={{
                     width:
                       "75%",
+
                     height:
                       "1px",
+
                     background:
                       "rgba(5,0,2,.25)",
+
                     margin:
                       "10px auto 8px",
                   }}
@@ -2160,8 +2333,10 @@ export default function PageDePrueba() {
                   style={{
                     fontSize:
                       "12px",
+
                     fontWeight:
                       800,
+
                     letterSpacing:
                       ".08em",
                   }}
@@ -2176,7 +2351,9 @@ export default function PageDePrueba() {
                 className="btn btn-primary"
                 href="#sumate"
                 onClick={() =>
-                  choosePath("tenant")
+                  choosePath(
+                    "tenant"
+                  )
                 }
               >
                 Busco alquilar
@@ -2186,7 +2363,9 @@ export default function PageDePrueba() {
                 className="btn btn-secondary"
                 href="#sumate"
                 onClick={() =>
-                  choosePath("owner")
+                  choosePath(
+                    "owner"
+                  )
                 }
               >
                 Tengo una propiedad
@@ -2196,7 +2375,9 @@ export default function PageDePrueba() {
                 className="btn btn-secondary"
                 href="#sumate"
                 onClick={() =>
-                  choosePath("renewal")
+                  choosePath(
+                    "renewal"
+                  )
                 }
               >
                 Quiero renovar
@@ -2207,9 +2388,11 @@ export default function PageDePrueba() {
               <span className="pill">
                 Sin comisión inmobiliaria
               </span>
+
               <span className="pill">
                 Matching gratis
               </span>
+
               <span className="pill">
                 Publicar gratis
               </span>
@@ -2232,7 +2415,9 @@ export default function PageDePrueba() {
 
             <h2 className="section-title">
               Datos simples para{" "}
-              <em>matchear mejor.</em>
+              <em>
+                matchear mejor.
+              </em>
             </h2>
 
             <p className="section-copy">
@@ -2246,49 +2431,67 @@ export default function PageDePrueba() {
               role="button"
               tabIndex={0}
               onClick={() => {
-                choosePath("tenant")
+                choosePath(
+                  "tenant"
+                )
+
                 document
                   .getElementById(
                     "sumate"
                   )
-                  ?.scrollIntoView({
-                    behavior:
-                      "smooth",
-                  })
+                  ?.scrollIntoView(
+                    {
+                      behavior:
+                        "smooth",
+                    }
+                  )
               }}
-              onKeyDown={(e) => {
+              onKeyDown={(
+                e
+              ) => {
                 if (
                   e.key ===
                     "Enter" ||
-                  e.key === " "
+                  e.key ===
+                    " "
                 ) {
                   choosePath(
                     "tenant"
                   )
+
                   document
                     .getElementById(
                       "sumate"
                     )
-                    ?.scrollIntoView({
-                      behavior:
-                        "smooth",
-                    })
+                    ?.scrollIntoView(
+                      {
+                        behavior:
+                          "smooth",
+                      }
+                    )
                 }
               }}
             >
-              <MiniPhone type="tenant" />
+              <MiniPhone
+                type="tenant"
+              />
 
               <div className="mock-copy">
                 <h3>
                   Buscá por barrios
                 </h3>
+
                 <p>
                   Marcá más de un barrio si te sirve. Así podemos matchearte con propiedades compatibles aunque no estén en tu primera opción.
                 </p>
+
                 <a
                   href="#sumate"
-                  onClick={(e) => {
+                  onClick={(
+                    e
+                  ) => {
                     e.stopPropagation()
+
                     choosePath(
                       "tenant"
                     )
@@ -2304,49 +2507,67 @@ export default function PageDePrueba() {
               role="button"
               tabIndex={0}
               onClick={() => {
-                choosePath("owner")
+                choosePath(
+                  "owner"
+                )
+
                 document
                   .getElementById(
                     "sumate"
                   )
-                  ?.scrollIntoView({
-                    behavior:
-                      "smooth",
-                  })
+                  ?.scrollIntoView(
+                    {
+                      behavior:
+                        "smooth",
+                    }
+                  )
               }}
-              onKeyDown={(e) => {
+              onKeyDown={(
+                e
+              ) => {
                 if (
                   e.key ===
                     "Enter" ||
-                  e.key === " "
+                  e.key ===
+                    " "
                 ) {
                   choosePath(
                     "owner"
                   )
+
                   document
                     .getElementById(
                       "sumate"
                     )
-                    ?.scrollIntoView({
-                      behavior:
-                        "smooth",
-                    })
+                    ?.scrollIntoView(
+                      {
+                        behavior:
+                          "smooth",
+                      }
+                    )
                 }
               }}
             >
-              <MiniPhone type="owner" />
+              <MiniPhone
+                type="owner"
+              />
 
               <div className="mock-copy">
                 <h3>
                   Tenés una propiedad
                 </h3>
+
                 <p>
-                  Dejanos barrio, tipo, precio, disponibilidad y al menos una foto para poder mostrarla a inquilinos compatibles.
+                  Dejanos barrio, tipo, precio y disponibilidad para cruzarla con inquilinos compatibles.
                 </p>
+
                 <a
                   href="#sumate"
-                  onClick={(e) => {
+                  onClick={(
+                    e
+                  ) => {
                     e.stopPropagation()
+
                     choosePath(
                       "owner"
                     )
@@ -2365,48 +2586,64 @@ export default function PageDePrueba() {
                 choosePath(
                   "renewal"
                 )
+
                 document
                   .getElementById(
                     "sumate"
                   )
-                  ?.scrollIntoView({
-                    behavior:
-                      "smooth",
-                  })
+                  ?.scrollIntoView(
+                    {
+                      behavior:
+                        "smooth",
+                    }
+                  )
               }}
-              onKeyDown={(e) => {
+              onKeyDown={(
+                e
+              ) => {
                 if (
                   e.key ===
                     "Enter" ||
-                  e.key === " "
+                  e.key ===
+                    " "
                 ) {
                   choosePath(
                     "renewal"
                   )
+
                   document
                     .getElementById(
                       "sumate"
                     )
-                    ?.scrollIntoView({
-                      behavior:
-                        "smooth",
-                    })
+                    ?.scrollIntoView(
+                      {
+                        behavior:
+                          "smooth",
+                      }
+                    )
                 }
               }}
             >
-              <MiniPhone type="renewal" />
+              <MiniPhone
+                type="renewal"
+              />
 
               <div className="mock-copy">
                 <h3>
                   Renová sin comisión
                 </h3>
+
                 <p>
                   Ordená la renovación directo, rápido y sin costos inmobiliarios de renovación.
                 </p>
+
                 <a
                   href="#sumate"
-                  onClick={(e) => {
+                  onClick={(
+                    e
+                  ) => {
                     e.stopPropagation()
+
                     choosePath(
                       "renewal"
                     )
@@ -2433,7 +2670,9 @@ export default function PageDePrueba() {
 
               <h2 className="section-title">
                 Dejá tus datos y seguimos{" "}
-                <em>de inmediato.</em>
+                <em>
+                  de inmediato.
+                </em>
               </h2>
 
               <p className="section-copy">
@@ -2459,6 +2698,7 @@ export default function PageDePrueba() {
                 <strong>
                   Busco alquilar
                 </strong>
+
                 <span>
                   Barrios, presupuesto y fecha de mudanza.
                 </span>
@@ -2481,8 +2721,9 @@ export default function PageDePrueba() {
                 <strong>
                   Tengo una propiedad
                 </strong>
+
                 <span>
-                  Barrio, tipo, precio, disponibilidad y fotos.
+                  Barrio, tipo, precio y disponibilidad.
                 </span>
               </button>
 
@@ -2503,6 +2744,7 @@ export default function PageDePrueba() {
                 <strong>
                   Quiero renovar
                 </strong>
+
                 <span>
                   Barrio, contrato, partes y vencimiento.
                 </span>
@@ -2511,10 +2753,15 @@ export default function PageDePrueba() {
 
             <div className="form-head">
               <h3>
-                {selected.title}
+                {
+                  selected.title
+                }
               </h3>
+
               <p>
-                {selected.subtitle}
+                {
+                  selected.subtitle
+                }
               </p>
             </div>
 
@@ -2558,7 +2805,8 @@ export default function PageDePrueba() {
                 required
               />
 
-              {path === "tenant" && (
+              {path ===
+                "tenant" && (
                 <>
                   <div className="neighborhood-box">
                     <strong>
@@ -2621,6 +2869,7 @@ export default function PageDePrueba() {
                                 neighborhood
                               }
                             />
+
                             {
                               neighborhood
                             }
@@ -2649,18 +2898,23 @@ export default function PageDePrueba() {
                       >
                         Tipo de propiedad
                       </option>
+
                       <option>
                         Departamento
                       </option>
+
                       <option>
                         Casa
                       </option>
+
                       <option>
                         PH
                       </option>
+
                       <option>
                         Habitación
                       </option>
+
                       <option>
                         Otro
                       </option>
@@ -2678,18 +2932,23 @@ export default function PageDePrueba() {
                       >
                         Ambientes que buscás
                       </option>
+
                       <option>
                         Monoambiente
                       </option>
+
                       <option>
                         2 ambientes
                       </option>
+
                       <option>
                         3 ambientes
                       </option>
+
                       <option>
                         4 ambientes
                       </option>
+
                       <option>
                         5 o más ambientes
                       </option>
@@ -2742,12 +3001,15 @@ export default function PageDePrueba() {
                       >
                         Cuándo querés mudarte
                       </option>
+
                       <option value="Ahora">
                         Ahora
                       </option>
+
                       <option value="En 1 a 3 meses">
                         En 1 a 3 meses
                       </option>
+
                       <option value="En 6 meses o más">
                         En 6 meses o más
                       </option>
@@ -2767,18 +3029,23 @@ export default function PageDePrueba() {
                       >
                         Cómo demostrás tus ingresos
                       </option>
+
                       <option value="salary_receipt">
                         Recibo de sueldo
                       </option>
+
                       <option value="monotributo">
                         Monotributista
                       </option>
+
                       <option value="self_employed">
                         Autónomo / socio / director de empresa
                       </option>
+
                       <option value="other_formal">
                         Otra demostración formal de ingresos
                       </option>
+
                       <option value="none">
                         No tengo demostración formal de ingresos
                       </option>
@@ -2830,6 +3097,7 @@ export default function PageDePrueba() {
                           name="guarantee_types"
                           value="property_guarantee"
                         />
+
                         Garantía propietaria
                       </label>
 
@@ -2839,6 +3107,7 @@ export default function PageDePrueba() {
                           name="guarantee_types"
                           value="surety_insurance"
                         />
+
                         Seguro de caución
                       </label>
 
@@ -2848,6 +3117,7 @@ export default function PageDePrueba() {
                           name="guarantee_types"
                           value="salary_guarantors"
                         />
+
                         Garantes con recibo de sueldo
                       </label>
 
@@ -2857,6 +3127,7 @@ export default function PageDePrueba() {
                           name="guarantee_types"
                           value="other"
                         />
+
                         Otra garantía
                       </label>
 
@@ -2866,6 +3137,7 @@ export default function PageDePrueba() {
                           name="guarantee_types"
                           value="none"
                         />
+
                         No tengo garantía
                       </label>
                     </div>
@@ -2873,7 +3145,8 @@ export default function PageDePrueba() {
                 </>
               )}
 
-              {path === "owner" && (
+              {path ===
+                "owner" && (
                 <>
                   <div className="row">
                     <select
@@ -2922,21 +3195,27 @@ export default function PageDePrueba() {
                       >
                         Tipo de propiedad
                       </option>
+
                       <option>
                         Departamento
                       </option>
+
                       <option>
                         Casa
                       </option>
+
                       <option>
                         PH
                       </option>
+
                       <option>
                         Local
                       </option>
+
                       <option>
                         Oficina
                       </option>
+
                       <option>
                         Otro
                       </option>
@@ -2956,18 +3235,23 @@ export default function PageDePrueba() {
                       >
                         Ambientes de la propiedad
                       </option>
+
                       <option>
                         Monoambiente
                       </option>
+
                       <option>
                         2 ambientes
                       </option>
+
                       <option>
                         3 ambientes
                       </option>
+
                       <option>
                         4 ambientes
                       </option>
+
                       <option>
                         5 o más ambientes
                       </option>
@@ -3019,12 +3303,15 @@ export default function PageDePrueba() {
                     >
                       Cuándo estará disponible
                     </option>
+
                     <option value="Ahora">
                       Ahora
                     </option>
+
                     <option value="En 1 a 3 meses">
                       En 1 a 3 meses
                     </option>
+
                     <option value="En 6 meses o más">
                       En 6 meses o más
                     </option>
@@ -3042,6 +3329,7 @@ export default function PageDePrueba() {
                           name="accepted_income_proof_types"
                           value="salary_receipt"
                         />
+
                         Recibo de sueldo
                       </label>
 
@@ -3051,6 +3339,7 @@ export default function PageDePrueba() {
                           name="accepted_income_proof_types"
                           value="monotributo"
                         />
+
                         Monotributista
                       </label>
 
@@ -3060,6 +3349,7 @@ export default function PageDePrueba() {
                           name="accepted_income_proof_types"
                           value="self_employed"
                         />
+
                         Autónomo / socio / director de empresa
                       </label>
 
@@ -3069,6 +3359,7 @@ export default function PageDePrueba() {
                           name="accepted_income_proof_types"
                           value="other_formal"
                         />
+
                         Otra demostración formal
                       </label>
 
@@ -3078,6 +3369,7 @@ export default function PageDePrueba() {
                           name="accepted_income_proof_types"
                           value="any"
                         />
+
                         Cualquiera de las anteriores
                       </label>
                     </div>
@@ -3095,15 +3387,19 @@ export default function PageDePrueba() {
                     >
                       Ingreso mínimo en relación al alquiler
                     </option>
+
                     <option value="2">
                       2 veces el alquiler
                     </option>
+
                     <option value="2.5">
                       2,5 veces el alquiler
                     </option>
+
                     <option value="3">
                       3 veces el alquiler
                     </option>
+
                     <option value="4">
                       4 veces el alquiler
                     </option>
@@ -3121,6 +3417,7 @@ export default function PageDePrueba() {
                           name="accepted_guarantee_types"
                           value="property_guarantee"
                         />
+
                         Garantía propietaria
                       </label>
 
@@ -3130,6 +3427,7 @@ export default function PageDePrueba() {
                           name="accepted_guarantee_types"
                           value="surety_insurance"
                         />
+
                         Seguro de caución
                       </label>
 
@@ -3139,6 +3437,7 @@ export default function PageDePrueba() {
                           name="accepted_guarantee_types"
                           value="salary_guarantors"
                         />
+
                         Garantes con recibo de sueldo
                       </label>
 
@@ -3148,6 +3447,7 @@ export default function PageDePrueba() {
                           name="accepted_guarantee_types"
                           value="other"
                         />
+
                         Otra garantía
                       </label>
 
@@ -3157,46 +3457,16 @@ export default function PageDePrueba() {
                           name="accepted_guarantee_types"
                           value="any"
                         />
+
                         Cualquiera de las anteriores
                       </label>
                     </div>
                   </div>
-
-                  <div className="owner-media-box">
-                    <strong>
-                      Fotos de la propiedad
-                    </strong>
-
-                    <p>
-                      Subí al menos una foto para que las personas compatibles puedan ver la propiedad. Podés seleccionar varias.
-                    </p>
-
-                    <input
-                      className="owner-media-input"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      required
-                      onChange={
-                        handleOwnerFiles
-                      }
-                    />
-
-                    {ownerFiles.length >
-                      0 && (
-                      <div className="owner-media-status">
-                        {ownerFiles.length}{" "}
-                        {ownerFiles.length ===
-                        1
-                          ? "foto seleccionada"
-                          : "fotos seleccionadas"}
-                      </div>
-                    )}
-                  </div>
                 </>
               )}
 
-              {path === "renewal" && (
+              {path ===
+                "renewal" && (
                 <>
                   <div className="row">
                     <select
@@ -3211,9 +3481,11 @@ export default function PageDePrueba() {
                       >
                         En la renovación soy...
                       </option>
+
                       <option value="owner">
                         Propietario
                       </option>
+
                       <option value="tenant">
                         Inquilino
                       </option>
@@ -3274,12 +3546,15 @@ export default function PageDePrueba() {
                       >
                         ¿Lo sabe ya tu contraparte?
                       </option>
+
                       <option>
                         Sí, ya lo hablamos
                       </option>
+
                       <option>
                         Todavía no
                       </option>
+
                       <option>
                         No estoy seguro
                       </option>
@@ -3298,15 +3573,19 @@ export default function PageDePrueba() {
                     >
                       ¿Qué querés lograr con esta renovación?
                     </option>
+
                     <option>
                       Renovar con condiciones parecidas
                     </option>
+
                     <option>
                       Actualizar precio y renovar
                     </option>
+
                     <option>
                       Cambiar plazo del contrato
                     </option>
+
                     <option>
                       Todavía no lo sé, quiero que me guíen
                     </option>
@@ -3333,7 +3612,9 @@ export default function PageDePrueba() {
                   loading
                 }
               >
-                {submitLabel}
+                {
+                  submitLabel
+                }
               </button>
             </form>
           </div>
@@ -3343,7 +3624,10 @@ export default function PageDePrueba() {
       <footer className="footer">
         <div className="container footer-inner">
           <div className="footer-brand">
-            <VerloBrand width={86} />
+            <VerloBrand
+              width={86}
+            />
+
             <p>
               Alquiler directo, seguro y sin comisión.
             </p>
@@ -3359,7 +3643,9 @@ export default function PageDePrueba() {
             </a>
 
             <a
-              href={CONTACT_HREF}
+              href={
+                CONTACT_HREF
+              }
               target="_blank"
               rel="noopener noreferrer"
             >
