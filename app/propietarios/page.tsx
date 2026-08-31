@@ -1,72 +1,289 @@
 "use client"
 
-import { FormEvent, useState } from "react"
+import {
+  FormEvent,
+  useState,
+} from "react"
 import VerloBrand from "@/components/VerloBrand"
 
 const DEMAND = [
-  { neighborhood: "Belgrano", leads: "+100", detail: "Búsquedas activas de inquilinos" },
-  { neighborhood: "Palermo", leads: "+100", detail: "Búsquedas activas de inquilinos" },
-  { neighborhood: "Flores", leads: "+100", detail: "Búsquedas activas de inquilinos" },
-  { neighborhood: "Colegiales", leads: "+100", detail: "Búsquedas activas de inquilinos" },
-  { neighborhood: "Almagro", leads: "+100", detail: "Búsquedas activas de inquilinos" },
-  { neighborhood: "Caballito", leads: "+100", detail: "Búsquedas activas de inquilinos" },
+  {
+    neighborhood: "Belgrano",
+    leads: "+100",
+    detail:
+      "Búsquedas activas de inquilinos",
+  },
+  {
+    neighborhood: "Palermo",
+    leads: "+100",
+    detail:
+      "Búsquedas activas de inquilinos",
+  },
+  {
+    neighborhood: "Flores",
+    leads: "+100",
+    detail:
+      "Búsquedas activas de inquilinos",
+  },
+  {
+    neighborhood: "Colegiales",
+    leads: "+100",
+    detail:
+      "Búsquedas activas de inquilinos",
+  },
+  {
+    neighborhood: "Almagro",
+    leads: "+100",
+    detail:
+      "Búsquedas activas de inquilinos",
+  },
+  {
+    neighborhood: "Caballito",
+    leads: "+100",
+    detail:
+      "Búsquedas activas de inquilinos",
+  },
 ]
 
 const NEIGHBORHOOD_OPTIONS = [
-  { label: "Agronomía", slug: "agronomia" },
-  { label: "Almagro", slug: "almagro" },
-  { label: "Balvanera", slug: "balvanera" },
-  { label: "Barracas", slug: "barracas" },
-  { label: "Belgrano", slug: "belgrano" },
-  { label: "Boedo", slug: "boedo" },
-  { label: "Caballito", slug: "caballito" },
-  { label: "Chacarita", slug: "chacarita" },
-  { label: "Coghlan", slug: "coghlan" },
-  { label: "Colegiales", slug: "colegiales" },
-  { label: "Flores", slug: "flores" },
-  { label: "Floresta", slug: "floresta" },
-  { label: "Liniers", slug: "liniers" },
-  { label: "Mataderos", slug: "mataderos" },
-  { label: "Monserrat", slug: "monserrat" },
-  { label: "Monte Castro", slug: "monte-castro" },
-  { label: "Núñez", slug: "nunez" },
-  { label: "Palermo", slug: "palermo" },
-  { label: "Parque Avellaneda", slug: "parque-avellaneda" },
-  { label: "Parque Chacabuco", slug: "parque-chacabuco" },
-  { label: "Parque Chas", slug: "parque-chas" },
-  { label: "Parque Patricios", slug: "parque-patricios" },
-  { label: "Paternal", slug: "paternal" },
-  { label: "Recoleta", slug: "recoleta" },
-  { label: "Saavedra", slug: "saavedra" },
-  { label: "San Cristóbal", slug: "san-cristobal" },
-  { label: "San Nicolás", slug: "san-nicolas" },
-  { label: "San Telmo", slug: "san-telmo" },
-  { label: "Vélez Sarsfield", slug: "velez-sarsfield" },
-  { label: "Versalles", slug: "versalles" },
-  { label: "Villa Crespo", slug: "villa-crespo" },
-  { label: "Villa Devoto", slug: "villa-devoto" },
-  { label: "Villa General Mitre", slug: "villa-general-mitre" },
-  { label: "Villa Luro", slug: "villa-luro" },
-  { label: "Villa Ortúzar", slug: "villa-ortuzar" },
-  { label: "Villa Pueyrredón", slug: "villa-pueyrredon" },
-  { label: "Villa Real", slug: "villa-real" },
-  { label: "Villa Santa Rita", slug: "villa-santa-rita" },
-  { label: "Villa Urquiza", slug: "villa-urquiza" },
-  { label: "Vicente López", slug: "vicente-lopez" },
-  { label: "Olivos", slug: "olivos" },
-  { label: "Florida", slug: "florida" },
-  { label: "La Lucila", slug: "la-lucila" },
-  { label: "Munro", slug: "munro" },
-  { label: "Villa Martelli", slug: "villa-martelli" },
-  { label: "San Isidro", slug: "san-isidro" },
-  { label: "Martínez", slug: "martinez" },
-  { label: "Acassuso", slug: "acassuso" },
-  { label: "Beccar", slug: "beccar" },
-  { label: "San Fernando", slug: "san-fernando" },
-  { label: "Tigre", slug: "tigre" },
+  {
+    label: "Agronomía",
+    slug: "agronomia",
+  },
+  {
+    label: "Almagro",
+    slug: "almagro",
+  },
+  {
+    label: "Balvanera",
+    slug: "balvanera",
+  },
+  {
+    label: "Barracas",
+    slug: "barracas",
+  },
+  {
+    label: "Belgrano",
+    slug: "belgrano",
+  },
+  {
+    label: "Boedo",
+    slug: "boedo",
+  },
+  {
+    label: "Caballito",
+    slug: "caballito",
+  },
+  {
+    label: "Chacarita",
+    slug: "chacarita",
+  },
+  {
+    label: "Coghlan",
+    slug: "coghlan",
+  },
+  {
+    label: "Colegiales",
+    slug: "colegiales",
+  },
+  {
+    label: "Flores",
+    slug: "flores",
+  },
+  {
+    label: "Floresta",
+    slug: "floresta",
+  },
+  {
+    label: "Liniers",
+    slug: "liniers",
+  },
+  {
+    label: "Mataderos",
+    slug: "mataderos",
+  },
+  {
+    label: "Monserrat",
+    slug: "monserrat",
+  },
+  {
+    label: "Monte Castro",
+    slug: "monte-castro",
+  },
+  {
+    label: "Núñez",
+    slug: "nunez",
+  },
+  {
+    label: "Palermo",
+    slug: "palermo",
+  },
+  {
+    label:
+      "Parque Avellaneda",
+    slug:
+      "parque-avellaneda",
+  },
+  {
+    label:
+      "Parque Chacabuco",
+    slug:
+      "parque-chacabuco",
+  },
+  {
+    label: "Parque Chas",
+    slug: "parque-chas",
+  },
+  {
+    label:
+      "Parque Patricios",
+    slug:
+      "parque-patricios",
+  },
+  {
+    label: "Paternal",
+    slug: "paternal",
+  },
+  {
+    label: "Recoleta",
+    slug: "recoleta",
+  },
+  {
+    label: "Saavedra",
+    slug: "saavedra",
+  },
+  {
+    label:
+      "San Cristóbal",
+    slug:
+      "san-cristobal",
+  },
+  {
+    label: "San Nicolás",
+    slug: "san-nicolas",
+  },
+  {
+    label: "San Telmo",
+    slug: "san-telmo",
+  },
+  {
+    label:
+      "Vélez Sarsfield",
+    slug:
+      "velez-sarsfield",
+  },
+  {
+    label: "Versalles",
+    slug: "versalles",
+  },
+  {
+    label: "Villa Crespo",
+    slug: "villa-crespo",
+  },
+  {
+    label: "Villa Devoto",
+    slug: "villa-devoto",
+  },
+  {
+    label:
+      "Villa General Mitre",
+    slug:
+      "villa-general-mitre",
+  },
+  {
+    label: "Villa Luro",
+    slug: "villa-luro",
+  },
+  {
+    label:
+      "Villa Ortúzar",
+    slug:
+      "villa-ortuzar",
+  },
+  {
+    label:
+      "Villa Pueyrredón",
+    slug:
+      "villa-pueyrredon",
+  },
+  {
+    label: "Villa Real",
+    slug: "villa-real",
+  },
+  {
+    label:
+      "Villa Santa Rita",
+    slug:
+      "villa-santa-rita",
+  },
+  {
+    label: "Villa Urquiza",
+    slug: "villa-urquiza",
+  },
+  {
+    label:
+      "Vicente López",
+    slug:
+      "vicente-lopez",
+  },
+  {
+    label: "Olivos",
+    slug: "olivos",
+  },
+  {
+    label: "Florida",
+    slug: "florida",
+  },
+  {
+    label: "La Lucila",
+    slug: "la-lucila",
+  },
+  {
+    label: "Munro",
+    slug: "munro",
+  },
+  {
+    label:
+      "Villa Martelli",
+    slug:
+      "villa-martelli",
+  },
+  {
+    label: "San Isidro",
+    slug: "san-isidro",
+  },
+  {
+    label: "Martínez",
+    slug: "martinez",
+  },
+  {
+    label: "Acassuso",
+    slug: "acassuso",
+  },
+  {
+    label: "Beccar",
+    slug: "beccar",
+  },
+  {
+    label:
+      "San Fernando",
+    slug:
+      "san-fernando",
+  },
+  {
+    label: "Tigre",
+    slug: "tigre",
+  },
 ]
 
-const PROPERTY_TYPES = ["Departamento", "Casa", "PH", "Local", "Oficina", "Otro"]
+const PROPERTY_TYPES = [
+  "Departamento",
+  "Casa",
+  "PH",
+  "Local",
+  "Oficina",
+  "Otro",
+]
 
 const ROOM_OPTIONS = [
   "Monoambiente",
@@ -77,20 +294,62 @@ const ROOM_OPTIONS = [
 ]
 
 const PRICE_OPTIONS = [
-  { label: "$300.000", value: "300000" },
-  { label: "$400.000", value: "400000" },
-  { label: "$500.000", value: "500000" },
-  { label: "$600.000", value: "600000" },
-  { label: "$700.000", value: "700000" },
-  { label: "$800.000", value: "800000" },
-  { label: "$900.000", value: "900000" },
-  { label: "$1.000.000", value: "1000000" },
-  { label: "$1.100.000", value: "1100000" },
-  { label: "$1.200.000", value: "1200000" },
-  { label: "$1.300.000", value: "1300000" },
-  { label: "$1.500.000", value: "1500000" },
-  { label: "$1.800.000", value: "1800000" },
-  { label: "$2.000.000+", value: "2000000" },
+  {
+    label: "$300.000",
+    value: "300000",
+  },
+  {
+    label: "$400.000",
+    value: "400000",
+  },
+  {
+    label: "$500.000",
+    value: "500000",
+  },
+  {
+    label: "$600.000",
+    value: "600000",
+  },
+  {
+    label: "$700.000",
+    value: "700000",
+  },
+  {
+    label: "$800.000",
+    value: "800000",
+  },
+  {
+    label: "$900.000",
+    value: "900000",
+  },
+  {
+    label: "$1.000.000",
+    value: "1000000",
+  },
+  {
+    label: "$1.100.000",
+    value: "1100000",
+  },
+  {
+    label: "$1.200.000",
+    value: "1200000",
+  },
+  {
+    label: "$1.300.000",
+    value: "1300000",
+  },
+  {
+    label: "$1.500.000",
+    value: "1500000",
+  },
+  {
+    label: "$1.800.000",
+    value: "1800000",
+  },
+  {
+    label: "$2.000.000+",
+    value: "2000000",
+  },
 ]
 
 const AVAILABILITY_OPTIONS = [
@@ -100,224 +359,297 @@ const AVAILABILITY_OPTIONS = [
 ]
 
 export default function PropietariosPage() {
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
-  const [message, setMessage] = useState("")
+  const [
+    status,
+    setStatus,
+  ] =
+    useState<
+      | "idle"
+      | "loading"
+      | "success"
+      | "error"
+    >("idle")
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const [
+    message,
+    setMessage,
+  ] =
+    useState("")
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault()
-    setStatus("loading")
-    setMessage("")
 
-    const form = event.currentTarget
-    const formData = new FormData(form)
+    setStatus(
+      "loading"
+    )
 
-    const website = String(formData.get("website") || "").trim()
+    setMessage(
+      ""
+    )
 
-    if (website) {
+    const form =
+      event.currentTarget
+
+    const formData =
+      new FormData(
+        form
+      )
+
+    const website =
+      String(
+        formData.get(
+          "website"
+        ) || ""
+      ).trim()
+
+    if (
+      website
+    ) {
       form.reset()
-      setStatus("success")
+
+      setStatus(
+        "success"
+      )
+
       setMessage(
         "Listo. Recibimos los datos de tu propiedad. Te vamos a escribir si encontramos compatibilidad con búsquedas activas."
       )
+
       return
     }
 
-    const fullName = String(formData.get("full_name") || "").trim()
-    const email = String(formData.get("email") || "").trim()
-    const phone = String(formData.get("phone") || "").trim()
+    const fullName =
+      String(
+        formData.get(
+          "full_name"
+        ) || ""
+      ).trim()
 
-    const neighborhoodSlug = String(formData.get("neighborhood_slug") || "").trim()
-    const selectedNeighborhood = NEIGHBORHOOD_OPTIONS.find(
-      (item) => item.slug === neighborhoodSlug
-    )
+    const email =
+      String(
+        formData.get(
+          "email"
+        ) || ""
+      ).trim()
 
-    const zone = selectedNeighborhood?.label || ""
-    const propertyType = String(formData.get("property_type") || "").trim()
-    const propertyRooms = String(formData.get("property_rooms") || "").trim()
-    const approxPrice = String(formData.get("approx_price") || "").trim()
-    const availabilityStatus = String(formData.get("availability_status") || "").trim()
-    const notes = String(formData.get("notes") || "").trim()
+    const phone =
+      String(
+        formData.get(
+          "phone"
+        ) || ""
+      ).trim()
 
-    const photoFiles = formData
-      .getAll("property_photos")
-      .filter(
-        (item): item is File =>
-          item instanceof File &&
-          item.size > 0
+    const neighborhoodSlug =
+      String(
+        formData.get(
+          "neighborhood_slug"
+        ) || ""
+      ).trim()
+
+    const selectedNeighborhood =
+      NEIGHBORHOOD_OPTIONS.find(
+        (item) =>
+          item.slug ===
+          neighborhoodSlug
       )
 
-    if (photoFiles.length === 0) {
-      setStatus("error")
-      setMessage("Subí al menos una foto de la propiedad.")
-      return
-    }
+    const zone =
+      selectedNeighborhood
+        ?.label ||
+      ""
 
-    const invalidPhoto = photoFiles.find(
-      (file) =>
-        !file.type.startsWith("image/")
-    )
+    const propertyType =
+      String(
+        formData.get(
+          "property_type"
+        ) || ""
+      ).trim()
 
-    if (invalidPhoto) {
-      setStatus("error")
-      setMessage("Las fotos deben ser archivos de imagen.")
-      return
-    }
+    const propertyRooms =
+      String(
+        formData.get(
+          "property_rooms"
+        ) || ""
+      ).trim()
+
+    const approxPrice =
+      String(
+        formData.get(
+          "approx_price"
+        ) || ""
+      ).trim()
+
+    const availabilityStatus =
+      String(
+        formData.get(
+          "availability_status"
+        ) || ""
+      ).trim()
+
+    const notes =
+      String(
+        formData.get(
+          "notes"
+        ) || ""
+      ).trim()
 
     const payload = {
-      full_name: fullName,
+      full_name:
+        fullName,
+
       email,
+
       phone,
-      role: "owner",
-      intent: "owner_new_listing",
+
+      role:
+        "owner",
+
+      intent:
+        "owner_new_listing",
+
       zone,
-      area_macro: "owner_landing",
-      neighborhood_labels: [zone],
-      neighborhood_slugs: [neighborhoodSlug],
-      neighborhood_slug: neighborhoodSlug,
-      property_type: propertyType,
-      property_rooms: propertyRooms,
-      approx_price: approxPrice,
-      availability_status: availabilityStatus,
-      source: "verlo_propietarios",
+
+      area_macro:
+        "owner_landing",
+
+      neighborhood_labels:
+        [
+          zone,
+        ],
+
+      neighborhood_slugs:
+        [
+          neighborhoodSlug,
+        ],
+
+      neighborhood_slug:
+        neighborhoodSlug,
+
+      property_type:
+        propertyType,
+
+      property_rooms:
+        propertyRooms,
+
+      approx_price:
+        approxPrice,
+
+      availability_status:
+        availabilityStatus,
+
+      source:
+        "verlo_propietarios",
+
       metadata: {
-        page: "propietarios",
-        owner_notes: notes,
-        property_rooms: propertyRooms,
-        neighborhood_slug: neighborhoodSlug,
-        neighborhood_label: zone,
+        page:
+          "propietarios",
+
+        owner_notes:
+          notes,
+
+        property_rooms:
+          propertyRooms,
+
+        neighborhood_slug:
+          neighborhoodSlug,
+
+        neighborhood_label:
+          zone,
       },
     }
 
     try {
-      const res = await fetch("/api/ghl-lead-webhook", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || "No pudimos guardar tus datos")
-      }
-
-      const leadId = String(data?.lead_id || "").trim()
-
-      if (!leadId) {
-        throw new Error("No pudimos identificar la propiedad creada")
-      }
-
-      const uploadedMedia: Array<{
-        key: string
-        publicUrl: string | null
-        filename: string
-        contentType: string
-        size: number
-      }> = []
-
-      for (const file of photoFiles) {
-        const presignRes = await fetch("/api/r2/presign", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            folder: "owner-media",
-            id: leadId,
-            filename: file.name,
-            contentType: file.type,
-          }),
-        })
-
-        const presignData = await presignRes
-          .json()
-          .catch(() => null)
-
-        if (
-          !presignRes.ok ||
-          !presignData?.uploadUrl ||
-          !presignData?.key
-        ) {
-          throw new Error("No pudimos preparar una de las fotos")
-        }
-
-        const uploadRes = await fetch(
-          presignData.uploadUrl,
+      const res =
+        await fetch(
+          "/api/ghl-lead-webhook",
           {
-            method: "PUT",
+            method:
+              "POST",
+
             headers: {
-              "Content-Type": file.type,
+              "Content-Type":
+                "application/json",
             },
-            body: file,
+
+            body:
+              JSON.stringify(
+                payload
+              ),
           }
         )
 
-        if (!uploadRes.ok) {
-          throw new Error("No pudimos subir una de las fotos")
-        }
+      const data =
+        await res
+          .json()
+          .catch(
+            () =>
+              null
+          )
 
-        uploadedMedia.push({
-          key: String(presignData.key),
-          publicUrl: presignData.publicUrl
-            ? String(presignData.publicUrl)
-            : null,
-          filename: file.name,
-          contentType: file.type,
-          size: file.size,
-        })
-      }
-
-      if (uploadedMedia.length === 0) {
-        throw new Error("No pudimos subir las fotos de la propiedad")
-      }
-
-      const mediaRes = await fetch("/api/owner-initial-media", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          owner_lead_id: leadId,
-          media: uploadedMedia,
-        }),
-      })
-
-      const mediaData = await mediaRes
-        .json()
-        .catch(() => null)
-
-      if (!mediaRes.ok || !mediaData?.ok) {
+      if (
+        !res.ok ||
+        !data?.ok
+      ) {
         throw new Error(
-          mediaData?.error ||
-            "La propiedad se guardó pero no pudimos registrar las fotos"
+          data?.error ||
+            "No pudimos guardar tus datos"
         )
       }
 
       form.reset()
-      setStatus("success")
-      setMessage(
-        "Listo. Recibimos tu propiedad y las fotos. Te vamos a escribir si encontramos compatibilidad con búsquedas activas."
+
+      setStatus(
+        "success"
       )
-    } catch (error) {
-      setStatus("error")
-      setMessage(error instanceof Error ? error.message : "Error inesperado")
+
+      setMessage(
+        "Listo. Recibimos los datos de tu propiedad. Te vamos a escribir si encontramos compatibilidad con búsquedas activas."
+      )
+    } catch (
+      error
+    ) {
+      setStatus(
+        "error"
+      )
+
+      setMessage(
+        error instanceof
+        Error
+          ? error.message
+          : "Error inesperado"
+      )
     }
   }
 
   return (
     <main className="owners-root">
-      <style>{styles}</style>
+      <style>
+        {styles}
+      </style>
 
       <nav className="nav">
         <div className="container nav-inner">
-          <VerloBrand width={34} />
+          <VerloBrand
+            width={34}
+          />
 
           <div className="nav-links">
-            <a href="#demanda">Demanda activa</a>
-            <a href="#como-funciona">Cómo funciona</a>
-            <a href="#cargar" className="nav-cta">Revisar match</a>
+            <a href="#demanda">
+              Demanda activa
+            </a>
+
+            <a href="#como-funciona">
+              Cómo funciona
+            </a>
+
+            <a
+              href="#cargar"
+              className="nav-cta"
+            >
+              Revisar match
+            </a>
           </div>
         </div>
       </nav>
@@ -325,7 +657,9 @@ export default function PropietariosPage() {
       <section className="hero">
         <div className="container hero-grid">
           <div>
-            <p className="eyebrow">Propietarios / Verlo</p>
+            <p className="eyebrow">
+              Propietarios / Verlo
+            </p>
 
             <h1>
               Hay inquilinos buscando alquilar directo. Tu propiedad puede matchear.
@@ -336,135 +670,295 @@ export default function PropietariosPage() {
             </p>
 
             <p className="hero-copy secondary">
-              Si tenés una propiedad, podés revisar gratis si matchea con búsquedas activas. Cargá los datos principales y al menos una foto. No publicamos tu domicilio exacto.
+              Si tenés una propiedad, podés revisar gratis si matchea con búsquedas activas. Cargá los datos principales. No publicamos tu domicilio exacto.
             </p>
 
             <div className="hero-actions">
-              <a href="#cargar" className="primary-btn">Ver si mi propiedad matchea</a>
-              <a href="#como-funciona" className="secondary-btn">Conocer el proceso</a>
+              <a
+                href="#cargar"
+                className="primary-btn"
+              >
+                Ver si mi propiedad matchea
+              </a>
+
+              <a
+                href="#como-funciona"
+                className="secondary-btn"
+              >
+                Conocer el proceso
+              </a>
             </div>
 
             <div className="trust-row">
-              <span>No pedimos domicilio exacto</span>
-              <span>Solo necesitás 1 foto para empezar</span>
-              <span>El propietario no paga nada</span>
-              <span>Contrato y renovación ordenados</span>
+              <span>
+                No pedimos domicilio exacto
+              </span>
+
+              <span>
+                Cargá solo los datos principales
+              </span>
+
+              <span>
+                El propietario no paga nada
+              </span>
+
+              <span>
+                Contrato y renovación ordenados
+              </span>
             </div>
           </div>
 
           <aside className="hero-card">
             <div className="hero-card-top">
-              <p>Demanda activa</p>
-              <strong>Búsquedas activas</strong>
+              <p>
+                Demanda activa
+              </p>
+
+              <strong>
+                Búsquedas activas
+              </strong>
             </div>
 
             <div className="mini-demand-list">
-              {DEMAND.slice(0, 4).map((item) => (
-                <div className="mini-demand-item" key={item.neighborhood}>
-                  <span>{item.neighborhood}</span>
-                  <strong>{item.leads}</strong>
-                </div>
-              ))}
+              {DEMAND
+                .slice(
+                  0,
+                  4
+                )
+                .map(
+                  (
+                    item
+                  ) => (
+                    <div
+                      className="mini-demand-item"
+                      key={
+                        item.neighborhood
+                      }
+                    >
+                      <span>
+                        {
+                          item.neighborhood
+                        }
+                      </span>
+
+                      <strong>
+                        {
+                          item.leads
+                        }
+                      </strong>
+                    </div>
+                  )
+                )}
             </div>
 
             <div className="hero-note">
-              Con los datos principales y al menos una foto podemos mostrar tu propiedad a inquilinos compatibles. Si hay interés real, después podés completar más información.
+              Con los datos principales podemos revisar compatibilidad con inquilinos activos. Si hay interés real, después podés completar más información de la propiedad.
             </div>
           </aside>
         </div>
       </section>
 
-      <section id="demanda" className="section">
+      <section
+        id="demanda"
+        className="section"
+      >
         <div className="container">
           <div className="section-head">
-            <p className="eyebrow">Demanda</p>
-            <h2>Inquilinos buscando en zonas activas</h2>
+            <p className="eyebrow">
+              Demanda
+            </p>
+
+            <h2>
+              Inquilinos buscando en zonas activas
+            </h2>
+
             <p>
               Verlo concentra búsquedas de personas que quieren alquilar directo porque es muchísimo más barato que entrar por inmobiliaria. Primero revisamos compatibilidad; después avanzamos.
             </p>
           </div>
 
           <div className="demand-grid">
-            {DEMAND.map((item) => (
-              <article className="demand-card" key={item.neighborhood}>
-                <span>{item.neighborhood}</span>
-                <strong>{item.leads}</strong>
-                {/*<p>búsquedas activas</p>*/}
-                <small>{item.detail}</small>
-              </article>
-            ))}
+            {DEMAND.map(
+              (
+                item
+              ) => (
+                <article
+                  className="demand-card"
+                  key={
+                    item.neighborhood
+                  }
+                >
+                  <span>
+                    {
+                      item.neighborhood
+                    }
+                  </span>
+
+                  <strong>
+                    {
+                      item.leads
+                    }
+                  </strong>
+
+                  {/*<p>búsquedas activas</p>*/}
+
+                  <small>
+                    {
+                      item.detail
+                    }
+                  </small>
+                </article>
+              )
+            )}
           </div>
         </div>
       </section>
 
-      <section id="como-funciona" className="section soft-section">
+      <section
+        id="como-funciona"
+        className="section soft-section"
+      >
         <div className="container">
           <div className="section-head">
-            <p className="eyebrow">Proceso</p>
-            <h2>El propietario deja los datos principales. Verlo hace el resto.</h2>
+            <p className="eyebrow">
+              Proceso
+            </p>
+
+            <h2>
+              El propietario deja los datos principales. Verlo hace el resto.
+            </h2>
+
             <p>
-              No publicás tu dirección exacta y no pagás nada. Cargás los datos principales y al menos una foto para que podamos mostrar la propiedad cuando aparezca un inquilino compatible.
+              No publicás tu dirección exacta y no pagás nada. Cargás los datos principales para que podamos revisar compatibilidad con búsquedas activas.
             </p>
           </div>
 
           <div className="steps-grid">
             <article>
-              <b>1</b>
-              <h3>Cargás la propiedad</h3>
-              <p>Barrio, tipo, ambientes, precio estimado, disponibilidad y al menos una foto. Podés subir varias si querés.</p>
+              <b>
+                1
+              </b>
+
+              <h3>
+                Cargás la propiedad
+              </h3>
+
+              <p>
+                Barrio, tipo, ambientes, precio estimado y disponibilidad.
+              </p>
             </article>
 
             <article>
-              <b>2</b>
-              <h3>Revisamos compatibilidad</h3>
-              <p>Cruzamos tu propiedad con búsquedas activas de inquilinos que quieren alquilar directo.</p>
+              <b>
+                2
+              </b>
+
+              <h3>
+                Revisamos compatibilidad
+              </h3>
+
+              <p>
+                Cruzamos tu propiedad con búsquedas activas de inquilinos que quieren alquilar directo.
+              </p>
             </article>
 
             <article>
-              <b>3</b>
-              <h3>Los compatibles pueden verla</h3>
-              <p>Si hay match, el inquilino puede ver los datos principales y las fotos que cargaste antes de indicar si le interesa.</p>
+              <b>
+                3
+              </b>
+
+              <h3>
+                Seguimos si hay compatibilidad
+              </h3>
+
+              <p>
+                Si hay match, te avisamos y te pedimos la información necesaria para que la propiedad pueda avanzar.
+              </p>
             </article>
 
             <article>
-              <b>4</b>
-              <h3>Verlo coordina hasta contrato</h3>
-              <p>Si aparece interés real, completamos lo necesario y avanzamos con validación, coordinación, contrato y firma.</p>
+              <b>
+                4
+              </b>
+
+              <h3>
+                Verlo coordina hasta contrato
+              </h3>
+
+              <p>
+                Si aparece interés real, completamos lo necesario y avanzamos con validación, coordinación, contrato y firma.
+              </p>
             </article>
           </div>
         </div>
       </section>
 
-      <section id="cargar" className="section form-section">
+      <section
+        id="cargar"
+        className="section form-section"
+      >
         <div className="container form-grid">
           <div>
-            <p className="eyebrow">Revisar compatibilidad</p>
-            <h2>Decinos lo necesario para ver si hay match</h2>
+            <p className="eyebrow">
+              Revisar compatibilidad
+            </p>
+
+            <h2>
+              Decinos lo necesario para ver si hay match
+            </h2>
+
             <p>
-              Cargá los datos principales y al menos una foto de la propiedad. Podés subir varias. No publicamos tu domicilio exacto.
+              Cargá los datos principales de la propiedad. No publicamos tu domicilio exacto.
             </p>
 
             <div className="promise-card">
-              <strong>El propietario no paga nada</strong>
+              <strong>
+                El propietario no paga nada
+              </strong>
+
               <span>
-                Si hay compatibilidad, los inquilinos pueden conocer la propiedad y marcar interés. Verlo después avanza con coordinación, validación, contrato y firma.
+                Si hay compatibilidad, Verlo te avisa y después avanzamos con la información necesaria, coordinación, validación, contrato y firma.
               </span>
             </div>
           </div>
 
-          <form className="owner-form" onSubmit={handleSubmit}>
+          <form
+            className="owner-form"
+            onSubmit={
+              handleSubmit
+            }
+          >
             <div
               style={{
-                marginBottom: "22px",
-                padding: "14px 18px",
-                background: "#050002",
-                color: "#f2a8a9",
-                borderRadius: "18px",
-                textAlign: "center",
-                fontSize: "20px",
-                fontWeight: 950,
-                letterSpacing: ".03em",
-                textTransform: "uppercase",
+                marginBottom:
+                  "22px",
+
+                padding:
+                  "14px 18px",
+
+                background:
+                  "#050002",
+
+                color:
+                  "#f2a8a9",
+
+                borderRadius:
+                  "18px",
+
+                textAlign:
+                  "center",
+
+                fontSize:
+                  "20px",
+
+                fontWeight:
+                  950,
+
+                letterSpacing:
+                  ".03em",
+
+                textTransform:
+                  "uppercase",
               }}
             >
               SOLO PARA PROPIETARIOS
@@ -480,91 +974,220 @@ export default function PropietariosPage() {
 
             <label>
               Nombre
-              <input name="full_name" placeholder="Tu nombre" required />
+
+              <input
+                name="full_name"
+                placeholder="Tu nombre"
+                required
+              />
             </label>
 
             <label>
               WhatsApp
-              <input name="phone" placeholder="Ej: 11 5555 5555" required />
+
+              <input
+                name="phone"
+                placeholder="Ej: 11 5555 5555"
+                required
+              />
             </label>
 
             <label>
               Email
-              <input name="email" type="email" placeholder="tu@email.com" required />
+
+              <input
+                name="email"
+                type="email"
+                placeholder="tu@email.com"
+                required
+              />
             </label>
 
             <label>
               Barrio de la propiedad
-              <select name="neighborhood_slug" required defaultValue="">
-                <option value="" disabled>Elegí el barrio</option>
-                {NEIGHBORHOOD_OPTIONS.map((item) => (
-                  <option key={item.slug} value={item.slug}>
-                    {item.label}
-                  </option>
-                ))}
+
+              <select
+                name="neighborhood_slug"
+                required
+                defaultValue=""
+              >
+                <option
+                  value=""
+                  disabled
+                >
+                  Elegí el barrio
+                </option>
+
+                {NEIGHBORHOOD_OPTIONS.map(
+                  (
+                    item
+                  ) => (
+                    <option
+                      key={
+                        item.slug
+                      }
+                      value={
+                        item.slug
+                      }
+                    >
+                      {
+                        item.label
+                      }
+                    </option>
+                  )
+                )}
               </select>
             </label>
 
             <div className="form-row">
               <label>
                 Tipo
-                <select name="property_type" required defaultValue="">
-                  <option value="" disabled>Elegí una opción</option>
-                  {PROPERTY_TYPES.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
+
+                <select
+                  name="property_type"
+                  required
+                  defaultValue=""
+                >
+                  <option
+                    value=""
+                    disabled
+                  >
+                    Elegí una opción
+                  </option>
+
+                  {PROPERTY_TYPES.map(
+                    (
+                      item
+                    ) => (
+                      <option
+                        key={
+                          item
+                        }
+                        value={
+                          item
+                        }
+                      >
+                        {
+                          item
+                        }
+                      </option>
+                    )
+                  )}
                 </select>
               </label>
 
               <label>
                 Ambientes
-                <select name="property_rooms" required defaultValue="">
-                  <option value="" disabled>Elegí</option>
-                  {ROOM_OPTIONS.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
+
+                <select
+                  name="property_rooms"
+                  required
+                  defaultValue=""
+                >
+                  <option
+                    value=""
+                    disabled
+                  >
+                    Elegí
+                  </option>
+
+                  {ROOM_OPTIONS.map(
+                    (
+                      item
+                    ) => (
+                      <option
+                        key={
+                          item
+                        }
+                        value={
+                          item
+                        }
+                      >
+                        {
+                          item
+                        }
+                      </option>
+                    )
+                  )}
                 </select>
               </label>
             </div>
 
             <label>
               Precio mensual estimado
-              <select name="approx_price" required defaultValue="">
-                <option value="" disabled>Elegí un precio aproximado</option>
-                {PRICE_OPTIONS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
+
+              <select
+                name="approx_price"
+                required
+                defaultValue=""
+              >
+                <option
+                  value=""
+                  disabled
+                >
+                  Elegí un precio aproximado
+                </option>
+
+                {PRICE_OPTIONS.map(
+                  (
+                    item
+                  ) => (
+                    <option
+                      key={
+                        item.value
+                      }
+                      value={
+                        item.value
+                      }
+                    >
+                      {
+                        item.label
+                      }
+                    </option>
+                  )
+                )}
               </select>
             </label>
 
             <label>
               Disponibilidad
-              <select name="availability_status" required defaultValue="">
-                <option value="" disabled>Elegí una opción</option>
-                {AVAILABILITY_OPTIONS.map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
+
+              <select
+                name="availability_status"
+                required
+                defaultValue=""
+              >
+                <option
+                  value=""
+                  disabled
+                >
+                  Elegí una opción
+                </option>
+
+                {AVAILABILITY_OPTIONS.map(
+                  (
+                    item
+                  ) => (
+                    <option
+                      key={
+                        item
+                      }
+                      value={
+                        item
+                      }
+                    >
+                      {
+                        item
+                      }
+                    </option>
+                  )
+                )}
               </select>
             </label>
 
             <label>
-              Fotos de la propiedad
-              <span className="field-help">
-                Subí al menos una foto. Podés seleccionar varias.
-              </span>
-              <input
-                name="property_photos"
-                type="file"
-                accept="image/*"
-                multiple
-                required
-              />
-            </label>
-
-            <label>
               Comentario opcional
+
               <textarea
                 name="notes"
                 placeholder="Expensas, requisitos o algo importante para evaluar compatibilidad."
@@ -572,13 +1195,31 @@ export default function PropietariosPage() {
               />
             </label>
 
-            <button type="submit" disabled={status === "loading"}>
-              {status === "loading" ? "Guardando..." : "Ver si mi propiedad matchea"}
+            <button
+              type="submit"
+              disabled={
+                status ===
+                "loading"
+              }
+            >
+              {status ===
+              "loading"
+                ? "Guardando..."
+                : "Ver si mi propiedad matchea"}
             </button>
 
             {message ? (
-              <p className={status === "error" ? "form-message error" : "form-message success"}>
-                {message}
+              <p
+                className={
+                  status ===
+                  "error"
+                    ? "form-message error"
+                    : "form-message success"
+                }
+              >
+                {
+                  message
+                }
               </p>
             ) : null}
           </form>
@@ -588,13 +1229,24 @@ export default function PropietariosPage() {
       <footer className="footer">
         <div className="container footer-inner">
           <div className="footer-brand">
-            <VerloBrand width={86} />
-            <p>Alquiler directo, seguro y sin comisión.</p>
+            <VerloBrand
+              width={86}
+            />
+
+            <p>
+              Alquiler directo, seguro y sin comisión.
+            </p>
           </div>
 
           <nav className="footer-links">
-            <a href="/terminos">Términos y condiciones</a>
-            <a href="/privacidad">Política de privacidad</a>
+            <a href="/terminos">
+              Términos y condiciones
+            </a>
+
+            <a href="/privacidad">
+              Política de privacidad
+            </a>
+
             <a href="mailto:hola@verlo.lat?subject=Consulta%20Verlo">
               Contacto
             </a>
@@ -1012,24 +1664,6 @@ const styles = `
     font-size: 15px;
     padding: 15px 16px;
     outline: none;
-  }
-
-  .owner-form input[type="file"] {
-    padding: 12px;
-    cursor: pointer;
-  }
-
-  .owner-form input[type="file"]::file-selector-button {
-    border: 0;
-    border-radius: 999px;
-    background: var(--black);
-    color: white;
-    padding: 10px 14px;
-    margin-right: 12px;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 900;
-    cursor: pointer;
   }
 
   .owner-form textarea {
