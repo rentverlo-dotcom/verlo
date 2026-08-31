@@ -10,13 +10,16 @@ type MediaItem = {
   filename?: string | null
   contentType?: string | null
   size?: number | null
+  mediaType?: "photo" | "video"
 }
 
 function clean(value: unknown) {
   return String(value || "").trim()
 }
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request
+) {
   try {
     const supabaseUrl =
       process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -47,14 +50,17 @@ export async function POST(request: Request) {
     const body =
       await request
         .json()
-        .catch(() => ({}))
+        .catch(
+          () => ({})
+        )
 
     const ownerLeadId =
       clean(
         body?.owner_lead_id
       )
 
-    const media: MediaItem[] =
+    const media:
+      MediaItem[] =
       Array.isArray(
         body?.media
       )
@@ -75,13 +81,14 @@ export async function POST(request: Request) {
     }
 
     if (
-      media.length === 0
+      media.length ===
+      0
     ) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            "Subí al menos una foto de la propiedad",
+            "Subí al menos una foto o video de la propiedad",
         },
         {
           status: 400,
@@ -89,36 +96,70 @@ export async function POST(request: Request) {
       )
     }
 
+    // =========================================================
+    // 1. VALIDAR MULTIMEDIA
+    // =========================================================
+
     const validMedia =
-      media.filter(
-        (item) => {
-          const key =
-            clean(
-              item?.key
-            )
+      media
+        .map(
+          (
+            item
+          ) => {
+            const key =
+              clean(
+                item?.key
+              )
 
-          const contentType =
-            clean(
-              item?.contentType
-            )
+            const contentType =
+              clean(
+                item?.contentType
+              )
 
-          return (
-            key &&
-            contentType.startsWith(
-              "image/"
+            const mediaType =
+              item?.mediaType ===
+                "video" ||
+              contentType.startsWith(
+                "video/"
+              )
+                ? "video"
+                : item?.mediaType ===
+                    "photo" ||
+                  contentType.startsWith(
+                    "image/"
+                  )
+                  ? "photo"
+                  : null
+
+            return {
+              ...item,
+              key,
+              contentType,
+              mediaType,
+            }
+          }
+        )
+        .filter(
+          (
+            item
+          ) =>
+            Boolean(
+              item.key
+            ) &&
+            Boolean(
+              item.mediaType
             )
-          )
-        }
-      )
+        )
 
     if (
-      validMedia.length === 0
+      validMedia.length ===
+      0
     ) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            "Subí al menos una imagen válida",
+            "Subí al menos una foto o video válido",
         },
         {
           status: 400,
@@ -134,6 +175,7 @@ export async function POST(request: Request) {
           auth: {
             persistSession:
               false,
+
             autoRefreshToken:
               false,
           },
@@ -141,7 +183,7 @@ export async function POST(request: Request) {
       )
 
     // =========================================================
-    // 1. VALIDAR QUE EL LEAD SEA UN OWNER REAL
+    // 2. VALIDAR QUE EL LEAD SEA OWNER
     // =========================================================
 
     const {
@@ -198,12 +240,13 @@ export async function POST(request: Request) {
     }
 
     // =========================================================
-    // 2. MEDIA YA GUARDADA PARA ESTE OWNER
+    // 3. MULTIMEDIA YA GUARDADA
     // =========================================================
 
     const {
       data:
         existingMedia,
+
       error:
         existingMediaError,
     } =
@@ -234,28 +277,33 @@ export async function POST(request: Request) {
           []
         )
           .map(
-            (item) =>
+            (
+              item
+            ) =>
               clean(
                 item.r2_key
               )
           )
-          .filter(Boolean)
+          .filter(
+            Boolean
+          )
       )
 
     // =========================================================
-    // 3. PREPARAR NUEVAS FOTOS
+    // 4. PREPARAR NUEVA MULTIMEDIA
     //
-    // completion_id queda NULL porque todavía estamos en
-    // la publicación inicial.
+    // completion_id = NULL porque esta es la carga inicial.
     //
-    // Más adelante el owner puede completar la propiedad
-    // y agregar nuevas fotos vinculadas a una completion.
+    // Luego el owner podrá volver por /propiedad/[token]
+    // y agregar más fotos/videos.
     // =========================================================
 
     const rows =
       validMedia
         .filter(
-          (item) =>
+          (
+            item
+          ) =>
             !existingKeys.has(
               clean(
                 item.key
@@ -280,7 +328,7 @@ export async function POST(request: Request) {
               null,
 
             media_type:
-              "photo",
+              item.mediaType,
 
             r2_bucket:
               r2Bucket,
@@ -322,7 +370,7 @@ export async function POST(request: Request) {
         )
 
     // =========================================================
-    // 4. INSERTAR
+    // 5. INSERTAR
     // =========================================================
 
     if (
@@ -351,12 +399,13 @@ export async function POST(request: Request) {
     }
 
     // =========================================================
-    // 5. CONFIRMAR QUE EL OWNER TIENE AL MENOS UNA FOTO
+    // 6. CONFIRMAR QUE EL OWNER TIENE MULTIMEDIA
     // =========================================================
 
     const {
       data:
         storedMedia,
+
       error:
         storedMediaError,
     } =
@@ -365,17 +414,16 @@ export async function POST(request: Request) {
           "owner_property_media"
         )
         .select(`
-          id
+          id,
+          media_type
         `)
         .eq(
           "lead_id",
           ownerLeadId
         )
-        .eq(
-          "media_type",
-          "photo"
+        .limit(
+          1
         )
-        .limit(1)
 
     if (
       storedMediaError
@@ -394,7 +442,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           error:
-            "No pudimos registrar la foto de la propiedad",
+            "No pudimos registrar la multimedia de la propiedad",
         },
         {
           status: 500,
@@ -403,13 +451,10 @@ export async function POST(request: Request) {
     }
 
     // =========================================================
-    // 6. REEJECUTAR PILOT PARA TENANTS
+    // 7. REEJECUTAR PILOT PARA TENANTS
     //
-    // IMPORTANTE:
-    // pilot-matches se va a modificar para aceptar notify_roles
-    // y para no notificar tenants si el owner no tiene media.
-    //
-    // Cuando llegamos acá ya sabemos que existe al menos 1 foto.
+    // Desde acá sabemos que el owner ya tiene al menos
+    // una foto O un video.
     // =========================================================
 
     let pilotMatch:
@@ -442,7 +487,8 @@ export async function POST(request: Request) {
 
             body:
               JSON.stringify({
-                send: true,
+                send:
+                  true,
 
                 lead_ids: [
                   ownerLeadId,
@@ -462,7 +508,8 @@ export async function POST(request: Request) {
         await response
           .json()
           .catch(
-            () => null
+            () =>
+              null
           )
 
       pilotMatch = {
@@ -480,7 +527,9 @@ export async function POST(request: Request) {
         response:
           data,
       }
-    } catch (error) {
+    } catch (
+      error
+    ) {
       pilotMatch = {
         triggered:
           true,
@@ -497,11 +546,66 @@ export async function POST(request: Request) {
     }
 
     // =========================================================
-    // 7. RESPONSE
+    // 8. CONTAR MEDIA
+    // =========================================================
+
+    const {
+      data:
+        allMedia,
+
+      error:
+        allMediaError,
+    } =
+      await supabase
+        .from(
+          "owner_property_media"
+        )
+        .select(`
+          id,
+          media_type
+        `)
+        .eq(
+          "lead_id",
+          ownerLeadId
+        )
+
+    if (
+      allMediaError
+    ) {
+      throw new Error(
+        allMediaError.message
+      )
+    }
+
+    const totalMedia =
+      allMedia ||
+      []
+
+    const totalPhotos =
+      totalMedia.filter(
+        (
+          item
+        ) =>
+          item.media_type ===
+          "photo"
+      ).length
+
+    const totalVideos =
+      totalMedia.filter(
+        (
+          item
+        ) =>
+          item.media_type ===
+          "video"
+      ).length
+
+    // =========================================================
+    // 9. RESPONSE
     // =========================================================
 
     return NextResponse.json({
-      ok: true,
+      ok:
+        true,
 
       owner_lead_id:
         ownerLeadId,
@@ -512,13 +616,33 @@ export async function POST(request: Request) {
       inserted:
         rows.length,
 
+      total_media:
+        totalMedia.length,
+
+      total_photos:
+        totalPhotos,
+
+      total_videos:
+        totalVideos,
+
+      has_media:
+        totalMedia.length >
+        0,
+
       has_photo:
-        true,
+        totalPhotos >
+        0,
+
+      has_video:
+        totalVideos >
+        0,
 
       pilot_match:
         pilotMatch,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "owner-initial-media error:",
       error
@@ -526,12 +650,18 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        ok: false,
+        ok:
+          false,
+
         error:
-          "Unexpected server error",
+          error instanceof
+          Error
+            ? error.message
+            : "Unexpected server error",
       },
       {
-        status: 500,
+        status:
+          500,
       }
     )
   }
