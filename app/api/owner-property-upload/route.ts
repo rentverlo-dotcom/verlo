@@ -1,202 +1,53 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
 import {
-  createHash,
-  createHmac,
-  randomUUID,
-} from "crypto"
+  NextRequest,
+  NextResponse,
+} from "next/server"
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+import {
+  createClient,
+} from "@supabase/supabase-js"
 
-function clean(value: unknown) {
-  return String(value || "").trim()
+import {
+  buildR2Key,
+  createR2UploadUrl,
+  getR2PublicUrl,
+} from "@/lib/r2"
+
+export const runtime =
+  "nodejs"
+
+export const dynamic =
+  "force-dynamic"
+
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
 }
 
-function safeFilename(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 120)
-}
-
-function sha256(value: string) {
-  return createHash("sha256")
-    .update(value)
-    .digest("hex")
-}
-
-function hmac(
-  key: Buffer | string,
+function safeFilename(
   value: string
 ) {
-  return createHmac("sha256", key)
-    .update(value)
-    .digest()
-}
-
-function encodePath(path: string) {
-  return path
-    .split("/")
-    .map((part) =>
-      encodeURIComponent(part)
-        .replace(/%2F/g, "/")
+  return value
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
     )
-    .join("/")
-}
-
-function amzDate(date: Date) {
-  return date
-    .toISOString()
-    .replace(/[:-]|\.\d{3}/g, "")
-}
-
-function createR2PresignedPutUrl({
-  endpoint,
-  bucket,
-  key,
-  accessKeyId,
-  secretAccessKey,
-  contentType,
-}: {
-  endpoint: string
-  bucket: string
-  key: string
-  accessKeyId: string
-  secretAccessKey: string
-  contentType: string
-}) {
-  const region = "auto"
-  const service = "s3"
-  const expires = 900
-
-  const now = new Date()
-
-  const fullAmzDate =
-    amzDate(now)
-
-  const dateStamp =
-    fullAmzDate.slice(0, 8)
-
-  const endpointUrl =
-    new URL(endpoint)
-
-  const host =
-    endpointUrl.host
-
-  const canonicalUri =
-    `/${encodeURIComponent(bucket)}/${encodePath(key)}`
-
-  const credentialScope =
-    `${dateStamp}/${region}/${service}/aws4_request`
-
-  const credential =
-    `${accessKeyId}/${credentialScope}`
-
-  const queryParams =
-    new URLSearchParams()
-
-  queryParams.set(
-    "X-Amz-Algorithm",
-    "AWS4-HMAC-SHA256"
-  )
-
-  queryParams.set(
-    "X-Amz-Credential",
-    credential
-  )
-
-  queryParams.set(
-    "X-Amz-Date",
-    fullAmzDate
-  )
-
-  queryParams.set(
-    "X-Amz-Expires",
-    String(expires)
-  )
-
-  queryParams.set(
-    "X-Amz-SignedHeaders",
-    "host"
-  )
-
-  const canonicalQueryString =
-    Array.from(queryParams.entries())
-      .sort(([a], [b]) =>
-        a.localeCompare(b)
-      )
-      .map(
-        ([key, value]) =>
-          `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
-      )
-      .join("&")
-
-  const canonicalHeaders =
-    `host:${host}\n`
-
-  const signedHeaders =
-    "host"
-
-  const payloadHash =
-    "UNSIGNED-PAYLOAD"
-
-  const canonicalRequest = [
-    "PUT",
-    canonicalUri,
-    canonicalQueryString,
-    canonicalHeaders,
-    signedHeaders,
-    payloadHash,
-  ].join("\n")
-
-  const stringToSign = [
-    "AWS4-HMAC-SHA256",
-    fullAmzDate,
-    credentialScope,
-    sha256(canonicalRequest),
-  ].join("\n")
-
-  const kDate =
-    hmac(
-      `AWS4${secretAccessKey}`,
-      dateStamp
+    .replace(
+      /[^a-zA-Z0-9._-]/g,
+      "-"
     )
-
-  const kRegion =
-    hmac(
-      kDate,
-      region
+    .replace(
+      /-+/g,
+      "-"
     )
-
-  const kService =
-    hmac(
-      kRegion,
-      service
+    .slice(
+      0,
+      120
     )
-
-  const kSigning =
-    hmac(
-      kService,
-      "aws4_request"
-    )
-
-  const signature =
-    createHmac(
-      "sha256",
-      kSigning
-    )
-      .update(stringToSign)
-      .digest("hex")
-
-  return (
-    `${endpointUrl.protocol}//${host}` +
-    canonicalUri +
-    `?${canonicalQueryString}` +
-    `&X-Amz-Signature=${signature}`
-  )
 }
 
 export async function POST(
@@ -204,40 +55,16 @@ export async function POST(
 ) {
   try {
     const supabaseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL
 
     const serviceRoleKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    const r2Endpoint =
-      process.env.R2_ENDPOINT
-
-    const r2AccessKey =
-      process.env.R2_ACCESS_KEY_ID
-
-    const r2SecretKey =
-      process.env.R2_SECRET_ACCESS_KEY
-
-    const r2Bucket =
-      process.env.R2_BUCKET
-
-    const r2Prefix =
-      clean(
-        process.env.R2_PREFIX
-      )
-
-    const r2PublicUrl =
-      clean(
-        process.env.R2_PUBLIC_URL
-      ).replace(/\/+$/, "")
+      process.env
+        .SUPABASE_SERVICE_ROLE_KEY
 
     if (
       !supabaseUrl ||
-      !serviceRoleKey ||
-      !r2Endpoint ||
-      !r2AccessKey ||
-      !r2SecretKey ||
-      !r2Bucket
+      !serviceRoleKey
     ) {
       return NextResponse.json(
         {
@@ -254,16 +81,21 @@ export async function POST(
     const body =
       await req
         .json()
-        .catch(() => ({}))
+        .catch(
+          () => ({})
+        )
 
     const token =
-      clean(body?.token)
+      clean(
+        body?.token
+      )
 
     const filename =
       safeFilename(
         clean(
           body?.filename
-        ) || "archivo"
+        ) ||
+          "archivo"
       )
 
     const contentType =
@@ -319,15 +151,25 @@ export async function POST(
         serviceRoleKey,
         {
           auth: {
-            persistSession: false,
-            autoRefreshToken: false,
+            persistSession:
+              false,
+
+            autoRefreshToken:
+              false,
           },
         }
       )
 
+    // =========================================================
+    // 1. VALIDAR TOKEN DEL OWNER
+    // =========================================================
+
     const {
-      data: accessToken,
-      error: tokenError,
+      data:
+        accessToken,
+
+      error:
+        tokenError,
     } =
       await supabase
         .from(
@@ -363,7 +205,8 @@ export async function POST(
     }
 
     if (
-      accessToken.revoked_at
+      accessToken
+        .revoked_at
     ) {
       return NextResponse.json(
         {
@@ -378,9 +221,11 @@ export async function POST(
     }
 
     if (
-      accessToken.expires_at &&
+      accessToken
+        .expires_at &&
       new Date(
-        accessToken.expires_at
+        accessToken
+          .expires_at
       ).getTime() <
         Date.now()
     ) {
@@ -397,7 +242,24 @@ export async function POST(
     }
 
     if (
-      !accessToken.completion_id
+      !accessToken
+        .owner_lead_id
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Owner missing",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    if (
+      !accessToken
+        .completion_id
     ) {
       return NextResponse.json(
         {
@@ -411,43 +273,67 @@ export async function POST(
       )
     }
 
-    const prefix =
-      r2Prefix
-        ? `${r2Prefix.replace(
-            /\/+$/,
-            ""
-          )}/`
-        : ""
+    const ownerLeadId =
+      clean(
+        accessToken
+          .owner_lead_id
+      )
+
+    const completionId =
+      clean(
+        accessToken
+          .completion_id
+      )
+
+    // =========================================================
+    // 2. GENERAR KEY USANDO EL MISMO HELPER CENTRAL DE R2
+    //
+    // Mantiene owner + completion separados dentro del path.
+    // =========================================================
 
     const key =
-      `${prefix}owners/` +
-      `${accessToken.owner_lead_id}/` +
-      `${accessToken.completion_id}/` +
-      `${randomUUID()}-${filename}`
+      buildR2Key({
+        folder:
+          "owner-media",
+
+        id:
+          `${ownerLeadId}/${completionId}`,
+
+        filename,
+      })
+
+    // =========================================================
+    // 3. GENERAR URL PRESIGNADA
+    //
+    // IMPORTANTE:
+    // usamos EXACTAMENTE createR2UploadUrl de lib/r2.ts
+    // igual que /api/r2/presign.
+    //
+    // Eliminamos completamente el segundo implementador
+    // manual de AWS Signature V4 que tenía este endpoint.
+    // =========================================================
 
     const uploadUrl =
-      createR2PresignedPutUrl({
-        endpoint:
-          r2Endpoint,
-
-        bucket:
-          r2Bucket,
-
+      await createR2UploadUrl({
         key,
-
-        accessKeyId:
-          r2AccessKey,
-
-        secretAccessKey:
-          r2SecretKey,
-
         contentType,
       })
 
+    // =========================================================
+    // 4. URL PÚBLICA
+    // =========================================================
+
     const publicUrl =
-      r2PublicUrl
-        ? `${r2PublicUrl}/${key}`
-        : null
+      getR2PublicUrl(
+        key
+      )
+
+    // =========================================================
+    // 5. RESPONSE
+    //
+    // MANTENEMOS LOS MISMOS NOMBRES QUE YA CONSUME
+    // app/propiedad/[token]/page.tsx
+    // =========================================================
 
     return NextResponse.json({
       ok: true,
@@ -466,12 +352,14 @@ export async function POST(
           : "photo",
 
       owner_lead_id:
-        accessToken.owner_lead_id,
+        ownerLeadId,
 
       completion_id:
-        accessToken.completion_id,
+        completionId,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "owner-property-upload error:",
       error
@@ -480,8 +368,12 @@ export async function POST(
     return NextResponse.json(
       {
         ok: false,
+
         error:
-          "Unexpected server error",
+          error instanceof
+          Error
+            ? error.message
+            : "Unexpected server error",
       },
       {
         status: 500,
