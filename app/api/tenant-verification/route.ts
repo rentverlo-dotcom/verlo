@@ -11,6 +11,8 @@ const ACTIVE_MATCH_STATUSES = [
   "contacted",
 ]
 
+const MIN_MATCH_SCORE = 80
+
 function clean(value: unknown) {
   return String(value || "").trim()
 }
@@ -221,6 +223,25 @@ export async function POST(
 
     // =========================================================
     // 2. VALIDAR MATCHES ELEGIDOS
+    //
+    // REGLA:
+    //
+    // El tenant sólo puede avanzar con un match que:
+    //
+    // - pertenece a este tenant
+    // - score >= 80
+    // - está activo
+    // - el owner tiene al menos una foto
+    //
+    // IMPORTANTE:
+    //
+    // NO exigimos owner_completed_at.
+    //
+    // Esta es la misma lógica funcional usada para mostrar
+    // propiedades en tenant-matches-view.
+    //
+    // Si Verlo se la mostró como propiedad disponible,
+    // Verlo también tiene que dejarlo avanzar.
     // =========================================================
 
     const {
@@ -250,16 +271,11 @@ export async function POST(
       )
       .gte(
         "score",
-        80
+        MIN_MATCH_SCORE
       )
       .in(
         "status",
         ACTIVE_MATCH_STATUSES
-      )
-      .not(
-        "owner_completed_at",
-        "is",
-        null
       )
 
     if (
@@ -280,6 +296,98 @@ export async function POST(
           ok: false,
           error:
             "One or more selected matches are invalid",
+        },
+        {
+          status: 403,
+        }
+      )
+    }
+
+    // =========================================================
+    // 2.B VALIDAR QUE LOS OWNERS TENGAN FOTO
+    //
+    // tenant-matches-view muestra solamente owners que ya tienen
+    // al menos una foto asociada a su lead_id.
+    //
+    // Validamos la misma condición acá para que ambos endpoints
+    // tengan una única lógica coherente.
+    // =========================================================
+
+    const selectedOwnerLeadIds =
+      Array.from(
+        new Set(
+          selectedMatches.map(
+            (match) =>
+              clean(
+                match.owner_lead_id
+              )
+          )
+        )
+      ).filter(Boolean)
+
+    const {
+      data: selectedOwnerMedia,
+      error:
+        selectedOwnerMediaError,
+    } = await supabase
+      .from(
+        "owner_property_media"
+      )
+      .select(`
+        id,
+        lead_id,
+        media_type
+      `)
+      .in(
+        "lead_id",
+        selectedOwnerLeadIds
+      )
+      .eq(
+        "media_type",
+        "photo"
+      )
+
+    if (
+      selectedOwnerMediaError
+    ) {
+      throw new Error(
+        selectedOwnerMediaError.message
+      )
+    }
+
+    const ownersWithPhoto =
+      new Set(
+        (
+          selectedOwnerMedia ||
+          []
+        )
+          .map(
+            (item) =>
+              clean(
+                item.lead_id
+              )
+          )
+          .filter(Boolean)
+      )
+
+    const allSelectedMatchesHavePhoto =
+      selectedMatches.every(
+        (match) =>
+          ownersWithPhoto.has(
+            clean(
+              match.owner_lead_id
+            )
+          )
+      )
+
+    if (
+      !allSelectedMatchesHavePhoto
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "One or more selected properties are not available",
         },
         {
           status: 403,
@@ -623,7 +731,7 @@ export async function POST(
         )
         .gte(
           "score",
-          80
+          MIN_MATCH_SCORE
         )
         .in(
           "status",
