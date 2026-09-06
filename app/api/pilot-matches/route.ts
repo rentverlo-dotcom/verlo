@@ -40,10 +40,10 @@ const MAX_LIMIT = 200
 const E2E_ALLOWED_PHONES =
   new Set([
     "5491144478714", // Guillermo Oddone
-    "5491156906473", // Alejandro Oddone
     "5491133614865", // Juan Manuel Oddone
+    {/*"5491156906473", // Alejandro Oddone    
     "5491154217300", // Alejandro Devincenzi - tenant
-    "5491137592349", // Alejandro Devincenzi - owner
+    "5491137592349", // Alejandro Devincenzi - owner*/}
   ])
 
 type MatchRow = {
