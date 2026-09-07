@@ -42,7 +42,7 @@ const E2E_ALLOWED_PHONES = new Set([
   // "5491154217300", // Alejandro Devincenzi - tenant
   // "5491156906473", // Alejandro Oddone
   "5491133614865", // Juan Manuel Oddone
-  "5491137592349", // Alejandro Devincenzi
+  "5491154217300", // Alejandro Devincenzi
 ])
 
 type MatchRow = {
