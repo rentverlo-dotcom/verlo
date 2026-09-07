@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic"
 
 type OwnerLeadRow = {
   id: string
+  phone_normalized: string | null
   neighborhood_slug: string | null
   property_type: string | null
   property_rooms: string | null
@@ -20,6 +21,7 @@ type OwnerLeadRow = {
 
 type TenantLeadRow = {
   id: string
+  phone_normalized: string | null
   neighborhood_slugs: string[] | null
   desired_property_type: string | null
   desired_rooms: string | null
@@ -52,6 +54,7 @@ type MatchableLead = {
   id: string
   role: string
   intent: string
+  phone_normalized: string
 
   neighborhood_slugs: string[]
   neighborhood_slug: string | null
@@ -76,6 +79,24 @@ type MatchableLead = {
   accepted_income_proof_types: string[]
   min_income_ratio: number | null
   accepted_guarantee_types: string[]
+}
+
+const E2E_OWNER_PHONE = "5491133614865"
+const E2E_TENANT_PHONE = "5491137592349"
+
+const E2E_ALLOWED_PHONES = new Set([
+  E2E_OWNER_PHONE,
+  E2E_TENANT_PHONE,
+])
+
+function isE2EPhone(phone: string | null | undefined) {
+  return Boolean(phone && E2E_ALLOWED_PHONES.has(phone))
+}
+
+function getE2ECounterpartPhone(phone: string) {
+  if (phone === E2E_OWNER_PHONE) return E2E_TENANT_PHONE
+  if (phone === E2E_TENANT_PHONE) return E2E_OWNER_PHONE
+  return null
 }
 
 function clean(value: unknown) {
@@ -866,11 +887,28 @@ async function createLeadMatches({
     lead.role === "owner" &&
     lead.intent === "owner_new_listing"
 
+  const isE2ELead = isE2EPhone(lead.phone_normalized)
+  const e2eCounterpartPhone = getE2ECounterpartPhone(lead.phone_normalized)
+
   if (!isTenant && !isOwner) {
     return {
       ok: true,
       created: 0,
       skipped: true,
+    }
+  }
+
+  // E2E temporal: el flujo de prueba crea primero al owner y después al tenant.
+  // Para evitar que el owner de prueba matchee contra tenants históricos,
+  // el owner E2E no genera matches al momento de crearse.
+  // El único match E2E se crea cuando entra el tenant de prueba.
+  if (isOwner && isE2ELead) {
+    return {
+      ok: true,
+      created: 0,
+      skipped: true,
+      e2e: true,
+      reason: "e2e_owner_waits_for_tenant",
     }
   }
 
@@ -892,10 +930,11 @@ async function createLeadMatches({
       }
     }
 
-    const { data: ownerLeadsRaw, error } = await supabaseAdmin
+    let ownerQuery = supabaseAdmin
       .from("lead_intake")
       .select(`
         id,
+        phone_normalized,
         neighborhood_slug,
         property_type,
         property_rooms,
@@ -910,7 +949,16 @@ async function createLeadMatches({
       .eq("intent", "owner_new_listing")
       .neq("id", lead.id)
       .order("created_at", { ascending: false })
-      .limit(500)
+
+    if (isE2ELead && e2eCounterpartPhone) {
+      ownerQuery = ownerQuery
+        .eq("phone_normalized", e2eCounterpartPhone)
+        .limit(1)
+    } else {
+      ownerQuery = ownerQuery.limit(500)
+    }
+
+    const { data: ownerLeadsRaw, error } = await ownerQuery
 
     if (error) {
       console.error("lead match owner search error:", error)
@@ -1087,10 +1135,11 @@ matched_tenant_neighborhood:
       }
     }
 
-    const { data: tenantLeadsRaw, error } = await supabaseAdmin
+    let tenantQuery = supabaseAdmin
       .from("lead_intake")
       .select(`
         id,
+        phone_normalized,
         neighborhood_slugs,
         desired_property_type,
         desired_rooms,
@@ -1106,7 +1155,16 @@ matched_tenant_neighborhood:
       .eq("intent", "tenant_search")
       .neq("id", lead.id)
       .order("created_at", { ascending: false })
-      .limit(500)
+
+    if (isE2ELead && e2eCounterpartPhone) {
+      tenantQuery = tenantQuery
+        .eq("phone_normalized", e2eCounterpartPhone)
+        .limit(1)
+    } else {
+      tenantQuery = tenantQuery.limit(500)
+    }
+
+    const { data: tenantLeadsRaw, error } = await tenantQuery
 
     if (error) {
       console.error("lead match tenant search error:", error)
@@ -1790,6 +1848,7 @@ accepted_guarantee_types,
         id: leadRecord.id,
         role,
         intent,
+        phone_normalized,
         neighborhood_slugs,
         neighborhood_slug,
         desired_property_type,
@@ -1925,4 +1984,3 @@ if (Number(matchSummary.verlo_match_count || 0) > 0) {
     )
   }
 }
-
