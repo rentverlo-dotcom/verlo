@@ -80,80 +80,6 @@ async function uploadFileToR2(
   onProgress?.(100)
 }
 
-      xhr.upload.onprogress =
-        (
-          event
-        ) => {
-          if (
-            !event.lengthComputable
-          ) {
-            return
-          }
-
-          const percent =
-            Math.round(
-              (
-                event.loaded /
-                event.total
-              ) *
-                100
-            )
-
-          onProgress?.(
-            percent
-          )
-        }
-
-      xhr.onload =
-        () => {
-          if (
-            xhr.status >= 200 &&
-            xhr.status < 300
-          ) {
-            resolve()
-            return
-          }
-
-          reject(
-            new Error(
-              `R2 rechazó la carga. HTTP ${xhr.status}. ${xhr.responseText || ""}`
-            )
-          )
-        }
-
-      xhr.onerror =
-        () => {
-          reject(
-            new Error(
-              "No se pudo conectar con R2 para subir el archivo."
-            )
-          )
-        }
-
-      xhr.onabort =
-        () => {
-          reject(
-            new Error(
-              "La carga fue cancelada."
-            )
-          )
-        }
-
-      xhr.ontimeout =
-        () => {
-          reject(
-            new Error(
-              "La carga agotó el tiempo de espera."
-            )
-          )
-        }
-
-      xhr.send(
-        file
-      )
-    }
-  )
-}
 
 export default function OwnerPropertyPage() {
   const params =
@@ -478,7 +404,7 @@ export default function OwnerPropertyPage() {
         // ETAPA 2
         // DESKTOP / MÓVIL -> R2 DIRECTO
         //
-        // Usamos XMLHttpRequest para una carga binaria simple.
+        // Usamos fetch con PUT directo a la URL firmada de R2.
         // NO seteamos Content-Type manualmente.
         // NO comprimimos.
         // NO ponemos límite de tamaño.
