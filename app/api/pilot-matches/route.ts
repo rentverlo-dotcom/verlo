@@ -881,17 +881,6 @@ export async function POST(
         // TENANT SOLO SI LA PROPIEDAD YA TIENE FOTO
         // =====================================================
 
-        if (
-          side.role ===
-            "tenant" &&
-          !ownersWithMedia.has(
-            match
-              .owner_lead_id
-          )
-        ) {
-          continue
-        }
-
         const lead =
           leadsById.get(
             side.leadId
