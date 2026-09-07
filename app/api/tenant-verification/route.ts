@@ -259,7 +259,8 @@ export async function POST(
         status,
         owner_completed_at,
         tenant_interest_at,
-        tenant_verified_at
+        tenant_verified_at,
+        ready_to_connect_at
       `)
       .in(
         "id",
@@ -693,6 +694,27 @@ export async function POST(
           boolean
       }> = []
 
+    const readyNotifications:
+      Array<{
+        match_id:
+          string
+
+        owner_lead_id:
+          string
+
+        attempted:
+          boolean
+
+        ok:
+          boolean
+
+        status:
+          number | null
+
+        response:
+          unknown
+      }> = []
+
     // =========================================================
     // 6. PARA CADA OWNER:
     // TOKEN AGREGADO + URL PERMANENTE
@@ -868,15 +890,191 @@ export async function POST(
       const candidatesUrl =
         `https://verlo.lat/candidatos/${ownerToken}`
 
+      // =======================================================
+      // 7. SI EL OWNER YA COMPLETÓ SU PROPIEDAD, SU CARGA
+      //    CUENTA COMO OK DEL OWNER.
+      //
+      // Si el tenant termina segundo, llamamos al endpoint
+      // owner-interest usando el token del owner que ya existe.
+      //
+      // owner-interest conserva una sola fuente de verdad para:
+      // - owner_interest_at
+      // - ready_to_connect_at
+      // - contrato
+      // - tokens /cierre
+      // - webhook Ready To Connect para ambos
+      //
+      // Si ready_to_connect_at ya existe, no repetimos.
+      // =======================================================
+
+      const selectedMatchesForOwner =
+        selectedMatches.filter(
+          (match) =>
+            match.owner_lead_id ===
+            ownerLeadId
+        )
+
+      let readyTriggeredForOwner =
+        false
+
+      for (
+        const selectedMatch
+        of selectedMatchesForOwner
+      ) {
+        if (
+          !selectedMatch.owner_completed_at ||
+          selectedMatch.ready_to_connect_at
+        ) {
+          continue
+        }
+
+        let readyStatus:
+          number | null =
+          null
+
+        let readyResponse:
+          unknown =
+          null
+
+        let readyOk =
+          false
+
+        try {
+          const readyResponseHttp =
+            await fetch(
+              new URL(
+                "/api/owner-interest",
+                request.url
+              ),
+              {
+                method:
+                  "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body:
+                  JSON.stringify({
+                    token:
+                      ownerToken,
+
+                    match_id:
+                      selectedMatch.id,
+                  }),
+              }
+            )
+
+          readyStatus =
+            readyResponseHttp.status
+
+          readyResponse =
+            await readyResponseHttp
+              .json()
+              .catch(
+                async () => ({
+                  raw:
+                    await readyResponseHttp
+                      .text()
+                      .catch(() => ""),
+                })
+              )
+
+          readyOk =
+            readyResponseHttp.ok &&
+            (
+              !readyResponse ||
+              typeof readyResponse !==
+                "object" ||
+              !(
+                "ok" in
+                readyResponse
+              ) ||
+              (
+                readyResponse as {
+                  ok?: boolean
+                }
+              ).ok !==
+                false
+            )
+
+          if (
+            readyOk
+          ) {
+            readyTriggeredForOwner =
+              true
+          } else {
+            console.error(
+              "automatic ready-to-connect after tenant verification failed:",
+              {
+                ownerLeadId,
+                matchId:
+                  selectedMatch.id,
+                status:
+                  readyStatus,
+                response:
+                  readyResponse,
+              }
+            )
+          }
+        } catch (
+          readyError
+        ) {
+          readyResponse =
+            readyError instanceof
+            Error
+              ? readyError.message
+              : String(
+                  readyError
+                )
+
+          console.error(
+            "automatic ready-to-connect after tenant verification error:",
+            {
+              ownerLeadId,
+              matchId:
+                selectedMatch.id,
+              error:
+                readyResponse,
+            }
+          )
+        }
+
+        readyNotifications.push({
+          match_id:
+            selectedMatch.id,
+
+          owner_lead_id:
+            ownerLeadId,
+
+          attempted:
+            true,
+
+          ok:
+            readyOk,
+
+          status:
+            readyStatus,
+
+          response:
+            readyResponse,
+        })
+      }
+
       let sent =
         false
 
       // =======================================================
-      // 7. AVISAR AL OWNER MEDIANTE VERLO / GHL
+      // 8. AVISAR AL OWNER MEDIANTE VERLO / GHL
+      //
+      // Si ya entró en Ready To Connect no mandamos además
+      // el aviso intermedio de candidatos.
       // =======================================================
 
       if (
-        ownerCandidatesWebhook
+        ownerCandidatesWebhook &&
+        !readyTriggeredForOwner
       ) {
         try {
           const response =
@@ -1010,6 +1208,18 @@ export async function POST(
 
       owner_notifications:
         ownerNotifications,
+
+      ready_to_connect_attempts:
+        readyNotifications.length,
+
+      ready_to_connect_ok:
+        readyNotifications.filter(
+          (item) =>
+            item.ok
+        ).length,
+
+      ready_notifications:
+        readyNotifications,
     })
   } catch (error) {
     console.error(
