@@ -22,28 +22,63 @@ type UploadedMedia = {
   mediaType: "photo" | "video"
 }
 
-function uploadFileToR2(
+async function uploadFileToR2(
   uploadUrl: string,
   file: File,
   onProgress?: (
     percent: number
   ) => void
 ) {
-  return new Promise<void>(
-    (
-      resolve,
-      reject
-    ) => {
-      const xhr =
-        new XMLHttpRequest()
+  onProgress?.(0)
 
-      xhr.open(
-        "PUT",
+  let response:
+    Response
+
+  try {
+    response =
+      await fetch(
         uploadUrl,
-        true
-      )
+        {
+          method:
+            "PUT",
 
-      xhr.timeout = 0
+          body:
+            file,
+        }
+      )
+  } catch (
+    error
+  ) {
+    throw new Error(
+      `No se pudo conectar con R2 para subir el archivo. ${
+        error instanceof
+        Error
+          ? error.message
+          : String(
+              error
+            )
+      }`
+    )
+  }
+
+  if (
+    !response.ok
+  ) {
+    const raw =
+      await response
+        .text()
+        .catch(
+          () =>
+            ""
+        )
+
+    throw new Error(
+      `R2 rechazó la carga. HTTP ${response.status}. ${raw}`
+    )
+  }
+
+  onProgress?.(100)
+}
 
       xhr.upload.onprogress =
         (
