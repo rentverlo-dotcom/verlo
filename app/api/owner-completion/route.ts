@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { randomBytes } from "crypto"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -520,6 +521,10 @@ export async function POST(
         status,
         reasons,
         owner_completed_at,
+        owner_interest_at,
+        tenant_interest_at,
+        tenant_verified_at,
+        ready_to_connect_at,
         notified_at
       `)
       .eq(
@@ -553,10 +558,13 @@ export async function POST(
       matches || []
 
     // =========================================================
-    // 8. MARCAR OWNER COMPLETO EN TODOS SUS MATCHES
+    // 8. MARCAR OWNER COMPLETO + OK DEL OWNER
     //
-    // Si ya estaba completo, simplemente actualizamos
-    // owner_completed_at.
+    // Completar su propiedad desde /propiedad/[token] cuenta
+    // como el OK del owner.
+    //
+    // owner_interest_at se completa sólo si todavía estaba NULL
+    // para conservar el primer momento de aceptación.
     // =========================================================
 
     const now =
@@ -594,6 +602,34 @@ export async function POST(
       ) {
         throw new Error(
           ownerCompletedError.message
+        )
+      }
+
+      const {
+        error:
+          ownerInterestError,
+      } = await supabase
+        .from(
+          "lead_matches"
+        )
+        .update({
+          owner_interest_at:
+            now,
+        })
+        .in(
+          "id",
+          matchIds
+        )
+        .is(
+          "owner_interest_at",
+          null
+        )
+
+      if (
+        ownerInterestError
+      ) {
+        throw new Error(
+          ownerInterestError.message
         )
       }
     }
@@ -734,7 +770,284 @@ export async function POST(
     }
 
     // =========================================================
-    // 10. TOKEN
+    // 10. SI EL TENANT YA VALIDÓ, EL OWNER ACABA DE SER
+    //     LA SEGUNDA PARTE EN COMPLETAR.
+    //
+    // Reutilizamos /api/owner-interest como única fuente de
+    // verdad para crear:
+    // - ready_to_connect_at
+    // - lead_contracts
+    // - dos tokens de /cierre
+    // - dos eventos al workflow Ready To Connect
+    //
+    // El token de candidatos se crea/reutiliza sólo como
+    // credencial interna para ese endpoint.
+    // =========================================================
+
+    const readyNotifications:
+      Array<{
+        match_id:
+          string
+
+        attempted:
+          boolean
+
+        ok:
+          boolean
+
+        status:
+          number | null
+
+        response:
+          unknown
+      }> = []
+
+    const readyCandidates =
+      activeMatches.filter(
+        (match) =>
+          Boolean(
+            match.tenant_interest_at
+          ) &&
+          Boolean(
+            match.tenant_verified_at
+          ) &&
+          !match.ready_to_connect_at
+      )
+
+    if (
+      readyCandidates.length >
+      0
+    ) {
+      const {
+        data:
+          existingOwnerToken,
+        error:
+          existingOwnerTokenError,
+      } = await supabase
+        .from(
+          "owner_candidates_access_tokens"
+        )
+        .select(`
+          id,
+          token,
+          expires_at
+        `)
+        .eq(
+          "owner_lead_id",
+          ownerLeadId
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+        .or(
+          `expires_at.is.null,expires_at.gt.${now}`
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
+        .limit(1)
+        .maybeSingle()
+
+      if (
+        existingOwnerTokenError
+      ) {
+        throw new Error(
+          existingOwnerTokenError.message
+        )
+      }
+
+      let ownerCandidatesToken:
+        string
+
+      if (
+        existingOwnerToken
+      ) {
+        ownerCandidatesToken =
+          existingOwnerToken.token
+      } else {
+        ownerCandidatesToken =
+          randomBytes(32)
+            .toString(
+              "hex"
+            )
+
+        const expiresAt =
+          new Date(
+            Date.now() +
+              30 *
+                24 *
+                60 *
+                60 *
+                1000
+          ).toISOString()
+
+        const {
+          error:
+            ownerTokenInsertError,
+        } = await supabase
+          .from(
+            "owner_candidates_access_tokens"
+          )
+          .insert({
+            owner_lead_id:
+              ownerLeadId,
+
+            token:
+              ownerCandidatesToken,
+
+            expires_at:
+              expiresAt,
+          })
+
+        if (
+          ownerTokenInsertError
+        ) {
+          throw new Error(
+            ownerTokenInsertError.message
+          )
+        }
+      }
+
+      for (
+        const readyMatch
+        of readyCandidates
+      ) {
+        let readyStatus:
+          number | null =
+          null
+
+        let readyResponse:
+          unknown =
+          null
+
+        let readyOk =
+          false
+
+        try {
+          const response =
+            await fetch(
+              new URL(
+                "/api/owner-interest",
+                request.url
+              ),
+              {
+                method:
+                  "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body:
+                  JSON.stringify({
+                    token:
+                      ownerCandidatesToken,
+
+                    match_id:
+                      readyMatch.id,
+                  }),
+              }
+            )
+
+          readyStatus =
+            response.status
+
+          readyResponse =
+            await response
+              .json()
+              .catch(
+                async () => ({
+                  raw:
+                    await response
+                      .text()
+                      .catch(() => ""),
+                })
+              )
+
+          readyOk =
+            response.ok &&
+            (
+              !readyResponse ||
+              typeof readyResponse !==
+                "object" ||
+              !(
+                "ok" in
+                readyResponse
+              ) ||
+              (
+                readyResponse as {
+                  ok?: boolean
+                }
+              ).ok !==
+                false
+            )
+
+          if (
+            !readyOk
+          ) {
+            console.error(
+              "automatic ready-to-connect after owner completion failed:",
+              {
+                ownerLeadId,
+                matchId:
+                  readyMatch.id,
+                status:
+                  readyStatus,
+                response:
+                  readyResponse,
+              }
+            )
+          }
+        } catch (
+          readyError
+        ) {
+          readyResponse =
+            readyError instanceof
+            Error
+              ? readyError.message
+              : String(
+                  readyError
+                )
+
+          console.error(
+            "automatic ready-to-connect after owner completion error:",
+            {
+              ownerLeadId,
+              matchId:
+                readyMatch.id,
+              error:
+                readyResponse,
+            }
+          )
+        }
+
+        readyNotifications.push({
+          match_id:
+            readyMatch.id,
+
+          attempted:
+            true,
+
+          ok:
+            readyOk,
+
+          status:
+            readyStatus,
+
+          response:
+            readyResponse,
+        })
+      }
+    }
+
+    // =========================================================
+    // 11. TOKEN
     //
     // NO SE REVOCA.
     //
@@ -743,7 +1056,7 @@ export async function POST(
     // =========================================================
 
     // =========================================================
-    // 11. CONTAR MULTIMEDIA TOTAL ACTUAL
+    // 12. CONTAR MULTIMEDIA TOTAL ACTUAL
     // =========================================================
 
     const {
@@ -790,7 +1103,7 @@ export async function POST(
       ).length
 
     // =========================================================
-    // 12. RESPONSE
+    // 13. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -832,6 +1145,9 @@ export async function POST(
       owner_completed_matches:
         matchIds.length,
 
+      owner_interest_matches:
+        matchIds.length,
+
       token_reusable:
         true,
 
@@ -849,6 +1165,18 @@ export async function POST(
 
       tenant_notification_response:
         tenantNotificationResponse,
+
+      ready_to_connect_attempts:
+        readyNotifications.length,
+
+      ready_to_connect_ok:
+        readyNotifications.filter(
+          (item) =>
+            item.ok
+        ).length,
+
+      ready_notifications:
+        readyNotifications,
     })
   } catch (
     error
