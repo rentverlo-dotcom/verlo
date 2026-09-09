@@ -7,6 +7,7 @@ import {
   useSearchParams,
 } from "next/navigation"
 import VerloBrand from "@/components/VerloBrand"
+import PushSubscribeByTokenButton from "@/components/PushSubscribeByTokenButton"
 
 const CONTACT_HREF =
   "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
@@ -271,6 +272,13 @@ export default function TenantValidationPage() {
               </a>
             </div>
 
+
+            <div style={{ marginTop: 16 }}>
+  <PushSubscribeByTokenButton
+    token={token}
+    role="tenant"
+  />
+</div>
             <div className="trust-row">
               <span>Documentación privada</span>
               <span>Validación manual</span>
