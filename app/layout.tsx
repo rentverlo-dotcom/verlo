@@ -1,5 +1,6 @@
 import './globals.css'
 import Script from 'next/script'
+import PwaRegister from './pwa-register'
 
 const ogImageUrl = 'https://verlo.lat/logo-verlo.png'
 
@@ -45,6 +46,8 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
+        <PwaRegister />
+
         <Script
           id="meta-pixel"
           strategy="afterInteractive"
