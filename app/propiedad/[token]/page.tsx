@@ -12,6 +12,7 @@ import {
 } from "next/navigation"
 
 import VerloBrand from "@/components/VerloBrand"
+import PushSubscribeByTokenButton from "@/components/PushSubscribeByTokenButton"
 
 type UploadedMedia = {
   key: string
@@ -804,6 +805,10 @@ export default function OwnerPropertyPage() {
         <section className="shell">
           <div className="topbar">
             <VerloBrand />
+            <PushSubscribeByTokenButton
+  token={token}
+  role="owner"
+/>
 
             <div className="free-pill">
               GRATIS PARA PROPIETARIOS
