@@ -27,12 +27,21 @@ function urlBase64ToUint8Array(
   const rawData =
     window.atob(base64)
 
-  return Uint8Array.from(
-    [...rawData].map(
-      (char) =>
-        char.charCodeAt(0)
+  const outputArray =
+    new Uint8Array(
+      rawData.length
     )
-  )
+
+  for (
+    let i = 0;
+    i < rawData.length;
+    i += 1
+  ) {
+    outputArray[i] =
+      rawData.charCodeAt(i)
+  }
+
+  return outputArray
 }
 
 export default function PushSubscribeButton({
