@@ -1549,6 +1549,153 @@ function normalizeNeighborhoods(
   }
 }
 
+
+function urlBase64ToUint8Array(
+  base64String: string
+) {
+  const padding =
+    "=".repeat(
+      (4 -
+        (base64String.length %
+          4)) %
+        4
+    )
+
+  const base64 =
+    (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+
+  const rawData =
+    window.atob(base64)
+
+  const outputArray =
+    new Uint8Array(
+      rawData.length
+    )
+
+  for (
+    let i = 0;
+    i < rawData.length;
+    i += 1
+  ) {
+    outputArray[i] =
+      rawData.charCodeAt(i)
+  }
+
+  return outputArray
+}
+
+async function preparePushSubscription() {
+  if (
+    typeof window ===
+      "undefined" ||
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window) ||
+    !("Notification" in window)
+  ) {
+    return null
+  }
+
+  const permission =
+    await Notification.requestPermission()
+
+  if (
+    permission !==
+    "granted"
+  ) {
+    return null
+  }
+
+  const registration =
+    await navigator.serviceWorker.ready
+
+  let subscription =
+    await registration
+      .pushManager
+      .getSubscription()
+
+  if (!subscription) {
+    const publicKey =
+      process.env
+        .NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+    if (!publicKey) {
+      throw new Error(
+        "Falta NEXT_PUBLIC_VAPID_PUBLIC_KEY"
+      )
+    }
+
+    subscription =
+      await registration
+        .pushManager
+        .subscribe({
+          userVisibleOnly:
+            true,
+
+          applicationServerKey:
+            urlBase64ToUint8Array(
+              publicKey
+            ),
+        })
+  }
+
+  return subscription
+}
+
+async function registerPushForLead({
+  leadId,
+  role,
+  subscription,
+}: {
+  leadId: string
+  role: "tenant" | "owner"
+  subscription: PushSubscription
+}) {
+  const response =
+    await fetch(
+      "/api/push/subscribe",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify({
+            lead_id:
+              leadId,
+
+            role,
+
+            subscription:
+              subscription.toJSON(),
+          }),
+      }
+    )
+
+  const data =
+    await response
+      .json()
+      .catch(
+        () => null
+      )
+
+  if (
+    !response.ok ||
+    !data?.ok
+  ) {
+    throw new Error(
+      data?.error ||
+        "No pudimos activar las notificaciones"
+    )
+  }
+
+  return true
+}
+
 function Dots() {
   return (
     <div className="dots">
@@ -2361,6 +2508,32 @@ export default function PageDePrueba() {
       },
     }
 
+    let pushSubscription:
+      PushSubscription | null =
+      null
+
+    let pushRegistered =
+      false
+
+    if (
+      payload.role ===
+        "tenant" ||
+      payload.role ===
+        "owner"
+    ) {
+      try {
+        pushSubscription =
+          await preparePushSubscription()
+      } catch (
+        pushError
+      ) {
+        console.error(
+          "Push preparation error:",
+          pushError
+        )
+      }
+    }
+
     try {
       const res =
         await fetch(
@@ -2399,23 +2572,56 @@ export default function PageDePrueba() {
         )
       }
 
+      const leadId =
+        String(
+          data?.lead_id ||
+            ""
+        ).trim()
+
+      if (
+        !leadId
+      ) {
+        throw new Error(
+          "El registro se creó pero no recibimos el lead_id."
+        )
+      }
+
+      if (
+        pushSubscription &&
+        (
+          payload.role ===
+            "tenant" ||
+          payload.role ===
+            "owner"
+        )
+      ) {
+        try {
+          pushRegistered =
+            await registerPushForLead({
+              leadId,
+
+              role:
+                payload.role,
+
+              subscription:
+                pushSubscription,
+            })
+        } catch (
+          pushError
+        ) {
+          console.error(
+            "Push registration error:",
+            pushError
+          )
+        }
+      }
+
       if (
         path ===
         "owner"
       ) {
         const ownerLeadId =
-          String(
-            data?.lead_id ||
-              ""
-          ).trim()
-
-        if (
-          !ownerLeadId
-        ) {
-          throw new Error(
-            "La propiedad se creó pero no recibimos el lead_id del propietario."
-          )
-        }
+          leadId
 
         const uploadedMedia:
           UploadedOwnerMedia[] =
@@ -2516,11 +2722,15 @@ export default function PageDePrueba() {
         setOwnerUploadProgress("")
 
         setSuccess(
-          "Listo. Publicamos tu propiedad con sus fotos y videos. Te vamos a avisar por WhatsApp cuando encontremos personas compatibles."
+          pushRegistered
+            ? "Listo. Publicamos tu propiedad con sus fotos y videos. Las notificaciones están activadas para avisarte cuando encontremos personas compatibles."
+            : "Listo. Publicamos tu propiedad con sus fotos y videos. Activá las notificaciones del navegador para recibir avisos de nuevos matches."
         )
       } else {
         setSuccess(
-          "Listo. Guardamos tus datos y te vamos a contactar por WhatsApp o e-mail."
+          pushRegistered
+            ? "Listo. Guardamos tus datos. Las notificaciones están activadas para avisarte cuando aparezca un match."
+            : "Listo. Guardamos tus datos. Activá las notificaciones del navegador para recibir avisos de nuevos matches."
         )
       }
     } catch (
@@ -3210,7 +3420,7 @@ export default function PageDePrueba() {
                 <input
                   className="input"
                   name="phone"
-                  placeholder="WhatsApp con característica. Ej: 11 3361 4865"
+                  placeholder="Teléfono con característica. Ej: 11 3361 4865"
                   inputMode="tel"
                   required
                 />
