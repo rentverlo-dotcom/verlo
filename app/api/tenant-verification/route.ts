@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { randomBytes } from "crypto"
+import { sendPushToLead } from "@/lib/push"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -17,10 +18,6 @@ function clean(value: unknown) {
   return String(value || "").trim()
 }
 
-function normalizePhone(value: unknown) {
-  return clean(value).replace(/\D/g, "")
-}
-
 export async function POST(
   request: NextRequest
 ) {
@@ -30,10 +27,6 @@ export async function POST(
 
     const serviceRoleKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    const ownerCandidatesWebhook =
-      process.env
-        .GHL_OWNER_CANDIDATES_READY_WEBHOOK_URL
 
     if (
       !supabaseUrl ||
@@ -121,8 +114,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Missing token",
+          error: "Missing token",
         },
         {
           status: 400,
@@ -175,8 +167,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Invalid token",
+          error: "Invalid token",
         },
         {
           status: 404,
@@ -190,8 +181,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Token revoked",
+          error: "Token revoked",
         },
         {
           status: 403,
@@ -209,8 +199,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error:
-            "Expired token",
+          error: "Expired token",
         },
         {
           status: 403,
@@ -223,25 +212,6 @@ export async function POST(
 
     // =========================================================
     // 2. VALIDAR MATCHES ELEGIDOS
-    //
-    // REGLA:
-    //
-    // El tenant sólo puede avanzar con un match que:
-    //
-    // - pertenece a este tenant
-    // - score >= 80
-    // - está activo
-    // - el owner tiene al menos una foto
-    //
-    // IMPORTANTE:
-    //
-    // NO exigimos owner_completed_at.
-    //
-    // Esta es la misma lógica funcional usada para mostrar
-    // propiedades en tenant-matches-view.
-    //
-    // Si Verlo se la mostró como propiedad disponible,
-    // Verlo también tiene que dejarlo avanzar.
     // =========================================================
 
     const {
@@ -305,13 +275,8 @@ export async function POST(
     }
 
     // =========================================================
-    // 2.B VALIDAR QUE LOS OWNERS TENGAN FOTO
-    //
-    // tenant-matches-view muestra solamente owners que ya tienen
-    // al menos una foto asociada a su lead_id.
-    //
-    // Validamos la misma condición acá para que ambos endpoints
-    // tengan una única lógica coherente.
+    // 2B. MISMA REGLA DE tenant-matches-view:
+    //     EL OWNER DEBE TENER AL MENOS UNA FOTO
     // =========================================================
 
     const selectedOwnerLeadIds =
@@ -587,7 +552,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. MARCAR INTERÉS + VERIFICACIÓN
+    // 4. TENANT = INTERÉS + VALIDACIÓN COMPLETA
     // =========================================================
 
     const now =
@@ -648,10 +613,7 @@ export async function POST(
       )
       .select(`
         id,
-        full_name,
-        phone,
-        phone_normalized,
-        email
+        full_name
       `)
       .in(
         "id",
@@ -692,6 +654,9 @@ export async function POST(
 
         sent:
           boolean
+
+        result:
+          unknown
       }> = []
 
     const readyNotifications:
@@ -717,7 +682,7 @@ export async function POST(
 
     // =========================================================
     // 6. PARA CADA OWNER:
-    // TOKEN AGREGADO + URL PERMANENTE
+    //    TOKEN AGREGADO + URL PERMANENTE
     // =========================================================
 
     for (
@@ -830,8 +795,7 @@ export async function POST(
         tokenLookupError
       ) {
         throw new Error(
-          tokenLookupError
-            .message
+          tokenLookupError.message
         )
       }
 
@@ -888,23 +852,18 @@ export async function POST(
       }
 
       const candidatesUrl =
-        `https://verlo.lat/candidatos/${ownerToken}`
+        `/candidatos/${ownerToken}`
 
       // =======================================================
-      // 7. SI EL OWNER YA COMPLETÓ SU PROPIEDAD, SU CARGA
-      //    CUENTA COMO OK DEL OWNER.
+      // 7. SI OWNER YA HABÍA COMPLETADO SU LADO:
+      //    EL TENANT TERMINÓ SEGUNDO -> DISPARAR DOBLE OK
       //
-      // Si el tenant termina segundo, llamamos al endpoint
-      // owner-interest usando el token del owner que ya existe.
-      //
-      // owner-interest conserva una sola fuente de verdad para:
+      // owner-interest es la única fuente de verdad para:
       // - owner_interest_at
       // - ready_to_connect_at
-      // - contrato
-      // - tokens /cierre
-      // - webhook Ready To Connect para ambos
-      //
-      // Si ready_to_connect_at ya existe, no repetimos.
+      // - lead_contracts
+      // - tokens de cierre/conexión
+      // - PUSH del doble OK
       // =======================================================
 
       const selectedMatchesForOwner =
@@ -977,7 +936,9 @@ export async function POST(
                   raw:
                     await readyResponseHttp
                       .text()
-                      .catch(() => ""),
+                      .catch(
+                        () => ""
+                      ),
                 })
               )
 
@@ -1062,104 +1023,52 @@ export async function POST(
         })
       }
 
+      // =======================================================
+      // 8. SI TODAVÍA NO HUBO DOBLE OK:
+      //    PUSH AL OWNER PARA QUE VEA SUS CANDIDATOS
+      //
+      // Texto provisorio. La lógica queda fija; el copy se
+      // define después.
+      // =======================================================
+
       let sent =
         false
 
-      // =======================================================
-      // 8. AVISAR AL OWNER MEDIANTE VERLO / GHL
-      //
-      // Si ya entró en Ready To Connect no mandamos además
-      // el aviso intermedio de candidatos.
-      // =======================================================
+      let pushResult:
+        unknown =
+        null
 
       if (
-        ownerCandidatesWebhook &&
         !readyTriggeredForOwner
       ) {
         try {
-          const response =
-            await fetch(
-              ownerCandidatesWebhook,
+          pushResult =
+            await sendPushToLead(
+              ownerLeadId,
               {
-                method:
-                  "POST",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
+                title:
+                  "Verlo · Tenés candidato",
 
                 body:
-                  JSON.stringify({
-                    lead_id:
-                      owner.id,
+                  currentCandidates.length ===
+                  1
+                    ? "Tenés una persona interesada en tu propiedad. Revisá su perfil para avanzar."
+                    : `Tenés ${currentCandidates.length} personas interesadas en tu propiedad. Revisá sus perfiles para avanzar.`,
 
-                    full_name:
-                      owner.full_name,
-
-                    first_name:
-                      clean(
-                        owner.full_name
-                      ).split(
-                        /\s+/
-                      )[0] ||
-                      "",
-
-                    phone:
-                      normalizePhone(
-                        owner
-                          .phone_normalized ||
-                          owner.phone
-                      ),
-
-                    email:
-                      clean(
-                        owner.email
-                      ).toLowerCase(),
-
-                    role:
-                      "owner",
-
-                    verlo_candidates_token:
-                      ownerToken,
-
-                    verlo_candidates_url:
-                      candidatesUrl,
-
-                    verlo_candidate_count:
-                      currentCandidates.length,
-
-                    source:
-                      "verlo_candidates_ready",
-
-                    tags: [
-                      "verlo_lead",
-                      "verlo_owner",
-                      "verlo_candidates_ready",
-                    ],
-                  }),
+                url:
+                  candidatesUrl,
               }
             )
 
           sent =
-            response.ok
-
-          if (
-            !response.ok
-          ) {
-            console.error(
-              "GHL owner candidates notify failed",
-              ownerLeadId,
-              response.status
-            )
-          }
+            true
         } catch (
-          webhookError
+          pushError
         ) {
           console.error(
-            "GHL owner candidates webhook error",
+            "owner candidates push error:",
             ownerLeadId,
-            webhookError
+            pushError
           )
         }
       }
@@ -1175,11 +1084,14 @@ export async function POST(
           currentCandidates.length,
 
         sent,
+
+        result:
+          pushResult,
       })
     }
 
     // =========================================================
-    // 8. RESPONSE
+    // 9. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -1231,7 +1143,9 @@ export async function POST(
       {
         ok: false,
         error:
-          "Unexpected server error",
+          error instanceof Error
+            ? error.message
+            : "Unexpected server error",
       },
       {
         status: 500,
