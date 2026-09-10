@@ -2,19 +2,18 @@ import {
   NextRequest,
   NextResponse,
 } from "next/server"
-
 import {
   createClient,
 } from "@supabase/supabase-js"
+import {
+  sendPushToLead,
+} from "@/lib/push"
 
 export const runtime =
   "nodejs"
 
 export const dynamic =
   "force-dynamic"
-
-const GHL_PILOT_MATCH_WEBHOOK_URL =
-  "https://services.leadconnectorhq.com/hooks/cvNj4z9CkErHpF9tD4BE/webhook-trigger/295302fb-a1ee-459e-a075-ec639b80177d"
 
 const ACTIVE_MATCH_STATUSES = [
   "new",
@@ -26,72 +25,6 @@ const MIN_MATCH_SCORE = 80
 const DEFAULT_LIMIT = 25
 const MAX_LIMIT = 200
 
-// ============================================================
-// TEMPORAL E2E
-//
-// ESTA ES LA ÚNICA DIFERENCIA ENTRE E2E Y PRODUCCIÓN.
-//
-// Cuando terminemos correctamente el E2E,
-// eliminamos este Set + el .filter correspondiente.
-//
-// NO cambia ninguna otra parte de la arquitectura.
-// ============================================================
-
-const E2E_ALLOWED_PHONES = new Set([
-  // "5491144478714", // Guillermo Oddone
-  // "5491154217300", // Alejandro Devincenzi - tenant
-  // "5491156906473", // Alejandro Oddone
-  "5491133614865", // Juan Manuel Oddone
-  "5491154217300", // Alejandro Devincenzi
-])
-
-type MatchRow = {
-  id: string
-
-  tenant_lead_id:
-    string
-
-  owner_lead_id:
-    string
-
-  score:
-    number | string
-
-  status:
-    string
-
-  reasons:
-    Record<
-      string,
-      any
-    > | null
-}
-
-type LeadRow = {
-  id: string
-
-  full_name:
-    string | null
-
-  email:
-    string | null
-
-  phone:
-    string | null
-
-  phone_normalized:
-    string | null
-
-  role:
-    string | null
-
-  intent:
-    string | null
-
-  lead_quality:
-    string | null
-}
-
 function clean(
   value: unknown
 ) {
@@ -100,287 +33,50 @@ function clean(
   ).trim()
 }
 
-function normalizeEmail(
-  value: unknown
+async function postInternal(
+  req: NextRequest,
+  path: string,
+  body: Record<string, unknown>
 ) {
-  return clean(
-    value
-  ).toLowerCase()
-}
+  const response =
+    await fetch(
+      new URL(
+        path,
+        req.url
+      ),
+      {
+        method:
+          "POST",
 
-function normalizePhone(
-  value: unknown
-) {
-  return clean(
-    value
-  ).replace(
-    /\D/g,
-    ""
-  )
-}
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
 
-function firstName(
-  value: unknown
-) {
-  return (
-    clean(value)
-      .split(/\s+/)[0] ||
-    ""
-  )
-}
-
-function money(
-  value: unknown
-) {
-  const n =
-    Number(
-      value || 0
+        body:
+          JSON.stringify(
+            body
+          ),
+      }
     )
 
-  if (
-    !Number.isFinite(n) ||
-    n <= 0
-  ) {
-    return ""
-  }
-
-  return `$ ${Math.round(
-    n
-  ).toLocaleString(
-    "es-AR"
-  )}`
-}
-
-function roleFromLead(
-  lead: LeadRow
-) {
-  if (
-    lead.intent ===
-    "owner_new_listing"
-  ) {
-    return "owner"
-  }
-
-  if (
-    lead.intent ===
-    "tenant_search"
-  ) {
-    return "tenant"
-  }
-
-  return lead.role
-}
-
-function contactKey(
-  lead: LeadRow,
-  role: string
-) {
-  const email =
-    normalizeEmail(
-      lead.email
-    )
-
-  if (email) {
-    return `${role}|email:${email}`
-  }
-
-  const phone =
-    normalizePhone(
-      lead.phone_normalized ||
-        lead.phone
-    )
-
-  if (phone) {
-    return `${role}|phone:${phone}`
-  }
-
-  return `${role}|lead:${lead.id}`
-}
-
-function buildMatchFields(
-  role: string,
-  matches: MatchRow[]
-) {
-  const ordered = [
-    ...matches,
-  ].sort(
-    (
-      a,
-      b
-    ) =>
-      Number(
-        b.score || 0
-      ) -
-      Number(
-        a.score || 0
+  const data =
+    await response
+      .json()
+      .catch(
+        () => null
       )
-  )
-
-  const best =
-    ordered[0] ||
-    null
-
-  const reasons =
-    best?.reasons ||
-    {}
-
-  const matches100 =
-    ordered.filter(
-      (match) =>
-        Number(
-          match.score
-        ) === 100
-    ).length
-
-  const matches80 =
-    ordered.filter(
-      (match) =>
-        Number(
-          match.score
-        ) === 80
-    ).length
-
-  const bestZone =
-    role === "owner"
-      ? reasons
-          .matched_tenant_neighborhood ||
-        reasons
-          .owner_neighborhood_slug ||
-        ""
-      : reasons
-          .owner_neighborhood_slug ||
-        reasons
-          .matched_tenant_neighborhood ||
-        ""
-
-  const bestTiming =
-    role === "owner"
-      ? reasons
-          .tenant_move_timing ||
-        ""
-      : reasons
-          .owner_availability_status ||
-        ""
-
-  const bestPropertyType =
-    role === "owner"
-      ? reasons
-          .tenant_type ||
-        ""
-      : reasons
-          .owner_type ||
-        ""
-
-  const bestRooms =
-    role === "owner"
-      ? reasons
-          .tenant_rooms ||
-        ""
-      : reasons
-          .owner_rooms ||
-        ""
-
-  const bestPrice =
-    role === "owner"
-      ? money(
-          reasons
-            .tenant_budget_max
-        )
-      : money(
-          reasons
-            .owner_price
-        )
-
-  const matchesOn:
-    string[] = []
-
-  if (
-    reasons
-      .neighborhood_ok
-  ) {
-    matchesOn.push(
-      "zona"
-    )
-  }
-
-  if (
-    reasons.type_ok
-  ) {
-    matchesOn.push(
-      "tipo de propiedad"
-    )
-  }
-
-  if (
-    reasons.rooms_ok
-  ) {
-    matchesOn.push(
-      "ambientes"
-    )
-  }
-
-  if (
-    reasons.price_ok
-  ) {
-    matchesOn.push(
-      "presupuesto"
-    )
-  }
-
-  if (
-    reasons.time_ok
-  ) {
-    matchesOn.push(
-      "momento de mudanza"
-    )
-  }
 
   return {
-    verlo_match_count:
-      ordered.length,
+    ok:
+      response.ok &&
+      data?.ok !==
+        false,
 
-    verlo_match_100_count:
-      matches100,
+    status:
+      response.status,
 
-    verlo_match_80_count:
-      matches80,
-
-    verlo_best_match_score:
-      best
-        ? Number(
-            best.score
-          )
-        : 0,
-
-    verlo_best_zone:
-      bestZone,
-
-    verlo_best_timing:
-      bestTiming,
-
-    verlo_best_property_type:
-      bestPropertyType,
-
-    verlo_best_rooms:
-      bestRooms,
-
-    verlo_best_price:
-      bestPrice,
-
-    verlo_best_matches_on:
-      matchesOn.join(
-        ", "
-      ),
-
-    verlo_match_summary:
-      `${matches100} matches al 100% y ${matches80} matches al 80%`,
-
-    verlo_match_role:
-      role,
-
-    verlo_match_updated_at:
-      new Date()
-        .toISOString(),
+    data,
   }
 }
 
@@ -394,25 +90,17 @@ export async function GET() {
     source:
       "lead_matches",
 
+    channel:
+      "push",
+
     min_score:
       MIN_MATCH_SCORE,
 
     active_statuses:
       ACTIVE_MATCH_STATUSES,
 
-    default_limit:
-      DEFAULT_LIMIT,
-
-    e2e_mode:
-      true,
-
-    e2e_allowed_phones:
-      Array.from(
-        E2E_ALLOWED_PHONES
-      ),
-
     note:
-      "POST con { send: true } para enviar a GHL. Sin send:true funciona como dry-run.",
+      "Legacy endpoint kept for compatibility. Notifications are Push only.",
   })
 }
 
@@ -455,6 +143,25 @@ export async function POST(
       body?.send ===
       true
 
+    const requestedLeadIds =
+      Array.isArray(
+        body?.lead_ids
+      )
+        ? body.lead_ids
+            .map(
+              (
+                value:
+                  unknown
+              ) =>
+                clean(
+                  value
+                )
+            )
+            .filter(
+              Boolean
+            )
+        : []
+
     const notifyRoles =
       Array.isArray(
         body?.notify_roles
@@ -481,7 +188,10 @@ export async function POST(
                     "tenant"
               )
           )
-        : null
+        : new Set([
+            "owner",
+            "tenant",
+          ])
 
     const requestedLimit =
       Number(
@@ -502,25 +212,6 @@ export async function POST(
         MAX_LIMIT
       )
 
-    const requestedLeadIds =
-      Array.isArray(
-        body?.lead_ids
-      )
-        ? body.lead_ids
-            .map(
-              (
-                value:
-                  unknown
-              ) =>
-                clean(
-                  value
-                )
-            )
-            .filter(
-              Boolean
-            )
-        : []
-
     const supabase =
       createClient(
         supabaseUrl,
@@ -537,17 +228,11 @@ export async function POST(
       )
 
     // =========================================================
-    // 1. MATCHES REALES ACTUALES
+    // 1. MATCHES REALES ACTIVOS
     // =========================================================
 
-    const {
-      data:
-        matchesRaw,
-
-      error:
-        matchesError,
-    } =
-      await supabase
+    let matchQuery =
+      supabase
         .from(
           "lead_matches"
         )
@@ -556,8 +241,7 @@ export async function POST(
           tenant_lead_id,
           owner_lead_id,
           score,
-          status,
-          reasons
+          status
         `)
         .gte(
           "score",
@@ -574,6 +258,17 @@ export async function POST(
               false,
           }
         )
+        .limit(
+          limit
+        )
+
+    const {
+      data:
+        matchesRaw,
+      error:
+        matchesError,
+    } =
+      await matchQuery
 
     if (
       matchesError
@@ -584,954 +279,498 @@ export async function POST(
     }
 
     let matches =
-      (
-        matchesRaw ||
-        []
-      ) as MatchRow[]
-
-    // =========================================================
-    // 2. SI EL CALLER MANDA LEAD IDS, SOLO TRABAJAMOS MATCHES
-    //    RELACIONADOS CON ESOS LEADS.
-    //
-    //    El match incluye ambos lados, por lo tanto el flujo
-    //    real puede notificar tenant + owner.
-    // =========================================================
+      matchesRaw ||
+      []
 
     if (
-      requestedLeadIds
-        .length > 0
+      requestedLeadIds.length >
+      0
     ) {
-      const requestedSet =
+      const wanted =
         new Set(
           requestedLeadIds
         )
 
       matches =
         matches.filter(
-          (match) =>
-            requestedSet.has(
-              match
-                .tenant_lead_id
+          (
+            match
+          ) =>
+            wanted.has(
+              clean(
+                match
+                  .tenant_lead_id
+              )
             ) ||
-            requestedSet.has(
-              match
-                .owner_lead_id
+            wanted.has(
+              clean(
+                match
+                  .owner_lead_id
+              )
             )
         )
     }
 
-    // =========================================================
-    // 3. LEADS INVOLUCRADOS
-    // =========================================================
-
-    const leadIds =
-      Array.from(
-        new Set(
-          matches.flatMap(
-            (match) => [
-              match
-                .tenant_lead_id,
-
-              match
-                .owner_lead_id,
-            ]
-          )
-        )
-      )
-
     if (
-      leadIds.length ===
+      matches.length ===
       0
     ) {
       return NextResponse.json({
         ok: true,
         send,
-
-        notify_roles:
-          notifyRoles
-            ? Array.from(
-                notifyRoles
-              )
-            : null,
-
         matches_found:
           0,
-
-        contacts_ready:
-          0,
-
         processed:
           0,
-
         results: [],
       })
     }
 
-    const {
-      data:
-        leadsRaw,
-
-      error:
-        leadsError,
-    } =
-      await supabase
-        .from(
-          "lead_intake"
-        )
-        .select(`
-          id,
-          full_name,
-          email,
-          phone,
-          phone_normalized,
-          role,
-          intent,
-          lead_quality
-        `)
-        .in(
-          "id",
-          leadIds
-        )
-
-    if (
-      leadsError
-    ) {
-      throw new Error(
-        leadsError.message
-      )
-    }
-
     // =========================================================
-    // 4. EXCLUIR DUPLICATES / NEEDS_RECLASSIFICATION
-    // =========================================================
-
-    const leads =
-      (
-        (
-          leadsRaw ||
-          []
-        ) as LeadRow[]
-      ).filter(
-        (lead) =>
-          lead
-            .lead_quality !==
-            "duplicate" &&
-          lead
-            .lead_quality !==
-            "needs_reclassification"
-      )
-
-    const leadsById =
-      new Map(
-        leads.map(
-          (lead) => [
-            lead.id,
-            lead,
-          ]
-        )
-      )
-
-    // =========================================================
-    // 5. OWNERS QUE YA TIENEN AL MENOS UNA FOTO
+    // 2. OWNERS CON FOTO
     //
-    // El owner puede ser notificado apenas existe match.
-    //
-    // El tenant, en cambio, solo debe recibir su WhatsApp
-    // cuando la propiedad del otro lado ya tenga al menos
-    // una foto cargada.
-    //
-    // Las fotos iniciales viven en owner_property_media
-    // relacionadas directamente por lead_id.
+    // Tenant solo recibe aviso cuando la propiedad ya tiene
+    // al menos una foto disponible.
     // =========================================================
 
     const ownerLeadIds =
       Array.from(
         new Set(
           matches.map(
-            (match) =>
+            (
               match
-                .owner_lead_id
+            ) =>
+              clean(
+                match
+                  .owner_lead_id
+              )
           )
         )
+      ).filter(
+        Boolean
       )
 
-    const ownersWithMedia =
-      new Set<string>()
+    const {
+      data:
+        mediaRows,
+      error:
+        mediaError,
+    } =
+      await supabase
+        .from(
+          "owner_property_media"
+        )
+        .select(
+          "lead_id"
+        )
+        .in(
+          "lead_id",
+          ownerLeadIds
+        )
+        .eq(
+          "media_type",
+          "photo"
+        )
 
     if (
-      ownerLeadIds.length >
-      0
+      mediaError
     ) {
-      const {
-        data:
-          ownerMediaRows,
+      throw new Error(
+        mediaError.message
+      )
+    }
 
-        error:
-          ownerMediaError,
-      } =
-        await supabase
-          .from(
-            "owner_property_media"
-          )
-          .select(`
-            lead_id
-          `)
-          .in(
-            "lead_id",
-            ownerLeadIds
-          )
-          .eq(
-            "media_type",
-            "photo"
-          )
-
-      if (
-        ownerMediaError
-      ) {
-        throw new Error(
-          ownerMediaError.message
+    const ownersWithPhoto =
+      new Set(
+        (
+          mediaRows ||
+          []
         )
-      }
+          .map(
+            (
+              row
+            ) =>
+              clean(
+                row.lead_id
+              )
+          )
+          .filter(
+            Boolean
+          )
+      )
+
+    const results:
+      Array<{
+        role:
+          "owner" |
+          "tenant"
+        lead_id:
+          string
+        match_count:
+          number
+        sent:
+          boolean
+        url:
+          string | null
+        reason?:
+          string
+      }> = []
+
+    // =========================================================
+    // 3. NOTIFICAR TENANTS
+    // =========================================================
+
+    if (
+      notifyRoles.has(
+        "tenant"
+      )
+    ) {
+      const tenantMap =
+        new Map<
+          string,
+          number
+        >()
 
       for (
-        const item
-        of ownerMediaRows ||
-          []
+        const match
+        of matches
       ) {
         const ownerLeadId =
           clean(
-            item.lead_id
+            match
+              .owner_lead_id
           )
 
         if (
-          ownerLeadId
-        ) {
-          ownersWithMedia.add(
+          !ownersWithPhoto.has(
             ownerLeadId
           )
+        ) {
+          continue
         }
+
+        const tenantLeadId =
+          clean(
+            match
+              .tenant_lead_id
+          )
+
+        tenantMap.set(
+          tenantLeadId,
+          (
+            tenantMap.get(
+              tenantLeadId
+            ) ||
+            0
+          ) + 1
+        )
       }
-    }
-
-    // =========================================================
-    // 6. AGRUPAR POR PERSONA
-    //
-    // IMPORTANTE:
-    //
-    // OWNER:
-    // Puede entrar al flujo apenas existe un match >= 80.
-    //
-    // TENANT:
-    // Solo entra al grupo si el owner de ESE match ya tiene
-    // al menos una foto cargada.
-    //
-    // Así nunca generamos un WhatsApp tenant hacia una
-    // propiedad que todavía no tiene nada visual para mostrar.
-    // =========================================================
-
-    const groups =
-      new Map<
-        string,
-        {
-          role:
-            string
-
-          lead:
-            LeadRow
-
-          leadIds:
-            Set<string>
-
-          matches:
-            Map<
-              string,
-              MatchRow
-            >
-        }
-      >()
-
-    for (
-      const match
-      of matches
-    ) {
-      const sides = [
-        {
-          role:
-            "tenant",
-
-          leadId:
-            match
-              .tenant_lead_id,
-        },
-        {
-          role:
-            "owner",
-
-          leadId:
-            match
-              .owner_lead_id,
-        },
-      ]
 
       for (
-        const side
-        of sides
+        const [
+          tenantLeadId,
+          matchCount,
+        ]
+        of tenantMap
       ) {
-        // =====================================================
-        // TENANT SOLO SI LA PROPIEDAD YA TIENE FOTO
-        // =====================================================
-
-        const lead =
-          leadsById.get(
-            side.leadId
-          )
-
-        if (!lead) {
-          continue
-        }
-
-        const actualRole =
-          roleFromLead(
-            lead
-          )
-
-        if (
-          actualRole !==
-          side.role
-        ) {
-          continue
-        }
-
-        const key =
-          contactKey(
-            lead,
-            side.role
-          )
-
-        if (
-          !groups.has(
-            key
-          )
-        ) {
-          groups.set(
-            key,
+        const tokenResponse =
+          await postInternal(
+            req,
+            "/api/tenant-matches-token",
             {
-              role:
-                side.role,
-
-              lead,
-
-              leadIds:
-                new Set<
-                  string
-                >(),
-
-              matches:
-                new Map<
-                  string,
-                  MatchRow
-                >(),
+              tenant_lead_id:
+                tenantLeadId,
             }
           )
+
+        const matchesUrl =
+          tokenResponse.ok
+            ? clean(
+                tokenResponse
+                  .data
+                  ?.matches_url
+              ) ||
+              null
+            : null
+
+        if (
+          !matchesUrl
+        ) {
+          results.push({
+            role:
+              "tenant",
+            lead_id:
+              tenantLeadId,
+            match_count:
+              matchCount,
+            sent:
+              false,
+            url:
+              null,
+            reason:
+              "could_not_create_matches_url",
+          })
+
+          continue
         }
 
-        const group =
-          groups.get(
-            key
-          )!
+        if (
+          !send
+        ) {
+          results.push({
+            role:
+              "tenant",
+            lead_id:
+              tenantLeadId,
+            match_count:
+              matchCount,
+            sent:
+              false,
+            url:
+              matchesUrl,
+            reason:
+              "dry_run",
+          })
 
-        group
-          .leadIds
-          .add(
-            lead.id
+          continue
+        }
+
+        try {
+          const pushResult =
+            await sendPushToLead(
+              tenantLeadId,
+              {
+                title:
+                  "Verlo · Tenés matches",
+
+                body:
+                  matchCount ===
+                  1
+                    ? "Encontramos una propiedad compatible. Entrá para verla y completar tus datos."
+                    : `Encontramos ${matchCount} propiedades compatibles. Entrá para verlas y completar tus datos.`,
+
+                url:
+                  matchesUrl,
+              }
+            )
+
+          const sent =
+            Number(
+              (
+                pushResult as {
+                  sent?: number
+                }
+              )?.sent ||
+                0
+            ) >
+            0
+
+          results.push({
+            role:
+              "tenant",
+            lead_id:
+              tenantLeadId,
+            match_count:
+              matchCount,
+            sent,
+            url:
+              matchesUrl,
+          })
+        } catch (
+          pushError
+        ) {
+          console.error(
+            "pilot tenant push error:",
+            tenantLeadId,
+            pushError
           )
 
-        group
-          .matches
-          .set(
-            match.id,
-            match
-          )
+          results.push({
+            role:
+              "tenant",
+            lead_id:
+              tenantLeadId,
+            match_count:
+              matchCount,
+            sent:
+              false,
+            url:
+              matchesUrl,
+            reason:
+              "push_error",
+          })
+        }
       }
     }
 
     // =========================================================
-    // 7. E2E ALLOWLIST + FILTRO DE ROLE ANTES DEL LIMIT
-    //
-    // Esto corrige el problema que vimos donde Juan/Guillermo
-    // podían quedar afuera de los primeros 25.
-    //
-    // notify_roles permite llamadas específicas:
-    //
-    // ["owner"]
-    // ["tenant"]
-    // ["owner", "tenant"]
-    //
-    // Si no viene notify_roles, mantiene comportamiento general.
-    //
-    // PRODUCCIÓN:
-    // borrar solamente el filtro de E2E y la constante
-    // E2E_ALLOWED_PHONES de arriba.
+    // 4. NOTIFICAR OWNERS
     // =========================================================
 
-    const contacts =
-      Array.from(
-        groups.values()
+    if (
+      notifyRoles.has(
+        "owner"
       )
-        .filter(
-          (group) =>
-            group
-              .matches
-              .size > 0
-        )
-
-        .filter(
-          (group) =>
-            !notifyRoles ||
-            notifyRoles.size ===
-              0 ||
-            notifyRoles.has(
-              group.role
-            )
-        )
-
-        .filter(
-          (group) => {
-            const phone =
-              normalizePhone(
-                group
-                  .lead
-                  .phone_normalized ||
-                  group
-                    .lead
-                    .phone
-              )
-
-            return (
-              E2E_ALLOWED_PHONES
-                .has(
-                  phone
-                )
-            )
-          }
-        )
-
-        .sort(
-          (
-            a,
-            b
-          ) => {
-            const aBest =
-              Math.max(
-                ...Array.from(
-                  a.matches
-                    .values()
-                ).map(
-                  (
-                    match
-                  ) =>
-                    Number(
-                      match
-                        .score
-                    )
-                )
-              )
-
-            const bBest =
-              Math.max(
-                ...Array.from(
-                  b.matches
-                    .values()
-                ).map(
-                  (
-                    match
-                  ) =>
-                    Number(
-                      match
-                        .score
-                    )
-                )
-              )
-
-            if (
-              bBest !==
-              aBest
-            ) {
-              return (
-                bBest -
-                aBest
-              )
-            }
-
-            return (
-              b.matches
-                .size -
-              a.matches
-                .size
-            )
-          }
-        )
-        .slice(
-          0,
-          limit
-        )
-
-    const results:
-      Record<
-        string,
-        unknown
-      >[] = []
-
-    // =========================================================
-    // 8. PREPARAR / ENVIAR A GHL
-    // =========================================================
-
-    for (
-      const group
-      of contacts
     ) {
-      const lead =
-        group.lead
+      const ownerMap =
+        new Map<
+          string,
+          number
+        >()
 
-      const role =
-        group.role
+      for (
+        const match
+        of matches
+      ) {
+        const ownerLeadId =
+          clean(
+            match
+              .owner_lead_id
+          )
 
-      const leadMatches =
-        Array.from(
-          group
-            .matches
-            .values()
+        ownerMap.set(
+          ownerLeadId,
+          (
+            ownerMap.get(
+              ownerLeadId
+            ) ||
+            0
+          ) + 1
         )
+      }
 
-      const matchFields =
-        buildMatchFields(
-          role,
-          leadMatches
-        )
-
-      // =======================================================
-      // 8A. TOKEN TENANT
-      // =======================================================
-
-      let verloMatchesToken =
-        ""
-
-      let verloMatchesUrl =
-        ""
-
-      if (
-        role ===
-        "tenant"
+      for (
+        const [
+          ownerLeadId,
+          matchCount,
+        ]
+        of ownerMap
       ) {
         const tokenResponse =
-          await fetch(
-            `${req.nextUrl.origin}/api/tenant-matches-token`,
+          await postInternal(
+            req,
+            "/api/owner-property-token",
             {
-              method:
-                "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body:
-                JSON.stringify(
-                  {
-                    tenant_lead_id:
-                      lead.id,
-                  }
-                ),
+              owner_lead_id:
+                ownerLeadId,
             }
           )
 
-        const tokenData =
-          await tokenResponse
-            .json()
-            .catch(
-              () =>
-                null
-            )
+        const propertyUrl =
+          tokenResponse.ok
+            ? clean(
+                tokenResponse
+                  .data
+                  ?.property_url
+              ) ||
+              null
+            : null
 
         if (
-          !tokenResponse.ok ||
-          !tokenData?.ok ||
-          !tokenData?.token
+          !propertyUrl
         ) {
-          console.error(
-            "tenant matches token error:",
-            tokenData
-          )
-
           results.push({
+            role:
+              "owner",
             lead_id:
-              lead.id,
-
-            name:
-              lead.full_name,
-
-            email:
-              lead.email,
-
-            role,
-
+              ownerLeadId,
+            match_count:
+              matchCount,
             sent:
               false,
-
-            dry_run:
-              !send,
-
-            error:
-              "No se pudo generar verlo_matches_token",
-
-            token_status:
-              tokenResponse.status,
-
-            token_response:
-              tokenData,
+            url:
+              null,
+            reason:
+              "could_not_create_property_url",
           })
 
           continue
         }
 
-        verloMatchesToken =
-          String(
-            tokenData
-              .token ||
-              ""
-          )
-
-        verloMatchesUrl =
-          String(
-            tokenData
-              .matches_url ||
-              ""
-          )
-      }
-
-      // =======================================================
-      // 8B. TOKEN OWNER
-      // =======================================================
-
-      let verloPropertyToken =
-        ""
-
-      let verloPropertyUrl =
-        ""
-
-      if (
-        role ===
-        "owner"
-      ) {
-        const tokenResponse =
-          await fetch(
-            `${req.nextUrl.origin}/api/owner-property-token`,
-            {
-              method:
-                "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body:
-                JSON.stringify(
-                  {
-                    owner_lead_id:
-                      lead.id,
-                  }
-                ),
-            }
-          )
-
-        const tokenData =
-          await tokenResponse
-            .json()
-            .catch(
-              () =>
-                null
-            )
-
         if (
-          !tokenResponse.ok ||
-          !tokenData?.ok ||
-          !tokenData?.token
+          !send
         ) {
-          console.error(
-            "owner property token error:",
-            tokenData
-          )
-
           results.push({
+            role:
+              "owner",
             lead_id:
-              lead.id,
-
-            name:
-              lead.full_name,
-
-            email:
-              lead.email,
-
-            role,
-
+              ownerLeadId,
+            match_count:
+              matchCount,
             sent:
               false,
-
-            dry_run:
-              !send,
-
-            error:
-              "No se pudo generar verlo_property_token",
-
-            token_status:
-              tokenResponse.status,
-
-            token_response:
-              tokenData,
+            url:
+              propertyUrl,
+            reason:
+              "dry_run",
           })
 
           continue
         }
 
-        verloPropertyToken =
-          String(
-            tokenData
-              .token ||
-              ""
+        try {
+          const pushResult =
+            await sendPushToLead(
+              ownerLeadId,
+              {
+                title:
+                  "Verlo · Tenés matches",
+
+                body:
+                  "Encontramos personas compatibles con tu propiedad. Completá la publicación y sumá fotos o videos para avanzar.",
+
+                url:
+                  propertyUrl,
+              }
+            )
+
+          const sent =
+            Number(
+              (
+                pushResult as {
+                  sent?: number
+                }
+              )?.sent ||
+                0
+            ) >
+            0
+
+          results.push({
+            role:
+              "owner",
+            lead_id:
+              ownerLeadId,
+            match_count:
+              matchCount,
+            sent,
+            url:
+              propertyUrl,
+          })
+        } catch (
+          pushError
+        ) {
+          console.error(
+            "pilot owner push error:",
+            ownerLeadId,
+            pushError
           )
 
-        verloPropertyUrl =
-          String(
-            tokenData
-              .property_url ||
-              ""
-          )
+          results.push({
+            role:
+              "owner",
+            lead_id:
+              ownerLeadId,
+            match_count:
+              matchCount,
+            sent:
+              false,
+            url:
+              propertyUrl,
+            reason:
+              "push_error",
+          })
+        }
       }
-
-      const tags = [
-        "verlo_lead",
-
-        role ===
-        "owner"
-          ? "verlo_owner"
-          : "verlo_tenant",
-
-        role ===
-        "owner"
-          ? "verlo_owner_new_listing"
-          : "verlo_tenant_search",
-
-        "verlo_pilot_match",
-      ]
-
-      // =======================================================
-      // 9. PAYLOAD ÚNICO PARA GHL
-      // =======================================================
-
-      const payload = {
-        lead_id:
-          lead.id,
-
-        lead_ids:
-          Array.from(
-            group.leadIds
-          ),
-
-        full_name:
-          lead.full_name,
-
-        first_name:
-          firstName(
-            lead.full_name
-          ),
-
-        email:
-          normalizeEmail(
-            lead.email
-          ),
-
-        phone:
-          normalizePhone(
-            lead.phone_normalized ||
-              lead.phone
-          ),
-
-        role,
-
-        intent:
-          role ===
-          "owner"
-            ? "owner_new_listing"
-            : "tenant_search",
-
-        // Tenant
-
-        verlo_matches_token:
-          verloMatchesToken,
-
-        verlo_matches_url:
-          verloMatchesUrl,
-
-        // Owner
-
-        verlo_property_token:
-          verloPropertyToken,
-
-        verlo_property_url:
-          verloPropertyUrl,
-
-        tags,
-
-        ...matchFields,
-
-        source:
-          "verlo_pilot_match_v2",
-      }
-
-      // =======================================================
-      // 10. DRY RUN
-      // =======================================================
-
-      if (!send) {
-        results.push({
-          lead_id:
-            lead.id,
-
-          name:
-            lead.full_name,
-
-          email:
-            lead.email,
-
-          phone:
-            payload.phone,
-
-          role,
-
-          matches:
-            matchFields
-              .verlo_match_count,
-
-          matches_100:
-            matchFields
-              .verlo_match_100_count,
-
-          matches_80:
-            matchFields
-              .verlo_match_80_count,
-
-          best_score:
-            matchFields
-              .verlo_best_match_score,
-
-          verlo_matches_token:
-            verloMatchesToken,
-
-          verlo_matches_url:
-            verloMatchesUrl,
-
-          verlo_property_token:
-            verloPropertyToken,
-
-          verlo_property_url:
-            verloPropertyUrl,
-
-          sent:
-            false,
-
-          dry_run:
-            true,
-        })
-
-        continue
-      }
-
-      // =======================================================
-      // 11. ÚNICO ENVÍO REAL HACIA EL WORKFLOW GHL
-      // =======================================================
-
-      const response =
-        await fetch(
-          GHL_PILOT_MATCH_WEBHOOK_URL,
-          {
-            method:
-              "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body:
-              JSON.stringify(
-                payload
-              ),
-          }
-        )
-
-      const responseText =
-        await response
-          .text()
-          .catch(
-            () => ""
-          )
-
-      results.push({
-        lead_id:
-          lead.id,
-
-        name:
-          lead.full_name,
-
-        email:
-          lead.email,
-
-        phone:
-          payload.phone,
-
-        role,
-
-        matches:
-          matchFields
-            .verlo_match_count,
-
-        matches_100:
-          matchFields
-            .verlo_match_100_count,
-
-        matches_80:
-          matchFields
-            .verlo_match_80_count,
-
-        best_score:
-          matchFields
-            .verlo_best_match_score,
-
-        verlo_matches_token:
-          verloMatchesToken,
-
-        verlo_matches_url:
-          verloMatchesUrl,
-
-        verlo_property_token:
-          verloPropertyToken,
-
-        verlo_property_url:
-          verloPropertyUrl,
-
-        sent:
-          response.ok,
-
-        dry_run:
-          false,
-
-        ghl_status:
-          response.status,
-
-        ghl_response:
-          responseText,
-      })
     }
 
     return NextResponse.json({
@@ -1539,35 +778,19 @@ export async function POST(
 
       send,
 
-      notify_roles:
-        notifyRoles
-          ? Array.from(
-              notifyRoles
-            )
-          : null,
-
-      source:
-        "lead_matches",
-
-      min_score:
-        MIN_MATCH_SCORE,
-
-      e2e_mode:
-        true,
-
-      owners_with_media:
-        ownersWithMedia.size,
-
       matches_found:
         matches.length,
-
-      contacts_ready:
-        contacts.length,
 
       processed:
         results.length,
 
-      limit,
+      notifications_sent:
+        results.filter(
+          (
+            item
+          ) =>
+            item.sent
+        ).length,
 
       results,
     })
@@ -1575,19 +798,17 @@ export async function POST(
     error
   ) {
     console.error(
-      "pilot matches v2 error:",
+      "pilot-matches error:",
       error
     )
 
     return NextResponse.json(
       {
         ok: false,
-
         error:
-          error instanceof
-          Error
+          error instanceof Error
             ? error.message
-            : "Error procesando matches actuales",
+            : "Unexpected server error",
       },
       {
         status: 500,
@@ -1595,3 +816,4 @@ export async function POST(
     )
   }
 }
+
