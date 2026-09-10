@@ -2537,7 +2537,7 @@ export default function PageDePrueba() {
     try {
       const res =
         await fetch(
-          "/api/ghl-lead-webhook",
+         "/api/lead-intake",
           {
             method:
               "POST",
