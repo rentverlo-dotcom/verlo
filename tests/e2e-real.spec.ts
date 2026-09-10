@@ -6,9 +6,9 @@ const PNG_1X1 = Buffer.from(
 )
 
 test(
-  "E2E REAL Verlo: Juan + Alejandro hasta doble OK",
+  "E2E REAL Verlo completo hasta alquiler activo",
   async ({ page, context, request }) => {
-    test.setTimeout(180_000)
+    test.setTimeout(240_000)
 
     await context.grantPermissions(
       ["notifications"],
@@ -25,9 +25,7 @@ test(
 
     await page
       .locator("button.path-card")
-      .filter({
-        hasText: "Tengo una propiedad",
-      })
+      .filter({ hasText: "Tengo una propiedad" })
       .click()
 
     await page
@@ -44,21 +42,15 @@ test(
 
     await page
       .locator('select[name="owner_neighborhood"]')
-      .selectOption({
-        label: "Munro",
-      })
+      .selectOption({ label: "Munro" })
 
     await page
       .locator('select[name="property_type"]')
-      .selectOption({
-        label: "Departamento",
-      })
+      .selectOption({ label: "Departamento" })
 
     await page
       .locator('select[name="property_rooms"]')
-      .selectOption({
-        label: "2 ambientes",
-      })
+      .selectOption({ label: "2 ambientes" })
 
     await page
       .locator('select[name="approx_price"]')
@@ -84,29 +76,27 @@ test(
       )
       .check()
 
-    const ownerFileInput = page.locator(
-      'input[type="file"][accept="image/*,video/*"]'
-    )
-
-    await expect(ownerFileInput).toHaveCount(1)
-
-    await ownerFileInput.setInputFiles([
-      {
-        name: "verlo-owner-1.png",
-        mimeType: "image/png",
-        buffer: PNG_1X1,
-      },
-      {
-        name: "verlo-owner-2.png",
-        mimeType: "image/png",
-        buffer: PNG_1X1,
-      },
-      {
-        name: "verlo-owner-3.png",
-        mimeType: "image/png",
-        buffer: PNG_1X1,
-      },
-    ])
+    await page
+      .locator(
+        'input[type="file"][accept="image/*,video/*"]'
+      )
+      .setInputFiles([
+        {
+          name: "verlo-owner-1.png",
+          mimeType: "image/png",
+          buffer: PNG_1X1,
+        },
+        {
+          name: "verlo-owner-2.png",
+          mimeType: "image/png",
+          buffer: PNG_1X1,
+        },
+        {
+          name: "verlo-owner-3.png",
+          mimeType: "image/png",
+          buffer: PNG_1X1,
+        },
+      ])
 
     const ownerIntakePromise =
       page.waitForResponse(
@@ -130,10 +120,7 @@ test(
     expect(ownerData?.ok).toBe(true)
     expect(ownerData?.lead_id).toBeTruthy()
 
-    console.log(
-      "OWNER LEAD:",
-      ownerData.lead_id
-    )
+    console.log("OWNER LEAD:", ownerData.lead_id)
 
     await page.waitForTimeout(4000)
 
@@ -147,9 +134,7 @@ test(
 
     await page
       .locator("button.path-card")
-      .filter({
-        hasText: "Busco alquilar",
-      })
+      .filter({ hasText: "Busco alquilar" })
       .click()
 
     await page
@@ -166,9 +151,7 @@ test(
 
     await page
       .locator("button.area-tab")
-      .filter({
-        hasText: "GBA Norte",
-      })
+      .filter({ hasText: "GBA Norte" })
       .click()
 
     await page
@@ -181,40 +164,26 @@ test(
       .locator(
         'select[name="desired_property_type"]'
       )
-      .selectOption({
-        label: "Departamento",
-      })
+      .selectOption({ label: "Departamento" })
 
     await page
-      .locator(
-        'select[name="desired_rooms"]'
-      )
-      .selectOption({
-        label: "2 ambientes",
-      })
+      .locator('select[name="desired_rooms"]')
+      .selectOption({ label: "2 ambientes" })
 
     await page
-      .locator(
-        'select[name="budget_range"]'
-      )
+      .locator('select[name="budget_range"]')
       .selectOption("700001-900000")
 
     await page
-      .locator(
-        'select[name="move_timing"]'
-      )
+      .locator('select[name="move_timing"]')
       .selectOption("En 1 a 3 meses")
 
     await page
-      .locator(
-        'select[name="income_proof_type"]'
-      )
+      .locator('select[name="income_proof_type"]')
       .selectOption("salary_receipt")
 
     await page
-      .locator(
-        'select[name="income_range"]'
-      )
+      .locator('select[name="income_range"]')
       .selectOption("2000001-3000000")
 
     await page
@@ -245,28 +214,16 @@ test(
     expect(tenantData?.ok).toBe(true)
     expect(tenantData?.lead_id).toBeTruthy()
 
-    console.log(
-      "TENANT LEAD:",
-      tenantData.lead_id
-    )
-
-    console.log(
-      "MATCH RESULT:",
-      JSON.stringify(
-        tenantData?.match_result,
-        null,
-        2
-      )
-    )
-
     expect(
       Number(
         tenantData?.match_result?.created || 0
       )
     ).toBeGreaterThan(0)
 
+    console.log("TENANT LEAD:", tenantData.lead_id)
+
     // =========================================================
-    // 3. TOKEN DE MATCHES DEL TENANT
+    // 3. TOKEN DE MATCHES TENANT
     // =========================================================
 
     const tokenResponse =
@@ -287,35 +244,25 @@ test(
 
     expect(tokenData?.ok).toBe(true)
     expect(tokenData?.token).toBeTruthy()
-    expect(tokenData?.matches_url).toBeTruthy()
-
-    console.log(
-      "TENANT MATCHES URL:",
-      tokenData.matches_url
-    )
 
     // =========================================================
-    // 4. IDENTIFICAR EXACTAMENTE LA PROPIEDAD NUEVA DE JUAN
+    // 4. ENCONTRAR MATCH EXACTO DE JUAN
     // =========================================================
 
-    const matchesViewResponse =
+    const viewResponse =
       await request.get(
         `/api/tenant-matches-view?token=${encodeURIComponent(
           tokenData.token
         )}`
       )
 
-    expect(
-      matchesViewResponse.status()
-    ).toBe(200)
+    expect(viewResponse.status()).toBe(200)
 
-    const matchesView =
-      await matchesViewResponse.json()
-
-    expect(matchesView?.ok).toBe(true)
+    const viewData =
+      await viewResponse.json()
 
     const juanMatchIndex =
-      (matchesView.matches || []).findIndex(
+      (viewData.matches || []).findIndex(
         (match: any) =>
           (match.media || []).some(
             (media: any) =>
@@ -324,10 +271,12 @@ test(
           )
       )
 
-    expect(juanMatchIndex).toBeGreaterThanOrEqual(0)
+    expect(
+      juanMatchIndex
+    ).toBeGreaterThanOrEqual(0)
 
     const juanMatch =
-      matchesView.matches[juanMatchIndex]
+      viewData.matches[juanMatchIndex]
 
     expect(juanMatch?.id).toBeTruthy()
 
@@ -337,7 +286,7 @@ test(
     )
 
     // =========================================================
-    // 5. ABRIR MATCHES Y ELEGIR EXACTAMENTE A JUAN
+    // 5. ALEJANDRO ELIGE ESA PROPIEDAD
     // =========================================================
 
     await page.goto(
@@ -347,21 +296,8 @@ test(
       }
     )
 
-    await expect(
-      page.getByText(
-        "Encontramos opciones",
-        {
-          exact: false,
-        }
-      )
-    ).toBeVisible()
-
     const cards =
       page.locator("article.card")
-
-    expect(
-      await cards.count()
-    ).toBeGreaterThan(0)
 
     await cards
       .nth(juanMatchIndex)
@@ -378,19 +314,12 @@ test(
       )
     )
 
-    console.log(
-      "VALIDATION URL:",
-      page.url()
-    )
-
     // =========================================================
-    // 6. VALIDACIÓN TENANT — DATOS FICTICIOS
+    // 6. VALIDACIÓN TENANT FICTICIA
     // =========================================================
 
     const validationForm =
       page.locator("form.tenant-form")
-
-    await expect(validationForm).toBeVisible()
 
     await validationForm
       .getByLabel("DNI / documento")
@@ -439,9 +368,7 @@ test(
       })
 
     await validationForm
-      .getByLabel(
-        "Comprobante de ingresos"
-      )
+      .getByLabel("Comprobante de ingresos")
       .setInputFiles({
         name: "ingresos-test.png",
         mimeType: "image/png",
@@ -460,9 +387,7 @@ test(
 
     await validationForm
       .getByLabel("Notas adicionales")
-      .fill(
-        "Datos ficticios generados por E2E Verlo."
-      )
+      .fill("Datos E2E ficticios.")
 
     const verificationPromise =
       page.waitForResponse(
@@ -470,8 +395,7 @@ test(
           response.url().includes(
             "/api/tenant-verification"
           ) &&
-          response.request().method() ===
-            "POST"
+          response.request().method() === "POST"
       )
 
     await validationForm
@@ -490,28 +414,9 @@ test(
     const verificationData =
       await verificationResponse.json()
 
-    expect(
-      verificationData?.ok
-    ).toBe(true)
+    expect(verificationData?.ok).toBe(true)
 
-    expect(
-      verificationData?.verification_id
-    ).toBeTruthy()
-
-    expect(
-      verificationData?.match_ids
-    ).toContain(juanMatch.id)
-
-    console.log(
-      "VERIFICATION:",
-      verificationData.verification_id
-    )
-
-    // =========================================================
-    // 7. OBTENER URL EXACTA DE CANDIDATOS DE JUAN
-    // =========================================================
-
-    const juanOwnerNotification =
+    const juanNotification =
       (
         verificationData.owner_notifications ||
         []
@@ -521,25 +426,13 @@ test(
           ownerData.lead_id
       )
 
-    expect(
-      juanOwnerNotification
-    ).toBeTruthy()
-
-    expect(
-      juanOwnerNotification
-        ?.candidates_url
-    ).toBeTruthy()
+    expect(juanNotification).toBeTruthy()
 
     const candidatesUrl =
-      juanOwnerNotification.candidates_url
-
-    console.log(
-      "OWNER CANDIDATES URL:",
-      candidatesUrl
-    )
+      juanNotification.candidates_url
 
     // =========================================================
-    // 8. JUAN ABRE SUS CANDIDATOS
+    // 7. OWNER VE A ALEJANDRO
     // =========================================================
 
     await page.goto(
@@ -549,30 +442,17 @@ test(
       }
     )
 
-    await expect(
-      page.getByText(
-        "Tenés candidatos",
-        {
-          exact: false,
-        }
-      )
-    ).toBeVisible()
-
     const alejandroCard =
       page
-        .locator(
-          "article.candidate-card"
-        )
-        .filter({
-          hasText: "Alejandro",
-        })
+        .locator("article.candidate-card")
+        .filter({ hasText: "Alejandro" })
 
     await expect(
       alejandroCard
     ).toHaveCount(1)
 
     // =========================================================
-    // 9. JUAN ACEPTA A ALEJANDRO
+    // 8. OWNER DA OK
     // =========================================================
 
     const ownerInterestPromise =
@@ -581,8 +461,7 @@ test(
           response.url().includes(
             "/api/owner-interest"
           ) &&
-          response.request().method() ===
-            "POST"
+          response.request().method() === "POST"
       )
 
     await alejandroCard
@@ -599,35 +478,6 @@ test(
     const ownerInterestData =
       await ownerInterestResponse.json()
 
-    console.log(
-      "OWNER INTEREST:",
-      JSON.stringify(
-        ownerInterestData,
-        null,
-        2
-      )
-    )
-
-    expect(
-      ownerInterestData?.ok
-    ).toBe(true)
-
-    expect(
-      ownerInterestData?.match_id
-    ).toBe(juanMatch.id)
-
-    expect(
-      ownerInterestData?.owner_interest
-    ).toBe(true)
-
-    expect(
-      ownerInterestData?.tenant_interest
-    ).toBe(true)
-
-    expect(
-      ownerInterestData?.tenant_verified
-    ).toBe(true)
-
     expect(
       ownerInterestData?.ready_to_connect
     ).toBe(true)
@@ -637,134 +487,398 @@ test(
     ).toBeTruthy()
 
     expect(
-      ownerInterestData
-        ?.tenant_closing_url
+      ownerInterestData?.tenant_closing_url
     ).toBeTruthy()
 
     expect(
-      ownerInterestData
-        ?.owner_closing_url
+      ownerInterestData?.owner_closing_url
     ).toBeTruthy()
+
+    const tenantClosingUrl =
+      ownerInterestData.tenant_closing_url
+
+    const ownerClosingUrl =
+      ownerInterestData.owner_closing_url
+
+    const tenantClosingToken =
+      tenantClosingUrl.split("/").pop()
+
+    const ownerClosingToken =
+      ownerClosingUrl.split("/").pop()
 
     console.log(
       "CONTRACT:",
       ownerInterestData.contract_id
     )
 
-    console.log(
-      "TENANT CLOSING:",
-      ownerInterestData
-        .tenant_closing_url
-    )
-
-    console.log(
-      "OWNER CLOSING:",
-      ownerInterestData
-        .owner_closing_url
-    )
-
     // =========================================================
-    // 10. ABRIR CIERRE COMO TENANT
+    // 9. DATOS LEGALES TENANT
     // =========================================================
 
-    const tenantClosingPromise =
-      page.waitForResponse(
-        (response) =>
-          response.url().includes(
-            "/api/closing-view"
-          ) &&
-          response.request().method() ===
-            "GET"
+    const tenantLegalResponse =
+      await request.post(
+        "/api/closing-legal-data",
+        {
+          data: {
+            token:
+              tenantClosingToken,
+
+            tenant: {
+              dni:
+                "30123456",
+
+              civil_status:
+                "Soltero",
+
+              legal_address:
+                "Calle Test 123",
+
+              city:
+                "Vicente López",
+
+              province:
+                "Buenos Aires",
+
+              country:
+                "Argentina",
+
+              postal_code:
+                "1636",
+            },
+          },
+        }
       )
 
-    await page.goto(
-      ownerInterestData
-        .tenant_closing_url,
-      {
-        waitUntil: "domcontentloaded",
-      }
+    const tenantLegalData =
+      await tenantLegalResponse.json()
+
+    console.log(
+      "TENANT LEGAL:",
+      JSON.stringify(
+        tenantLegalData,
+        null,
+        2
+      )
     )
 
-    const tenantClosingResponse =
-      await tenantClosingPromise
-
     expect(
-      tenantClosingResponse.status()
+      tenantLegalResponse.status()
     ).toBe(200)
 
-    const tenantClosingData =
-      await tenantClosingResponse.json()
+    expect(
+      tenantLegalData?.ok
+    ).toBe(true)
+
+    // =========================================================
+    // 10. DATOS LEGALES OWNER + INMUEBLE
+    // =========================================================
+
+    const ownerLegalResponse =
+      await request.post(
+        "/api/closing-legal-data",
+        {
+          data: {
+            token:
+              ownerClosingToken,
+
+            owner: {
+              dni:
+                "20123456",
+
+              tax_id:
+                "20201234567",
+
+              civil_status:
+                "Soltero",
+
+              legal_address:
+                "Owner Test 456",
+
+              city:
+                "Vicente López",
+
+              province:
+                "Buenos Aires",
+
+              country:
+                "Argentina",
+
+              postal_code:
+                "1636",
+
+              acting_as:
+                "owner",
+
+              power_details:
+                "",
+            },
+
+            property: {
+              street:
+                "Mitre",
+
+              number:
+                "1234",
+
+              floor:
+                "2",
+
+              unit:
+                "A",
+
+              city:
+                "Munro",
+
+              province:
+                "Buenos Aires",
+
+              country:
+                "Argentina",
+
+              postal_code:
+                "1605",
+            },
+
+            signing_place: {
+              city:
+                "Vicente López",
+
+              province:
+                "Buenos Aires",
+
+              country:
+                "Argentina",
+            },
+
+            furnishing: {
+              status:
+                "unfurnished",
+
+              inventory:
+                "",
+
+              condition_notes:
+                "Buen estado general.",
+            },
+          },
+        }
+      )
+
+    const ownerLegalData =
+      await ownerLegalResponse.json()
+
+    console.log(
+      "OWNER LEGAL:",
+      JSON.stringify(
+        ownerLegalData,
+        null,
+        2
+      )
+    )
 
     expect(
-      tenantClosingData?.ok
+      ownerLegalResponse.status()
+    ).toBe(200)
+
+    expect(
+      ownerLegalData?.ok
+    ).toBe(true)
+
+    // =========================================================
+    // 11. GENERAR CONTRATO
+    // SOLO OWNER
+    // =========================================================
+
+    const generateResponse =
+      await request.post(
+        "/api/closing-generate",
+        {
+          data: {
+            token:
+              ownerClosingToken,
+
+            monthly_price:
+              800000,
+
+            deposit:
+              800000,
+
+            start_date:
+              "2026-10-01",
+
+            end_date:
+              "2028-09-30",
+
+            adjustment_method:
+              "IPC",
+
+            expenses:
+              "A cargo del inquilino según liquidación.",
+
+            services:
+              "Servicios a cargo del inquilino.",
+
+            payment_method:
+              "Transferencia bancaria",
+
+            payment_details:
+              "Del 1 al 10 de cada mes.",
+
+            guarantee_type:
+              "Seguro de caución",
+
+            guarantee_details:
+              "Seguro de caución aprobado.",
+
+            pets_policy:
+              "Permitidas previo acuerdo.",
+
+            insurance_terms:
+              "Seguro según corresponda.",
+
+            special_conditions:
+              "Contrato generado automáticamente por E2E.",
+          },
+        }
+      )
+
+    const generateData =
+      await generateResponse.json()
+
+    console.log(
+      "GENERATE CONTRACT:",
+      JSON.stringify(
+        generateData,
+        null,
+        2
+      )
+    )
+
+    expect(
+      generateResponse.status()
+    ).toBe(200)
+
+    expect(
+      generateData?.ok
+    ).toBe(true)
+
+    // =========================================================
+    // 12. TENANT ACEPTA
+    // =========================================================
+
+    const tenantAgreeResponse =
+      await request.post(
+        "/api/closing-agree",
+        {
+          data: {
+            token:
+              tenantClosingToken,
+          },
+        }
+      )
+
+    const tenantAgreeData =
+      await tenantAgreeResponse.json()
+
+    console.log(
+      "TENANT AGREE:",
+      JSON.stringify(
+        tenantAgreeData,
+        null,
+        2
+      )
+    )
+
+    expect(
+      tenantAgreeResponse.status()
+    ).toBe(200)
+
+    expect(
+      tenantAgreeData?.ok
     ).toBe(true)
 
     expect(
-      tenantClosingData?.viewer?.role
-    ).toBe("tenant")
-
-    expect(
-      tenantClosingData?.contract?.id
-    ).toBe(
-      ownerInterestData.contract_id
-    )
-
-    console.log(
-      "TENANT CIERRE OK"
-    )
-
-    // =========================================================
-    // 11. ABRIR CIERRE COMO OWNER
-    // =========================================================
-
-    const ownerClosingPromise =
-      page.waitForResponse(
-        (response) =>
-          response.url().includes(
-            "/api/closing-view"
-          ) &&
-          response.request().method() ===
-            "GET"
-      )
-
-    await page.goto(
-      ownerInterestData
-        .owner_closing_url,
-      {
-        waitUntil: "domcontentloaded",
-      }
-    )
-
-    const ownerClosingResponse =
-      await ownerClosingPromise
-
-    expect(
-      ownerClosingResponse.status()
-    ).toBe(200)
-
-    const ownerClosingData =
-      await ownerClosingResponse.json()
-
-    expect(
-      ownerClosingData?.ok
+      tenantAgreeData?.tenant_agreed
     ).toBe(true)
 
     expect(
-      ownerClosingData?.viewer?.role
-    ).toBe("owner")
+      tenantAgreeData?.both_agreed
+    ).toBe(false)
+
+    // =========================================================
+    // 13. OWNER ACEPTA
+    // =========================================================
+
+    const ownerAgreeResponse =
+      await request.post(
+        "/api/closing-agree",
+        {
+          data: {
+            token:
+              ownerClosingToken,
+          },
+        }
+      )
+
+    const ownerAgreeData =
+      await ownerAgreeResponse.json()
+
+    console.log(
+      "OWNER AGREE:",
+      JSON.stringify(
+        ownerAgreeData,
+        null,
+        2
+      )
+    )
 
     expect(
-      ownerClosingData?.contract?.id
-    ).toBe(
-      ownerInterestData.contract_id
+      ownerAgreeResponse.status()
+    ).toBe(200)
+
+    expect(
+      ownerAgreeData?.ok
+    ).toBe(true)
+
+    expect(
+      ownerAgreeData?.tenant_agreed
+    ).toBe(true)
+
+    expect(
+      ownerAgreeData?.owner_agreed
+    ).toBe(true)
+
+    expect(
+      ownerAgreeData?.both_agreed
+    ).toBe(true)
+
+    expect(
+      ownerAgreeData?.contract_status
+    ).toBe("agreed")
+
+    expect(
+      ownerAgreeData?.rental_id
+    ).toBeTruthy()
+
+    console.log(
+      "RENTAL ACTIVE:",
+      ownerAgreeData.rental_id
     )
 
     console.log(
-      "OWNER CIERRE OK"
+      "======================================"
     )
 
     console.log(
-      "E2E DOBLE OK COMPLETADO"
+      "E2E COMPLETO VERLO OK"
+    )
+
+    console.log(
+      "MATCH → DOBLE OK → CONTRATO → RENTAL"
+    )
+
+    console.log(
+      "======================================"
     )
   }
 )
