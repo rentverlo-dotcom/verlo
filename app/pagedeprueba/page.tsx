@@ -647,7 +647,7 @@ metadata: {
     }
 
     try {
-      const res = await fetch("/api/ghl-lead-webhook", {
+      const res = await fetch("/api/lead-intake", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

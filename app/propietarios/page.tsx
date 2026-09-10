@@ -763,7 +763,7 @@ export default function PropietariosPage() {
     try {
       const res =
         await fetch(
-          "/api/ghl-lead-webhook",
+          "/api/lead-intake",
           {
             method:
               "POST",
