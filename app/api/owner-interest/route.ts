@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { randomBytes } from "crypto"
+import { sendPushToLead } from "@/lib/push"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 function clean(value: unknown) {
   return String(value || "").trim()
-}
-
-function normalizePhone(value: unknown) {
-  return clean(value).replace(/\D/g, "")
 }
 
 function firstName(value: unknown) {
@@ -30,10 +27,6 @@ export async function POST(
 
     const serviceRoleKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    const readyWebhook =
-      process.env
-        .GHL_READY_TO_CONNECT_WEBHOOK_URL
 
     if (
       !supabaseUrl ||
@@ -289,17 +282,25 @@ export async function POST(
       ready &&
       !match.ready_to_connect_at
 
-    let contractId: string | null = null
-    let tenantClosingToken: string | null = null
-    let ownerClosingToken: string | null = null
+    let contractId:
+      string | null = null
+
+    let tenantClosingToken:
+      string | null = null
+
+    let ownerClosingToken:
+      string | null = null
 
     // =========================================================
     // 5. CREAR / REUTILIZAR CIERRE
     //
     // CUANDO EXISTE DOBLE OK:
-    // - lead_contracts
+    // - lead_contracts en draft
     // - token tenant
     // - token owner
+    //
+    // El contrato todavía NO está aceptado ni generado.
+    // Estos tokens también servirán para la conexión privada.
     // =========================================================
 
     if (ready) {
@@ -315,13 +316,17 @@ export async function POST(
         )
         .maybeSingle()
 
-      if (existingContractError) {
+      if (
+        existingContractError
+      ) {
         throw new Error(
           existingContractError.message
         )
       }
 
-      if (existingContract) {
+      if (
+        existingContract
+      ) {
         contractId =
           existingContract.id
       } else {
@@ -365,8 +370,10 @@ export async function POST(
       // =======================================================
 
       const {
-        data: existingTenantToken,
-        error: tenantTokenLookupError,
+        data:
+          existingTenantToken,
+        error:
+          tenantTokenLookupError,
       } = await supabase
         .from(
           "lead_contract_access_tokens"
@@ -385,7 +392,9 @@ export async function POST(
         )
         .maybeSingle()
 
-      if (tenantTokenLookupError) {
+      if (
+        tenantTokenLookupError
+      ) {
         throw new Error(
           tenantTokenLookupError.message
         )
@@ -438,8 +447,10 @@ export async function POST(
       // =======================================================
 
       const {
-        data: existingOwnerToken,
-        error: ownerTokenLookupError,
+        data:
+          existingOwnerToken,
+        error:
+          ownerTokenLookupError,
       } = await supabase
         .from(
           "lead_contract_access_tokens"
@@ -458,7 +469,9 @@ export async function POST(
         )
         .maybeSingle()
 
-      if (ownerTokenLookupError) {
+      if (
+        ownerTokenLookupError
+      ) {
         throw new Error(
           ownerTokenLookupError.message
         )
@@ -507,6 +520,16 @@ export async function POST(
       }
     }
 
+    const tenantConnectionUrl =
+      tenantClosingToken
+        ? `/conexion/${tenantClosingToken}`
+        : null
+
+    const ownerConnectionUrl =
+      ownerClosingToken
+        ? `/conexion/${ownerClosingToken}`
+        : null
+
     const tenantClosingUrl =
       tenantClosingToken
         ? `https://verlo.lat/cierre/${tenantClosingToken}`
@@ -518,16 +541,27 @@ export async function POST(
         : null
 
     // =========================================================
-    // 6. DOBLE OK
+    // 6. DOBLE OK -> PUSH A AMBOS
     //
-    // SOLO LA PRIMERA VEZ:
-    // BUSCAMOS TENANT + OWNER Y MANDAMOS
-    // DOS EVENTOS AL MISMO WORKFLOW DE GHL.
+    // IMPORTANTE:
+    // Este evento NO significa "firmar contrato".
+    // Significa que ambos quieren avanzar y pueden coordinar
+    // la visita / conocer los datos de la contraparte.
+    //
+    // Los textos son provisorios y se podrán cambiar después
+    // sin tocar esta lógica.
     // =========================================================
+
+    let tenantPush:
+      unknown = null
+
+    let ownerPush:
+      unknown = null
 
     if (
       becameReady &&
-      readyWebhook
+      tenantConnectionUrl &&
+      ownerConnectionUrl
     ) {
       const {
         data: people,
@@ -536,10 +570,7 @@ export async function POST(
         .from("lead_intake")
         .select(`
           id,
-          full_name,
-          email,
-          phone,
-          phone_normalized
+          full_name
         `)
         .in(
           "id",
@@ -549,232 +580,87 @@ export async function POST(
           ]
         )
 
-      if (peopleError) {
+      if (
+        peopleError
+      ) {
         console.error(
           "ready people lookup error:",
           peopleError
         )
-      } else {
-        const tenant =
-          (people || []).find(
-            (person) =>
-              person.id ===
-              match.tenant_lead_id
-          )
+      }
 
-        const owner =
-          (people || []).find(
-            (person) =>
-              person.id ===
-              match.owner_lead_id
-          )
+      const tenant =
+        (people || []).find(
+          (person) =>
+            person.id ===
+            match.tenant_lead_id
+        )
 
-        if (
-          tenant &&
-          owner
-        ) {
-          const tenantFirstName =
-            firstName(
-              tenant.full_name
-            )
+      const owner =
+        (people || []).find(
+          (person) =>
+            person.id ===
+            match.owner_lead_id
+        )
 
-          const tenantPayload = {
-            event:
-              "ready_to_connect",
+      const tenantName =
+        firstName(
+          tenant?.full_name
+        ) ||
+        "tu inquilino"
 
-            source:
-              "verlo_double_opt_in",
+      const ownerName =
+        firstName(
+          owner?.full_name
+        ) ||
+        "tu propietario"
 
-            role:
-              "tenant",
-
-            match_id:
-              match.id,
-
-            lead_id:
-              tenant.id,
-
-            full_name:
-              clean(
-                tenant.full_name
-              ),
-
-            first_name:
-              tenantFirstName,
-
-            email:
-              clean(
-                tenant.email
-              ).toLowerCase(),
-
-            phone:
-              normalizePhone(
-                tenant
-                  .phone_normalized ||
-                  tenant.phone
-              ),
-
-            verlo_tenant_first_name:
-              tenantFirstName,
-
-            ready_to_connect_at:
-              now,
-
-            contract_id:
-              contractId,
-
-            closing_token:
-              tenantClosingToken,
-
-            closing_url:
-              tenantClosingUrl,
-          }
-
-          const ownerPayload = {
-            event:
-              "ready_to_connect",
-
-            source:
-              "verlo_double_opt_in",
-
-            role:
-              "owner",
-
-            match_id:
-              match.id,
-
-            lead_id:
-              owner.id,
-
-            full_name:
-              clean(
-                owner.full_name
-              ),
-
-            first_name:
-              firstName(
-                owner.full_name
-              ),
-
-            email:
-              clean(
-                owner.email
-              ).toLowerCase(),
-
-            phone:
-              normalizePhone(
-                owner
-                  .phone_normalized ||
-                  owner.phone
-              ),
-
-            verlo_tenant_first_name:
-              tenantFirstName,
-
-            ready_to_connect_at:
-              now,
-
-            contract_id:
-              contractId,
-
-            closing_token:
-              ownerClosingToken,
-
-            closing_url:
-              ownerClosingUrl,
-          }
-
-          // ===================================================
-          // 6A. WHATSAPP AL TENANT
-          // ===================================================
-
-          try {
-            const tenantResponse =
-              await fetch(
-                readyWebhook,
-                {
-                  method: "POST",
-
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-                  },
-
-                  body:
-                    JSON.stringify(
-                      tenantPayload
-                    ),
-                }
-              )
-
-            if (
-              !tenantResponse.ok
-            ) {
-              console.error(
-                "ready tenant webhook error:",
-                tenantResponse.status
-              )
-            }
-          } catch (
-            webhookError
-          ) {
-            console.error(
-              "ready tenant webhook request error:",
-              webhookError
-            )
-          }
-
-          // ===================================================
-          // 6B. WHATSAPP AL OWNER
-          // ===================================================
-
-          try {
-            const ownerResponse =
-              await fetch(
-                readyWebhook,
-                {
-                  method: "POST",
-
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-                  },
-
-                  body:
-                    JSON.stringify(
-                      ownerPayload
-                    ),
-                }
-              )
-
-            if (
-              !ownerResponse.ok
-            ) {
-              console.error(
-                "ready owner webhook error:",
-                ownerResponse.status
-              )
-            }
-          } catch (
-            webhookError
-          ) {
-            console.error(
-              "ready owner webhook request error:",
-              webhookError
-            )
-          }
-        } else {
-          console.error(
-            "ready webhook: tenant or owner not found",
+      try {
+        tenantPush =
+          await sendPushToLead(
+            match.tenant_lead_id,
             {
-              tenant_lead_id:
-                match.tenant_lead_id,
+              title:
+                "Verlo · Doble OK",
 
-              owner_lead_id:
-                match.owner_lead_id,
+              body:
+                `Vos y ${ownerName} quieren avanzar. Ya pueden coordinar la visita.`,
+
+              url:
+                tenantConnectionUrl,
             }
           )
-        }
+      } catch (
+        pushError
+      ) {
+        console.error(
+          "tenant ready push error:",
+          pushError
+        )
+      }
+
+      try {
+        ownerPush =
+          await sendPushToLead(
+            match.owner_lead_id,
+            {
+              title:
+                "Verlo · Doble OK",
+
+              body:
+                `Vos y ${tenantName} quieren avanzar. Ya pueden coordinar la visita.`,
+
+              url:
+                ownerConnectionUrl,
+            }
+          )
+      } catch (
+        pushError
+      ) {
+        console.error(
+          "owner ready push error:",
+          pushError
+        )
       }
     }
 
@@ -806,11 +692,23 @@ export async function POST(
       contract_id:
         contractId,
 
+      tenant_connection_url:
+        tenantConnectionUrl,
+
+      owner_connection_url:
+        ownerConnectionUrl,
+
       tenant_closing_url:
         tenantClosingUrl,
 
       owner_closing_url:
         ownerClosingUrl,
+
+      tenant_push:
+        tenantPush,
+
+      owner_push:
+        ownerPush,
     })
   } catch (error) {
     console.error(
@@ -821,6 +719,7 @@ export async function POST(
     return NextResponse.json(
       {
         ok: false,
+
         error:
           error instanceof Error
             ? error.message
