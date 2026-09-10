@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { randomBytes } from "crypto"
+import { sendPushToLead } from "@/lib/push"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 function clean(value: unknown) {
   return String(value || "").trim()
-}
-
-function normalizePhone(value: unknown) {
-  return clean(value).replace(/\D/g, "")
 }
 
 export async function POST(
@@ -22,10 +19,6 @@ export async function POST(
 
     const serviceRoleKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    const ownerInterestWebhook =
-      process.env
-        .GHL_OWNER_MATCH_INTEREST_WEBHOOK_URL
 
     if (
       !supabaseUrl ||
@@ -83,7 +76,9 @@ export async function POST(
       )
     }
 
-    // TOKEN TENANT
+    // =========================================================
+    // 1. VALIDAR TOKEN DEL TENANT PARA ESTE MATCH
+    // =========================================================
 
     const {
       data: accessToken,
@@ -144,7 +139,9 @@ export async function POST(
       )
     }
 
-    // MATCH
+    // =========================================================
+    // 2. MATCH
+    // =========================================================
 
     const {
       data: match,
@@ -205,7 +202,9 @@ export async function POST(
       new Date()
         .toISOString()
 
-    // REGISTRAR OK TENANT
+    // =========================================================
+    // 3. REGISTRAR OK DEL TENANT
+    // =========================================================
 
     if (
       !match.tenant_interest_at
@@ -236,7 +235,9 @@ export async function POST(
       }
     }
 
-    // TOKEN OWNER PARA ESTE MATCH
+    // =========================================================
+    // 4. TOKEN OWNER PARA ESTE MATCH
+    // =========================================================
 
     let ownerToken:
       string | null = null
@@ -276,7 +277,9 @@ export async function POST(
         .limit(1)
         .maybeSingle()
 
-    if (ownerTokenError) {
+    if (
+      ownerTokenError
+    ) {
       throw new Error(
         ownerTokenError.message
       )
@@ -294,13 +297,17 @@ export async function POST(
           Date.now()
       )
 
-    if (validOwnerToken) {
+    if (
+      validOwnerToken
+    ) {
       ownerToken =
         existingOwnerToken.token
     } else {
       ownerToken =
         randomBytes(32)
-          .toString("hex")
+          .toString(
+            "hex"
+          )
 
       const expiresAt =
         new Date(
@@ -347,44 +354,26 @@ export async function POST(
     }
 
     const ownerDecisionUrl =
-      `https://verlo.lat/candidato/${ownerToken}`
+      `/candidato/${ownerToken}`
 
-    // OWNER
-
-    const {
-      data: owner,
-    } =
-      await supabase
-        .from("lead_intake")
-        .select(`
-          id,
-          full_name,
-          phone,
-          phone_normalized,
-          email
-        `)
-        .eq(
-          "id",
-          match.owner_lead_id
-        )
-        .single()
-
-    // TENANT
+    // =========================================================
+    // 5. TENANT
+    //
+    // Solo necesitamos el nombre para el mensaje provisorio.
+    // El copy definitivo se define después.
+    // =========================================================
 
     const {
       data: tenant,
+      error: tenantError,
     } =
       await supabase
-        .from("lead_intake")
+        .from(
+          "lead_intake"
+        )
         .select(`
           id,
-          full_name,
-          budget_max,
-          move_timing,
-          income_proof_type,
-          income_range,
-          income_max,
-          guarantee_types
+          full_name
         `)
         .eq(
           "id",
@@ -392,98 +381,80 @@ export async function POST(
         )
         .single()
 
-    // AVISO OWNER
+    if (
+      tenantError
+    ) {
+      console.error(
+        "tenant lookup error:",
+        tenantError
+      )
+    }
+
+    const tenantFirstName =
+      clean(
+        tenant?.full_name
+      ).split(
+        /\s+/
+      )[0] ||
+      "Una persona"
+
+    // =========================================================
+    // 6. TENANT DIJO "ME INTERESA" -> PUSH AL OWNER
+    //
+    // Este reemplaza completamente:
+    // GHL_OWNER_MATCH_INTEREST_WEBHOOK_URL
+    //
+    // No cambia la lógica del match.
+    // Solo cambia el canal de aviso.
+    // =========================================================
 
     let ownerNotified =
       false
 
-    if (
-      ownerInterestWebhook &&
-      owner
-    ) {
-      const response =
-        await fetch(
-          ownerInterestWebhook,
-          {
-            method: "POST",
+    let pushResult:
+      unknown = null
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+    try {
+      pushResult =
+        await sendPushToLead(
+          match.owner_lead_id,
+          {
+            title:
+              "Verlo · Hay interés",
 
             body:
-              JSON.stringify({
-                lead_id:
-                  owner.id,
+              `${tenantFirstName} quiere avanzar con tu propiedad. Revisá su perfil.`,
 
-                full_name:
-                  owner.full_name,
-
-                first_name:
-                  clean(
-                    owner.full_name
-                  ).split(
-                    /\s+/
-                  )[0] || "",
-
-                phone:
-                  normalizePhone(
-                    owner
-                      .phone_normalized ||
-                      owner.phone
-                  ),
-
-                email:
-                  clean(
-                    owner.email
-                  ).toLowerCase(),
-
-                match_id:
-                  match.id,
-
-                tenant_name:
-                  tenant?.full_name,
-
-                tenant_budget:
-                  tenant?.budget_max,
-
-                tenant_move_timing:
-                  tenant?.move_timing,
-
-                tenant_income_proof:
-                  tenant
-                    ?.income_proof_type,
-
-                tenant_income_range:
-                  tenant
-                    ?.income_range,
-
-                tenant_income_max:
-                  tenant
-                    ?.income_max,
-
-                tenant_guarantees:
-                  tenant
-                    ?.guarantee_types,
-
-                verlo_match_score:
-                  Number(
-                    match.score || 0
-                  ),
-
-                verlo_owner_decision_url:
-                  ownerDecisionUrl,
-
-                source:
-                  "verlo_tenant_interest",
-              }),
+            url:
+              ownerDecisionUrl,
           }
         )
 
+      const sent =
+        Number(
+          (
+            pushResult as {
+              sent?: number
+            }
+          )?.sent ||
+            0
+        )
+
       ownerNotified =
-        response.ok
+        sent >
+        0
+    } catch (
+      pushError
+    ) {
+      console.error(
+        "owner interest push error:",
+        pushError
+      )
     }
+
+    // =========================================================
+    // 7. RESPONSE
+    // =========================================================
 
     return NextResponse.json({
       ok: true,
@@ -499,8 +470,13 @@ export async function POST(
 
       owner_decision_url:
         ownerDecisionUrl,
+
+      push_result:
+        pushResult,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "match-interest error:",
       error
@@ -510,7 +486,9 @@ export async function POST(
       {
         ok: false,
         error:
-          "Unexpected server error",
+          error instanceof Error
+            ? error.message
+            : "Unexpected server error",
       },
       {
         status: 500,
