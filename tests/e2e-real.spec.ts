@@ -40,11 +40,9 @@ test("E2E REAL Verlo: Juan owner + Alejandro tenant generan match real", async (
     .locator('input[name="email"]')
     .fill("juancho12oddone@gmail.com")
 
-  await page
-    .getByLabel("Munro", {
-      exact: true,
-    })
-    .check()
+ await page
+  .locator('select[name="property_neighborhood"]')
+  .selectOption({ label: "Munro" })
 
   await page
     .locator('select[name="property_type"]')
@@ -195,12 +193,9 @@ test("E2E REAL Verlo: Juan owner + Alejandro tenant generan match real", async (
   await page
     .locator('input[name="email"]')
     .fill("aedevincenzi@gmail.com")
-
-  await page
-    .getByLabel("Munro", {
-      exact: true,
-    })
-    .check()
+await page
+  .locator('select[name="property_neighborhood"]')
+  .selectOption({ label: "Munro" })
 
   await page
     .locator(
