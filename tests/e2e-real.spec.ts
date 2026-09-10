@@ -5,6 +5,12 @@ const PNG_1X1 = Buffer.from(
   "base64"
 )
 
+const RUN_ID = Date.now().toString()
+
+const OWNER_PHOTO_1 = `verlo-owner-${RUN_ID}-1.png`
+const OWNER_PHOTO_2 = `verlo-owner-${RUN_ID}-2.png`
+const OWNER_PHOTO_3 = `verlo-owner-${RUN_ID}-3.png`
+
 test(
   "E2E REAL Verlo completo hasta alquiler activo",
   async ({ page, context, request }) => {
@@ -82,17 +88,17 @@ test(
       )
       .setInputFiles([
         {
-          name: "verlo-owner-1.png",
+          name: OWNER_PHOTO_1,
           mimeType: "image/png",
           buffer: PNG_1X1,
         },
         {
-          name: "verlo-owner-2.png",
+          name: OWNER_PHOTO_2,
           mimeType: "image/png",
           buffer: PNG_1X1,
         },
         {
-          name: "verlo-owner-3.png",
+          name: OWNER_PHOTO_3,
           mimeType: "image/png",
           buffer: PNG_1X1,
         },
@@ -267,7 +273,7 @@ test(
           (match.media || []).some(
             (media: any) =>
               media.filename ===
-              "verlo-owner-1.png"
+              OWNER_PHOTO_1
           )
       )
 
