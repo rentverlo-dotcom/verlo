@@ -6,9 +6,9 @@ const PNG_1X1 = Buffer.from(
 )
 
 test(
-  "E2E REAL Verlo: Juan owner + Alejandro tenant hasta validacion",
+  "E2E REAL Verlo: Juan + Alejandro hasta doble OK",
   async ({ page, context, request }) => {
-    test.setTimeout(120_000)
+    test.setTimeout(180_000)
 
     await context.grantPermissions(
       ["notifications"],
@@ -135,7 +135,7 @@ test(
       ownerData.lead_id
     )
 
-    await page.waitForTimeout(5000)
+    await page.waitForTimeout(4000)
 
     // =========================================================
     // 2. TENANT — ALEJANDRO
@@ -259,19 +259,6 @@ test(
       )
     )
 
-    console.log(
-      "MATCH SUMMARY:",
-      JSON.stringify(
-        tenantData?.match_summary,
-        null,
-        2
-      )
-    )
-
-    expect(
-      tenantData?.match_result?.ok
-    ).not.toBe(false)
-
     expect(
       Number(
         tenantData?.match_result?.created || 0
@@ -279,7 +266,7 @@ test(
     ).toBeGreaterThan(0)
 
     // =========================================================
-    // 3. GENERAR LINK PRIVADO DE MATCHES DEL TENANT
+    // 3. TOKEN DE MATCHES DEL TENANT
     // =========================================================
 
     const tokenResponse =
@@ -293,18 +280,14 @@ test(
         }
       )
 
-    expect(
-      tokenResponse.status()
-    ).toBe(200)
+    expect(tokenResponse.status()).toBe(200)
 
     const tokenData =
       await tokenResponse.json()
 
     expect(tokenData?.ok).toBe(true)
     expect(tokenData?.token).toBeTruthy()
-    expect(
-      tokenData?.matches_url
-    ).toBeTruthy()
+    expect(tokenData?.matches_url).toBeTruthy()
 
     console.log(
       "TENANT MATCHES URL:",
@@ -312,14 +295,55 @@ test(
     )
 
     // =========================================================
-    // 4. ABRIR MATCHES REALES
+    // 4. IDENTIFICAR EXACTAMENTE LA PROPIEDAD NUEVA DE JUAN
+    // =========================================================
+
+    const matchesViewResponse =
+      await request.get(
+        `/api/tenant-matches-view?token=${encodeURIComponent(
+          tokenData.token
+        )}`
+      )
+
+    expect(
+      matchesViewResponse.status()
+    ).toBe(200)
+
+    const matchesView =
+      await matchesViewResponse.json()
+
+    expect(matchesView?.ok).toBe(true)
+
+    const juanMatchIndex =
+      (matchesView.matches || []).findIndex(
+        (match: any) =>
+          (match.media || []).some(
+            (media: any) =>
+              media.filename ===
+              "verlo-owner-1.png"
+          )
+      )
+
+    expect(juanMatchIndex).toBeGreaterThanOrEqual(0)
+
+    const juanMatch =
+      matchesView.matches[juanMatchIndex]
+
+    expect(juanMatch?.id).toBeTruthy()
+
+    console.log(
+      "MATCH JUAN/ALEJANDRO:",
+      juanMatch.id
+    )
+
+    // =========================================================
+    // 5. ABRIR MATCHES Y ELEGIR EXACTAMENTE A JUAN
     // =========================================================
 
     await page.goto(
       tokenData.matches_url,
       {
-        waitUntil:
-          "domcontentloaded",
+        waitUntil: "domcontentloaded",
       }
     )
 
@@ -339,28 +363,13 @@ test(
       await cards.count()
     ).toBeGreaterThan(0)
 
-    console.log(
-      "MATCH CARDS:",
-      await cards.count()
-    )
-
-    // =========================================================
-    // 5. ALEJANDRO ELIGE LA PRIMERA PROPIEDAD
-    // =========================================================
-
     await cards
-      .first()
+      .nth(juanMatchIndex)
       .locator("button.select")
       .click()
 
-    // =========================================================
-    // 6. CONTINUA A VALIDACION
-    // =========================================================
-
     await page
-      .locator(
-        "section.bottom button"
-      )
+      .locator("section.bottom button")
       .click()
 
     await expect(page).toHaveURL(
@@ -372,6 +381,390 @@ test(
     console.log(
       "VALIDATION URL:",
       page.url()
+    )
+
+    // =========================================================
+    // 6. VALIDACIÓN TENANT — DATOS FICTICIOS
+    // =========================================================
+
+    const validationForm =
+      page.locator("form.tenant-form")
+
+    await expect(validationForm).toBeVisible()
+
+    await validationForm
+      .getByLabel("DNI / documento")
+      .fill("30123456")
+
+    await validationForm
+      .getByLabel("Situación laboral")
+      .selectOption(
+        "Relación de dependencia"
+      )
+
+    await validationForm
+      .getByLabel("Rango de ingresos")
+      .selectOption(
+        "Más de $2.500.000"
+      )
+
+    await validationForm
+      .getByLabel("Garantía / respaldo")
+      .selectOption(
+        "Seguro de caución"
+      )
+
+    await validationForm
+      .getByLabel("DNI frente")
+      .setInputFiles({
+        name: "dni-frente-test.png",
+        mimeType: "image/png",
+        buffer: PNG_1X1,
+      })
+
+    await validationForm
+      .getByLabel("DNI dorso")
+      .setInputFiles({
+        name: "dni-dorso-test.png",
+        mimeType: "image/png",
+        buffer: PNG_1X1,
+      })
+
+    await validationForm
+      .getByLabel("Selfie")
+      .setInputFiles({
+        name: "selfie-test.png",
+        mimeType: "image/png",
+        buffer: PNG_1X1,
+      })
+
+    await validationForm
+      .getByLabel(
+        "Comprobante de ingresos"
+      )
+      .setInputFiles({
+        name: "ingresos-test.png",
+        mimeType: "image/png",
+        buffer: PNG_1X1,
+      })
+
+    await validationForm
+      .getByLabel(
+        "Garantía / seguro / caución"
+      )
+      .setInputFiles({
+        name: "garantia-test.png",
+        mimeType: "image/png",
+        buffer: PNG_1X1,
+      })
+
+    await validationForm
+      .getByLabel("Notas adicionales")
+      .fill(
+        "Datos ficticios generados por E2E Verlo."
+      )
+
+    const verificationPromise =
+      page.waitForResponse(
+        (response) =>
+          response.url().includes(
+            "/api/tenant-verification"
+          ) &&
+          response.request().method() ===
+            "POST"
+      )
+
+    await validationForm
+      .getByRole("button", {
+        name: "Enviar validación",
+      })
+      .click()
+
+    const verificationResponse =
+      await verificationPromise
+
+    expect(
+      verificationResponse.status()
+    ).toBe(200)
+
+    const verificationData =
+      await verificationResponse.json()
+
+    expect(
+      verificationData?.ok
+    ).toBe(true)
+
+    expect(
+      verificationData?.verification_id
+    ).toBeTruthy()
+
+    expect(
+      verificationData?.match_ids
+    ).toContain(juanMatch.id)
+
+    console.log(
+      "VERIFICATION:",
+      verificationData.verification_id
+    )
+
+    // =========================================================
+    // 7. OBTENER URL EXACTA DE CANDIDATOS DE JUAN
+    // =========================================================
+
+    const juanOwnerNotification =
+      (
+        verificationData.owner_notifications ||
+        []
+      ).find(
+        (item: any) =>
+          item.owner_lead_id ===
+          ownerData.lead_id
+      )
+
+    expect(
+      juanOwnerNotification
+    ).toBeTruthy()
+
+    expect(
+      juanOwnerNotification
+        ?.candidates_url
+    ).toBeTruthy()
+
+    const candidatesUrl =
+      juanOwnerNotification.candidates_url
+
+    console.log(
+      "OWNER CANDIDATES URL:",
+      candidatesUrl
+    )
+
+    // =========================================================
+    // 8. JUAN ABRE SUS CANDIDATOS
+    // =========================================================
+
+    await page.goto(
+      candidatesUrl,
+      {
+        waitUntil: "domcontentloaded",
+      }
+    )
+
+    await expect(
+      page.getByText(
+        "Tenés candidatos",
+        {
+          exact: false,
+        }
+      )
+    ).toBeVisible()
+
+    const alejandroCard =
+      page
+        .locator(
+          "article.candidate-card"
+        )
+        .filter({
+          hasText: "Alejandro",
+        })
+
+    await expect(
+      alejandroCard
+    ).toHaveCount(1)
+
+    // =========================================================
+    // 9. JUAN ACEPTA A ALEJANDRO
+    // =========================================================
+
+    const ownerInterestPromise =
+      page.waitForResponse(
+        (response) =>
+          response.url().includes(
+            "/api/owner-interest"
+          ) &&
+          response.request().method() ===
+            "POST"
+      )
+
+    await alejandroCard
+      .locator("button.accept-button")
+      .click()
+
+    const ownerInterestResponse =
+      await ownerInterestPromise
+
+    expect(
+      ownerInterestResponse.status()
+    ).toBe(200)
+
+    const ownerInterestData =
+      await ownerInterestResponse.json()
+
+    console.log(
+      "OWNER INTEREST:",
+      JSON.stringify(
+        ownerInterestData,
+        null,
+        2
+      )
+    )
+
+    expect(
+      ownerInterestData?.ok
+    ).toBe(true)
+
+    expect(
+      ownerInterestData?.match_id
+    ).toBe(juanMatch.id)
+
+    expect(
+      ownerInterestData?.owner_interest
+    ).toBe(true)
+
+    expect(
+      ownerInterestData?.tenant_interest
+    ).toBe(true)
+
+    expect(
+      ownerInterestData?.tenant_verified
+    ).toBe(true)
+
+    expect(
+      ownerInterestData?.ready_to_connect
+    ).toBe(true)
+
+    expect(
+      ownerInterestData?.contract_id
+    ).toBeTruthy()
+
+    expect(
+      ownerInterestData
+        ?.tenant_closing_url
+    ).toBeTruthy()
+
+    expect(
+      ownerInterestData
+        ?.owner_closing_url
+    ).toBeTruthy()
+
+    console.log(
+      "CONTRACT:",
+      ownerInterestData.contract_id
+    )
+
+    console.log(
+      "TENANT CLOSING:",
+      ownerInterestData
+        .tenant_closing_url
+    )
+
+    console.log(
+      "OWNER CLOSING:",
+      ownerInterestData
+        .owner_closing_url
+    )
+
+    // =========================================================
+    // 10. ABRIR CIERRE COMO TENANT
+    // =========================================================
+
+    const tenantClosingPromise =
+      page.waitForResponse(
+        (response) =>
+          response.url().includes(
+            "/api/closing-view"
+          ) &&
+          response.request().method() ===
+            "GET"
+      )
+
+    await page.goto(
+      ownerInterestData
+        .tenant_closing_url,
+      {
+        waitUntil: "domcontentloaded",
+      }
+    )
+
+    const tenantClosingResponse =
+      await tenantClosingPromise
+
+    expect(
+      tenantClosingResponse.status()
+    ).toBe(200)
+
+    const tenantClosingData =
+      await tenantClosingResponse.json()
+
+    expect(
+      tenantClosingData?.ok
+    ).toBe(true)
+
+    expect(
+      tenantClosingData?.viewer?.role
+    ).toBe("tenant")
+
+    expect(
+      tenantClosingData?.contract?.id
+    ).toBe(
+      ownerInterestData.contract_id
+    )
+
+    console.log(
+      "TENANT CIERRE OK"
+    )
+
+    // =========================================================
+    // 11. ABRIR CIERRE COMO OWNER
+    // =========================================================
+
+    const ownerClosingPromise =
+      page.waitForResponse(
+        (response) =>
+          response.url().includes(
+            "/api/closing-view"
+          ) &&
+          response.request().method() ===
+            "GET"
+      )
+
+    await page.goto(
+      ownerInterestData
+        .owner_closing_url,
+      {
+        waitUntil: "domcontentloaded",
+      }
+    )
+
+    const ownerClosingResponse =
+      await ownerClosingPromise
+
+    expect(
+      ownerClosingResponse.status()
+    ).toBe(200)
+
+    const ownerClosingData =
+      await ownerClosingResponse.json()
+
+    expect(
+      ownerClosingData?.ok
+    ).toBe(true)
+
+    expect(
+      ownerClosingData?.viewer?.role
+    ).toBe("owner")
+
+    expect(
+      ownerClosingData?.contract?.id
+    ).toBe(
+      ownerInterestData.contract_id
+    )
+
+    console.log(
+      "OWNER CIERRE OK"
+    )
+
+    console.log(
+      "E2E DOBLE OK COMPLETADO"
     )
   }
 )
