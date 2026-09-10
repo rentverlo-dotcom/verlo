@@ -520,24 +520,14 @@ export async function POST(
       }
     }
 
-    const tenantConnectionUrl =
-      tenantClosingToken
-        ? `/conexion/${tenantClosingToken}`
-        : null
-
-    const ownerConnectionUrl =
-      ownerClosingToken
-        ? `/conexion/${ownerClosingToken}`
-        : null
-
     const tenantClosingUrl =
       tenantClosingToken
-        ? `https://verlo.lat/cierre/${tenantClosingToken}`
+        ? `/cierre/${tenantClosingToken}`
         : null
 
     const ownerClosingUrl =
       ownerClosingToken
-        ? `https://verlo.lat/cierre/${ownerClosingToken}`
+        ? `/cierre/${ownerClosingToken}`
         : null
 
     // =========================================================
@@ -560,8 +550,8 @@ export async function POST(
 
     if (
       becameReady &&
-      tenantConnectionUrl &&
-      ownerConnectionUrl
+      tenantClosingUrl &&
+      ownerClosingUrl
     ) {
       const {
         data: people,
@@ -627,7 +617,7 @@ export async function POST(
                 `Vos y ${ownerName} quieren avanzar. Ya pueden coordinar la visita.`,
 
               url:
-                tenantConnectionUrl,
+                tenantClosingUrl,
             }
           )
       } catch (
@@ -651,7 +641,7 @@ export async function POST(
                 `Vos y ${tenantName} quieren avanzar. Ya pueden coordinar la visita.`,
 
               url:
-                ownerConnectionUrl,
+                ownerClosingUrl,
             }
           )
       } catch (
@@ -692,12 +682,6 @@ export async function POST(
       contract_id:
         contractId,
 
-      tenant_connection_url:
-        tenantConnectionUrl,
-
-      owner_connection_url:
-        ownerConnectionUrl,
-
       tenant_closing_url:
         tenantClosingUrl,
 
@@ -731,3 +715,4 @@ export async function POST(
     )
   }
 }
+
