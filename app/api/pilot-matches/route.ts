@@ -471,7 +471,9 @@ export async function POST(
           tenantLeadId,
           matchCount,
         ]
-        of tenantMap
+        of Array.from(
+          tenantMap.entries()
+        )
       ) {
         const tokenResponse =
           await postInternal(
@@ -644,7 +646,9 @@ export async function POST(
           ownerLeadId,
           matchCount,
         ]
-        of ownerMap
+        of Array.from(
+          ownerMap.entries()
+        )
       ) {
         const tokenResponse =
           await postInternal(
