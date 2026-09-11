@@ -885,23 +885,10 @@ export default function PropietariosPage() {
         )
       }
 
-      form.reset()
-
-      setOwnerFiles(
-        []
-      )
-
-      setUploadProgress(
-        ""
-      )
-
-      setStatus(
-        "success"
-      )
-
-      setMessage(
-        "Listo. Recibimos tu propiedad con sus fotos y videos. Te vamos a escribir si encontramos compatibilidad con búsquedas activas."
-      )
+  window.location.href =
+  `/success?role=owner&lead=${encodeURIComponent(
+    ownerLeadId
+  )}&intent=owner_new_listing`
     } catch (
       error
     ) {
