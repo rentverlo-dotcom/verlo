@@ -1,470 +1,902 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { supabase } from "@/lib/supabase/client"
-const CONTACT_HREF =
-  "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
+import {
+  useEffect,
+  useState,
+} from "react"
+import { useSearchParams } from "next/navigation"
+import VerloBrand from "@/components/VerloBrand"
+import PushSubscribeButton from "@/components/PushSubscribeButton"
 
+type Role =
+  | "tenant"
+  | "owner"
 
-const logoUrl =
-  "https://pub-804525ac911240ab845e611b752528e4.r2.dev/WhatsApp%20Image%202026-06-14%20at%2016.35.42.jpeg"
+type BeforeInstallPromptEvent =
+  Event & {
+    prompt: () => Promise<void>
+    userChoice: Promise<{
+      outcome:
+        | "accepted"
+        | "dismissed"
+      platform: string
+    }>
+  }
 
-const pendingLeadStorageKey = "verlo_pending_user_data"
+const styles = `
+  .success-root {
+    --pink: #f2a8a9;
+    --pink-dark: #c37986;
+    --black: #050002;
+    --soft: #f2ebec;
+    --blue: #74bedc;
+    --yellow: #e7c776;
 
-type PendingLead = {
-  full_name: string
-  email: string
-  phone: string
-  role: string
-  need: string
-}
+    min-height: 100vh;
+    background:
+      radial-gradient(
+        circle at 18% 15%,
+        rgba(242, 168, 169, 0.42),
+        transparent 32%
+      ),
+      radial-gradient(
+        circle at 82% 82%,
+        rgba(116, 190, 220, 0.28),
+        transparent 30%
+      ),
+      var(--soft);
 
-function clean(value: unknown) {
-  return String(value || "").trim()
-}
+    color: var(--black);
+
+    font-family:
+      Inter,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+
+    overflow: hidden;
+    position: relative;
+  }
+
+  .success-root * {
+    box-sizing: border-box;
+  }
+
+  .success-nav {
+    height: 76px;
+    display: flex;
+    align-items: center;
+    border-bottom:
+      1px solid
+      rgba(5, 0, 2, 0.08);
+
+    background:
+      rgba(242, 235, 236, 0.72);
+
+    backdrop-filter:
+      blur(18px);
+  }
+
+  .success-container {
+    width:
+      min(
+        920px,
+        calc(100% - 40px)
+      );
+
+    margin:
+      0 auto;
+  }
+
+  .success-main {
+    min-height:
+      calc(100vh - 76px);
+
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      center;
+
+    padding:
+      64px 0 86px;
+
+    position:
+      relative;
+
+    z-index:
+      2;
+  }
+
+  .success-card {
+    width:
+      100%;
+
+    max-width:
+      720px;
+
+    padding:
+      56px;
+
+    border-radius:
+      42px;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        0.76
+      );
+
+    border:
+      1px solid
+      rgba(
+        5,
+        0,
+        2,
+        0.08
+      );
+
+    box-shadow:
+      0 28px 90px
+      rgba(
+        5,
+        0,
+        2,
+        0.10
+      );
+
+    backdrop-filter:
+      blur(18px);
+
+    text-align:
+      center;
+
+    position:
+      relative;
+
+    overflow:
+      hidden;
+  }
+
+  .success-badge {
+    display:
+      inline-flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      center;
+
+    padding:
+      9px 14px;
+
+    border-radius:
+      999px;
+
+    background:
+      rgba(
+        242,
+        168,
+        169,
+        0.24
+      );
+
+    color:
+      var(--pink-dark);
+
+    font-size:
+      12px;
+
+    font-weight:
+      950;
+
+    letter-spacing:
+      0.12em;
+
+    text-transform:
+      uppercase;
+
+    margin-bottom:
+      24px;
+  }
+
+  .success-icon {
+    width:
+      90px;
+
+    height:
+      90px;
+
+    border-radius:
+      999px;
+
+    display:
+      grid;
+
+    place-items:
+      center;
+
+    margin:
+      0 auto 28px;
+
+    background:
+      var(--black);
+
+    color:
+      white;
+
+    font-size:
+      40px;
+
+    box-shadow:
+      0 18px 48px
+      rgba(
+        5,
+        0,
+        2,
+        0.18
+      );
+  }
+
+  .success-title {
+    margin:
+      0;
+
+    font-size:
+      clamp(
+        46px,
+        7vw,
+        76px
+      );
+
+    line-height:
+      0.94;
+
+    letter-spacing:
+      -0.07em;
+
+    font-weight:
+      950;
+  }
+
+  .success-title em {
+    font-family:
+      Georgia,
+      "Times New Roman",
+      serif;
+
+    font-style:
+      italic;
+
+    font-weight:
+      400;
+
+    letter-spacing:
+      -0.04em;
+  }
+
+  .success-copy {
+    max-width:
+      520px;
+
+    margin:
+      24px auto 0;
+
+    color:
+      rgba(
+        5,
+        0,
+        2,
+        0.66
+      );
+
+    font-size:
+      18px;
+
+    line-height:
+      1.55;
+
+    font-weight:
+      650;
+  }
+
+  .success-actions {
+    display:
+      grid;
+
+    gap:
+      12px;
+
+    max-width:
+      430px;
+
+    margin:
+      34px auto 0;
+  }
+
+  .push-wrap button,
+  .install-button {
+    width:
+      100%;
+
+    min-height:
+      58px;
+
+    padding:
+      0 24px;
+
+    border-radius:
+      999px;
+
+    font-family:
+      inherit;
+
+    font-size:
+      16px;
+
+    font-weight:
+      950;
+
+    cursor:
+      pointer;
+
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease,
+      background 160ms ease;
+  }
+
+  .push-wrap button {
+    border:
+      1px solid
+      var(--black);
+
+    background:
+      var(--black);
+
+    color:
+      white;
+
+    box-shadow:
+      0 18px 45px
+      rgba(
+        5,
+        0,
+        2,
+        0.18
+      );
+  }
+
+  .push-wrap button:not(:disabled):hover,
+  .install-button:hover {
+    transform:
+      translateY(-2px);
+  }
+
+  .push-wrap button:disabled {
+    cursor:
+      default;
+
+    opacity:
+      0.76;
+  }
+
+  .install-button {
+    border:
+      1px solid
+      rgba(
+        5,
+        0,
+        2,
+        0.14
+      );
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        0.88
+      );
+
+    color:
+      var(--black);
+  }
+
+  .install-button:disabled {
+    opacity:
+      0.52;
+
+    cursor:
+      default;
+  }
+
+  .success-help {
+    margin:
+      18px auto 0;
+
+    max-width:
+      430px;
+
+    color:
+      rgba(
+        5,
+        0,
+        2,
+        0.48
+      );
+
+    font-size:
+      13px;
+
+    line-height:
+      1.45;
+
+    font-weight:
+      700;
+  }
+
+  .confetti {
+    position:
+      fixed;
+
+    top:
+      -40px;
+
+    width:
+      12px;
+
+    height:
+      20px;
+
+    border-radius:
+      3px;
+
+    z-index:
+      1;
+
+    pointer-events:
+      none;
+
+    animation:
+      confetti-fall
+      linear
+      forwards;
+  }
+
+  @keyframes confetti-fall {
+    0% {
+      transform:
+        translate3d(
+          0,
+          -10vh,
+          0
+        )
+        rotate(0deg);
+
+      opacity:
+        1;
+    }
+
+    100% {
+      transform:
+        translate3d(
+          var(--drift),
+          115vh,
+          0
+        )
+        rotate(760deg);
+
+      opacity:
+        0.12;
+    }
+  }
+
+  @media (
+    max-width: 620px
+  ) {
+    .success-nav {
+      height:
+        66px;
+    }
+
+    .success-container {
+      width:
+        min(
+          100% - 28px,
+          920px
+        );
+    }
+
+    .success-main {
+      min-height:
+        calc(
+          100vh - 66px
+        );
+
+      padding:
+        38px 0 56px;
+    }
+
+    .success-card {
+      padding:
+        38px 22px;
+
+      border-radius:
+        32px;
+    }
+
+    .success-icon {
+      width:
+        78px;
+
+      height:
+        78px;
+
+      font-size:
+        34px;
+    }
+
+    .success-copy {
+      font-size:
+        16px;
+    }
+  }
+`
 
 export default function SuccessPage() {
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
-  const [message, setMessage] = useState("Estamos confirmando tus datos.")
+  const searchParams =
+    useSearchParams()
 
-  useEffect(() => {
-    let mounted = true
+  const rawRole =
+    searchParams.get(
+      "role"
+    )
 
-    async function completeRegistration() {
-      try {
-        const storedLead = localStorage.getItem(pendingLeadStorageKey)
+  const leadId =
+    searchParams.get(
+      "lead"
+    ) || ""
 
-        if (!storedLead) {
-          throw new Error("No encontramos los datos del formulario. Volvé a completarlo.")
-        }
+  const role: Role =
+    rawRole ===
+    "owner"
+      ? "owner"
+      : "tenant"
 
-        const lead = JSON.parse(storedLead) as PendingLead
+  const [
+    installPrompt,
+    setInstallPrompt,
+  ] =
+    useState<BeforeInstallPromptEvent | null>(
+      null
+    )
 
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession()
+  const [
+    installed,
+    setInstalled,
+  ] =
+    useState(false)
 
-        if (sessionError || !session?.user) {
-          throw new Error("No pudimos confirmar tu email. Abrí nuevamente el link del correo.")
-        }
+  const [
+    isIos,
+    setIsIos,
+  ] =
+    useState(false)
 
-        const sessionEmail = clean(session.user.email).toLowerCase()
-        const leadEmail = clean(lead.email).toLowerCase()
+  useEffect(
+    () => {
+      const standalone =
+        window.matchMedia(
+          "(display-mode: standalone)"
+        ).matches
 
-        if (!sessionEmail || sessionEmail !== leadEmail) {
-          throw new Error("El email confirmado no coincide con el email del formulario.")
-        }
-
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: {
-            full_name: lead.full_name,
-            phone: lead.phone,
-            role: lead.role,
-            need: lead.need,
-            source: "home_magic_link",
-            registered_at: new Date().toISOString(),
-          },
-        })
-
-        if (updateError) {
-          throw new Error(updateError.message || "No pudimos guardar tus datos.")
-        }
-
-        localStorage.removeItem(pendingLeadStorageKey)
-
-        if (mounted) {
-          setStatus("success")
-          if (typeof window !== "undefined" && window.fbq) {
-  window.fbq("track", "Lead", {
-    content_name: "Verlo acceso anticipado confirmado",
-    source: "success_magic_link",
-  })
-}
-          setMessage(
-            "Hemos tomado tus datos correctamente. Te vamos a escribir cuando Verlo esté listo para el lanzamiento."
-          )
-        }
-      } catch (err) {
-        console.error(err)
-
-        if (mounted) {
-          setStatus("error")
-
-          if (err instanceof Error) {
-            setMessage(err.message)
-          } else {
-            setMessage("No pudimos completar el registro. Probá de nuevo.")
+      const navigatorStandalone =
+        (
+          window.navigator as Navigator & {
+            standalone?: boolean
           }
-        }
+        ).standalone === true
+
+      if (
+        standalone ||
+        navigatorStandalone
+      ) {
+        setInstalled(
+          true
+        )
       }
+
+      const ua =
+        window.navigator
+          .userAgent
+          .toLowerCase()
+
+      setIsIos(
+        /iphone|ipad|ipod/.test(
+          ua
+        )
+      )
+
+      function handleBeforeInstallPrompt(
+        event: Event
+      ) {
+        event.preventDefault()
+
+        setInstallPrompt(
+          event as BeforeInstallPromptEvent
+        )
+      }
+
+      function handleInstalled() {
+        setInstalled(
+          true
+        )
+
+        setInstallPrompt(
+          null
+        )
+      }
+
+      window.addEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt
+      )
+
+      window.addEventListener(
+        "appinstalled",
+        handleInstalled
+      )
+
+      return () => {
+        window.removeEventListener(
+          "beforeinstallprompt",
+          handleBeforeInstallPrompt
+        )
+
+        window.removeEventListener(
+          "appinstalled",
+          handleInstalled
+        )
+      }
+    },
+    []
+  )
+
+  useEffect(
+    () => {
+      const colors = [
+        "#f2a8a9",
+        "#c37986",
+        "#050002",
+        "#74bedc",
+        "#e7c776",
+      ]
+
+      const pieces =
+        Array.from(
+          {
+            length:
+              42,
+          }
+        )
+
+      const nodes =
+        pieces.map(
+          (_, index) => {
+            const element =
+              document.createElement(
+                "span"
+              )
+
+            element.className =
+              "confetti"
+
+            element.style.left =
+              `${
+                Math.random() *
+                100
+              }vw`
+
+            element.style.background =
+              colors[
+                index %
+                  colors.length
+              ]
+
+            element.style.animationDuration =
+              `${
+                2.8 +
+                Math.random() *
+                  2.4
+              }s`
+
+            element.style.animationDelay =
+              `${
+                Math.random() *
+                0.8
+              }s`
+
+            element.style.setProperty(
+              "--drift",
+              `${
+                -120 +
+                Math.random() *
+                  240
+              }px`
+            )
+
+            document.body.appendChild(
+              element
+            )
+
+            return element
+          }
+        )
+
+      const timeout =
+        window.setTimeout(
+          () => {
+            nodes.forEach(
+              (node) =>
+                node.remove()
+            )
+          },
+          6500
+        )
+
+      return () => {
+        window.clearTimeout(
+          timeout
+        )
+
+        nodes.forEach(
+          (node) =>
+            node.remove()
+        )
+      }
+    },
+    []
+  )
+
+  async function installApp() {
+    if (
+      installed
+    ) {
+      return
     }
 
-    completeRegistration()
+    if (
+      installPrompt
+    ) {
+      await installPrompt.prompt()
 
-    return () => {
-      mounted = false
+      const choice =
+        await installPrompt.userChoice
+
+      if (
+        choice.outcome ===
+        "accepted"
+      ) {
+        setInstalled(
+          true
+        )
+      }
+
+      setInstallPrompt(
+        null
+      )
+
+      return
     }
-  }, [])
+
+    if (
+      isIos
+    ) {
+      window.alert(
+        "En iPhone: tocá Compartir y después “Agregar a pantalla de inicio”."
+      )
+
+      return
+    }
+
+    window.alert(
+      "Podés instalar Verlo desde el menú de tu navegador usando la opción “Instalar Verlo” o “Instalar aplicación”."
+    )
+  }
+
+  const copy =
+    role ===
+    "owner"
+      ? "Recibimos los datos de tu propiedad. Activá las notificaciones para enterarte cuando aparezcan interesados compatibles."
+      : "Guardamos tu búsqueda. Activá las notificaciones para enterarte apenas aparezca una propiedad compatible."
 
   return (
-    <main className="successPage">
-      <style jsx>{`
-        .successPage {
-          min-height: 100vh;
-          background:
-            radial-gradient(circle at 18% 18%, rgba(32, 212, 102, 0.16), transparent 28%),
-            radial-gradient(circle at 82% 22%, rgba(32, 212, 102, 0.12), transparent 28%),
-            linear-gradient(180deg, #ffffff 0%, #f7fff9 100%);
-          color: #050505;
-          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-            sans-serif;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 28px;
-          overflow: hidden;
-          position: relative;
-        }
-        .brandWord {
-  color: #050505;
-  font-weight: 950;
-  letter-spacing: -0.06em;
-}
+    <>
+      <style>
+        {styles}
+      </style>
 
-.brandWord span {
-  color: #20d466;
-}
-        .successButton {
-  min-height: 46px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 22px;
-  border-radius: 999px;
-  background: #20d466 !important;
-  background-color: #20d466 !important;
-  color: #06140a !important;
-  text-decoration: none !important;
-  font-weight: 950;
-  border: 0 !important;
-}
+      <div className="success-root">
+        <header className="success-nav">
+          <div className="success-container">
+            <VerloBrand />
+          </div>
+        </header>
 
-        .confetti {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          overflow: hidden;
-        }
+        <main className="success-main">
+          <div className="success-container">
+            <section className="success-card">
+              <div className="success-badge">
+                Todo listo
+              </div>
 
-        .piece {
-          position: absolute;
-          top: -30px;
-          width: 10px;
-          height: 18px;
-          border-radius: 3px;
-          background: #20d466;
-          animation: fall 4.8s linear infinite;
-          opacity: 0.85;
-        }
+              <div
+                className="success-icon"
+                aria-hidden="true"
+              >
+                ✓
+              </div>
 
-        .piece:nth-child(1) {
-          left: 8%;
-          animation-delay: 0s;
-          background: #20d466;
-        }
+              <h1 className="success-title">
+                Ya estás en{" "}
+                <em>
+                  Verlo
+                </em>
+              </h1>
 
-        .piece:nth-child(2) {
-          left: 16%;
-          animation-delay: 0.7s;
-          background: #050505;
-        }
+              <p className="success-copy">
+                {copy}
+              </p>
 
-        .piece:nth-child(3) {
-          left: 25%;
-          animation-delay: 1.2s;
-          background: #35b864;
-        }
+              <div className="success-actions">
+                {leadId ? (
+                  <div className="push-wrap">
+                    <PushSubscribeButton
+                      leadId={
+                        leadId
+                      }
+                      role={
+                        role
+                      }
+                    />
+                  </div>
+                ) : null}
 
-        .piece:nth-child(4) {
-          left: 34%;
-          animation-delay: 0.4s;
-          background: #20d466;
-        }
+                <button
+                  type="button"
+                  className="install-button"
+                  onClick={
+                    installApp
+                  }
+                  disabled={
+                    installed
+                  }
+                >
+                  {installed
+                    ? "Verlo ya está instalado"
+                    : "Instalar Verlo"}
+                </button>
+              </div>
 
-        .piece:nth-child(5) {
-          left: 43%;
-          animation-delay: 1.7s;
-          background: #050505;
-        }
-
-        .piece:nth-child(6) {
-          left: 52%;
-          animation-delay: 0.2s;
-          background: #20d466;
-        }
-
-        .piece:nth-child(7) {
-          left: 61%;
-          animation-delay: 1.1s;
-          background: #35b864;
-        }
-
-        .piece:nth-child(8) {
-          left: 70%;
-          animation-delay: 0.9s;
-          background: #050505;
-        }
-
-        .piece:nth-child(9) {
-          left: 79%;
-          animation-delay: 1.5s;
-          background: #20d466;
-        }
-
-        .piece:nth-child(10) {
-          left: 88%;
-          animation-delay: 0.5s;
-          background: #35b864;
-        }
-
-        .piece:nth-child(11) {
-          left: 94%;
-          animation-delay: 2s;
-          background: #050505;
-        }
-
-        @keyframes fall {
-          0% {
-            transform: translateY(-30px) rotate(0deg);
-          }
-
-          100% {
-            transform: translateY(110vh) rotate(520deg);
-          }
-        }
-
-        .card {
-          position: relative;
-          z-index: 2;
-          width: min(560px, 100%);
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(16px);
-          border: 2px solid rgba(32, 212, 102, 0.58);
-          border-radius: 32px;
-          padding: 34px;
-          box-shadow: 0 28px 90px rgba(0, 0, 0, 0.12);
-          text-align: center;
-        }
-
-        .logo {
-          width: 190px;
-          height: auto;
-          margin: 0 auto 24px;
-          display: block;
-        }
-
-        .badge {
-          width: 82px;
-          height: 82px;
-          margin: 0 auto 18px;
-          border-radius: 999px;
-          background: #20d466;
-          color: white;
-          display: grid;
-          place-items: center;
-          font-size: 42px;
-          font-weight: 950;
-          box-shadow: 0 16px 42px rgba(32, 212, 102, 0.42);
-        }
-
-        h1 {
-          margin: 0;
-          font-size: clamp(34px, 7vw, 54px);
-          line-height: 0.95;
-          letter-spacing: -0.06em;
-          font-weight: 950;
-        }
-
-        p {
-          margin: 18px auto 0;
-          max-width: 450px;
-          font-size: 18px;
-          line-height: 1.32;
-          color: rgba(0, 0, 0, 0.72);
-          font-weight: 650;
-        }
-
-        .green {
-          color: #20d466;
-        }
-
-        .loader {
-          width: 56px;
-          height: 56px;
-          margin: 8px auto 20px;
-          border-radius: 999px;
-          border: 6px solid rgba(32, 212, 102, 0.18);
-          border-top-color: #20d466;
-          animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .errorBadge {
-          width: 82px;
-          height: 82px;
-          margin: 0 auto 18px;
-          border-radius: 999px;
-          background: #b00020;
-          color: white;
-          display: grid;
-          place-items: center;
-          font-size: 42px;
-          font-weight: 950;
-          box-shadow: 0 16px 42px rgba(176, 0, 32, 0.24);
-        }
-
-        .actions {
-          margin-top: 26px;
-          display: flex;
-          justify-content: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-
-        .button {
-          min-height: 46px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0 22px;
-          border-radius: 999px;
-          background: #20d466 !important;
-          color: #06140a !important;
-          text-decoration: none !important;
-          font-weight: 950;
-        }
-
-        .button:visited,
-        .button:hover,
-        .button:active {
-          background: #20d466 !important;
-          color: #06140a !important;
-        }
-
-        .buttonSecondary {
-          min-height: 46px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0 22px;
-          border-radius: 999px;
-          background: #050505;
-          color: white;
-          text-decoration: none;
-          font-weight: 950;
-        }
-
-        .small {
-          margin-top: 18px;
-          font-size: 13px;
-          color: rgba(0, 0, 0, 0.48);
-          font-weight: 650;
-        }
-
-        @media (max-width: 640px) {
-          .card {
-            padding: 28px 22px;
-            border-radius: 26px;
-          }
-
-          .logo {
-            width: 160px;
-          }
-        }
-      `}</style>
-
-      <div className="confetti">
-        <span className="piece" />
-        <span className="piece" />
-        <span className="piece" />
-        <span className="piece" />
-        <span className="piece" />
-        <span className="piece" />
-        <span className="piece" />
-        <span className="piece" />
-        <span className="piece" />
-        <span className="piece" />
-        <span className="piece" />
+              <p className="success-help">
+                Las notificaciones te avisan
+                solamente cuando haya novedades
+                importantes sobre tu búsqueda o
+                propiedad.
+              </p>
+            </section>
+          </div>
+        </main>
       </div>
-
-      <section className="card">
-        <img src={logoUrl} alt="Verlo" className="logo" />
-
-        {status === "loading" ? (
-          <>
-            <div className="loader" />
-            <h1>Confirmando tus datos</h1>
-            <p>{message}</p>
-          </>
-        ) : status === "success" ? (
-          <>
-            <div className="badge">✓</div>
-           <h1>
-  Listo, ya sos parte de{" "}
-  <span className="brandWord">
-    <span>V</span>erlo
-  </span>
-</h1>
-            <p>{message}</p>
-
-            <div className="actions">
-             <Link
-  className="successButton"
-  href="/"
-  style={{
-    background: "#20d466",
-    backgroundColor: "#20d466",
-    color: "#06140a",
-    textDecoration: "none",
-  }}
->
-  Volver al inicio
-</Link>
-            </div>
-
-            <div className="small">
-              Guardamos tus datos dentro de tu usuario verificado.
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="errorBadge">!</div>
-            <h1>No pudimos completar el registro</h1>
-            <p>{message}</p>
-
-            <div className="actions">
-              <Link className="button" href="/">
-                Completar de nuevo
-              </Link>
-            <a
-  href={CONTACT_HREF}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="secondary-btn"
->
-  Contactar a Verlo
-</a>
-            </div>
-          </>
-        )}
-      </section>
-    </main>
+    </>
   )
 }
