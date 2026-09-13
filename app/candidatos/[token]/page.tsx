@@ -4,21 +4,41 @@ import {
   useEffect,
   useState,
 } from "react"
+
 import {
   useParams,
 } from "next/navigation"
+
 import VerloBrand from "@/components/VerloBrand"
+
+type MatchStage =
+  | "new"
+  | "in_progress"
+  | "ready"
+  | "closed"
 
 type CandidateItem = {
   match: {
     id: string
     score: number
-    reasons: Record<string, unknown>
+    reasons: Record<
+      string,
+      unknown
+    >
+    status: string
+    stage: MatchStage
+    created_at:
+      | string
+      | null
     tenant_interest: boolean
     tenant_verified: boolean
     owner_interest: boolean
     ready_to_connect: boolean
     introduced: boolean
+    requires_owner_action: boolean
+    waiting_tenant: boolean
+    waiting_verification: boolean
+    operation_active: boolean
   }
 
   tenant: {
@@ -77,22 +97,17 @@ type CandidateItem = {
   }
 
   verification: {
-    status: string
+    exists: boolean
 
-    has_dni_front:
-      boolean
+    status:
+      | string
+      | null
 
-    has_dni_back:
-      boolean
-
-    has_selfie:
-      boolean
-
-    has_income_proof:
-      boolean
-
-    reviewed:
-      boolean
+    has_dni_front: boolean
+    has_dni_back: boolean
+    has_selfie: boolean
+    has_income_proof: boolean
+    reviewed: boolean
   }
 }
 
@@ -136,6 +151,13 @@ type CandidatesData = {
   }
 
   count: number
+
+  counts: {
+    new: number
+    in_progress: number
+    ready: number
+    closed: number
+  }
 
   candidates:
     CandidateItem[]
@@ -223,9 +245,65 @@ function humanize(
   return (
     dictionary[value] ||
     value
-      .replace(/_/g, " ")
-      .replace(/-/g, " ")
+      .replace(
+        /_/g,
+        " "
+      )
+      .replace(
+        /-/g,
+        " "
+      )
   )
+}
+
+function sectionTitle(
+  stage: MatchStage
+) {
+  if (
+    stage === "new"
+  ) {
+    return "Nuevos matches"
+  }
+
+  if (
+    stage ===
+    "in_progress"
+  ) {
+    return "En proceso"
+  }
+
+  if (
+    stage === "ready"
+  ) {
+    return "Doble OK"
+  }
+
+  return "Cerrados"
+}
+
+function sectionDescription(
+  stage: MatchStage
+) {
+  if (
+    stage === "new"
+  ) {
+    return "Personas compatibles con tu propiedad que todavía están evaluando sus opciones."
+  }
+
+  if (
+    stage ===
+    "in_progress"
+  ) {
+    return "Matches donde alguna de las partes ya dio un paso para avanzar."
+  }
+
+  if (
+    stage === "ready"
+  ) {
+    return "Los dos quieren avanzar. Estos matches ya pasaron al tramo operativo."
+  }
+
+  return "Operaciones que ya completaron el proceso de matching."
 }
 
 export default function CandidatesPage() {
@@ -236,7 +314,8 @@ export default function CandidatesPage() {
 
   const token =
     String(
-      params?.token || ""
+      params?.token ||
+        ""
     )
 
   const [
@@ -254,6 +333,12 @@ export default function CandidatesPage() {
     useState(true)
 
   const [
+    refreshing,
+    setRefreshing,
+  ] =
+    useState(false)
+
+  const [
     error,
     setError,
   ] =
@@ -267,47 +352,60 @@ export default function CandidatesPage() {
       string | null
     >(null)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const response =
-          await fetch(
-            `/api/candidates-view?token=${encodeURIComponent(
-              token
-            )}`,
-            {
-              cache: "no-store",
-            }
-          )
+  async function loadCandidates(
+    silent = false
+  ) {
+    if (!token) {
+      return
+    }
 
-        const json =
-          await response.json()
+    if (silent) {
+      setRefreshing(true)
+    } else {
+      setLoading(true)
+    }
 
-        if (
-          !response.ok ||
-          !json?.ok
-        ) {
-          throw new Error(
-            json?.error ||
-              "No pudimos abrir tus candidatos."
-          )
-        }
-
-        setData(json)
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "No pudimos abrir tus candidatos."
+    try {
+      const response =
+        await fetch(
+          `/api/candidates-view?token=${encodeURIComponent(
+            token
+          )}`,
+          {
+            cache:
+              "no-store",
+          }
         )
-      } finally {
-        setLoading(false)
-      }
-    }
 
-    if (token) {
-      load()
+      const json =
+        await response.json()
+
+      if (
+        !response.ok ||
+        !json?.ok
+      ) {
+        throw new Error(
+          json?.error ||
+            "No pudimos abrir tus matches."
+        )
+      }
+
+      setData(json)
+      setError("")
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No pudimos abrir tus matches."
+      )
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
+  }
+
+  useEffect(() => {
+    loadCandidates()
   }, [token])
 
   async function acceptCandidate(
@@ -324,7 +422,8 @@ export default function CandidatesPage() {
         await fetch(
           "/api/owner-interest",
           {
-            method: "POST",
+            method:
+              "POST",
 
             headers: {
               "Content-Type":
@@ -353,49 +452,17 @@ export default function CandidatesPage() {
         )
       }
 
-      setData(
-        (current) => {
-          if (!current) {
-            return current
-          }
-
-          return {
-            ...current,
-
-            candidates:
-              current.candidates.map(
-                (
-                  candidate
-                ) => {
-                  if (
-                    candidate
-                      .match
-                      .id !==
-                    matchId
-                  ) {
-                    return candidate
-                  }
-
-                  return {
-                    ...candidate,
-
-                    match: {
-                      ...candidate.match,
-
-                      owner_interest:
-                        true,
-
-                      ready_to_connect:
-                        Boolean(
-                          json.ready_to_connect
-                        ),
-                    },
-                  }
-                }
-              ),
-          }
-        }
+      await loadCandidates(
+        true
       )
+
+      if (
+        json.ready_to_connect &&
+        json.owner_closing_url
+      ) {
+        window.location.href =
+          json.owner_closing_url
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -416,7 +483,7 @@ export default function CandidatesPage() {
           <VerloBrand />
 
           <p>
-            Cargando candidatos...
+            Cargando tus matches...
           </p>
         </main>
 
@@ -436,7 +503,7 @@ export default function CandidatesPage() {
 
           <h1>
             No pudimos abrir
-            tus candidatos.
+            tus matches.
           </h1>
 
           <p>{error}</p>
@@ -451,35 +518,60 @@ export default function CandidatesPage() {
     return null
   }
 
+  const stages:
+    MatchStage[] = [
+      "new",
+      "in_progress",
+      "ready",
+      "closed",
+    ]
+
   return (
     <>
       <main className="page">
         <header className="header">
           <div className="header-inner">
             <VerloBrand />
+
+            <button
+              type="button"
+              className="refresh-button"
+              disabled={
+                refreshing
+              }
+              onClick={() =>
+                loadCandidates(
+                  true
+                )
+              }
+            >
+              {refreshing
+                ? "Actualizando..."
+                : "Actualizar"}
+            </button>
           </div>
         </header>
 
         <section className="intro">
           <span className="eyebrow">
-            PERSONAS INTERESADAS
+            TUS MATCHES
           </span>
 
           <h1>
-            Tenés candidatos
+            Todo pasa
             <br />
+
             <em>
-              para tu propiedad.
+              desde acá.
             </em>
           </h1>
 
           <p className="intro-copy">
-            Estas personas vieron
-            tu propiedad, marcaron
-            que quieren avanzar y
-            completaron su perfil.
-            Revisalas y elegí con
-            quién querés seguir.
+            Acá vas a ver todas
+            las personas compatibles
+            con tu propiedad y en
+            qué etapa está cada
+            una.
           </p>
 
           <div className="property-summary">
@@ -519,6 +611,37 @@ export default function CandidatesPage() {
           </div>
         </section>
 
+        <section className="summary-grid">
+          <SummaryCard
+            label="Nuevos"
+            value={
+              data.counts.new
+            }
+          />
+
+          <SummaryCard
+            label="En proceso"
+            value={
+              data.counts
+                .in_progress
+            }
+          />
+
+          <SummaryCard
+            label="Doble OK"
+            value={
+              data.counts.ready
+            }
+          />
+
+          <SummaryCard
+            label="Cerrados"
+            value={
+              data.counts.closed
+            }
+          />
+        </section>
+
         {data.candidates
           .length === 0 ? (
           <section className="empty">
@@ -527,83 +650,165 @@ export default function CandidatesPage() {
             </span>
 
             <h2>
-              No hay candidatos
-              listos para mostrarte.
+              Todavía no tenés
+              matches.
             </h2>
 
             <p>
-              Cuando una persona
-              compatible confirme
-              interés y complete su
-              documentación, va a
-              aparecer acá.
+              Cuando aparezca una
+              persona compatible
+              con tu propiedad,
+              la vas a ver acá y
+              te vamos a avisar.
             </p>
           </section>
         ) : (
-          <>
-            <section className="candidate-grid">
-              {data.candidates.map(
-                (
-                  candidate,
-                  index
-                ) => (
-                  <CandidateCard
-                    key={
-                      candidate
-                        .match.id
-                    }
-                    candidate={
-                      candidate
-                    }
-                    number={
-                      index + 1
-                    }
-                    sending={
-                      sendingMatchId ===
-                      candidate
-                        .match.id
-                    }
-                    onAccept={() =>
-                      acceptCandidate(
+          <div className="sections">
+            {stages.map(
+              (stage) => {
+                const items =
+                  data.candidates
+                    .filter(
+                      (
                         candidate
-                          .match.id
-                      )
-                    }
-                  />
+                      ) =>
+                        candidate
+                          .match
+                          .stage ===
+                        stage
+                    )
+
+                if (
+                  items.length ===
+                  0
+                ) {
+                  return null
+                }
+
+                return (
+                  <section
+                    key={stage}
+                    className="match-section"
+                  >
+                    <div className="section-heading">
+                      <div>
+                        <span className="eyebrow">
+                          {sectionTitle(
+                            stage
+                          ).toUpperCase()}
+                        </span>
+
+                        <h2>
+                          {sectionTitle(
+                            stage
+                          )}
+                        </h2>
+
+                        <p>
+                          {sectionDescription(
+                            stage
+                          )}
+                        </p>
+                      </div>
+
+                      <strong className="section-count">
+                        {
+                          items.length
+                        }
+                      </strong>
+                    </div>
+
+                    <div className="candidate-grid">
+                      {items.map(
+                        (
+                          candidate,
+                          index
+                        ) => (
+                          <CandidateCard
+                            key={
+                              candidate
+                                .match
+                                .id
+                            }
+                            candidate={
+                              candidate
+                            }
+                            number={
+                              index +
+                              1
+                            }
+                            sending={
+                              sendingMatchId ===
+                              candidate
+                                .match
+                                .id
+                            }
+                            onAccept={() =>
+                              acceptCandidate(
+                                candidate
+                                  .match
+                                  .id
+                              )
+                            }
+                          />
+                        )
+                      )}
+                    </div>
+                  </section>
                 )
-              )}
-            </section>
-
-            <section className="privacy">
-              <strong>
-                Los datos personales
-                siguen protegidos.
-              </strong>
-
-              <p>
-                Todavía no mostramos
-                teléfono, email,
-                domicilio ni
-                documentación privada.
-                Cuando vos también
-                confirmes que querés
-                avanzar, Verlo registra
-                el doble OK y continúa
-                el proceso.
-              </p>
-            </section>
-          </>
-        )}
-
-        {error && data && (
-          <div className="global-error">
-            {error}
+              }
+            )}
           </div>
         )}
+
+        <section className="privacy">
+          <strong>
+            Los datos privados
+            siguen protegidos.
+          </strong>
+
+          <p>
+            Los matches nuevos
+            muestran solamente la
+            información necesaria
+            para entender la
+            compatibilidad. Los datos
+            de contacto se habilitan
+            cuando ambas partes
+            deciden avanzar.
+          </p>
+        </section>
+
+        {error &&
+          data && (
+            <div className="global-error">
+              {error}
+            </div>
+          )}
       </main>
 
       <Styles />
     </>
+  )
+}
+
+function SummaryCard({
+  label,
+  value,
+}: {
+  label: string
+  value: number
+}) {
+  return (
+    <article className="summary-card">
+      <strong>
+        {value}
+      </strong>
+
+      <span>
+        {label}
+      </span>
+    </article>
   )
 }
 
@@ -629,14 +834,17 @@ function CandidateCard({
     match,
     tenant,
     verification,
-  } = candidate
+  } =
+    candidate
 
   return (
-    <article className="candidate-card">
+    <article
+      className={`candidate-card stage-${match.stage}`}
+    >
       <div className="candidate-top">
         <div>
           <span className="candidate-number">
-            CANDIDATO{" "}
+            MATCH{" "}
             {String(
               number
             ).padStart(
@@ -645,14 +853,16 @@ function CandidateCard({
             )}
           </span>
 
-          <h2>
-            {tenant.first_name}
-          </h2>
+          <h3>
+            {
+              tenant.first_name
+            }
+          </h3>
         </div>
 
         <div className="score">
           <span>
-            MATCH
+            COMPATIBILIDAD
           </span>
 
           <strong>
@@ -661,15 +871,9 @@ function CandidateCard({
         </div>
       </div>
 
-      <div className="candidate-status">
-        <span>
-          ✓ Quiere avanzar
-        </span>
-
-        <span>
-          ✓ Perfil completo
-        </span>
-      </div>
+      <MatchStatus
+        match={match}
+      />
 
       <div className="facts">
         <Fact
@@ -688,14 +892,16 @@ function CandidateCard({
         <Fact
           label="Mudanza"
           value={humanize(
-            tenant.move_timing
+            tenant
+              .move_timing
           )}
         />
 
         <Fact
           label="Busca"
           value={humanize(
-            tenant.property_type
+            tenant
+              .property_type
           )}
         />
 
@@ -708,164 +914,297 @@ function CandidateCard({
         />
 
         <Fact
-          label="Situación laboral"
+          label="Zona"
           value={
             tenant
-              .employment_status ||
-            humanize(
-              tenant
-                .income_proof_type
-            )
+              .neighborhood ||
+            "—"
           }
         />
 
         <Fact
           label="Ingresos"
           value={
-            tenant.income_range ||
-            (tenant.income_max
+            tenant
+              .income_range ||
+            (tenant
+              .income_max
               ? money(
-                  tenant.income_max
+                  tenant
+                    .income_max
                 )
               : "—")
           }
         />
       </div>
 
-      <div className="guarantees">
-        <span className="section-label">
-          GARANTÍA / RESPALDO
-        </span>
+      {match.tenant_interest && (
+        <>
+          <div className="divider" />
 
-        <div className="chips">
-          {tenant.guarantee_type && (
-            <span className="chip">
-              {humanize(
-                tenant
-                  .guarantee_type
-              )}
+          <div className="interest-details">
+            <span className="section-label">
+              INTERÉS
             </span>
-          )}
 
-          {tenant.guarantee_types.map(
-            (
-              item
-            ) => (
-              <span
-                key={item}
-                className="chip"
-              >
-                {humanize(
-                  item
-                )}
-              </span>
-            )
-          )}
+            <div className="status-list">
+              <StatusLine
+                active={
+                  match
+                    .tenant_interest
+                }
+                text="Quiere avanzar con tu propiedad"
+              />
 
-          {!tenant.guarantee_type &&
-            tenant
-              .guarantee_types
-              .length === 0 && (
-              <span className="chip muted">
-                Sin detalle
-              </span>
-            )}
-        </div>
-      </div>
+              <StatusLine
+                active={
+                  match
+                    .tenant_verified
+                }
+                text="Perfil validado"
+              />
 
-      <div className="documents">
-        <span className="section-label">
-          DOCUMENTACIÓN
-        </span>
-
-        <div className="document-list">
-          <DocumentState
-            label="DNI frente"
-            complete={
-              verification
-                .has_dni_front
-            }
-          />
-
-          <DocumentState
-            label="DNI dorso"
-            complete={
-              verification
-                .has_dni_back
-            }
-          />
-
-          <DocumentState
-            label="Selfie"
-            complete={
-              verification
-                .has_selfie
-            }
-          />
-
-          <DocumentState
-            label="Ingresos"
-            complete={
-              verification
-                .has_income_proof
-            }
-            optional
-          />
-        </div>
-      </div>
-
-      {tenant.move_notes && (
-        <div className="notes">
-          <span className="section-label">
-            INFORMACIÓN ADICIONAL
-          </span>
-
-          <p>
-            {tenant.move_notes}
-          </p>
-        </div>
+              <StatusLine
+                active={
+                  match
+                    .owner_interest
+                }
+                text="Vos también diste OK"
+              />
+            </div>
+          </div>
+        </>
       )}
 
-      {match.ready_to_connect ? (
-        <div className="ready">
+      {verification.exists && (
+        <>
+          <div className="divider" />
+
+          <div className="documents">
+            <span className="section-label">
+              PERFIL
+            </span>
+
+            <div className="document-list">
+              <DocumentState
+                label="DNI"
+                complete={
+                  verification
+                    .has_dni_front &&
+                  verification
+                    .has_dni_back
+                }
+              />
+
+              <DocumentState
+                label="Selfie"
+                complete={
+                  verification
+                    .has_selfie
+                }
+              />
+
+              <DocumentState
+                label="Ingresos"
+                complete={
+                  verification
+                    .has_income_proof
+                }
+                optional
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {tenant
+        .guarantee_types
+        .length >
+        0 && (
+        <>
+          <div className="divider" />
+
+          <div className="guarantees">
+            <span className="section-label">
+              GARANTÍA
+            </span>
+
+            <div className="chips">
+              {tenant
+                .guarantee_types
+                .map(
+                  (
+                    item
+                  ) => (
+                    <span
+                      key={
+                        item
+                      }
+                      className="chip"
+                    >
+                      {humanize(
+                        item
+                      )}
+                    </span>
+                  )
+                )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {match
+        .requires_owner_action ? (
+        <button
+          type="button"
+          className="accept-button"
+          disabled={
+            sending
+          }
+          onClick={
+            onAccept
+          }
+        >
+          {sending
+            ? "Guardando..."
+            : "Quiero avanzar"}
+        </button>
+      ) : match
+          .ready_to_connect ? (
+        <div className="ready-box">
           <strong>
-            ✓ Ambos quieren avanzar
+            Doble OK
           </strong>
 
           <span>
-            Este match está listo
-            para continuar.
+            Los dos quieren
+            avanzar. Esta
+            operación ya está
+            en el tramo de
+            visita y cierre.
           </span>
         </div>
-      ) : match.owner_interest ? (
-        <div className="accepted">
+      ) : match
+          .owner_interest ? (
+        <div className="waiting-box">
           <strong>
-            ✓ Tu interés quedó
+            Tu OK ya está
             registrado
           </strong>
 
           <span>
-            Verlo ya tiene tu OK
-            para este candidato.
+            Este match sigue
+            avanzando dentro de
+            Verlo.
+          </span>
+        </div>
+      ) : match
+          .waiting_verification ? (
+        <div className="waiting-box">
+          <strong>
+            Mostró interés
+          </strong>
+
+          <span>
+            Estamos esperando
+            que complete la
+            validación antes de
+            pedirte una decisión.
           </span>
         </div>
       ) : (
-        <button
-          type="button"
-          className="accept-button"
-          onClick={
-            onAccept
-          }
-          disabled={
-            sending
-          }
-        >
-          {sending
-            ? "GUARDANDO..."
-            : "QUIERO AVANZAR"}
-        </button>
+        <div className="waiting-box">
+          <strong>
+            Nuevo match
+          </strong>
+
+          <span>
+            Encontramos
+            compatibilidad. Si
+            esta persona decide
+            avanzar con tu
+            propiedad, te
+            avisamos.
+          </span>
+        </div>
       )}
     </article>
+  )
+}
+
+function MatchStatus({
+  match,
+}: {
+  match:
+    CandidateItem["match"]
+}) {
+  if (
+    match.stage ===
+    "closed"
+  ) {
+    return (
+      <div className="match-status">
+        <span className="status-dot" />
+
+        Operación cerrada
+      </div>
+    )
+  }
+
+  if (
+    match.ready_to_connect
+  ) {
+    return (
+      <div className="match-status">
+        <span className="status-dot" />
+
+        Doble OK
+      </div>
+    )
+  }
+
+  if (
+    match.requires_owner_action
+  ) {
+    return (
+      <div className="match-status action">
+        <span className="status-dot" />
+
+        Esperando tu decisión
+      </div>
+    )
+  }
+
+  if (
+    match.waiting_verification
+  ) {
+    return (
+      <div className="match-status">
+        <span className="status-dot" />
+
+        Está completando su perfil
+      </div>
+    )
+  }
+
+  if (
+    match.tenant_interest
+  ) {
+    return (
+      <div className="match-status">
+        <span className="status-dot" />
+
+        Quiere avanzar
+      </div>
+    )
+  }
+
+  return (
+    <div className="match-status">
+      <span className="status-dot" />
+
+      Nuevo match
+    </div>
   )
 }
 
@@ -873,11 +1212,8 @@ function Fact({
   label,
   value,
 }: {
-  label:
-    string
-
-  value:
-    string
+  label: string
+  value: string
 }) {
   return (
     <div className="fact">
@@ -892,39 +1228,62 @@ function Fact({
   )
 }
 
+function StatusLine({
+  active,
+  text,
+}: {
+  active: boolean
+  text: string
+}) {
+  return (
+    <div
+      className={
+        active
+          ? "status-line active"
+          : "status-line"
+      }
+    >
+      <span>
+        {active
+          ? "✓"
+          : "·"}
+      </span>
+
+      {text}
+    </div>
+  )
+}
+
 function DocumentState({
   label,
   complete,
   optional = false,
 }: {
-  label:
-    string
-
-  complete:
-    boolean
-
-  optional?:
-    boolean
+  label: string
+  complete: boolean
+  optional?: boolean
 }) {
   return (
-    <div
-      className={
-        complete
-          ? "document complete"
-          : "document"
-      }
-    >
+    <div className="document-state">
       <span>
-        {label}
+        {complete
+          ? "✓"
+          : "·"}
       </span>
 
-      <strong>
-        {complete
-          ? "✓ Cargado"
-          : optional
-            ? "Opcional"
-            : "Pendiente"}
-      </strong>
+      <div>
+        <strong>
+          {label}
+        </strong>
+
+        <small>
+          {complete
+            ? "Completo"
+            : optional
+              ? "Sin adjuntar"
+              : "Pendiente"}
+        </small>
+      </div>
     </div>
   )
 }
@@ -936,229 +1295,266 @@ function Styles() {
         box-sizing: border-box;
       }
 
-      html {
-        background: #f2ebec;
-      }
-
+      html,
       body {
         margin: 0;
+        padding: 0;
         background: #f2ebec;
         color: #050002;
         font-family:
           Inter,
-          system-ui,
           -apple-system,
           BlinkMacSystemFont,
           "Segoe UI",
           sans-serif;
       }
 
-      button {
+      button,
+      input,
+      textarea,
+      select {
         font: inherit;
       }
 
       .page {
         min-height: 100vh;
-        background:
-          radial-gradient(
-            circle at 85% 10%,
-            rgba(242, 168, 169, 0.46),
-            transparent 26%
-          ),
-          radial-gradient(
-            circle at 7% 62%,
-            rgba(116, 190, 220, 0.18),
-            transparent 24%
-          ),
-          #f2ebec;
-        padding-bottom: 90px;
+        padding-bottom: 80px;
       }
 
       .header {
         position: sticky;
         top: 0;
-        z-index: 50;
-        height: 76px;
-        background:
-          rgba(
-            242,
-            235,
-            236,
-            0.82
-          );
-        backdrop-filter:
-          blur(18px);
-        -webkit-backdrop-filter:
-          blur(18px);
-        border-bottom:
-          1px solid
+        z-index: 30;
+        background: rgba(
+          242,
+          235,
+          236,
+          0.88
+        );
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid
           rgba(
             5,
             0,
             2,
             0.08
           );
-        display: flex;
-        align-items: center;
       }
 
       .header-inner {
-        width:
-          min(
-            1160px,
-            calc(
-              100% - 40px
-            )
-          );
+        width: min(
+          1180px,
+          calc(
+            100% - 32px
+          )
+        );
+        min-height: 78px;
         margin: 0 auto;
         display: flex;
         align-items: center;
+        justify-content:
+          space-between;
+        gap: 20px;
+      }
+
+      .refresh-button {
+        border: 1px solid
+          rgba(
+            5,
+            0,
+            2,
+            0.14
+          );
+        background: white;
+        color: #050002;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .refresh-button:disabled {
+        opacity: 0.55;
+        cursor: default;
       }
 
       .intro {
-        width:
-          min(
-            1160px,
-            calc(
-              100% - 40px
-            )
-          );
+        width: min(
+          1180px,
+          calc(
+            100% - 32px
+          )
+        );
         margin: 0 auto;
-        padding:
-          74px
-          0
-          50px;
+        padding: 64px 0 32px;
       }
 
       .eyebrow,
-      .candidate-number,
       .section-label {
         display: block;
-        color: #a05d69;
-        font-size: 11px;
+        font-size: 12px;
         line-height: 1;
+        letter-spacing: 0.13em;
         font-weight: 950;
-        letter-spacing:
-          0.14em;
-        text-transform:
-          uppercase;
+        text-transform: uppercase;
       }
 
       .intro h1 {
-        margin:
-          16px
-          0
-          0;
-        max-width: 960px;
-        font-size:
-          clamp(
-            52px,
-            7.5vw,
-            98px
-          );
-        line-height: 0.91;
-        letter-spacing:
-          -0.075em;
+        max-width: 760px;
+        margin: 14px 0 20px;
+        font-size: clamp(
+          44px,
+          8vw,
+          90px
+        );
+        line-height: 0.9;
+        letter-spacing: -0.065em;
         font-weight: 950;
       }
 
       .intro h1 em {
-        font-family:
-          Georgia,
-          "Times New Roman",
+        font-family: Georgia,
           serif;
         font-weight: 400;
-        font-style: italic;
-        letter-spacing:
-          -0.045em;
       }
 
       .intro-copy {
-        max-width: 650px;
-        margin:
-          26px
-          0
-          0;
-        color:
-          rgba(
-            5,
-            0,
-            2,
-            0.66
-          );
-        font-size: 19px;
-        line-height: 1.48;
-        font-weight: 650;
+        max-width: 600px;
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.55;
       }
 
       .property-summary {
-        margin-top: 34px;
-        max-width: 620px;
-        padding: 20px 22px;
-        border-radius: 26px;
-        background:
-          rgba(
-            255,
-            255,
-            255,
-            0.62
-          );
-        border:
-          1px solid
+        margin-top: 32px;
+        max-width: 480px;
+        padding: 24px;
+        border-radius: 28px;
+        background: white;
+        box-shadow:
+          0 18px 60px
           rgba(
             5,
             0,
             2,
-            0.08
+            0.07
           );
       }
 
       .property-summary > span {
         display: block;
-        margin-bottom: 8px;
-        font-size: 10px;
+        margin-bottom: 10px;
+        font-size: 11px;
+        letter-spacing: 0.13em;
         font-weight: 950;
-        letter-spacing:
-          0.14em;
-        opacity: 0.48;
       }
 
       .property-summary strong {
         display: block;
-        font-size: 22px;
-        letter-spacing:
-          -0.04em;
+        font-size: 24px;
+        letter-spacing: -0.03em;
       }
 
       .property-summary p {
-        margin:
-          5px
-          0
-          0;
-        color:
-          rgba(
-            5,
-            0,
-            2,
-            0.6
-          );
+        margin: 8px 0;
       }
 
       .property-summary b {
         display: block;
-        margin-top: 9px;
+        margin-top: 10px;
         font-size: 18px;
       }
 
-      .candidate-grid {
-        width:
-          min(
-            1160px,
-            calc(
-              100% - 40px
-            )
+      .summary-grid {
+        width: min(
+          1180px,
+          calc(
+            100% - 32px
+          )
+        );
+        margin: 0 auto 54px;
+        display: grid;
+        grid-template-columns:
+          repeat(
+            4,
+            1fr
           );
+        gap: 12px;
+      }
+
+      .summary-card {
+        padding: 22px;
+        border-radius: 24px;
+        background: white;
+      }
+
+      .summary-card strong {
+        display: block;
+        font-size: 36px;
+        line-height: 1;
+        letter-spacing: -0.05em;
+      }
+
+      .summary-card span {
+        display: block;
+        margin-top: 8px;
+        font-weight: 800;
+      }
+
+      .sections {
+        width: min(
+          1180px,
+          calc(
+            100% - 32px
+          )
+        );
         margin: 0 auto;
+      }
+
+      .match-section {
+        margin-bottom: 72px;
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content:
+          space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+
+      .section-heading h2 {
+        margin: 8px 0 6px;
+        font-size: clamp(
+          30px,
+          5vw,
+          48px
+        );
+        line-height: 1;
+        letter-spacing: -0.05em;
+      }
+
+      .section-heading p {
+        margin: 0;
+        max-width: 620px;
+        line-height: 1.5;
+        opacity: 0.7;
+      }
+
+      .section-count {
+        flex: 0 0 auto;
+        width: 54px;
+        height: 54px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #050002;
+        color: white;
+        font-size: 20px;
+      }
+
+      .candidate-grid {
         display: grid;
         grid-template-columns:
           repeat(
@@ -1168,585 +1564,366 @@ function Styles() {
               1fr
             )
           );
-        gap: 22px;
+        gap: 18px;
       }
 
       .candidate-card {
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
         padding: 28px;
-        border-radius: 34px;
-        background:
-          rgba(
-            255,
-            255,
-            255,
-            0.78
-          );
-        border:
-          1px solid
-          rgba(
-            5,
-            0,
-            2,
-            0.09
-          );
+        border-radius: 32px;
+        background: white;
         box-shadow:
-          0
-          24px
-          70px
+          0 20px 70px
           rgba(
             5,
             0,
             2,
-            0.08
+            0.06
+          );
+      }
+
+      .stage-ready {
+        box-shadow:
+          0 0 0 2px
+          #e7c776,
+          0 20px 70px
+          rgba(
+            5,
+            0,
+            2,
+            0.06
           );
       }
 
       .candidate-top {
         display: flex;
-        align-items:
-          flex-start;
+        align-items: flex-start;
         justify-content:
           space-between;
-        gap: 20px;
+        gap: 18px;
       }
 
-      .candidate-top h2 {
-        margin:
-          10px
-          0
-          0;
-        font-size:
-          clamp(
-            36px,
-            5vw,
-            58px
-          );
-        line-height: 0.95;
-        letter-spacing:
-          -0.065em;
+      .candidate-number {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 11px;
+        font-weight: 950;
+        letter-spacing: 0.13em;
+      }
+
+      .candidate-top h3 {
+        margin: 0;
+        font-size: 32px;
+        letter-spacing: -0.05em;
       }
 
       .score {
-        flex:
-          0 0 auto;
-        min-width: 108px;
-        padding: 15px;
-        border-radius: 22px;
-        background: #f2a8a9;
+        text-align: right;
       }
 
       .score span {
         display: block;
         font-size: 9px;
         font-weight: 950;
-        letter-spacing:
-          0.14em;
+        letter-spacing: 0.11em;
       }
 
       .score strong {
         display: block;
         margin-top: 4px;
-        font-size: 34px;
-        letter-spacing:
-          -0.06em;
+        font-size: 28px;
+        line-height: 1;
       }
 
-      .candidate-status {
-        display: flex;
-        flex-wrap: wrap;
+      .match-status {
+        display: inline-flex;
+        align-items: center;
         gap: 8px;
-        margin-top: 22px;
+        margin-top: 18px;
+        padding: 9px 13px;
+        border-radius: 999px;
+        background: #f2ebec;
+        font-size: 13px;
+        font-weight: 850;
       }
 
-      .candidate-status span {
-        padding:
-          8px
-          11px;
-        border-radius: 999px;
-        background:
-          rgba(
-            116,
-            190,
-            220,
-            0.18
-          );
-        border:
-          1px solid
-          rgba(
-            116,
-            190,
-            220,
-            0.3
-          );
-        font-size: 12px;
-        font-weight: 900;
+      .match-status.action {
+        background: #e7c776;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: #c37986;
       }
 
       .facts {
         display: grid;
         grid-template-columns:
-          1fr 1fr;
+          repeat(
+            2,
+            minmax(
+              0,
+              1fr
+            )
+          );
         gap: 10px;
-        margin-top: 24px;
+        margin-top: 22px;
       }
 
       .fact {
         min-width: 0;
-        padding: 16px;
-        border-radius: 20px;
-        background: #fffaf8;
-        border:
-          1px solid
-          rgba(
-            5,
-            0,
-            2,
-            0.07
-          );
+        padding: 14px;
+        border-radius: 18px;
+        background: #f2ebec;
       }
 
       .fact span {
         display: block;
-        margin-bottom: 7px;
-        color:
-          rgba(
-            5,
-            0,
-            2,
-            0.48
-          );
-        font-size: 10px;
-        line-height: 1.2;
-        font-weight: 850;
-        text-transform:
-          uppercase;
-        letter-spacing:
-          0.08em;
+        margin-bottom: 5px;
+        font-size: 11px;
+        opacity: 0.65;
       }
 
       .fact strong {
         display: block;
-        font-size: 15px;
+        font-size: 14px;
         line-height: 1.3;
-        overflow-wrap:
-          anywhere;
+        overflow-wrap: anywhere;
       }
 
-      .guarantees,
-      .documents,
-      .notes {
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top:
-          1px solid
+      .divider {
+        height: 1px;
+        margin: 24px 0;
+        background:
           rgba(
             5,
             0,
             2,
             0.08
           );
+      }
+
+      .status-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .status-line {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        opacity: 0.55;
+      }
+
+      .status-line.active {
+        opacity: 1;
+        font-weight: 800;
+      }
+
+      .status-line span {
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #f2ebec;
+      }
+
+      .document-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .document-state {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 15px;
+        background: #f2ebec;
+      }
+
+      .document-state > span {
+        font-weight: 950;
+      }
+
+      .document-state strong,
+      .document-state small {
+        display: block;
+      }
+
+      .document-state strong {
+        font-size: 12px;
+      }
+
+      .document-state small {
+        margin-top: 2px;
+        font-size: 10px;
+        opacity: 0.6;
       }
 
       .chips {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 12px;
+        margin-top: 14px;
       }
 
       .chip {
-        padding:
-          9px
-          11px;
+        padding: 8px 11px;
         border-radius: 999px;
-        background:
-          rgba(
-            242,
-            168,
-            169,
-            0.22
-          );
-        border:
-          1px solid
-          rgba(
-            195,
-            121,
-            134,
-            0.2
-          );
+        background: #f2ebec;
         font-size: 12px;
-        font-weight: 850;
-      }
-
-      .chip.muted {
-        opacity: 0.52;
-      }
-
-      .document-list {
-        display: grid;
-        grid-template-columns:
-          1fr 1fr;
-        gap: 8px;
-        margin-top: 12px;
-      }
-
-      .document {
-        display: flex;
-        justify-content:
-          space-between;
-        gap: 10px;
-        padding:
-          11px
-          12px;
-        border-radius: 15px;
-        background:
-          rgba(
-            5,
-            0,
-            2,
-            0.045
-          );
-        font-size: 11px;
-      }
-
-      .document strong {
-        opacity: 0.5;
-      }
-
-      .document.complete {
-        background:
-          rgba(
-            116,
-            190,
-            220,
-            0.16
-          );
-      }
-
-      .document.complete strong {
-        opacity: 1;
-      }
-
-      .notes p {
-        margin:
-          11px
-          0
-          0;
-        color:
-          rgba(
-            5,
-            0,
-            2,
-            0.67
-          );
-        font-size: 14px;
-        line-height: 1.45;
-        white-space:
-          pre-wrap;
+        font-weight: 800;
       }
 
       .accept-button {
         width: 100%;
-        min-height: 58px;
-        margin-top: auto;
-        padding:
-          0
-          20px;
+        margin-top: 26px;
         border: 0;
         border-radius: 999px;
+        padding: 16px 22px;
         background: #050002;
         color: white;
-        font-size: 14px;
         font-weight: 950;
         cursor: pointer;
-        margin-top: 28px;
-      }
-
-      .accept-button:hover {
-        background: #a05d69;
       }
 
       .accept-button:disabled {
-        opacity: 0.5;
-        cursor:
-          not-allowed;
+        opacity: 0.6;
+        cursor: default;
       }
 
-      .accepted,
-      .ready {
-        margin-top: 28px;
-        padding: 18px;
+      .waiting-box,
+      .ready-box {
+        margin-top: 26px;
+        padding: 17px;
         border-radius: 20px;
-        display: grid;
-        gap: 5px;
       }
 
-      .accepted {
-        background:
-          rgba(
-            242,
-            168,
-            169,
-            0.28
-          );
+      .waiting-box {
+        background: #f2ebec;
       }
 
-      .ready {
-        background:
-          rgba(
-            116,
-            190,
-            220,
-            0.27
-          );
+      .ready-box {
+        background: #e7c776;
       }
 
-      .accepted strong,
-      .ready strong {
-        font-size: 14px;
+      .waiting-box strong,
+      .waiting-box span,
+      .ready-box strong,
+      .ready-box span {
+        display: block;
       }
 
-      .accepted span,
-      .ready span {
-        color:
-          rgba(
-            5,
-            0,
-            2,
-            0.64
-          );
-        font-size: 12px;
-        line-height: 1.35;
+      .waiting-box span,
+      .ready-box span {
+        margin-top: 5px;
+        font-size: 13px;
+        line-height: 1.45;
       }
 
-      .privacy {
-        width:
-          min(
-            1160px,
-            calc(
-              100% - 40px
-            )
-          );
-        margin:
-          28px
-          auto
-          0;
-        padding: 24px;
-        border-radius: 26px;
-        background: #050002;
-        color: white;
+      .privacy,
+      .empty {
+        width: min(
+          760px,
+          calc(
+            100% - 32px
+          )
+        );
+        margin: 50px auto 0;
+        padding: 28px;
+        border-radius: 28px;
+        background: white;
       }
 
       .privacy strong {
-        display: block;
         font-size: 18px;
       }
 
-      .privacy p {
-        max-width: 740px;
-        margin:
-          8px
-          0
-          0;
-        color:
-          rgba(
-            255,
-            255,
-            255,
-            0.72
-          );
-        line-height: 1.45;
-      }
-
-      .empty {
-        width:
-          min(
-            760px,
-            calc(
-              100% - 40px
-            )
-          );
-        margin: 0 auto;
-        padding: 36px;
-        border-radius: 32px;
-        background:
-          rgba(
-            255,
-            255,
-            255,
-            0.72
-          );
-        border:
-          1px solid
-          rgba(
-            5,
-            0,
-            2,
-            0.08
-          );
+      .privacy p,
+      .empty p {
+        margin: 10px 0 0;
+        line-height: 1.55;
+        opacity: 0.72;
       }
 
       .empty h2 {
-        margin:
-          14px
-          0
-          0;
-        font-size:
-          clamp(
-            34px,
-            5vw,
-            58px
-          );
-        line-height: 0.95;
-        letter-spacing:
-          -0.06em;
-      }
-
-      .empty p {
-        max-width: 500px;
-        color:
-          rgba(
-            5,
-            0,
-            2,
-            0.62
-          );
-        font-size: 17px;
-        line-height: 1.45;
+        margin: 12px 0 0;
+        font-size: 30px;
+        letter-spacing: -0.04em;
       }
 
       .global-error {
-        width:
-          min(
-            1160px,
-            calc(
-              100% - 40px
-            )
-          );
-        margin:
-          22px
-          auto
-          0;
-        padding:
-          14px
-          16px;
-        border-radius: 18px;
-        background:
-          rgba(
-            160,
-            35,
-            55,
-            0.12
-          );
-        color: #7b2432;
-        font-size: 14px;
-        font-weight: 850;
+        width: min(
+          760px,
+          calc(
+            100% - 32px
+          )
+        );
+        margin: 24px auto 0;
+        padding: 14px 18px;
+        border-radius: 16px;
+        background: #f2a8a9;
+        font-weight: 800;
       }
 
       .centered {
         min-height: 100vh;
-        display: flex;
-        flex-direction:
-          column;
-        align-items: center;
-        justify-content:
-          center;
-        gap: 18px;
-        padding: 24px;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 16px;
+        padding: 30px;
         text-align: center;
-        background: #f2ebec;
       }
 
-      .centered h1 {
-        max-width: 620px;
-        margin: 0;
-        font-size:
-          clamp(
-            42px,
-            7vw,
-            72px
-          );
-        line-height: 0.95;
-        letter-spacing:
-          -0.06em;
-      }
-
+      .centered h1,
       .centered p {
         margin: 0;
-        color:
-          rgba(
-            5,
-            0,
-            2,
-            0.62
-          );
       }
 
       @media (
-        max-width: 820px
+        max-width: 760px
       ) {
+        .header-inner {
+          min-height: 68px;
+        }
+
+        .intro {
+          padding-top: 42px;
+        }
+
+        .summary-grid {
+          grid-template-columns:
+            repeat(
+              2,
+              1fr
+            );
+        }
+
         .candidate-grid {
           grid-template-columns:
             1fr;
         }
 
-        .intro {
-          padding-top: 52px;
-        }
-      }
-
-      @media (
-        max-width: 560px
-      ) {
-        .header {
-          height: 68px;
-        }
-
-        .header-inner,
-        .intro,
-        .candidate-grid,
-        .privacy,
-        .global-error {
-          width:
-            calc(
-              100% - 26px
-            );
-        }
-
-        .intro h1 {
-          font-size: 50px;
-        }
-
-        .candidate-card {
-          padding: 20px;
-          border-radius: 27px;
-        }
-
-        .candidate-top {
+        .section-heading {
           align-items:
             flex-start;
         }
 
-        .score {
-          min-width: 90px;
-          padding: 12px;
+        .candidate-card {
+          padding: 22px;
+          border-radius: 26px;
         }
 
-        .score strong {
-          font-size: 27px;
-        }
-
-        .facts {
-          grid-template-columns:
-            1fr;
-        }
-
-        .document-list {
-          grid-template-columns:
-            1fr;
+        .candidate-top h3 {
+          font-size: 26px;
         }
       }
     `}</style>
