@@ -7,6 +7,10 @@ import {
   createClient,
 } from "@supabase/supabase-js"
 
+import {
+  sendPushToLead,
+} from "@/lib/push"
+
 export const runtime =
   "nodejs"
 
@@ -2377,28 +2381,185 @@ El presente documento fue generado en Verlo a partir de los datos y condiciones 
           updated_at
         `)
         .single()
+if (
+  updateError ||
+  !updatedContract
+) {
+  throw new Error(
+    updateError
+      ?.message ||
+      "Could not generate contract"
+  )
+}
+
+// =========================================================
+// 19. PUSH — CONTRATO LISTO PARA ACEPTAR
+// =========================================================
+
+let tenantPush:
+  unknown =
+  null
+
+let ownerPush:
+  unknown =
+  null
+
+try {
+  const {
+    data:
+      contractTokens,
+
+    error:
+      contractTokensError,
+  } =
+    await supabase
+      .from(
+        "lead_contract_access_tokens"
+      )
+      .select(`
+        token,
+        lead_id,
+        role,
+        expires_at,
+        revoked_at
+      `)
+      .eq(
+        "contract_id",
+        contract.id
+      )
+      .is(
+        "revoked_at",
+        null
+      )
+
+  if (
+    contractTokensError
+  ) {
+    console.error(
+      "closing-generate contract token lookup error:",
+      contractTokensError
+    )
+  } else {
+    const nowMs =
+      Date.now()
+
+    const usableTokens =
+      (
+        contractTokens ||
+        []
+      ).filter(
+        item =>
+          !item.expires_at ||
+          new Date(
+            item.expires_at
+          ).getTime() >
+            nowMs
+      )
+
+    const tenantToken =
+      usableTokens.find(
+        item =>
+          item.role ===
+            "tenant" &&
+          item.lead_id ===
+            contract
+              .tenant_lead_id
+      )
+
+    const ownerToken =
+      usableTokens.find(
+        item =>
+          item.role ===
+            "owner" &&
+          item.lead_id ===
+            contract
+              .owner_lead_id
+      )
 
     if (
-      updateError ||
-      !updatedContract
+      tenantToken
+        ?.token
     ) {
-      throw new Error(
-        updateError
-          ?.message ||
-          "Could not generate contract"
+      tenantPush =
+        await sendPushToLead(
+          contract
+            .tenant_lead_id,
+          {
+            title:
+              "Tu contrato ya está listo",
+
+            body:
+              "Revisalo y confirmá tu aceptación para avanzar con el alquiler.",
+
+            url:
+              `/cierre/${encodeURIComponent(
+                tenantToken
+                  .token
+              )}`,
+          }
+        )
+    } else {
+      console.error(
+        "closing-generate: no active tenant contract token"
       )
     }
 
-    // =========================================================
-    // 19. RESPONSE
-    // =========================================================
+    if (
+      ownerToken
+        ?.token
+    ) {
+      ownerPush =
+        await sendPushToLead(
+          contract
+            .owner_lead_id,
+          {
+            title:
+              "Tu contrato ya está listo",
 
-    return NextResponse.json({
-      ok: true,
+            body:
+              "El contrato quedó generado. Revisalo y confirmá tu aceptación.",
 
-      contract:
-        updatedContract,
-    })
+            url:
+              `/cierre/${encodeURIComponent(
+                ownerToken
+                  .token
+              )}`,
+          }
+        )
+    } else {
+      console.error(
+        "closing-generate: no active owner contract token"
+      )
+    }
+  }
+} catch (
+  pushError
+) {
+  // El Push nunca debe impedir que el contrato quede generado.
+  console.error(
+    "closing-generate push error:",
+    pushError
+  )
+}
+
+// =========================================================
+// 20. RESPONSE
+// =========================================================
+
+return NextResponse.json({
+  ok: true,
+
+  contract:
+    updatedContract,
+
+  push: {
+    tenant:
+      tenantPush,
+
+    owner:
+      ownerPush,
+  },
+})
   } catch (error) {
     console.error(
       "closing-generate error:",
