@@ -2193,18 +2193,24 @@ export default function ClosingPage() {
         false
       )
 
-      if (
-        json
-          .both_agreed
-      ) {
-        setSuccessMessage(
-          "Listo. Las dos partes aceptaron el contrato y el alquiler quedó cerrado en Verlo."
-        )
-      } else {
-        setSuccessMessage(
-          "Tu aceptación quedó registrada. Falta la confirmación de la otra parte."
-        )
-      }
+
+if (
+  json
+    .both_agreed
+) {
+  window.location.href =
+    `/final/${encodeURIComponent(
+      token
+    )}`
+
+  return
+} else {
+  setSuccessMessage(
+    "Tu aceptación quedó registrada. Falta la confirmación de la otra parte."
+  )
+}
+
+      
     } catch (
       err
     ) {
