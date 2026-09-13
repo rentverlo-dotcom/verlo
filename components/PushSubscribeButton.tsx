@@ -17,6 +17,34 @@ type Status =
   | 'success'
   | 'error'
 
+const PUSH_LEAD_STORAGE_KEY =
+  'verlo_push_lead_id'
+
+const PUSH_ROLE_STORAGE_KEY =
+  'verlo_push_role'
+
+function savePushIdentity(
+  leadId: string,
+  role: 'tenant' | 'owner'
+) {
+  try {
+    window.localStorage.setItem(
+      PUSH_LEAD_STORAGE_KEY,
+      leadId
+    )
+
+    window.localStorage.setItem(
+      PUSH_ROLE_STORAGE_KEY,
+      role
+    )
+  } catch (error) {
+    console.error(
+      'push identity storage error:',
+      error
+    )
+  }
+}
+
 function urlBase64ToUint8Array(
   base64String: string
 ) {
@@ -97,11 +125,9 @@ function subscriptionFailed(
         )
 
       return (
-        notification
-          ?.sent ===
+        notification?.sent ===
           false ||
-        failed >
-          0
+        failed > 0
       )
     }
   )
@@ -331,6 +357,11 @@ export default function PushSubscribeButton({
       )
     }
 
+    savePushIdentity(
+      leadId,
+      role
+    )
+
     return freshSubscription
   }
 
@@ -339,6 +370,17 @@ export default function PushSubscribeButton({
       setStatus(
         'loading'
       )
+
+      if (
+        !(
+          'Notification'
+          in window
+        )
+      ) {
+        throw new Error(
+          'Este navegador no soporta notificaciones.'
+        )
+      }
 
       const permission =
         await Notification
@@ -352,6 +394,11 @@ export default function PushSubscribeButton({
           'No se habilitaron las notificaciones.'
         )
       }
+
+      savePushIdentity(
+        leadId,
+        role
+      )
 
       const registration =
         await getRegistration()
@@ -373,6 +420,11 @@ export default function PushSubscribeButton({
           backendStatus
             .active
         ) {
+          savePushIdentity(
+            leadId,
+            role
+          )
+
           setStatus(
             'success'
           )
@@ -415,6 +467,11 @@ export default function PushSubscribeButton({
         )
       }
 
+      savePushIdentity(
+        leadId,
+        role
+      )
+
       setStatus(
         'success'
       )
@@ -435,6 +492,11 @@ export default function PushSubscribeButton({
 
     async function checkPush() {
       try {
+        savePushIdentity(
+          leadId,
+          role
+        )
+
         if (
           typeof window ===
             'undefined' ||
@@ -515,6 +577,11 @@ export default function PushSubscribeButton({
           backendStatus
             .active
         ) {
+          savePushIdentity(
+            leadId,
+            role
+          )
+
           setStatus(
             'success'
           )
