@@ -1,11 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import {
+  useEffect,
+  useState,
+} from 'react'
 
 type Props = {
   leadId: string
   role: 'tenant' | 'owner'
 }
+
+type Status =
+  | 'idle'
+  | 'checking'
+  | 'loading'
+  | 'success'
+  | 'error'
 
 function urlBase64ToUint8Array(
   base64String: string
@@ -19,13 +29,22 @@ function urlBase64ToUint8Array(
     )
 
   const base64 = (
-    base64String + padding
+    base64String +
+    padding
   )
-    .replace(/-/g, '+')
-    .replace(/_/g, '/')
+    .replace(
+      /-/g,
+      '+'
+    )
+    .replace(
+      /_/g,
+      '/'
+    )
 
   const rawData =
-    window.atob(base64)
+    window.atob(
+      base64
+    )
 
   const outputArray =
     new Uint8Array(
@@ -34,51 +53,296 @@ function urlBase64ToUint8Array(
 
   for (
     let i = 0;
-    i < rawData.length;
+    i <
+    rawData.length;
     i += 1
   ) {
     outputArray[i] =
-      rawData.charCodeAt(i)
+      rawData.charCodeAt(
+        i
+      )
   }
 
   return outputArray
+}
+
+function subscriptionFailed(
+  result: any,
+  leadId: string
+) {
+  const notifications =
+    Array.isArray(
+      result?.notifications
+    )
+      ? result.notifications
+      : []
+
+  return notifications.some(
+    (
+      notification: any
+    ) => {
+      if (
+        notification?.lead_id !==
+        leadId
+      ) {
+        return false
+      }
+
+      const failed =
+        Number(
+          notification
+            ?.result
+            ?.failed ||
+            0
+        )
+
+      return (
+        notification
+          ?.sent ===
+          false ||
+        failed >
+          0
+      )
+    }
+  )
 }
 
 export default function PushSubscribeButton({
   leadId,
   role,
 }: Props) {
-  const [status, setStatus] =
-    useState('idle')
+  const [
+    status,
+    setStatus,
+  ] =
+    useState<Status>(
+      'checking'
+    )
+
+  async function getRegistration() {
+    if (
+      !(
+        'serviceWorker'
+        in navigator
+      )
+    ) {
+      throw new Error(
+        'Este dispositivo no soporta notificaciones.'
+      )
+    }
+
+    if (
+      !(
+        'PushManager'
+        in window
+      )
+    ) {
+      throw new Error(
+        'Este navegador no soporta Web Push.'
+      )
+    }
+
+    return (
+      await navigator
+        .serviceWorker
+        .ready
+    )
+  }
+
+  async function createSubscription(
+    registration:
+      ServiceWorkerRegistration
+  ) {
+    const publicKey =
+      process.env
+        .NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+    if (
+      !publicKey
+    ) {
+      throw new Error(
+        'Falta la clave pública VAPID.'
+      )
+    }
+
+    return registration
+      .pushManager
+      .subscribe({
+        userVisibleOnly:
+          true,
+
+        applicationServerKey:
+          urlBase64ToUint8Array(
+            publicKey
+          ),
+      })
+  }
+
+  async function getBackendStatus(
+    subscription:
+      PushSubscription
+  ) {
+    const response =
+      await fetch(
+        '/api/push/status',
+        {
+          method:
+            'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+
+          body:
+            JSON.stringify({
+              lead_id:
+                leadId,
+
+              endpoint:
+                subscription
+                  .endpoint,
+            }),
+        }
+      )
+
+    const result =
+      await response
+        .json()
+        .catch(
+          () => null
+        )
+
+    if (
+      !response.ok ||
+      !result?.ok
+    ) {
+      throw new Error(
+        result?.error ||
+          'No pudimos comprobar las notificaciones.'
+      )
+    }
+
+    return result
+  }
+
+  async function registerSubscription(
+    subscription:
+      PushSubscription
+  ) {
+    const response =
+      await fetch(
+        '/api/push/subscribe',
+        {
+          method:
+            'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+
+          body:
+            JSON.stringify({
+              lead_id:
+                leadId,
+
+              role,
+
+              subscription:
+                subscription
+                  .toJSON(),
+            }),
+        }
+      )
+
+    const result =
+      await response
+        .json()
+        .catch(
+          () => null
+        )
+
+    if (
+      !response.ok ||
+      !result?.ok
+    ) {
+      throw new Error(
+        result?.error ||
+          'No se pudo activar.'
+      )
+    }
+
+    return result
+  }
+
+  async function repairSubscription(
+    registration:
+      ServiceWorkerRegistration,
+    oldSubscription?:
+      PushSubscription | null
+  ) {
+    if (
+      oldSubscription
+    ) {
+      try {
+        await oldSubscription
+          .unsubscribe()
+      } catch (
+        error
+      ) {
+        console.error(
+          'push unsubscribe error:',
+          error
+        )
+      }
+    }
+
+    const freshSubscription =
+      await createSubscription(
+        registration
+      )
+
+    const result =
+      await registerSubscription(
+        freshSubscription
+      )
+
+    if (
+      subscriptionFailed(
+        result,
+        leadId
+      )
+    ) {
+      try {
+        await freshSubscription
+          .unsubscribe()
+      } catch (
+        error
+      ) {
+        console.error(
+          'fresh push unsubscribe error:',
+          error
+        )
+      }
+
+      throw new Error(
+        'La suscripción Push fue rechazada. Volvé a intentar.'
+      )
+    }
+
+    return freshSubscription
+  }
 
   async function activatePush() {
     try {
-      setStatus('loading')
-
-      if (
-        !(
-          'serviceWorker'
-          in navigator
-        )
-      ) {
-        throw new Error(
-          'Este dispositivo no soporta notificaciones.'
-        )
-      }
-
-      if (
-        !(
-          'PushManager'
-          in window
-        )
-      ) {
-        throw new Error(
-          'Este navegador no soporta Web Push.'
-        )
-      }
+      setStatus(
+        'loading'
+      )
 
       const permission =
-        await Notification.requestPermission()
+        await Notification
+          .requestPermission()
 
       if (
         permission !==
@@ -90,75 +354,220 @@ export default function PushSubscribeButton({
       }
 
       const registration =
-        await navigator.serviceWorker.ready
+        await getRegistration()
 
       let subscription =
-        await registration.pushManager.getSubscription()
+        await registration
+          .pushManager
+          .getSubscription()
 
-      if (!subscription) {
-        const publicKey =
-          process.env
-            .NEXT_PUBLIC_VAPID_PUBLIC_KEY
-
-        if (!publicKey) {
-          throw new Error(
-            'Falta la clave pública VAPID.'
+      if (
+        subscription
+      ) {
+        const backendStatus =
+          await getBackendStatus(
+            subscription
           )
+
+        if (
+          backendStatus
+            .active
+        ) {
+          setStatus(
+            'success'
+          )
+
+          return
         }
 
         subscription =
-          await registration.pushManager.subscribe(
-            {
-              userVisibleOnly:
-                true,
-              applicationServerKey:
-                urlBase64ToUint8Array(
-                  publicKey
-                ),
-            }
+          await repairSubscription(
+            registration,
+            subscription
           )
+
+        setStatus(
+          'success'
+        )
+
+        return
       }
 
-      const response =
-        await fetch(
-          '/api/push/subscribe',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-            body: JSON.stringify({
-              lead_id: leadId,
-              role,
-              subscription:
-                subscription.toJSON(),
-            }),
-          }
+      subscription =
+        await createSubscription(
+          registration
         )
 
       const result =
-        await response.json()
+        await registerSubscription(
+          subscription
+        )
 
       if (
-        !response.ok ||
-        !result.ok
+        subscriptionFailed(
+          result,
+          leadId
+        )
       ) {
-        throw new Error(
-          result.error ||
-            'No se pudo activar.'
+        await repairSubscription(
+          registration,
+          subscription
         )
       }
 
-      setStatus('success')
+      setStatus(
+        'success'
+      )
     } catch (error) {
-      console.error(error)
-      setStatus('error')
+      console.error(
+        error
+      )
+
+      setStatus(
+        'error'
+      )
     }
   }
 
+  useEffect(() => {
+    let cancelled =
+      false
+
+    async function checkPush() {
+      try {
+        if (
+          typeof window ===
+            'undefined' ||
+          !(
+            'Notification'
+            in window
+          ) ||
+          !(
+            'serviceWorker'
+            in navigator
+          ) ||
+          !(
+            'PushManager'
+            in window
+          )
+        ) {
+          if (
+            !cancelled
+          ) {
+            setStatus(
+              'idle'
+            )
+          }
+
+          return
+        }
+
+        if (
+          Notification
+            .permission !==
+          'granted'
+        ) {
+          if (
+            !cancelled
+          ) {
+            setStatus(
+              'idle'
+            )
+          }
+
+          return
+        }
+
+        const registration =
+          await getRegistration()
+
+        const subscription =
+          await registration
+            .pushManager
+            .getSubscription()
+
+        if (
+          !subscription
+        ) {
+          if (
+            !cancelled
+          ) {
+            setStatus(
+              'idle'
+            )
+          }
+
+          return
+        }
+
+        const backendStatus =
+          await getBackendStatus(
+            subscription
+          )
+
+        if (
+          cancelled
+        ) {
+          return
+        }
+
+        if (
+          backendStatus
+            .active
+        ) {
+          setStatus(
+            'success'
+          )
+
+          return
+        }
+
+        setStatus(
+          'loading'
+        )
+
+        await repairSubscription(
+          registration,
+          subscription
+        )
+
+        if (
+          !cancelled
+        ) {
+          setStatus(
+            'success'
+          )
+        }
+      } catch (error) {
+        console.error(
+          'push health check error:',
+          error
+        )
+
+        if (
+          !cancelled
+        ) {
+          setStatus(
+            'error'
+          )
+        }
+      }
+    }
+
+    checkPush()
+
+    return () => {
+      cancelled =
+        true
+    }
+  }, [
+    leadId,
+    role,
+  ])
+
   if (
-    status === 'success'
+    status ===
+    'success'
   ) {
     return (
       <button
@@ -173,16 +582,26 @@ export default function PushSubscribeButton({
   return (
     <button
       type="button"
-      onClick={activatePush}
+      onClick={
+        activatePush
+      }
       disabled={
-        status === 'loading'
+        status ===
+          'loading' ||
+        status ===
+          'checking'
       }
     >
-      {status === 'loading'
-        ? 'Activando...'
-        : status === 'error'
-          ? 'Reintentar notificaciones'
-          : 'Activar notificaciones'}
+      {status ===
+      'checking'
+        ? 'Comprobando notificaciones...'
+        : status ===
+            'loading'
+          ? 'Activando...'
+          : status ===
+              'error'
+            ? 'Reintentar notificaciones'
+            : 'Activar notificaciones'}
     </button>
   )
 }
