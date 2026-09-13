@@ -1,21 +1,88 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server"
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+import {
+  createClient,
+} from "@supabase/supabase-js"
 
-function clean(value: unknown) {
-  return String(value || "").trim()
+export const runtime =
+  "nodejs"
+
+export const dynamic =
+  "force-dynamic"
+
+const ACTIVE_MATCH_STATUSES = [
+  "new",
+  "reviewed",
+  "contacted",
+  "converted",
+]
+
+const MIN_MATCH_SCORE = 80
+
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
 }
 
-function firstName(fullName: string | null) {
-  const value = clean(fullName)
+function firstName(
+  fullName:
+    | string
+    | null
+) {
+  const value =
+    clean(fullName)
 
   if (!value) {
     return "Candidato"
   }
 
-  return value.split(/\s+/)[0] || "Candidato"
+  return (
+    value
+      .split(/\s+/)[0] ||
+    "Candidato"
+  )
+}
+
+function getStage(
+  match: {
+    status?: string | null
+    tenant_interest_at?: string | null
+    tenant_verified_at?: string | null
+    owner_interest_at?: string | null
+    ready_to_connect_at?: string | null
+  }
+):
+  | "new"
+  | "in_progress"
+  | "ready"
+  | "closed" {
+  if (
+    match.status ===
+    "converted"
+  ) {
+    return "closed"
+  }
+
+  if (
+    match.ready_to_connect_at
+  ) {
+    return "ready"
+  }
+
+  if (
+    match.tenant_interest_at ||
+    match.owner_interest_at
+  ) {
+    return "in_progress"
+  }
+
+  return "new"
 }
 
 export async function GET(
@@ -23,10 +90,12 @@ export async function GET(
 ) {
   try {
     const supabaseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL
 
     const serviceRoleKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      process.env
+        .SUPABASE_SERVICE_ROLE_KEY
 
     if (
       !supabaseUrl ||
@@ -35,7 +104,8 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing Supabase env vars",
+          error:
+            "Missing Supabase env vars",
         },
         {
           status: 500,
@@ -49,24 +119,31 @@ export async function GET(
         serviceRoleKey,
         {
           auth: {
-            persistSession: false,
-            autoRefreshToken: false,
+            persistSession:
+              false,
+
+            autoRefreshToken:
+              false,
           },
         }
       )
 
     const token =
       clean(
-        request.nextUrl.searchParams.get(
-          "token"
-        )
+        request
+          .nextUrl
+          .searchParams
+          .get(
+            "token"
+          )
       )
 
     if (!token) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing token",
+          error:
+            "Missing token",
         },
         {
           status: 400,
@@ -75,29 +152,32 @@ export async function GET(
     }
 
     // =========================================================
-    // 1. VALIDAR TOKEN DEL OWNER
+    // 1. VALIDAR TOKEN DEL DASHBOARD OWNER
     // =========================================================
 
     const {
-      data: accessToken,
-      error: tokenError,
-    } = await supabase
-      .from(
-        "owner_candidates_access_tokens"
-      )
-      .select(`
-        id,
-        owner_lead_id,
-        expires_at,
-        revoked_at,
-        first_opened_at,
-        open_count
-      `)
-      .eq(
-        "token",
-        token
-      )
-      .single()
+      data:
+        accessToken,
+      error:
+        tokenError,
+    } =
+      await supabase
+        .from(
+          "owner_candidates_access_tokens"
+        )
+        .select(`
+          id,
+          owner_lead_id,
+          expires_at,
+          revoked_at,
+          first_opened_at,
+          open_count
+        `)
+        .eq(
+          "token",
+          token
+        )
+        .single()
 
     if (
       tokenError ||
@@ -106,7 +186,8 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
-          error: "Invalid token",
+          error:
+            "Invalid token",
         },
         {
           status: 404,
@@ -115,12 +196,14 @@ export async function GET(
     }
 
     if (
-      accessToken.revoked_at
+      accessToken
+        .revoked_at
     ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Token revoked",
+          error:
+            "Token revoked",
         },
         {
           status: 403,
@@ -129,16 +212,19 @@ export async function GET(
     }
 
     if (
-      accessToken.expires_at &&
+      accessToken
+        .expires_at &&
       new Date(
-        accessToken.expires_at
+        accessToken
+          .expires_at
       ).getTime() <
         Date.now()
     ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Expired token",
+          error:
+            "Expired token",
         },
         {
           status: 403,
@@ -147,37 +233,45 @@ export async function GET(
     }
 
     // =========================================================
-    // 1.B TRAZABILIDAD DE APERTURA
+    // 2. TRAZABILIDAD
     // =========================================================
 
     const openedAt =
-      new Date().toISOString()
+      new Date()
+        .toISOString()
 
     const {
-      error: trackingError,
-    } = await supabase
-      .from(
-        "owner_candidates_access_tokens"
-      )
-      .update({
-        first_opened_at:
-          accessToken.first_opened_at ||
-          openedAt,
+      error:
+        trackingError,
+    } =
+      await supabase
+        .from(
+          "owner_candidates_access_tokens"
+        )
+        .update({
+          first_opened_at:
+            accessToken
+              .first_opened_at ||
+            openedAt,
 
-        last_opened_at:
-          openedAt,
+          last_opened_at:
+            openedAt,
 
-        open_count:
-          Number(
-            accessToken.open_count || 0
-          ) + 1,
-      })
-      .eq(
-        "id",
-        accessToken.id
-      )
+          open_count:
+            Number(
+              accessToken
+                .open_count ||
+                0
+            ) + 1,
+        })
+        .eq(
+          "id",
+          accessToken.id
+        )
 
-    if (trackingError) {
+    if (
+      trackingError
+    ) {
       console.error(
         "owner candidates access tracking error:",
         trackingError
@@ -185,33 +279,39 @@ export async function GET(
     }
 
     const ownerLeadId =
-      accessToken.owner_lead_id
+      accessToken
+        .owner_lead_id
 
     // =========================================================
-    // 2. OWNER
+    // 3. DATOS DEL OWNER / PROPIEDAD
     // =========================================================
 
     const {
       data: owner,
-      error: ownerError,
-    } = await supabase
-      .from("lead_intake")
-      .select(`
-        id,
-        full_name,
-        zone,
-        neighborhood_labels,
-        property_type,
-        property_rooms,
-        approx_price,
-        approx_price_number,
-        availability_status
-      `)
-      .eq(
-        "id",
-        ownerLeadId
-      )
-      .single()
+      error:
+        ownerError,
+    } =
+      await supabase
+        .from(
+          "lead_intake"
+        )
+        .select(`
+          id,
+          full_name,
+          zone,
+          neighborhood_labels,
+          neighborhood_slug,
+          property_type,
+          property_rooms,
+          approx_price,
+          approx_price_number,
+          availability_status
+        `)
+        .eq(
+          "id",
+          ownerLeadId
+        )
+        .single()
 
     if (
       ownerError ||
@@ -220,7 +320,8 @@ export async function GET(
       return NextResponse.json(
         {
           ok: false,
-          error: "Owner not found",
+          error:
+            "Owner not found",
         },
         {
           status: 404,
@@ -229,58 +330,70 @@ export async function GET(
     }
 
     // =========================================================
-    // 3. MATCHES CON INTERÉS REAL DEL TENANT
+    // 4. TODOS LOS MATCHES DEL OWNER
+    //
+    // IMPORTANTE:
+    //
+    // Ya NO exigimos:
+    //
+    // tenant_interest_at
+    // tenant_verified_at
+    //
+    // El owner tiene que poder ver desde el primer match:
+    //
+    // NUEVOS
+    // EN PROCESO
+    // DOBLE OK
+    // CERRADOS
     // =========================================================
 
     const {
       data: matches,
-      error: matchesError,
-    } = await supabase
-      .from("lead_matches")
-      .select(`
-        id,
-        tenant_lead_id,
-        owner_lead_id,
-        score,
-        reasons,
-        status,
-        tenant_interest_at,
-        tenant_verified_at,
-        owner_interest_at,
-        ready_to_connect_at,
-        introduced_at
-      `)
-      .eq(
-        "owner_lead_id",
-        ownerLeadId
-      )
-      .not(
-        "tenant_interest_at",
-        "is",
-        null
-      )
-      .not(
-        "tenant_verified_at",
-        "is",
-        null
-      )
-      .in(
-        "status",
-        [
-          "new",
-          "reviewed",
-          "contacted",
-          "converted",
-        ]
-      )
-      .order(
-        "score",
-        {
-          ascending: false,
-        }
-      )
+      error:
+        matchesError,
+    } =
+      await supabase
+        .from(
+          "lead_matches"
+        )
+        .select(`
+          id,
+          tenant_lead_id,
+          owner_lead_id,
+          score,
+          reasons,
+          status,
+          created_at,
+          reviewed_at,
+          tenant_interest_at,
+          tenant_verified_at,
+          owner_interest_at,
+          ready_to_connect_at,
+          introduced_at
+        `)
+        .eq(
+          "owner_lead_id",
+          ownerLeadId
+        )
+        .gte(
+          "score",
+          MIN_MATCH_SCORE
+        )
+        .in(
+          "status",
+          ACTIVE_MATCH_STATUSES
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
 
-    if (matchesError) {
+    if (
+      matchesError
+    ) {
       console.error(
         "candidates-view matches error:",
         matchesError
@@ -298,96 +411,126 @@ export async function GET(
       )
     }
 
+    const ownerResponse = {
+      id:
+        owner.id,
+
+      first_name:
+        firstName(
+          owner.full_name
+        ),
+
+      zone:
+        owner.zone ||
+        null,
+
+      neighborhood:
+        owner
+          .neighborhood_labels?.[0] ||
+        owner
+          .neighborhood_slug ||
+        null,
+
+      property_type:
+        owner
+          .property_type ||
+        null,
+
+      rooms:
+        owner
+          .property_rooms ||
+        null,
+
+      approx_price:
+        owner
+          .approx_price ||
+        null,
+
+      approx_price_number:
+        owner
+          .approx_price_number ??
+        null,
+
+      availability_status:
+        owner
+          .availability_status ||
+        null,
+    }
+
     if (
       !matches ||
-      matches.length === 0
+      matches.length ===
+        0
     ) {
       return NextResponse.json({
         ok: true,
 
-        owner: {
-          id:
-            owner.id,
-
-          first_name:
-            firstName(
-              owner.full_name
-            ),
-
-          zone:
-            owner.zone || null,
-
-          neighborhood:
-            owner.neighborhood_labels?.[0] ||
-            null,
-
-          property_type:
-            owner.property_type ||
-            null,
-
-          rooms:
-            owner.property_rooms ||
-            null,
-
-          approx_price:
-            owner.approx_price ||
-            null,
-
-          approx_price_number:
-            owner.approx_price_number ||
-            null,
-
-          availability_status:
-            owner.availability_status ||
-            null,
-        },
+        owner:
+          ownerResponse,
 
         count: 0,
+
+        counts: {
+          new: 0,
+          in_progress: 0,
+          ready: 0,
+          closed: 0,
+        },
 
         candidates: [],
       })
     }
 
     // =========================================================
-    // 4. BUSCAR DATOS DE TODOS LOS TENANTS
+    // 5. TENANTS DE TODOS LOS MATCHES
     // =========================================================
 
     const tenantLeadIds =
       Array.from(
         new Set(
           matches.map(
-            (match) =>
-              match.tenant_lead_id
+            (
+              match
+            ) =>
+              match
+                .tenant_lead_id
           )
         )
       )
 
     const {
       data: tenants,
-      error: tenantsError,
-    } = await supabase
-      .from("lead_intake")
-      .select(`
-        id,
-        full_name,
-        desired_property_type,
-        desired_rooms,
-        budget_range,
-        budget_max,
-        move_timing,
-        income_proof_type,
-        income_range,
-        income_max,
-        guarantee_types,
-        neighborhood_labels,
-        area_macro
-      `)
-      .in(
-        "id",
-        tenantLeadIds
-      )
+      error:
+        tenantsError,
+    } =
+      await supabase
+        .from(
+          "lead_intake"
+        )
+        .select(`
+          id,
+          full_name,
+          desired_property_type,
+          desired_rooms,
+          budget_range,
+          budget_max,
+          move_timing,
+          income_proof_type,
+          income_range,
+          income_max,
+          guarantee_types,
+          neighborhood_labels,
+          neighborhood_slug,
+          area_macro
+        `)
+        .in(
+          "id",
+          tenantLeadIds
+        )
 
-    if (tenantsError) {
+    if (
+      tenantsError
+    ) {
       console.error(
         "candidates-view tenants error:",
         tenantsError
@@ -405,56 +548,67 @@ export async function GET(
       )
     }
 
+    const tenantById =
+      new Map(
+        (
+          tenants ||
+          []
+        ).map(
+          (
+            tenant
+          ) => [
+            tenant.id,
+            tenant,
+          ]
+        )
+      )
+
     // =========================================================
-    // 5. VERIFICACIONES REUTILIZABLES
+    // 6. VERIFICACIONES
+    //
+    // SON OPCIONALES.
+    //
+    // El tenant puede aparecer como match nuevo sin haber
+    // completado todavía ninguna verificación.
     // =========================================================
 
     const {
-      data: verifications,
+      data:
+        verifications,
       error:
         verificationsError,
-    } = await supabase
-      .from(
-        "tenant_verifications"
-      )
-      .select(`
-        id,
-        lead_id,
-        match_id,
-        dni_front_path,
-        dni_back_path,
-        selfie_path,
-        income_proof_path,
-        document_number,
-        employment_status,
-        income_range,
-        guarantee_type,
-        move_notes,
-        status,
-        reviewed_at,
-        created_at
-      `)
-      .in(
-        "lead_id",
-        tenantLeadIds
-      )
-      .is(
-        "match_id",
-        null
-      )
-      .in(
-        "status",
-        [
-          "submitted",
-          "approved",
-        ]
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false,
-        }
-      )
+    } =
+      await supabase
+        .from(
+          "tenant_verifications"
+        )
+        .select(`
+          id,
+          lead_id,
+          match_id,
+          dni_front_path,
+          dni_back_path,
+          selfie_path,
+          income_proof_path,
+          employment_status,
+          income_range,
+          guarantee_type,
+          move_notes,
+          status,
+          reviewed_at,
+          created_at
+        `)
+        .in(
+          "lead_id",
+          tenantLeadIds
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
 
     if (
       verificationsError
@@ -477,266 +631,493 @@ export async function GET(
     }
 
     // =========================================================
-    // 6. TOMAR LA ÚLTIMA VERIFICACIÓN DE CADA TENANT
+    // 7. INDEXAR VERIFICACIONES
+    //
+    // Preferimos:
+    //
+    // 1. verificación específica del match
+    // 2. verificación reusable del tenant (match_id null)
     // =========================================================
 
-    const verificationByLead =
-      new Map<string, any>()
+    const verificationByMatch =
+      new Map<
+        string,
+        any
+      >()
+
+    const reusableVerificationByLead =
+      new Map<
+        string,
+        any
+      >()
 
     for (
       const verification of
-        verifications || []
+        verifications ||
+        []
     ) {
       if (
-        !verificationByLead.has(
-          verification.lead_id
-        )
+        verification
+          .match_id &&
+        !verificationByMatch
+          .has(
+            verification
+              .match_id
+          )
       ) {
-        verificationByLead.set(
-          verification.lead_id,
-          verification
-        )
+        verificationByMatch
+          .set(
+            verification
+              .match_id,
+            verification
+          )
+      }
+
+      if (
+        !verification
+          .match_id &&
+        !reusableVerificationByLead
+          .has(
+            verification
+              .lead_id
+          )
+      ) {
+        reusableVerificationByLead
+          .set(
+            verification
+              .lead_id,
+            verification
+          )
       }
     }
 
-    const tenantById =
-      new Map(
-        (tenants || []).map(
-          (tenant) => [
-            tenant.id,
-            tenant,
-          ]
-        )
-      )
-
     // =========================================================
-    // 7. ARMAR CANDIDATOS
+    // 8. ARMAR DASHBOARD
     // =========================================================
 
     const candidates =
       matches
-        .map((match) => {
-          const tenant =
-            tenantById.get(
-              match.tenant_lead_id
-            )
-
-          const verification =
-            verificationByLead.get(
-              match.tenant_lead_id
-            )
-
-          if (
-            !tenant ||
-            !verification
-          ) {
-            return null
-          }
-
-          return {
-            match: {
-              id:
-                match.id,
-
-              score:
-                Number(
-                  match.score || 0
-                ),
-
-              reasons:
-                match.reasons || {},
-
-              tenant_interest:
-                Boolean(
-                  match.tenant_interest_at
-                ),
-
-              tenant_verified:
-                Boolean(
-                  match.tenant_verified_at
-                ),
-
-              owner_interest:
-                Boolean(
-                  match.owner_interest_at
-                ),
-
-              ready_to_connect:
-                Boolean(
-                  match.ready_to_connect_at
-                ),
-
-              introduced:
-                Boolean(
-                  match.introduced_at
-                ),
-            },
-
-            tenant: {
-              first_name:
-                firstName(
-                  tenant.full_name
-                ),
-
-              budget_range:
-                tenant.budget_range ||
-                null,
-
-              budget_max:
-                tenant.budget_max ??
-                null,
-
-              move_timing:
-                tenant.move_timing ||
-                null,
-
-              property_type:
-                tenant
-                  .desired_property_type ||
-                null,
-
-              rooms:
-                tenant.desired_rooms ||
-                null,
-
-              neighborhood:
-                tenant
-                  .neighborhood_labels?.[0] ||
-                tenant.area_macro ||
-                null,
-
-              income_proof_type:
-                tenant.income_proof_type ||
-                null,
-
-              income_range:
-                verification.income_range ||
-                tenant.income_range ||
-                null,
-
-              income_max:
-                tenant.income_max ??
-                null,
-
-              guarantee_types:
-                Array.isArray(
-                  tenant.guarantee_types
+        .map(
+          (
+            match
+          ) => {
+            const tenant =
+              tenantById
+                .get(
+                  match
+                    .tenant_lead_id
                 )
-                  ? tenant.guarantee_types
-                  : [],
 
-              employment_status:
-                verification
-                  .employment_status ||
-                null,
+            if (
+              !tenant
+            ) {
+              return null
+            }
 
-              guarantee_type:
-                verification
-                  .guarantee_type ||
-                null,
+            const verification =
+              verificationByMatch
+                .get(
+                  match.id
+                ) ||
+              reusableVerificationByLead
+                .get(
+                  match
+                    .tenant_lead_id
+                ) ||
+              null
 
-              move_notes:
-                verification
-                  .move_notes ||
-                null,
-            },
+            const stage =
+              getStage(
+                match
+              )
 
-            verification: {
-              status:
-                verification.status,
+            const tenantInterested =
+              Boolean(
+                match
+                  .tenant_interest_at
+              )
 
-              has_dni_front:
-                Boolean(
+            const tenantVerified =
+              Boolean(
+                match
+                  .tenant_verified_at
+              )
+
+            const ownerInterested =
+              Boolean(
+                match
+                  .owner_interest_at
+              )
+
+            const readyToConnect =
+              Boolean(
+                match
+                  .ready_to_connect_at
+              )
+
+            const introduced =
+              Boolean(
+                match
+                  .introduced_at
+              )
+
+            // =================================================
+            // PRIVACIDAD
+            //
+            // Match puramente algorítmico:
+            // mostramos "Perfil compatible".
+            //
+            // Cuando el tenant efectivamente muestra interés,
+            // recién ahí mostramos su primer nombre.
+            // =================================================
+
+            const displayName =
+              tenantInterested
+                ? firstName(
+                    tenant
+                      .full_name
+                  )
+                : "Perfil compatible"
+
+            return {
+              match: {
+                id:
+                  match.id,
+
+                score:
+                  Number(
+                    match.score ||
+                      0
+                  ),
+
+                reasons:
+                  match.reasons ||
+                  {},
+
+                status:
+                  match.status,
+
+                stage,
+
+                created_at:
+                  match.created_at ||
+                  null,
+
+                tenant_interest:
+                  tenantInterested,
+
+                tenant_verified:
+                  tenantVerified,
+
+                owner_interest:
+                  ownerInterested,
+
+                ready_to_connect:
+                  readyToConnect,
+
+                introduced,
+
+                requires_owner_action:
+                  tenantInterested &&
+                  tenantVerified &&
+                  !ownerInterested,
+
+                waiting_tenant:
+                  !tenantInterested,
+
+                waiting_verification:
+                  tenantInterested &&
+                  !tenantVerified,
+
+                operation_active:
+                  readyToConnect ||
+                  match.status ===
+                    "converted",
+              },
+
+              tenant: {
+                first_name:
+                  displayName,
+
+                budget_range:
+                  tenant
+                    .budget_range ||
+                  null,
+
+                budget_max:
+                  tenant
+                    .budget_max ??
+                  null,
+
+                move_timing:
+                  tenant
+                    .move_timing ||
+                  null,
+
+                property_type:
+                  tenant
+                    .desired_property_type ||
+                  null,
+
+                rooms:
+                  tenant
+                    .desired_rooms ||
+                  null,
+
+                neighborhood:
+                  tenant
+                    .neighborhood_labels?.[0] ||
+                  tenant
+                    .neighborhood_slug ||
+                  tenant
+                    .area_macro ||
+                  null,
+
+                income_proof_type:
+                  tenant
+                    .income_proof_type ||
+                  null,
+
+                income_range:
                   verification
-                    .dni_front_path
-                ),
+                    ?.income_range ||
+                  tenant
+                    .income_range ||
+                  null,
 
-              has_dni_back:
-                Boolean(
+                income_max:
+                  tenant
+                    .income_max ??
+                  null,
+
+                guarantee_types:
+                  Array.isArray(
+                    tenant
+                      .guarantee_types
+                  )
+                    ? tenant
+                        .guarantee_types
+                    : [],
+
+                employment_status:
                   verification
-                    .dni_back_path
-                ),
+                    ?.employment_status ||
+                  null,
 
-              has_selfie:
-                Boolean(
+                guarantee_type:
                   verification
-                    .selfie_path
-                ),
+                    ?.guarantee_type ||
+                  null,
 
-              has_income_proof:
-                Boolean(
+                move_notes:
                   verification
-                    .income_proof_path
-                ),
+                    ?.move_notes ||
+                  null,
+              },
 
-              reviewed:
-                Boolean(
-                  verification.reviewed_at
-                ),
-            },
+              verification: {
+                exists:
+                  Boolean(
+                    verification
+                  ),
+
+                status:
+                  verification
+                    ?.status ||
+                  null,
+
+                has_dni_front:
+                  Boolean(
+                    verification
+                      ?.dni_front_path
+                  ),
+
+                has_dni_back:
+                  Boolean(
+                    verification
+                      ?.dni_back_path
+                  ),
+
+                has_selfie:
+                  Boolean(
+                    verification
+                      ?.selfie_path
+                  ),
+
+                has_income_proof:
+                  Boolean(
+                    verification
+                      ?.income_proof_path
+                  ),
+
+                reviewed:
+                  Boolean(
+                    verification
+                      ?.reviewed_at
+                  ),
+              },
+            }
           }
-        })
-        .filter(Boolean)
+        )
+        .filter(
+          Boolean
+        )
 
     // =========================================================
-    // 8. RESPUESTA
+    // 9. ORDEN
+    //
+    // Prioridad:
+    //
+    // 1. owner tiene que actuar
+    // 2. doble OK
+    // 3. tenant avanzando
+    // 4. nuevos
+    // 5. cerrados
+    // =========================================================
+
+    const priority: Record<
+      string,
+      number
+    > = {
+      in_progress: 1,
+      ready: 2,
+      new: 3,
+      closed: 4,
+    }
+
+    candidates.sort(
+      (
+        a: any,
+        b: any
+      ) => {
+        if (
+          a.match
+            .requires_owner_action &&
+          !b.match
+            .requires_owner_action
+        ) {
+          return -1
+        }
+
+        if (
+          !a.match
+            .requires_owner_action &&
+          b.match
+            .requires_owner_action
+        ) {
+          return 1
+        }
+
+        const stageA =
+          priority[
+            a.match.stage
+          ] ||
+          99
+
+        const stageB =
+          priority[
+            b.match.stage
+          ] ||
+          99
+
+        if (
+          stageA !==
+          stageB
+        ) {
+          return (
+            stageA -
+            stageB
+          )
+        }
+
+        return (
+          Number(
+            b.match.score ||
+              0
+          ) -
+          Number(
+            a.match.score ||
+              0
+          )
+        )
+      }
+    )
+
+    // =========================================================
+    // 10. CONTADORES DEL DASHBOARD
+    // =========================================================
+
+    const counts = {
+      new:
+        candidates.filter(
+          (
+            item: any
+          ) =>
+            item.match
+              .stage ===
+            "new"
+        ).length,
+
+      in_progress:
+        candidates.filter(
+          (
+            item: any
+          ) =>
+            item.match
+              .stage ===
+            "in_progress"
+        ).length,
+
+      ready:
+        candidates.filter(
+          (
+            item: any
+          ) =>
+            item.match
+              .stage ===
+            "ready"
+        ).length,
+
+      closed:
+        candidates.filter(
+          (
+            item: any
+          ) =>
+            item.match
+              .stage ===
+            "closed"
+        ).length,
+    }
+
+    // =========================================================
+    // 11. RESPONSE
     //
     // NO DEVOLVEMOS:
-    // email
-    // teléfono
-    // DNI
-    // paths de archivos
     //
-    // hasta que exista doble OK.
+    // teléfono
+    // email
+    // DNI
+    // paths privados
+    //
+    // antes del doble OK.
     // =========================================================
 
     return NextResponse.json({
       ok: true,
 
-      owner: {
-        id:
-          owner.id,
-
-        first_name:
-          firstName(
-            owner.full_name
-          ),
-
-        zone:
-          owner.zone ||
-          null,
-
-        neighborhood:
-          owner.neighborhood_labels?.[0] ||
-          null,
-
-        property_type:
-          owner.property_type ||
-          null,
-
-        rooms:
-          owner.property_rooms ||
-          null,
-
-        approx_price:
-          owner.approx_price ||
-          null,
-
-        approx_price_number:
-          owner.approx_price_number ||
-          null,
-
-        availability_status:
-          owner.availability_status ||
-          null,
-      },
+      owner:
+        ownerResponse,
 
       count:
         candidates.length,
 
+      counts,
+
       candidates,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "candidates-view error:",
       error
@@ -745,8 +1126,11 @@ export async function GET(
     return NextResponse.json(
       {
         ok: false,
+
         error:
-          "Unexpected server error",
+          error instanceof Error
+            ? error.message
+            : "Unexpected server error",
       },
       {
         status: 500,
