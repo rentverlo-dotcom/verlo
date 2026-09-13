@@ -2,9 +2,11 @@ import {
   NextRequest,
   NextResponse,
 } from "next/server"
+
 import {
   createClient,
 } from "@supabase/supabase-js"
+
 import {
   sendPushToLead,
 } from "@/lib/push"
@@ -36,7 +38,10 @@ function clean(
 async function postInternal(
   req: NextRequest,
   path: string,
-  body: Record<string, unknown>
+  body: Record<
+    string,
+    unknown
+  >
 ) {
   const response =
     await fetch(
@@ -99,8 +104,14 @@ export async function GET() {
     active_statuses:
       ACTIVE_MATCH_STATUSES,
 
+    tenant_destination:
+      "/matches/[token]",
+
+    owner_destination:
+      "/candidatos/[token]",
+
     note:
-      "Legacy endpoint kept for compatibility. Notifications are Push only.",
+      "Match notifications always open the centralized dashboards.",
   })
 }
 
@@ -167,7 +178,8 @@ export async function POST(
         body?.notify_roles
       )
         ? new Set(
-            body.notify_roles
+            body
+              .notify_roles
               .map(
                 (
                   value:
@@ -228,11 +240,16 @@ export async function POST(
       )
 
     // =========================================================
-    // 1. MATCHES REALES ACTIVOS
+    // 1. MATCHES ACTIVOS
     // =========================================================
 
-    let matchQuery =
-      supabase
+    const {
+      data:
+        matchesRaw,
+      error:
+        matchesError,
+    } =
+      await supabase
         .from(
           "lead_matches"
         )
@@ -252,7 +269,7 @@ export async function POST(
           ACTIVE_MATCH_STATUSES
         )
         .order(
-          "score",
+          "created_at",
           {
             ascending:
               false,
@@ -261,14 +278,6 @@ export async function POST(
         .limit(
           limit
         )
-
-    const {
-      data:
-        matchesRaw,
-      error:
-        matchesError,
-    } =
-      await matchQuery
 
     if (
       matchesError
@@ -283,7 +292,8 @@ export async function POST(
       []
 
     if (
-      requestedLeadIds.length >
+      requestedLeadIds
+        .length >
       0
     ) {
       const wanted =
@@ -322,6 +332,8 @@ export async function POST(
           0,
         processed:
           0,
+        notifications_sent:
+          0,
         results: [],
       })
     }
@@ -329,8 +341,8 @@ export async function POST(
     // =========================================================
     // 2. OWNERS CON FOTO
     //
-    // Tenant solo recibe aviso cuando la propiedad ya tiene
-    // al menos una foto disponible.
+    // La propiedad recién puede aparecerle al tenant cuando
+    // existe al menos una foto.
     // =========================================================
 
     const ownerLeadIds =
@@ -402,22 +414,33 @@ export async function POST(
     const results:
       Array<{
         role:
-          "owner" |
-          "tenant"
+          | "owner"
+          | "tenant"
+
         lead_id:
           string
+
         match_count:
           number
+
         sent:
           boolean
+
         url:
           string | null
+
         reason?:
           string
       }> = []
 
     // =========================================================
-    // 3. NOTIFICAR TENANTS
+    // 3. TENANT
+    //
+    // SIEMPRE:
+    //
+    // /matches/[token]
+    //
+    // Un solo dashboard para todos sus matches.
     // =========================================================
 
     if (
@@ -454,6 +477,12 @@ export async function POST(
             match
               .tenant_lead_id
           )
+
+        if (
+          !tenantLeadId
+        ) {
+          continue
+        }
 
         tenantMap.set(
           tenantLeadId,
@@ -501,14 +530,19 @@ export async function POST(
           results.push({
             role:
               "tenant",
+
             lead_id:
               tenantLeadId,
+
             match_count:
               matchCount,
+
             sent:
               false,
+
             url:
               null,
+
             reason:
               "could_not_create_matches_url",
           })
@@ -516,20 +550,23 @@ export async function POST(
           continue
         }
 
-        if (
-          !send
-        ) {
+        if (!send) {
           results.push({
             role:
               "tenant",
+
             lead_id:
               tenantLeadId,
+
             match_count:
               matchCount,
+
             sent:
               false,
+
             url:
               matchesUrl,
+
             reason:
               "dry_run",
           })
@@ -543,13 +580,16 @@ export async function POST(
               tenantLeadId,
               {
                 title:
-                  "Verlo · Tenés matches",
+                  matchCount ===
+                  1
+                    ? "Verlo · Nuevo match"
+                    : "Verlo · Nuevos matches",
 
                 body:
                   matchCount ===
                   1
-                    ? "Encontramos una propiedad compatible. Entrá para verla y completar tus datos."
-                    : `Encontramos ${matchCount} propiedades compatibles. Entrá para verlas y completar tus datos.`,
+                    ? "Encontramos una propiedad compatible con tu búsqueda. Entrá a verla."
+                    : `Tenés ${matchCount} propiedades compatibles para revisar.`,
 
                 url:
                   matchesUrl,
@@ -570,11 +610,15 @@ export async function POST(
           results.push({
             role:
               "tenant",
+
             lead_id:
               tenantLeadId,
+
             match_count:
               matchCount,
+
             sent,
+
             url:
               matchesUrl,
           })
@@ -590,14 +634,19 @@ export async function POST(
           results.push({
             role:
               "tenant",
+
             lead_id:
               tenantLeadId,
+
             match_count:
               matchCount,
+
             sent:
               false,
+
             url:
               matchesUrl,
+
             reason:
               "push_error",
           })
@@ -606,7 +655,13 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. NOTIFICAR OWNERS
+    // 4. OWNER
+    //
+    // SIEMPRE:
+    //
+    // /candidatos/[token]
+    //
+    // NO usamos más /propiedad/[token] para un match.
     // =========================================================
 
     if (
@@ -629,6 +684,12 @@ export async function POST(
             match
               .owner_lead_id
           )
+
+        if (
+          !ownerLeadId
+        ) {
+          continue
+        }
 
         ownerMap.set(
           ownerLeadId,
@@ -653,58 +714,66 @@ export async function POST(
         const tokenResponse =
           await postInternal(
             req,
-            "/api/owner-property-token",
+            "/api/owner-candidates-token",
             {
               owner_lead_id:
                 ownerLeadId,
             }
           )
 
-        const propertyUrl =
+        const candidatesUrl =
           tokenResponse.ok
             ? clean(
                 tokenResponse
                   .data
-                  ?.property_url
+                  ?.candidates_url
               ) ||
               null
             : null
 
         if (
-          !propertyUrl
+          !candidatesUrl
         ) {
           results.push({
             role:
               "owner",
+
             lead_id:
               ownerLeadId,
+
             match_count:
               matchCount,
+
             sent:
               false,
+
             url:
               null,
+
             reason:
-              "could_not_create_property_url",
+              "could_not_create_candidates_url",
           })
 
           continue
         }
 
-        if (
-          !send
-        ) {
+        if (!send) {
           results.push({
             role:
               "owner",
+
             lead_id:
               ownerLeadId,
+
             match_count:
               matchCount,
+
             sent:
               false,
+
             url:
-              propertyUrl,
+              candidatesUrl,
+
             reason:
               "dry_run",
           })
@@ -718,13 +787,19 @@ export async function POST(
               ownerLeadId,
               {
                 title:
-                  "Verlo · Tenés matches",
+                  matchCount ===
+                  1
+                    ? "Verlo · Nuevo match"
+                    : "Verlo · Nuevos matches",
 
                 body:
-                  "Encontramos personas compatibles con tu propiedad. Completá la publicación y sumá fotos o videos para avanzar.",
+                  matchCount ===
+                  1
+                    ? "Encontramos una persona compatible con tu propiedad. Entrá a verla."
+                    : `Tenés ${matchCount} personas compatibles con tu propiedad para revisar.`,
 
                 url:
-                  propertyUrl,
+                  candidatesUrl,
               }
             )
 
@@ -742,13 +817,17 @@ export async function POST(
           results.push({
             role:
               "owner",
+
             lead_id:
               ownerLeadId,
+
             match_count:
               matchCount,
+
             sent,
+
             url:
-              propertyUrl,
+              candidatesUrl,
           })
         } catch (
           pushError
@@ -762,14 +841,19 @@ export async function POST(
           results.push({
             role:
               "owner",
+
             lead_id:
               ownerLeadId,
+
             match_count:
               matchCount,
+
             sent:
               false,
+
             url:
-              propertyUrl,
+              candidatesUrl,
+
             reason:
               "push_error",
           })
@@ -809,6 +893,7 @@ export async function POST(
     return NextResponse.json(
       {
         ok: false,
+
         error:
           error instanceof Error
             ? error.message
@@ -820,4 +905,3 @@ export async function POST(
     )
   }
 }
-
