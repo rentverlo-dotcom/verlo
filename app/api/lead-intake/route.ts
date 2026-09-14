@@ -1960,22 +1960,25 @@ async function createLeadMatches({
         matches,
       })
 
-    return {
-      ok:
-        result.ok,
+ return {
+  ok:
+    result.ok,
 
-      created:
-        result.created,
+  created:
+    result.created,
 
-      skipped:
-        false,
+  match_ids:
+    result.match_ids,
 
-      error:
-        "error" in
-        result
-          ? result.error
-          : undefined,
-    }
+  skipped:
+    false,
+
+  error:
+    "error" in
+    result
+      ? result.error
+      : undefined,
+}
   }
 
   if (isOwner) {
@@ -2332,22 +2335,25 @@ async function createLeadMatches({
         matches,
       })
 
-    return {
-      ok:
-        result.ok,
+return {
+  ok:
+    result.ok,
 
-      created:
-        result.created,
+  created:
+    result.created,
 
-      skipped:
-        false,
+  match_ids:
+    result.match_ids,
 
-      error:
-        "error" in
-        result
-          ? result.error
-          : undefined,
-    }
+  skipped:
+    false,
+
+  error:
+    "error" in
+    result
+      ? result.error
+      : undefined,
+}
   }
 
   return {
