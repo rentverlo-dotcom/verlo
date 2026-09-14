@@ -39,6 +39,28 @@ type CandidateItem = {
     waiting_tenant: boolean
     waiting_verification: boolean
     operation_active: boolean
+
+    tenant_post_visit_decision:
+      | "yes"
+      | "no"
+      | null
+
+    tenant_post_visit_decided_at:
+      | string
+      | null
+
+    owner_post_visit_decision:
+      | "yes"
+      | "no"
+      | null
+
+    owner_post_visit_decided_at:
+      | string
+      | null
+
+    owner_closing_url:
+      | string
+      | null
   }
 
   tenant: {
@@ -1071,19 +1093,44 @@ function CandidateCard({
         </button>
       ) : match
           .ready_to_connect ? (
-        <div className="ready-box">
-          <strong>
-            Doble OK
-          </strong>
+        <>
+          <div className="ready-box">
+            <strong>
+              Doble OK
+            </strong>
 
-          <span>
-            Los dos quieren
-            avanzar. Esta
-            operación ya está
-            en el tramo de
-            visita y cierre.
-          </span>
-        </div>
+            <span>
+              {match
+                .owner_post_visit_decision ===
+              "yes"
+                ? match
+                    .tenant_post_visit_decision ===
+                  "yes"
+                  ? "Los dos confirmaron después de la visita."
+                  : "Vos querés avanzar. Falta la decisión del inquilino."
+                : match
+                    .owner_post_visit_decision ===
+                  "no"
+                  ? "Marcaste que por ahora no querés avanzar. Podés cambiar tu decisión."
+                  : "Los dos quieren avanzar. Esta operación ya está en el tramo de visita y cierre."}
+            </span>
+          </div>
+
+          {match
+            .owner_closing_url && (
+            <button
+              type="button"
+              className="operation-button"
+              onClick={() => {
+                window.location.href =
+                  match
+                    .owner_closing_url as string
+              }}
+            >
+              VER OPERACIÓN / CAMBIAR DECISIÓN
+            </button>
+          )}
+        </>
       ) : match
           .owner_interest ? (
         <div className="waiting-box">
@@ -1797,6 +1844,18 @@ function Styles() {
       .accept-button:disabled {
         opacity: 0.6;
         cursor: default;
+      }
+
+      .operation-button {
+        width: 100%;
+        margin-top: 12px;
+        border: 0;
+        border-radius: 999px;
+        padding: 16px 22px;
+        background: #050002;
+        color: white;
+        font-weight: 950;
+        cursor: pointer;
       }
 
       .waiting-box,
