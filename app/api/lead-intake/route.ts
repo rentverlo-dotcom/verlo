@@ -3537,6 +3537,35 @@ for (
       err
     )
 
+  return NextResponse.json({
+  ok: true,
+
+  meta,
+
+  tags,
+
+  match_result:
+    matchResult,
+
+  push_events:
+    pushEvents,
+
+  match_summary:
+    matchSummary,
+
+  event_id:
+    eventId,
+
+  lead_id:
+    leadRecord?.id ||
+    null,
+})
+  } catch (err) {
+    console.error(
+      "lead intake api error:",
+      err
+    )
+
     return NextResponse.json(
       {
         ok: false,
