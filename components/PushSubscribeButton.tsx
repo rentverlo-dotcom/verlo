@@ -7,12 +7,14 @@ import {
 
 type Props = {
   leadId: string
-  role: 'tenant' | 'owner'
+  role:
+    | 'tenant'
+    | 'owner'
 }
 
 type Status =
-  | 'idle'
   | 'checking'
+  | 'idle'
   | 'loading'
   | 'success'
   | 'error'
@@ -25,7 +27,9 @@ const PUSH_ROLE_STORAGE_KEY =
 
 function savePushIdentity(
   leadId: string,
-  role: 'tenant' | 'owner'
+  role:
+    | 'tenant'
+    | 'owner'
 ) {
   try {
     window.localStorage.setItem(
@@ -143,35 +147,6 @@ export default function PushSubscribeButton({
     )
   }
 
-  async function createSubscription(
-    registration:
-      ServiceWorkerRegistration
-  ) {
-    const publicKey =
-      process.env
-        .NEXT_PUBLIC_VAPID_PUBLIC_KEY
-
-    if (
-      !publicKey
-    ) {
-      throw new Error(
-        'Falta la clave pública VAPID.'
-      )
-    }
-
-    return registration
-      .pushManager
-      .subscribe({
-        userVisibleOnly:
-          true,
-
-        applicationServerKey:
-          urlBase64ToUint8Array(
-            publicKey
-          ),
-      })
-  }
-
   async function getBackendStatus(
     subscription:
       PushSubscription
@@ -194,8 +169,7 @@ export default function PushSubscribeButton({
                 leadId,
 
               endpoint:
-                subscription
-                  .endpoint,
+                subscription.endpoint,
             }),
         }
       )
@@ -217,7 +191,9 @@ export default function PushSubscribeButton({
       )
     }
 
-    return result
+    return Boolean(
+      result.active
+    )
   }
 
   async function registerSubscription(
@@ -263,113 +239,40 @@ export default function PushSubscribeButton({
     ) {
       throw new Error(
         result?.error ||
-          'No se pudo activar.'
+          'No se pudo registrar el dispositivo.'
       )
     }
 
     return result
   }
 
-  async function sendIntakeConfirmation() {
-    const response =
-      await fetch(
-        '/api/push/intake-confirmation',
-        {
-          method:
-            'POST',
-
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-
-          body:
-            JSON.stringify({
-              lead_id:
-                leadId,
-
-              role,
-            }),
-        }
-      )
-
-    const result =
-      await response
-        .json()
-        .catch(
-          () => null
-        )
-
-    if (
-      !response.ok ||
-      !result?.ok
-    ) {
-      console.error(
-        'intake confirmation failed:',
-        result
-      )
-
-      return
-    }
-
-    console.log(
-      'intake confirmation:',
-      result
-    )
-  }
-
-  async function repairSubscription(
+  async function createSubscription(
     registration:
-      ServiceWorkerRegistration,
-
-    oldSubscription?:
-      PushSubscription |
-      null
+      ServiceWorkerRegistration
   ) {
+    const publicKey =
+      process.env
+        .NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
     if (
-      oldSubscription
+      !publicKey
     ) {
-      try {
-        await oldSubscription
-          .unsubscribe()
-      } catch (
-        error
-      ) {
-        console.error(
-          'push unsubscribe error:',
-          error
-        )
-      }
+      throw new Error(
+        'Falta la clave pública VAPID.'
+      )
     }
 
-    const freshSubscription =
-      await createSubscription(
-        registration
-      )
+    return registration
+      .pushManager
+      .subscribe({
+        userVisibleOnly:
+          true,
 
-    await registerSubscription(
-      freshSubscription
-    )
-
-    savePushIdentity(
-      leadId,
-      role
-    )
-
-    return freshSubscription
-  }
-
-  async function finalizePushSuccess() {
-    savePushIdentity(
-      leadId,
-      role
-    )
-
-    await sendIntakeConfirmation()
-
-    setStatus(
-      'success'
-    )
+        applicationServerKey:
+          urlBase64ToUint8Array(
+            publicKey
+          ),
+      })
   }
 
   async function activatePush() {
@@ -416,43 +319,21 @@ export default function PushSubscribeButton({
           .getSubscription()
 
       if (
-        subscription
+        !subscription
       ) {
-        const backendStatus =
-          await getBackendStatus(
-            subscription
-          )
-
-        if (
-          backendStatus
-            .active
-        ) {
-          await finalizePushSuccess()
-
-          return
-        }
-
         subscription =
-          await repairSubscription(
-            registration,
-            subscription
+          await createSubscription(
+            registration
           )
-
-        await finalizePushSuccess()
-
-        return
       }
-
-      subscription =
-        await createSubscription(
-          registration
-        )
 
       await registerSubscription(
         subscription
       )
 
-      await finalizePushSuccess()
+      setStatus(
+        'success'
+      )
     } catch (
       error
     ) {
@@ -525,7 +406,7 @@ export default function PushSubscribeButton({
           const registration =
             await getRegistration()
 
-          let subscription =
+          const subscription =
             await registration
               .pushManager
               .getSubscription()
@@ -544,7 +425,7 @@ export default function PushSubscribeButton({
             return
           }
 
-          const backendStatus =
+          const active =
             await getBackendStatus(
               subscription
             )
@@ -556,27 +437,12 @@ export default function PushSubscribeButton({
           }
 
           if (
-            !backendStatus
-              .active
+            !active
           ) {
-            setStatus(
-              'loading'
+            await registerSubscription(
+              subscription
             )
-
-            subscription =
-              await repairSubscription(
-                registration,
-                subscription
-              )
           }
-
-          if (
-            cancelled
-          ) {
-            return
-          }
-
-          await sendIntakeConfirmation()
 
           if (
             !cancelled
