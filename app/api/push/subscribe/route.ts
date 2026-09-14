@@ -20,7 +20,8 @@ async function postInternal(
     {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type':
+          'application/json',
       },
       body: JSON.stringify(body),
     }
@@ -31,44 +32,180 @@ async function postInternal(
     .catch(() => null)
 
   return {
-    ok: response.ok && data?.ok !== false,
-    status: response.status,
+    ok:
+      response.ok &&
+      data?.ok !== false,
+    status:
+      response.status,
     data,
   }
 }
 
-export async function POST(request: Request) {
+async function getOwnerDestination(
+  request: Request,
+  ownerLeadId: string
+) {
+  const {
+    data: completion,
+    error: completionError,
+  } =
+    await supabaseAdmin
+      .from(
+        'owner_property_completions'
+      )
+      .select(
+        'id, status'
+      )
+      .eq(
+        'lead_id',
+        ownerLeadId
+      )
+      .eq(
+        'status',
+        'submitted'
+      )
+      .order(
+        'created_at',
+        {
+          ascending:
+            false,
+        }
+      )
+      .limit(1)
+      .maybeSingle()
+
+  if (
+    completionError
+  ) {
+    throw completionError
+  }
+
+  if (
+    completion
+  ) {
+    const tokenResult =
+      await postInternal(
+        request,
+        '/api/owner-candidates-token',
+        {
+          owner_lead_id:
+            ownerLeadId,
+        }
+      )
+
+    if (
+      !tokenResult.ok ||
+      !tokenResult
+        .data
+        ?.candidates_url
+    ) {
+      return {
+        ok: false,
+        completed: true,
+        url: null,
+        tokenResult,
+      }
+    }
+
+    return {
+      ok: true,
+      completed: true,
+      url: String(
+        tokenResult
+          .data
+          .candidates_url
+      ),
+      tokenResult,
+    }
+  }
+
+  const tokenResult =
+    await postInternal(
+      request,
+      '/api/owner-property-token',
+      {
+        owner_lead_id:
+          ownerLeadId,
+      }
+    )
+
+  if (
+    !tokenResult.ok ||
+    !tokenResult
+      .data
+      ?.property_url
+  ) {
+    return {
+      ok: false,
+      completed: false,
+      url: null,
+      tokenResult,
+    }
+  }
+
+  return {
+    ok: true,
+    completed: false,
+    url: String(
+      tokenResult
+        .data
+        .property_url
+    ),
+    tokenResult,
+  }
+}
+
+export async function POST(
+  request: Request
+) {
   try {
-    const body = await request.json()
+    const body =
+      await request.json()
 
-    const leadId = String(
-      body?.lead_id || ''
-    ).trim()
+    const leadId =
+      String(
+        body?.lead_id ||
+          ''
+      ).trim()
 
-    const role = String(
-      body?.role || ''
-    ).trim()
+    const role =
+      String(
+        body?.role ||
+          ''
+      ).trim()
 
     const subscription =
       body?.subscription
 
-    const endpoint = String(
-      subscription?.endpoint || ''
-    ).trim()
+    const endpoint =
+      String(
+        subscription
+          ?.endpoint ||
+          ''
+      ).trim()
 
-    const p256dh = String(
-      subscription?.keys?.p256dh || ''
-    ).trim()
+    const p256dh =
+      String(
+        subscription
+          ?.keys
+          ?.p256dh ||
+          ''
+      ).trim()
 
-    const auth = String(
-      subscription?.keys?.auth || ''
-    ).trim()
+    const auth =
+      String(
+        subscription
+          ?.keys
+          ?.auth ||
+          ''
+      ).trim()
 
     if (!leadId) {
       return NextResponse.json(
         {
           ok: false,
-          error: 'Missing lead_id',
+          error:
+            'Missing lead_id',
         },
         {
           status: 400,
@@ -77,13 +214,16 @@ export async function POST(request: Request) {
     }
 
     if (
-      role !== 'tenant' &&
-      role !== 'owner'
+      role !==
+        'tenant' &&
+      role !==
+        'owner'
     ) {
       return NextResponse.json(
         {
           ok: false,
-          error: 'Invalid role',
+          error:
+            'Invalid role',
         },
         {
           status: 400,
@@ -165,9 +305,11 @@ export async function POST(request: Request) {
             auth,
 
             user_agent:
-              request.headers.get(
-                'user-agent'
-              ),
+              request
+                .headers
+                .get(
+                  'user-agent'
+                ),
 
             updated_at:
               new Date()
@@ -199,7 +341,6 @@ export async function POST(request: Request) {
     // 3. EVENTO 1: BIENVENIDA
     //
     // Solo la primera vez que este dispositivo queda suscripto.
-    // Copy provisorio.
     // =========================================================
 
     if (
@@ -260,9 +401,6 @@ export async function POST(request: Request) {
 
     // =========================================================
     // 4. EVENTO 2: FORMULARIO RECIBIDO
-    //
-    // También solo en el alta inicial de esta suscripción.
-    // Copy provisorio.
     // =========================================================
 
     if (
@@ -325,12 +463,13 @@ export async function POST(request: Request) {
     }
 
     // =========================================================
-    // 5. EVENTO 3 PARA TENANT:
-    //    TIENE MATCH(ES) -> /matches/[token]
+    // 5. TENANT:
+    //    SI TIENE MATCHES -> /matches/[token]
     // =========================================================
 
     if (
-      role === 'tenant'
+      role ===
+      'tenant'
     ) {
       const {
         data: matches,
@@ -387,7 +526,8 @@ export async function POST(request: Request) {
 
         if (
           tokenResult.ok &&
-          tokenResult.data
+          tokenResult
+            .data
             ?.matches_url
         ) {
           try {
@@ -453,13 +593,16 @@ export async function POST(request: Request) {
         }
 
         // =====================================================
-        // 6. EL TENANT NUEVO TAMBIÉN PUEDE HABER GENERADO
-        //    MATCHES PARA OWNERS QUE YA ESTABAN SUSCRIPTOS.
+        // 6. TENANT NUEVO PUEDE HABER GENERADO MATCHES
+        //    PARA OWNERS EXISTENTES.
         //
-        // A cada owner involucrado:
-        // - crear/reutilizar token de propiedad
-        // - avisar que tiene matches
-        // - CTA para completar/mejorar fotos y videos
+        // REGLA:
+        //
+        // OWNER INCOMPLETO
+        // -> /propiedad/[token]
+        //
+        // OWNER COMPLETO
+        // -> /candidatos/[token]
         // =====================================================
 
         const ownerLeadIds =
@@ -536,26 +679,34 @@ export async function POST(request: Request) {
             continue
           }
 
-          const ownerTokenResult =
-            await postInternal(
-              request,
-              '/api/owner-property-token',
-              {
-                owner_lead_id:
-                  ownerLeadId,
-              }
-            )
+          let destination
 
-          if (
-            !ownerTokenResult.ok ||
-            !ownerTokenResult
-              .data
-              ?.property_url
+          try {
+            destination =
+              await getOwnerDestination(
+                request,
+                ownerLeadId
+              )
+          } catch (
+            destinationError
           ) {
             console.error(
-              'owner property token error:',
+              'owner destination lookup error:',
               ownerLeadId,
-              ownerTokenResult
+              destinationError
+            )
+
+            continue
+          }
+
+          if (
+            !destination.ok ||
+            !destination.url
+          ) {
+            console.error(
+              'owner destination token error:',
+              ownerLeadId,
+              destination
             )
 
             continue
@@ -570,14 +721,12 @@ export async function POST(request: Request) {
                     'Verlo · Tenés matches',
 
                   body:
-                    'Encontramos personas compatibles con tu propiedad. Completá la publicación y sumá fotos o videos para avanzar.',
+                    destination.completed
+                      ? 'Encontramos personas compatibles con tu propiedad. Entrá para ver tus candidatos.'
+                      : 'Encontramos personas compatibles con tu propiedad. Completá la publicación y sumá fotos o videos para avanzar.',
 
                   url:
-                    String(
-                      ownerTokenResult
-                        .data
-                        .property_url
-                    ),
+                    destination.url,
                 }
               )
 
@@ -624,16 +773,19 @@ export async function POST(request: Request) {
     }
 
     // =========================================================
-    // 7. EVENTO 3 PARA OWNER NUEVO
+    // 7. OWNER:
     //
-    // Si el owner se registra y ya existen tenants compatibles,
-    // generamos su token de propiedad y lo avisamos.
+    // SI TIENE MATCHES:
     //
-    // También avisamos a los tenants ya suscriptos.
+    // INCOMPLETO -> /propiedad/[token]
+    // COMPLETO   -> /candidatos/[token]
+    //
+    // También avisamos a tenants ya suscriptos.
     // =========================================================
 
     if (
-      role === 'owner'
+      role ===
+      'owner'
     ) {
       const {
         data: matches,
@@ -678,21 +830,31 @@ export async function POST(request: Request) {
         matches.length >
           0
       ) {
-        const ownerTokenResult =
-          await postInternal(
-            request,
-            '/api/owner-property-token',
-            {
-              owner_lead_id:
-                leadId,
-            }
+        let destination
+
+        try {
+          destination =
+            await getOwnerDestination(
+              request,
+              leadId
+            )
+        } catch (
+          destinationError
+        ) {
+          console.error(
+            'owner own destination lookup error:',
+            leadId,
+            destinationError
           )
 
+          destination =
+            null
+        }
+
         if (
-          ownerTokenResult.ok &&
-          ownerTokenResult
-            .data
-            ?.property_url
+          destination &&
+          destination.ok &&
+          destination.url
         ) {
           try {
             const result =
@@ -703,14 +865,12 @@ export async function POST(request: Request) {
                     'Verlo · Tenés matches',
 
                   body:
-                    'Encontramos personas compatibles con tu propiedad. Completá la publicación y sumá fotos o videos para avanzar.',
+                    destination.completed
+                      ? 'Encontramos personas compatibles con tu propiedad. Entrá para ver tus candidatos.'
+                      : 'Encontramos personas compatibles con tu propiedad. Completá la publicación y sumá fotos o videos para avanzar.',
 
                   url:
-                    String(
-                      ownerTokenResult
-                        .data
-                        .property_url
-                    ),
+                    destination.url,
                 }
               )
 
@@ -752,6 +912,10 @@ export async function POST(request: Request) {
             })
           }
         }
+
+        // =====================================================
+        // 8. AVISAR A TENANTS EXISTENTES
+        // =====================================================
 
         const tenantLeadIds =
           Array.from(
@@ -916,11 +1080,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
+
       is_new_subscription:
         isNewSubscription,
+
       notifications,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       'push subscribe error',
       error
@@ -929,6 +1097,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
+
         error:
           error instanceof Error
             ? error.message
