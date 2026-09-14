@@ -36,11 +36,6 @@ export async function POST(
         body?.lead_id
       )
 
-    const role =
-      clean(
-        body?.role
-      )
-
     const endpoint =
       clean(
         body?.endpoint
@@ -55,22 +50,6 @@ export async function POST(
           ok: false,
           error:
             "Missing lead_id or endpoint",
-        },
-        {
-          status: 400,
-        }
-      )
-    }
-
-    if (
-      role !== "tenant" &&
-      role !== "owner"
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Invalid role",
         },
         {
           status: 400,
@@ -119,9 +98,6 @@ export async function POST(
 
         same_lead:
           false,
-
-        same_role:
-          false,
       })
     }
 
@@ -129,13 +105,8 @@ export async function POST(
       subscription.lead_id ===
       leadId
 
-    const sameRole =
-      subscription.role ===
-      role
-
     const active =
       sameLead &&
-      sameRole &&
       !subscription.revoked_at
 
     return NextResponse.json({
@@ -148,9 +119,6 @@ export async function POST(
 
       same_lead:
         sameLead,
-
-      same_role:
-        sameRole,
 
       revoked:
         Boolean(
