@@ -1,17 +1,28 @@
 import {
   NextResponse,
-} from 'next/server'
+} from "next/server"
 
 import {
   supabaseAdmin,
-} from '@/lib/supabase/admin'
+} from "@/lib/supabase/admin"
 
 import {
   retryFailedLeadNotifications,
-} from '@/lib/lead-notifications'
+} from "@/lib/lead-notifications"
 
 export const runtime =
-  'nodejs'
+  "nodejs"
+
+export const dynamic =
+  "force-dynamic"
+
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
+}
 
 export async function POST(
   request: Request
@@ -25,42 +36,37 @@ export async function POST(
         )
 
     const leadId =
-      String(
-        body?.lead_id ||
-        ''
-      ).trim()
+      clean(
+        body?.lead_id
+      )
 
     const role =
-      String(
-        body?.role ||
-        ''
-      ).trim()
+      clean(
+        body?.role
+      )
 
     const subscription =
       body?.subscription
 
     const endpoint =
-      String(
+      clean(
         subscription
-          ?.endpoint ||
-        ''
-      ).trim()
+          ?.endpoint
+      )
 
     const p256dh =
-      String(
+      clean(
         subscription
           ?.keys
-          ?.p256dh ||
-        ''
-      ).trim()
+          ?.p256dh
+      )
 
     const auth =
-      String(
+      clean(
         subscription
           ?.keys
-          ?.auth ||
-        ''
-      ).trim()
+          ?.auth
+      )
 
     if (
       !leadId
@@ -69,7 +75,7 @@ export async function POST(
         {
           ok: false,
           error:
-            'Missing lead_id',
+            "Missing lead_id",
         },
         {
           status: 400,
@@ -78,16 +84,14 @@ export async function POST(
     }
 
     if (
-      role !==
-        'tenant' &&
-      role !==
-        'owner'
+      role !== "tenant" &&
+      role !== "owner"
     ) {
       return NextResponse.json(
         {
           ok: false,
           error:
-            'Invalid role',
+            "Invalid role",
         },
         {
           status: 400,
@@ -104,13 +108,17 @@ export async function POST(
         {
           ok: false,
           error:
-            'Invalid push subscription',
+            "Invalid push subscription",
         },
         {
           status: 400,
         }
       )
     }
+
+    // =========================================================
+    // 1. VALIDAR LEAD
+    // =========================================================
 
     const {
       data:
@@ -121,13 +129,14 @@ export async function POST(
     } =
       await supabaseAdmin
         .from(
-          'lead_intake'
+          "lead_intake"
         )
-        .select(
-          'id, role'
-        )
+        .select(`
+          id,
+          role
+        `)
         .eq(
-          'id',
+          "id",
           leadId
         )
         .maybeSingle()
@@ -145,7 +154,7 @@ export async function POST(
         {
           ok: false,
           error:
-            'Lead not found',
+            "Lead not found",
         },
         {
           status: 404,
@@ -154,16 +163,15 @@ export async function POST(
     }
 
     const leadRole =
-      String(
-        lead.role ||
-        ''
-      ).trim()
+      clean(
+        lead.role
+      )
 
     const roleAllowed =
       leadRole ===
         role ||
       leadRole ===
-        'both'
+        "both"
 
     if (
       !roleAllowed
@@ -172,7 +180,7 @@ export async function POST(
         {
           ok: false,
           error:
-            'Role does not match lead',
+            "Role does not match lead",
         },
         {
           status: 403,
@@ -180,17 +188,34 @@ export async function POST(
       )
     }
 
+    // =========================================================
+    // 2. REGISTRAR / ACTUALIZAR ESTE DISPOSITIVO
+    //
+    // endpoint es UNIQUE.
+    //
+    // Si ya existía:
+    // - actualiza lead
+    // - actualiza role
+    // - actualiza keys
+    // - reactiva revoked_at
+    //
+    // NO crea ningún evento de negocio.
+    // =========================================================
+
     const now =
       new Date()
         .toISOString()
 
     const {
+      data:
+        savedSubscription,
+
       error:
         subscriptionError,
     } =
       await supabaseAdmin
         .from(
-          'push_subscriptions'
+          "push_subscriptions"
         )
         .upsert(
           {
@@ -209,7 +234,7 @@ export async function POST(
               request
                 .headers
                 .get(
-                  'user-agent'
+                  "user-agent"
                 ),
 
             updated_at:
@@ -220,18 +245,48 @@ export async function POST(
           },
           {
             onConflict:
-              'endpoint',
+              "endpoint",
           }
         )
+        .select(`
+          id,
+          lead_id,
+          role,
+          endpoint,
+          revoked_at
+        `)
+        .single()
 
     if (
-      subscriptionError
+      subscriptionError ||
+      !savedSubscription
     ) {
-      throw subscriptionError
+      throw (
+        subscriptionError ||
+        new Error(
+          "Could not save push subscription"
+        )
+      )
     }
 
+    // =========================================================
+    // 3. REINTENTAR SOLO EVENTOS FAILED YA EXISTENTES
+    //
+    // IMPORTANTE:
+    // Suscribirse NO crea:
+    // - intake confirmation
+    // - match
+    // - interés
+    // - doble OK
+    // - contrato
+    //
+    // Solo puede reintentar eventos de negocio
+    // que ya existían y habían fallado.
+    // =========================================================
+
     let retryResult:
-      unknown = null
+      unknown =
+      null
 
     try {
       retryResult =
@@ -242,21 +297,28 @@ export async function POST(
       retryError
     ) {
       console.error(
-        'push failed-event retry error:',
+        "push failed-event retry error:",
         retryError
       )
     }
 
+    // =========================================================
+    // 4. RESPONSE
+    // =========================================================
+
     return NextResponse.json({
       ok: true,
+
+      registered:
+        true,
 
       lead_id:
         leadId,
 
       role,
 
-      registered:
-        true,
+      subscription_id:
+        savedSubscription.id,
 
       retries:
         retryResult,
@@ -265,7 +327,7 @@ export async function POST(
     error
   ) {
     console.error(
-      'push subscribe error:',
+      "push subscribe error:",
       error
     )
 
@@ -277,7 +339,7 @@ export async function POST(
           error instanceof
           Error
             ? error.message
-            : 'Unknown error',
+            : "Unexpected server error",
       },
       {
         status: 500,
