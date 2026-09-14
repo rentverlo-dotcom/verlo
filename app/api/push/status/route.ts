@@ -1,7 +1,24 @@
-import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import {
+  NextResponse,
+} from "next/server"
 
-export const runtime = 'nodejs'
+import {
+  supabaseAdmin,
+} from "@/lib/supabase/admin"
+
+export const runtime =
+  "nodejs"
+
+export const dynamic =
+  "force-dynamic"
+
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
+}
 
 export async function POST(
   request: Request
@@ -10,17 +27,24 @@ export async function POST(
     const body =
       await request
         .json()
-        .catch(() => ({}))
+        .catch(
+          () => ({})
+        )
 
     const leadId =
-      String(
-        body?.lead_id || ''
-      ).trim()
+      clean(
+        body?.lead_id
+      )
+
+    const role =
+      clean(
+        body?.role
+      )
 
     const endpoint =
-      String(
-        body?.endpoint || ''
-      ).trim()
+      clean(
+        body?.endpoint
+      )
 
     if (
       !leadId ||
@@ -30,7 +54,23 @@ export async function POST(
         {
           ok: false,
           error:
-            'Missing lead_id or endpoint',
+            "Missing lead_id or endpoint",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    if (
+      role !== "tenant" &&
+      role !== "owner"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Invalid role",
         },
         {
           status: 400,
@@ -45,18 +85,23 @@ export async function POST(
     } =
       await supabaseAdmin
         .from(
-          'push_subscriptions'
+          "push_subscriptions"
         )
-        .select(
-          'id, lead_id, role, endpoint, revoked_at, updated_at'
-        )
+        .select(`
+          id,
+          lead_id,
+          role,
+          revoked_at
+        `)
         .eq(
-          'endpoint',
+          "endpoint",
           endpoint
         )
         .maybeSingle()
 
-    if (error) {
+    if (
+      error
+    ) {
       throw error
     }
 
@@ -65,11 +110,17 @@ export async function POST(
     ) {
       return NextResponse.json({
         ok: true,
+
         registered:
           false,
+
         active:
           false,
+
         same_lead:
+          false,
+
+        same_role:
           false,
       })
     }
@@ -78,37 +129,51 @@ export async function POST(
       subscription.lead_id ===
       leadId
 
+    const sameRole =
+      subscription.role ===
+      role
+
     const active =
       sameLead &&
+      sameRole &&
       !subscription.revoked_at
 
     return NextResponse.json({
       ok: true,
+
       registered:
         true,
+
       active,
+
       same_lead:
         sameLead,
+
+      same_role:
+        sameRole,
+
       revoked:
         Boolean(
           subscription.revoked_at
         ),
-      revoked_at:
-        subscription.revoked_at,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
-      'push status error',
+      "push status error:",
       error
     )
 
     return NextResponse.json(
       {
         ok: false,
+
         error:
-          error instanceof Error
+          error instanceof
+          Error
             ? error.message
-            : 'Unknown error',
+            : "Unexpected server error",
       },
       {
         status: 500,
