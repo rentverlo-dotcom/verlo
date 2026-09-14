@@ -344,6 +344,10 @@ export async function POST(
           tenant_lead_id,
           owner_lead_id,
           ready_to_connect_at,
+          tenant_post_visit_decision,
+          tenant_post_visit_decided_at,
+          owner_post_visit_decision,
+          owner_post_visit_decided_at,
           status
         `)
         .eq(
@@ -400,6 +404,56 @@ export async function POST(
           ok: false,
           error:
             "Match is not ready to close",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    // =========================================================
+    // 4B. SEGUNDO DOBLE OK POST-VISITA
+    //
+    // El contrato puede verse y generarse antes de la visita,
+    // pero NO puede aceptarse definitivamente hasta que:
+    //
+    // tenant_post_visit_decision = yes
+    // owner_post_visit_decision  = yes
+    //
+    // =========================================================
+
+    const tenantPostVisitYes =
+      match
+        .tenant_post_visit_decision ===
+      "yes"
+
+    const ownerPostVisitYes =
+      match
+        .owner_post_visit_decision ===
+      "yes"
+
+    if (
+      !tenantPostVisitYes ||
+      !ownerPostVisitYes
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+
+          error:
+            "Both parties must confirm after the visit before accepting the contract",
+
+          post_visit: {
+            tenant:
+              match
+                .tenant_post_visit_decision ||
+              null,
+
+            owner:
+              match
+                .owner_post_visit_decision ||
+              null,
+          },
         },
         {
           status: 409,
@@ -1066,6 +1120,16 @@ export async function POST(
 
       rental_id:
         rentalId,
+
+      post_visit: {
+        tenant:
+          match
+            .tenant_post_visit_decision,
+
+        owner:
+          match
+            .owner_post_visit_decision,
+      },
 
       push: {
         tenant:
