@@ -1,10 +1,10 @@
 import {
   supabaseAdmin,
-} from '@/lib/supabase/admin'
+} from "@/lib/supabase/admin"
 
 import {
   sendPushToLead,
-} from '@/lib/push'
+} from "@/lib/push"
 
 type NotifyLeadOnceInput = {
   eventKey: string
@@ -20,55 +20,174 @@ type NotifyLeadOnceInput = {
   url: string
 }
 
+type NotificationEventStatus =
+  | "pending"
+  | "sent"
+  | "failed"
+
 type NotificationEventRow = {
   id: string
+
   event_key: string
   event_type: string
+
   lead_id: string
-  entity_type: string | null
-  entity_id: string | null
+
+  entity_type:
+    | string
+    | null
+
+  entity_id:
+    | string
+    | null
+
   title: string
   body: string
   url: string
+
   status:
-    | 'pending'
-    | 'sent'
-    | 'failed'
+    NotificationEventStatus
+
   updated_at: string
 }
+
+const EVENT_SELECT = `
+  id,
+  event_key,
+  event_type,
+  lead_id,
+  entity_type,
+  entity_id,
+  title,
+  body,
+  url,
+  status,
+  updated_at
+`
+
+const PROCESSING_TIMEOUT_MS =
+  2 *
+  60 *
+  1000
 
 function clean(
   value: unknown
 ) {
   return String(
-    value || ''
+    value || ""
   ).trim()
 }
+
+// ============================================================
+// MARCAR FAILED
+// ============================================================
 
 async function markFailed(
   eventId: string,
   message: string
 ) {
-  await supabaseAdmin
-    .from(
-      'lead_notification_events'
-    )
-    .update({
-      status:
-        'failed',
+  const now =
+    new Date()
+      .toISOString()
 
-      last_error:
-        message,
+  const {
+    error,
+  } =
+    await supabaseAdmin
+      .from(
+        "lead_notification_events"
+      )
+      .update({
+        status:
+          "failed",
 
-      updated_at:
-        new Date()
-          .toISOString(),
-    })
-    .eq(
-      'id',
-      eventId
+        last_error:
+          message,
+
+        updated_at:
+          now,
+      })
+      .eq(
+        "id",
+        eventId
+      )
+      .eq(
+        "status",
+        "pending"
+      )
+
+  if (
+    error
+  ) {
+    console.error(
+      "notification mark failed error:",
+      {
+        eventId,
+        error,
+      }
     )
+  }
 }
+
+// ============================================================
+// MARCAR SENT
+// ============================================================
+
+async function markSent(
+  eventId: string,
+  failedCount: number
+) {
+  const now =
+    new Date()
+      .toISOString()
+
+  const {
+    error,
+  } =
+    await supabaseAdmin
+      .from(
+        "lead_notification_events"
+      )
+      .update({
+        status:
+          "sent",
+
+        sent_at:
+          now,
+
+        last_error:
+          failedCount > 0
+            ? `${failedCount} device(s) failed`
+            : null,
+
+        updated_at:
+          now,
+      })
+      .eq(
+        "id",
+        eventId
+      )
+      .eq(
+        "status",
+        "pending"
+      )
+
+  if (
+    error
+  ) {
+    throw error
+  }
+}
+
+// ============================================================
+// ENTREGAR EVENTO
+//
+// IMPORTANTE:
+// sendPushToLead puede enviar a más de un dispositivo físico
+// del MISMO lead.
+//
+// Eso sigue siendo UN evento lógico.
+// ============================================================
 
 async function deliverEvent(
   event:
@@ -102,43 +221,26 @@ async function deliverEvent(
         0
       )
 
+    // ========================================================
+    // AL MENOS UN DISPOSITIVO RECIBIÓ
+    // ========================================================
+
     if (
       sentCount >
       0
     ) {
-      const now =
-        new Date()
-          .toISOString()
-
-      await supabaseAdmin
-        .from(
-          'lead_notification_events'
-        )
-        .update({
-          status:
-            'sent',
-
-          sent_at:
-            now,
-
-          last_error:
-            failedCount >
-            0
-              ? `${failedCount} device(s) failed`
-              : null,
-
-          updated_at:
-            now,
-        })
-        .eq(
-          'id',
-          event.id
-        )
+      await markSent(
+        event.id,
+        failedCount
+      )
 
       return {
         ok: true,
+
         sent: true,
-        duplicate: false,
+
+        duplicate:
+          false,
 
         event_id:
           event.id,
@@ -151,11 +253,17 @@ async function deliverEvent(
       }
     }
 
+    // ========================================================
+    // NINGÚN DISPOSITIVO RECIBIÓ
+    //
+    // Lo dejamos FAILED para que pueda reintentarse cuando
+    // vuelva a registrarse una suscripción Push.
+    // ========================================================
+
     const message =
-      failedCount >
-      0
-        ? 'Push delivery failed'
-        : 'No active push subscriptions'
+      failedCount > 0
+        ? "Push delivery failed"
+        : "No active push subscriptions"
 
     await markFailed(
       event.id,
@@ -164,8 +272,11 @@ async function deliverEvent(
 
     return {
       ok: false,
+
       sent: false,
-      duplicate: false,
+
+      duplicate:
+        false,
 
       event_id:
         event.id,
@@ -196,7 +307,7 @@ async function deliverEvent(
     )
 
     console.error(
-      'notification delivery error:',
+      "notification delivery error:",
       {
         eventKey:
           event.event_key,
@@ -210,8 +321,11 @@ async function deliverEvent(
 
     return {
       ok: false,
+
       sent: false,
-      duplicate: false,
+
+      duplicate:
+        false,
 
       event_id:
         event.id,
@@ -221,6 +335,82 @@ async function deliverEvent(
     }
   }
 }
+
+// ============================================================
+// CLAIM SEGURO
+//
+// Hace compare-and-set usando:
+// - id
+// - status anterior
+// - updated_at anterior
+//
+// Así dos requests simultáneos NO pueden reclamar
+// el mismo evento.
+// ============================================================
+
+async function claimEvent(
+  event:
+    NotificationEventRow
+) {
+  const now =
+    new Date()
+      .toISOString()
+
+  const {
+    data:
+      claimedEvent,
+
+    error:
+      claimError,
+  } =
+    await supabaseAdmin
+      .from(
+        "lead_notification_events"
+      )
+      .update({
+        status:
+          "pending",
+
+        last_error:
+          null,
+
+        updated_at:
+          now,
+      })
+      .eq(
+        "id",
+        event.id
+      )
+      .eq(
+        "status",
+        event.status
+      )
+      .eq(
+        "updated_at",
+        event.updated_at
+      )
+      .select(
+        EVENT_SELECT
+      )
+      .maybeSingle()
+
+  if (
+    claimError
+  ) {
+    throw claimError
+  }
+
+  return claimedEvent
+    ? (
+        claimedEvent as
+          NotificationEventRow
+      )
+    : null
+}
+
+// ============================================================
+// NOTIFICACIÓN LÓGICA EXACTAMENTE UNA VEZ
+// ============================================================
 
 export async function notifyLeadOnce(
   input:
@@ -244,12 +434,14 @@ export async function notifyLeadOnce(
   const entityType =
     clean(
       input.entityType
-    ) || null
+    ) ||
+    null
 
   const entityId =
     clean(
       input.entityId
-    ) || null
+    ) ||
+    null
 
   const title =
     clean(
@@ -275,13 +467,19 @@ export async function notifyLeadOnce(
     !url
   ) {
     throw new Error(
-      'Invalid notification event'
+      "Invalid notification event"
     )
   }
 
   const now =
     new Date()
       .toISOString()
+
+  // =========================================================
+  // 1. INTENTAR CREAR EVENTO
+  //
+  // event_key UNIQUE es la primera barrera anti-duplicados.
+  // =========================================================
 
   const {
     data:
@@ -292,7 +490,7 @@ export async function notifyLeadOnce(
   } =
     await supabaseAdmin
       .from(
-        'lead_notification_events'
+        "lead_notification_events"
       )
       .insert({
         event_key:
@@ -311,29 +509,25 @@ export async function notifyLeadOnce(
           entityId,
 
         title,
+
         body,
+
         url,
 
         status:
-          'pending',
+          "pending",
 
         updated_at:
           now,
       })
-      .select(`
-        id,
-        event_key,
-        event_type,
-        lead_id,
-        entity_type,
-        entity_id,
-        title,
-        body,
-        url,
-        status,
-        updated_at
-      `)
+      .select(
+        EVENT_SELECT
+      )
       .maybeSingle()
+
+  // =========================================================
+  // 2. EVENTO NUEVO
+  // =========================================================
 
   if (
     !insertError &&
@@ -345,12 +539,25 @@ export async function notifyLeadOnce(
     )
   }
 
+  // =========================================================
+  // 3. ERROR QUE NO ES DUPLICADO
+  // =========================================================
+
   if (
     insertError?.code !==
-    '23505'
+    "23505"
   ) {
-    throw insertError
+    throw (
+      insertError ||
+      new Error(
+        "Could not create notification event"
+      )
+    )
   }
+
+  // =========================================================
+  // 4. YA EXISTE EVENT_KEY
+  // =========================================================
 
   const {
     data:
@@ -361,23 +568,13 @@ export async function notifyLeadOnce(
   } =
     await supabaseAdmin
       .from(
-        'lead_notification_events'
+        "lead_notification_events"
       )
-      .select(`
-        id,
-        event_key,
-        event_type,
-        lead_id,
-        entity_type,
-        entity_id,
-        title,
-        body,
-        url,
-        status,
-        updated_at
-      `)
+      .select(
+        EVENT_SELECT
+      )
       .eq(
-        'event_key',
+        "event_key",
         eventKey
       )
       .maybeSingle()
@@ -392,7 +589,7 @@ export async function notifyLeadOnce(
     !existingEvent
   ) {
     throw new Error(
-      'Notification event not found'
+      "Notification event not found"
     )
   }
 
@@ -400,52 +597,70 @@ export async function notifyLeadOnce(
     existingEvent as
       NotificationEventRow
 
+  // =========================================================
+  // 5. YA FUE ENVIADO
+  //
+  // Nunca reenviar.
+  // =========================================================
+
   if (
     event.status ===
-    'sent'
+    "sent"
   ) {
     return {
       ok: true,
+
       sent: false,
-      duplicate: true,
+
+      duplicate:
+        true,
 
       reason:
-        'already_sent',
+        "already_sent",
 
       event_id:
         event.id,
     }
   }
 
+  // =========================================================
+  // 6. PENDING RECIENTE
+  //
+  // Otro request probablemente lo está procesando.
+  // =========================================================
+
   if (
     event.status ===
-    'pending'
+    "pending"
   ) {
-    const updatedAt =
+    const updatedAtMs =
       new Date(
         event.updated_at
       ).getTime()
 
     const stale =
       !Number.isFinite(
-        updatedAt
+        updatedAtMs
       ) ||
-      Date.now() -
-        updatedAt >
-        2 *
-          60 *
-          1000
+      (
+        Date.now() -
+          updatedAtMs >
+        PROCESSING_TIMEOUT_MS
+      )
 
     if (
       !stale
     ) {
       return {
         ok: true,
+
         sent: false,
-        duplicate: true,
+
+        duplicate:
+          true,
 
         reason:
-          'already_processing',
+          "already_processing",
 
         event_id:
           event.id,
@@ -453,77 +668,54 @@ export async function notifyLeadOnce(
     }
   }
 
-  const {
-    data:
-      claimedEvent,
+  // =========================================================
+  // 7. FAILED O PENDING VIEJO
+  //
+  // Intentamos reclamarlo con compare-and-set.
+  // =========================================================
 
-    error:
-      claimError,
-  } =
-    await supabaseAdmin
-      .from(
-        'lead_notification_events'
-      )
-      .update({
-        status:
-          'pending',
-
-        last_error:
-          null,
-
-        updated_at:
-          now,
-      })
-      .eq(
-        'id',
-        event.id
-      )
-      .neq(
-        'status',
-        'sent'
-      )
-      .select(`
-        id,
-        event_key,
-        event_type,
-        lead_id,
-        entity_type,
-        entity_id,
-        title,
-        body,
-        url,
-        status,
-        updated_at
-      `)
-      .maybeSingle()
-
-  if (
-    claimError
-  ) {
-    throw claimError
-  }
+  const claimedEvent =
+    await claimEvent(
+      event
+    )
 
   if (
     !claimedEvent
   ) {
     return {
       ok: true,
+
       sent: false,
-      duplicate: true,
+
+      duplicate:
+        true,
 
       reason:
-        'already_claimed',
+        "already_claimed",
 
       event_id:
         event.id,
     }
   }
 
+  // =========================================================
+  // 8. SOLO EL REQUEST QUE GANÓ EL CLAIM ENVÍA
+  // =========================================================
+
   return deliverEvent(
-    claimedEvent as
-      NotificationEventRow
+    claimedEvent
   )
 }
+
+// ============================================================
+// REINTENTAR EVENTOS FALLIDOS DE UN LEAD
+//
+// Se usa después de registrar / recuperar una suscripción Push.
+//
+// IMPORTANTE:
+// registrar un dispositivo NO crea eventos de negocio.
+// Solamente intenta entregar eventos YA EXISTENTES y FAILED.
+// ============================================================
 
 export async function retryFailedLeadNotifications(
   leadIdInput: string
@@ -538,8 +730,12 @@ export async function retryFailedLeadNotifications(
   ) {
     return {
       ok: false,
-      retried: 0,
-      sent: 0,
+
+      retried:
+        0,
+
+      sent:
+        0,
     }
   }
 
@@ -551,31 +747,21 @@ export async function retryFailedLeadNotifications(
   } =
     await supabaseAdmin
       .from(
-        'lead_notification_events'
+        "lead_notification_events"
       )
-      .select(`
-        id,
-        event_key,
-        event_type,
-        lead_id,
-        entity_type,
-        entity_id,
-        title,
-        body,
-        url,
-        status,
-        updated_at
-      `)
+      .select(
+        EVENT_SELECT
+      )
       .eq(
-        'lead_id',
+        "lead_id",
         leadId
       )
       .eq(
-        'status',
-        'failed'
+        "status",
+        "failed"
       )
       .order(
-        'created_at',
+        "created_at",
         {
           ascending:
             true,
@@ -605,56 +791,43 @@ export async function retryFailedLeadNotifications(
       row as
         NotificationEventRow
 
-    const now =
-      new Date()
-        .toISOString()
+    // ========================================================
+    // CLAIM ATÓMICO DEL FAILED
+    //
+    // Si otro request ya lo tomó, devuelve null.
+    // ========================================================
 
-    const {
-      data:
-        claimedEvent,
+    let claimedEvent:
+      NotificationEventRow |
+      null =
+      null
 
-      error:
-        claimError,
-    } =
-      await supabaseAdmin
-        .from(
-          'lead_notification_events'
+    try {
+      claimedEvent =
+        await claimEvent(
+          event
         )
-        .update({
-          status:
-            'pending',
+    } catch (
+      claimError
+    ) {
+      console.error(
+        "notification retry claim error:",
+        {
+          eventKey:
+            event.event_key,
 
-          last_error:
-            null,
+          leadId:
+            event.lead_id,
 
-          updated_at:
-            now,
-        })
-        .eq(
-          'id',
-          event.id
-        )
-        .eq(
-          'status',
-          'failed'
-        )
-        .select(`
-          id,
-          event_key,
-          event_type,
-          lead_id,
-          entity_type,
-          entity_id,
-          title,
-          body,
-          url,
-          status,
-          updated_at
-        `)
-        .maybeSingle()
+          error:
+            claimError,
+        }
+      )
+
+      continue
+    }
 
     if (
-      claimError ||
       !claimedEvent
     ) {
       continue
@@ -665,8 +838,7 @@ export async function retryFailedLeadNotifications(
 
     const result =
       await deliverEvent(
-        claimedEvent as
-          NotificationEventRow
+        claimedEvent
       )
 
     if (
@@ -679,7 +851,9 @@ export async function retryFailedLeadNotifications(
 
   return {
     ok: true,
+
     retried,
+
     sent,
   }
 }
