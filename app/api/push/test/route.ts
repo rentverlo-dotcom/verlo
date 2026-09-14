@@ -1,72 +1,51 @@
-import { NextResponse } from 'next/server'
-import { sendPushToLead } from '@/lib/push'
+import {
+  NextResponse,
+} from "next/server"
 
-export const runtime = 'nodejs'
+export const runtime =
+  "nodejs"
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json()
+export const dynamic =
+  "force-dynamic"
 
-    const leadId = String(
-      body?.lead_id || ''
-    ).trim()
+/**
+ * Endpoint deshabilitado en producción.
+ *
+ * Las notificaciones reales deben salir únicamente
+ * desde eventos de negocio registrados mediante
+ * notifyLeadOnce().
+ *
+ * No permitimos enviar Push arbitrarios por API.
+ */
 
-    const title = String(
-      body?.title || 'Verlo'
-    ).trim()
+export async function GET() {
+  return NextResponse.json(
+    {
+      ok: false,
 
-    const message = String(
-      body?.body ||
-        'Tenés una nueva notificación en Verlo.'
-    ).trim()
+      disabled: true,
 
-    const url = String(
-      body?.url || '/'
-    ).trim()
-
-    if (!leadId) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: 'Missing lead_id',
-        },
-        {
-          status: 400,
-        }
-      )
+      error:
+        "Push test endpoint disabled",
+    },
+    {
+      status: 410,
     }
+  )
+}
 
-    const result =
-      await sendPushToLead(
-        leadId,
-        {
-          title,
-          body: message,
-          url,
-        }
-      )
+export async function POST() {
+  return NextResponse.json(
+    {
+      ok: false,
 
-    return NextResponse.json({
-      ok: true,
-      ...result,
-    })
-  } catch (error) {
-    console.error(
-      'push test error',
-      error
-    )
+      disabled: true,
 
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Unknown error',
-      },
-      {
-        status: 500,
-      }
-    )
-  }
+      error:
+        "Push test endpoint disabled",
+    },
+    {
+      status: 410,
+    }
+  )
 }
