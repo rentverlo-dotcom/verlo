@@ -24,7 +24,16 @@ const ACTIVE_MATCH_STATUSES = [
   "converted",
 ]
 
-const MIN_MATCH_SCORE = 80
+const MIN_MATCH_SCORE =
+  80
+
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
+}
 
 export async function POST(
   req: NextRequest
@@ -77,10 +86,9 @@ export async function POST(
         )
 
     const ownerLeadId =
-      String(
-        body?.owner_lead_id ||
-          ""
-      ).trim()
+      clean(
+        body?.owner_lead_id
+      )
 
     if (
       !ownerLeadId
@@ -102,8 +110,10 @@ export async function POST(
     // =========================================================
 
     const {
-      data: ownerLead,
-      error: ownerError,
+      data:
+        ownerLead,
+      error:
+        ownerError,
     } =
       await supabase
         .from(
@@ -111,7 +121,6 @@ export async function POST(
         )
         .select(`
           id,
-          full_name,
           role,
           intent
         `)
@@ -156,23 +165,17 @@ export async function POST(
     }
 
     // =========================================================
-    // 2. TODOS LOS MATCHES ACTIVOS DEL OWNER
+    // 2. MATCHES ACTIVOS DEL OWNER
     //
-    // IMPORTANTE:
-    //
-    // Este dashboard existe desde el PRIMER match.
-    //
-    // Ya NO exigimos:
-    // - tenant_interest_at
-    // - tenant_verified_at
-    //
-    // Porque /candidatos/[token] pasa a ser
-    // el HOME de matches del propietario.
+    // El dashboard /candidatos existe desde el primer match.
+    // Ver candidatos NO equivale a aceptar candidatos.
     // =========================================================
 
     const {
-      data: matches,
-      error: matchesError,
+      data:
+        matches,
+      error:
+        matchesError,
     } =
       await supabase
         .from(
@@ -224,7 +227,6 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-
           error:
             "Property has no active matches",
         },
@@ -235,10 +237,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. REUTILIZAR TOKEN DEL DASHBOARD
-    //
-    // Un owner tiene UN dashboard.
-    // No generamos uno por match.
+    // 3. REUTILIZAR TOKEN ACTIVO
     // =========================================================
 
     const nowIso =
@@ -246,7 +245,8 @@ export async function POST(
         .toISOString()
 
     const {
-      data: existingToken,
+      data:
+        existingToken,
       error:
         tokenLookupError,
     } =
@@ -301,7 +301,7 @@ export async function POST(
           existingToken.token,
 
         candidates_url:
-          `https://verlo.lat/candidatos/${existingToken.token}`,
+          `/candidatos/${existingToken.token}`,
 
         match_count:
           matches.length,
@@ -312,12 +312,15 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. CREAR TOKEN ÚNICO DEL DASHBOARD
+    // 4. CREAR TOKEN
     // =========================================================
 
     const token =
-      randomBytes(32)
-        .toString("hex")
+      randomBytes(
+        32
+      ).toString(
+        "hex"
+      )
 
     const expiresAt =
       new Date(
@@ -330,7 +333,8 @@ export async function POST(
       ).toISOString()
 
     const {
-      error: insertError,
+      error:
+        insertError,
     } =
       await supabase
         .from(
@@ -346,13 +350,80 @@ export async function POST(
             expiresAt,
         })
 
+    // =========================================================
+    // 5. SI HUBO CARRERA, RECONSULTAR
+    // =========================================================
+
     if (
       insertError
     ) {
-      throw new Error(
-        insertError.message
-      )
+      const {
+        data:
+          racedToken,
+        error:
+          racedTokenError,
+      } =
+        await supabase
+          .from(
+            "owner_candidates_access_tokens"
+          )
+          .select(`
+            token,
+            expires_at
+          `)
+          .eq(
+            "owner_lead_id",
+            ownerLeadId
+          )
+          .is(
+            "revoked_at",
+            null
+          )
+          .or(
+            `expires_at.is.null,expires_at.gt.${nowIso}`
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false,
+            }
+          )
+          .limit(1)
+          .maybeSingle()
+
+      if (
+        racedTokenError ||
+        !racedToken
+      ) {
+        throw new Error(
+          insertError.message
+        )
+      }
+
+      return NextResponse.json({
+        ok: true,
+
+        owner_lead_id:
+          ownerLeadId,
+
+        token:
+          racedToken.token,
+
+        candidates_url:
+          `/candidatos/${racedToken.token}`,
+
+        match_count:
+          matches.length,
+
+        reused:
+          true,
+      })
     }
+
+    // =========================================================
+    // 6. RESPONSE
+    // =========================================================
 
     return NextResponse.json({
       ok: true,
@@ -363,7 +434,7 @@ export async function POST(
       token,
 
       candidates_url:
-        `https://verlo.lat/candidatos/${token}`,
+        `/candidatos/${token}`,
 
       match_count:
         matches.length,
@@ -384,7 +455,8 @@ export async function POST(
         ok: false,
 
         error:
-          error instanceof Error
+          error instanceof
+          Error
             ? error.message
             : "Unexpected server error",
       },
