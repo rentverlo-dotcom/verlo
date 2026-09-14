@@ -369,7 +369,11 @@ export async function GET(
           tenant_verified_at,
           owner_interest_at,
           ready_to_connect_at,
-          introduced_at
+          introduced_at,
+          tenant_post_visit_decision,
+          tenant_post_visit_decided_at,
+          owner_post_visit_decision,
+          owner_post_visit_decided_at
         `)
         .eq(
           "owner_lead_id",
@@ -692,7 +696,218 @@ export async function GET(
     }
 
     // =========================================================
-    // 8. ARMAR DASHBOARD
+    // 8. CONTRATOS + TOKEN DE CIERRE DEL OWNER
+    // =========================================================
+
+    const matchIds =
+      matches.map(
+        (
+          match
+        ) =>
+          match.id
+      )
+
+    const {
+      data:
+        contracts,
+      error:
+        contractsError,
+    } =
+      await supabase
+        .from(
+          "lead_contracts"
+        )
+        .select(`
+          id,
+          lead_match_id,
+          owner_lead_id,
+          status
+        `)
+        .in(
+          "lead_match_id",
+          matchIds
+        )
+        .eq(
+          "owner_lead_id",
+          ownerLeadId
+        )
+
+    if (
+      contractsError
+    ) {
+      console.error(
+        "candidates-view contracts error:",
+        contractsError
+      )
+
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Could not load contracts",
+        },
+        {
+          status: 500,
+        }
+      )
+    }
+
+    const contractByMatchId =
+      new Map<
+        string,
+        any
+      >()
+
+    for (
+      const contract of
+        contracts ||
+        []
+    ) {
+      contractByMatchId.set(
+        contract
+          .lead_match_id,
+        contract
+      )
+    }
+
+    const contractIds =
+      (
+        contracts ||
+        []
+      ).map(
+        (
+          contract
+        ) =>
+          contract.id
+      )
+
+    const closingUrlByMatchId =
+      new Map<
+        string,
+        string
+      >()
+
+    if (
+      contractIds.length >
+      0
+    ) {
+      const {
+        data:
+          contractTokens,
+        error:
+          contractTokensError,
+      } =
+        await supabase
+          .from(
+            "lead_contract_access_tokens"
+          )
+          .select(`
+            contract_id,
+            lead_id,
+            role,
+            token,
+            expires_at,
+            revoked_at
+          `)
+          .in(
+            "contract_id",
+            contractIds
+          )
+          .eq(
+            "lead_id",
+            ownerLeadId
+          )
+          .eq(
+            "role",
+            "owner"
+          )
+          .is(
+            "revoked_at",
+            null
+          )
+
+      if (
+        contractTokensError
+      ) {
+        console.error(
+          "candidates-view contract token error:",
+          contractTokensError
+        )
+
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Could not load closing access",
+          },
+          {
+            status: 500,
+          }
+        )
+      }
+
+      const nowMs =
+        Date.now()
+
+      const tokenByContractId =
+        new Map<
+          string,
+          string
+        >()
+
+      for (
+        const item of
+          contractTokens ||
+          []
+      ) {
+        if (
+          item.expires_at &&
+          new Date(
+            item.expires_at
+          ).getTime() <=
+            nowMs
+        ) {
+          continue
+        }
+
+        if (
+          !tokenByContractId.has(
+            item.contract_id
+          )
+        ) {
+          tokenByContractId.set(
+            item.contract_id,
+            item.token
+          )
+        }
+      }
+
+      contractByMatchId.forEach(
+        (
+          contract,
+          matchId
+        ) => {
+          const contractToken =
+            tokenByContractId.get(
+              contract.id
+            )
+
+          if (
+            contractToken
+          ) {
+            closingUrlByMatchId.set(
+              matchId,
+              `/cierre/${encodeURIComponent(
+                contractToken
+              )}`
+            )
+          }
+        }
+      )
+    }
+
+    // =========================================================
+    // 9. ARMAR DASHBOARD
     // =========================================================
 
     const candidates =
@@ -833,6 +1048,32 @@ export async function GET(
                   readyToConnect ||
                   match.status ===
                     "converted",
+
+                tenant_post_visit_decision:
+                  match
+                    .tenant_post_visit_decision ||
+                  null,
+
+                tenant_post_visit_decided_at:
+                  match
+                    .tenant_post_visit_decided_at ||
+                  null,
+
+                owner_post_visit_decision:
+                  match
+                    .owner_post_visit_decision ||
+                  null,
+
+                owner_post_visit_decided_at:
+                  match
+                    .owner_post_visit_decided_at ||
+                  null,
+
+                owner_closing_url:
+                  closingUrlByMatchId.get(
+                    match.id
+                  ) ||
+                  null,
               },
 
               tenant: {
@@ -964,7 +1205,7 @@ export async function GET(
         )
 
     // =========================================================
-    // 9. ORDEN
+    // 10. ORDEN
     //
     // Prioridad:
     //
@@ -1044,7 +1285,7 @@ export async function GET(
     )
 
     // =========================================================
-    // 10. CONTADORES DEL DASHBOARD
+    // 11. CONTADORES DEL DASHBOARD
     // =========================================================
 
     const counts = {
@@ -1090,7 +1331,7 @@ export async function GET(
     }
 
     // =========================================================
-    // 11. RESPONSE
+    // 12. RESPONSE
     //
     // NO DEVOLVEMOS:
     //
