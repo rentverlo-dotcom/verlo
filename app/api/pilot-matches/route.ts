@@ -107,11 +107,11 @@ export async function GET() {
     tenant_destination:
       "/matches/[token]",
 
-    owner_destination:
-      "/candidatos/[token]",
+    owner_incomplete_destination:
+      "/propiedad/[token]",
 
-    note:
-      "Match notifications always open the centralized dashboards.",
+    owner_complete_destination:
+      "/candidatos/[token]",
   })
 }
 
@@ -292,8 +292,7 @@ export async function POST(
       []
 
     if (
-      requestedLeadIds
-        .length >
+      requestedLeadIds.length >
       0
     ) {
       const wanted =
@@ -339,10 +338,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 2. OWNERS CON FOTO
-    //
-    // La propiedad recién puede aparecerle al tenant cuando
-    // existe al menos una foto.
+    // 2. OWNERS INVOLUCRADOS
     // =========================================================
 
     const ownerLeadIds =
@@ -361,6 +357,12 @@ export async function POST(
       ).filter(
         Boolean
       )
+
+    // =========================================================
+    // 3. OWNERS CON FOTO
+    //
+    // Tenant solo ve propiedades con al menos una foto.
+    // =========================================================
 
     const {
       data:
@@ -411,6 +413,59 @@ export async function POST(
           )
       )
 
+    // =========================================================
+    // 4. OWNERS QUE YA COMPLETARON PROPIEDAD
+    // =========================================================
+
+    const {
+      data:
+        completionRows,
+      error:
+        completionError,
+    } =
+      await supabase
+        .from(
+          "owner_property_completions"
+        )
+        .select(
+          "lead_id, status"
+        )
+        .in(
+          "lead_id",
+          ownerLeadIds
+        )
+        .eq(
+          "status",
+          "submitted"
+        )
+
+    if (
+      completionError
+    ) {
+      throw new Error(
+        completionError.message
+      )
+    }
+
+    const completedOwners =
+      new Set(
+        (
+          completionRows ||
+          []
+        )
+          .map(
+            (
+              row
+            ) =>
+              clean(
+                row.lead_id
+              )
+          )
+          .filter(
+            Boolean
+          )
+      )
+
     const results:
       Array<{
         role:
@@ -429,18 +484,19 @@ export async function POST(
         url:
           string | null
 
+        destination?:
+          "property" |
+          "candidates" |
+          "matches"
+
         reason?:
           string
       }> = []
 
     // =========================================================
-    // 3. TENANT
+    // 5. TENANTS
     //
-    // SIEMPRE:
-    //
-    // /matches/[token]
-    //
-    // Un solo dashboard para todos sus matches.
+    // SIEMPRE /matches/[token]
     // =========================================================
 
     if (
@@ -543,6 +599,9 @@ export async function POST(
             url:
               null,
 
+            destination:
+              "matches",
+
             reason:
               "could_not_create_matches_url",
           })
@@ -567,6 +626,9 @@ export async function POST(
             url:
               matchesUrl,
 
+            destination:
+              "matches",
+
             reason:
               "dry_run",
           })
@@ -588,8 +650,8 @@ export async function POST(
                 body:
                   matchCount ===
                   1
-                    ? "Encontramos una propiedad compatible con tu búsqueda. Entrá a verla."
-                    : `Tenés ${matchCount} propiedades compatibles para revisar.`,
+                    ? "Encontramos una propiedad compatible. Entrá a verla y decidí si querés avanzar."
+                    : `Encontramos ${matchCount} propiedades compatibles. Entrá a verlas.`,
 
                 url:
                   matchesUrl,
@@ -621,6 +683,9 @@ export async function POST(
 
             url:
               matchesUrl,
+
+            destination:
+              "matches",
           })
         } catch (
           pushError
@@ -647,6 +712,9 @@ export async function POST(
             url:
               matchesUrl,
 
+            destination:
+              "matches",
+
             reason:
               "push_error",
           })
@@ -655,13 +723,13 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. OWNER
+    // 6. OWNERS
     //
-    // SIEMPRE:
+    // INCOMPLETO:
+    // /propiedad/[token]
     //
+    // COMPLETO:
     // /candidatos/[token]
-    //
-    // NO usamos más /propiedad/[token] para un match.
     // =========================================================
 
     if (
@@ -711,6 +779,182 @@ export async function POST(
           ownerMap.entries()
         )
       ) {
+        const ownerCompleted =
+          completedOwners.has(
+            ownerLeadId
+          )
+
+        // =====================================================
+        // OWNER INCOMPLETO
+        // =====================================================
+
+        if (
+          !ownerCompleted
+        ) {
+          const tokenResponse =
+            await postInternal(
+              req,
+              "/api/owner-property-token",
+              {
+                owner_lead_id:
+                  ownerLeadId,
+              }
+            )
+
+          const propertyUrl =
+            tokenResponse.ok
+              ? clean(
+                  tokenResponse
+                    .data
+                    ?.property_url
+                ) ||
+                null
+              : null
+
+          if (
+            !propertyUrl
+          ) {
+            results.push({
+              role:
+                "owner",
+
+              lead_id:
+                ownerLeadId,
+
+              match_count:
+                matchCount,
+
+              sent:
+                false,
+
+              url:
+                null,
+
+              destination:
+                "property",
+
+              reason:
+                "could_not_create_property_url",
+            })
+
+            continue
+          }
+
+          if (!send) {
+            results.push({
+              role:
+                "owner",
+
+              lead_id:
+                ownerLeadId,
+
+              match_count:
+                matchCount,
+
+              sent:
+                false,
+
+              url:
+                propertyUrl,
+
+              destination:
+                "property",
+
+              reason:
+                "dry_run",
+            })
+
+            continue
+          }
+
+          try {
+            const pushResult =
+              await sendPushToLead(
+                ownerLeadId,
+                {
+                  title:
+                    "Verlo · Tenés un match",
+
+                  body:
+                    matchCount ===
+                    1
+                      ? "Encontramos una persona compatible. Completá tu propiedad y sumá buenas fotos para avanzar."
+                      : `Ya tenés ${matchCount} personas compatibles. Completá tu propiedad para avanzar.`,
+
+                  url:
+                    propertyUrl,
+                }
+              )
+
+            const sent =
+              Number(
+                (
+                  pushResult as {
+                    sent?: number
+                  }
+                )?.sent ||
+                  0
+              ) >
+              0
+
+            results.push({
+              role:
+                "owner",
+
+              lead_id:
+                ownerLeadId,
+
+              match_count:
+                matchCount,
+
+              sent,
+
+              url:
+                propertyUrl,
+
+              destination:
+                "property",
+            })
+          } catch (
+            pushError
+          ) {
+            console.error(
+              "pilot owner property push error:",
+              ownerLeadId,
+              pushError
+            )
+
+            results.push({
+              role:
+                "owner",
+
+              lead_id:
+                ownerLeadId,
+
+              match_count:
+                matchCount,
+
+              sent:
+                false,
+
+              url:
+                propertyUrl,
+
+              destination:
+                "property",
+
+              reason:
+                "push_error",
+            })
+          }
+
+          continue
+        }
+
+        // =====================================================
+        // OWNER COMPLETO
+        // =====================================================
+
         const tokenResponse =
           await postInternal(
             req,
@@ -750,6 +994,9 @@ export async function POST(
             url:
               null,
 
+            destination:
+              "candidates",
+
             reason:
               "could_not_create_candidates_url",
           })
@@ -773,6 +1020,9 @@ export async function POST(
 
             url:
               candidatesUrl,
+
+            destination:
+              "candidates",
 
             reason:
               "dry_run",
@@ -828,12 +1078,15 @@ export async function POST(
 
             url:
               candidatesUrl,
+
+            destination:
+              "candidates",
           })
         } catch (
           pushError
         ) {
           console.error(
-            "pilot owner push error:",
+            "pilot owner candidates push error:",
             ownerLeadId,
             pushError
           )
@@ -853,6 +1106,9 @@ export async function POST(
 
             url:
               candidatesUrl,
+
+            destination:
+              "candidates",
 
             reason:
               "push_error",
