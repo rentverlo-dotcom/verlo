@@ -776,15 +776,20 @@ async function upsertLeadMatches({
     MatchRow[]
 }) {
   if (
-    matches.length === 0
+    matches.length ===
+    0
   ) {
     return {
       ok: true,
       created: 0,
+      match_ids:
+        [] as string[],
     }
   }
 
   const {
+    data:
+      insertedMatches,
     error,
   } =
     await supabaseAdmin
@@ -796,12 +801,18 @@ async function upsertLeadMatches({
         {
           onConflict:
             "tenant_lead_id,owner_lead_id",
+
           ignoreDuplicates:
             true,
         }
       )
+      .select(
+        "id"
+      )
 
-  if (error) {
+  if (
+    error
+  ) {
     console.error(
       "lead match insert error:",
       error
@@ -810,15 +821,42 @@ async function upsertLeadMatches({
     return {
       ok: false,
       created: 0,
+
+      match_ids:
+        [] as string[],
+
       error:
         error.message,
     }
   }
 
+  const matchIds =
+    (
+      insertedMatches ||
+      []
+    )
+      .map(
+        (
+          row: {
+            id?: unknown
+          }
+        ) =>
+          clean(
+            row.id
+          )
+      )
+      .filter(
+        Boolean
+      )
+
   return {
     ok: true,
+
     created:
-      matches.length,
+      matchIds.length,
+
+    match_ids:
+      matchIds,
   }
 }
 
