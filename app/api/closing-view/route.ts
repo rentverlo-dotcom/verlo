@@ -540,7 +540,11 @@ export async function GET(
           tenant_interest_at,
           tenant_verified_at,
           owner_interest_at,
-          ready_to_connect_at
+          ready_to_connect_at,
+          tenant_post_visit_decision,
+          tenant_post_visit_decided_at,
+          owner_post_visit_decision,
+          owner_post_visit_decided_at
         `)
         .eq(
           "id",
@@ -1688,6 +1692,22 @@ export async function GET(
         ready_to_connect_at:
           match
             .ready_to_connect_at,
+
+        tenant_post_visit_decision:
+          match
+            .tenant_post_visit_decision,
+
+        tenant_post_visit_decided_at:
+          match
+            .tenant_post_visit_decided_at,
+
+        owner_post_visit_decision:
+          match
+            .owner_post_visit_decision,
+
+        owner_post_visit_decided_at:
+          match
+            .owner_post_visit_decided_at,
       },
 
       tenant: {
