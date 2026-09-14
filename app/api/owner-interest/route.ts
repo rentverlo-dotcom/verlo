@@ -1,21 +1,50 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-import { randomBytes } from "crypto"
-import { sendPushToLead } from "@/lib/push"
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server"
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+import {
+  createClient,
+} from "@supabase/supabase-js"
 
-function clean(value: unknown) {
-  return String(value || "").trim()
+import {
+  randomBytes,
+} from "crypto"
+
+import {
+  notifyLeadOnce,
+} from "@/lib/lead-notifications"
+
+export const runtime =
+  "nodejs"
+
+export const dynamic =
+  "force-dynamic"
+
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
 }
 
-function firstName(value: unknown) {
-  return clean(value).split(/\s+/)[0] || ""
+function firstName(
+  value: unknown
+) {
+  return (
+    clean(value)
+      .split(/\s+/)[0] ||
+    ""
+  )
 }
 
 function generateToken() {
-  return randomBytes(32).toString("hex")
+  return randomBytes(
+    32
+  ).toString(
+    "hex"
+  )
 }
 
 export async function POST(
@@ -23,10 +52,12 @@ export async function POST(
 ) {
   try {
     const supabaseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL
 
     const serviceRoleKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      process.env
+        .SUPABASE_SERVICE_ROLE_KEY
 
     if (
       !supabaseUrl ||
@@ -35,7 +66,8 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing configuration",
+          error:
+            "Missing configuration",
         },
         {
           status: 500,
@@ -49,8 +81,11 @@ export async function POST(
         serviceRoleKey,
         {
           auth: {
-            persistSession: false,
-            autoRefreshToken: false,
+            persistSession:
+              false,
+
+            autoRefreshToken:
+              false,
           },
         }
       )
@@ -58,19 +93,28 @@ export async function POST(
     const body =
       await request
         .json()
-        .catch(() => ({}))
+        .catch(
+          () => ({})
+        )
 
     const token =
-      clean(body?.token)
+      clean(
+        body?.token
+      )
 
     const matchId =
-      clean(body?.match_id)
+      clean(
+        body?.match_id
+      )
 
-    if (!token) {
+    if (
+      !token
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing token",
+          error:
+            "Missing token",
         },
         {
           status: 400,
@@ -78,11 +122,14 @@ export async function POST(
       )
     }
 
-    if (!matchId) {
+    if (
+      !matchId
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing match_id",
+          error:
+            "Missing match_id",
         },
         {
           status: 400,
@@ -95,23 +142,26 @@ export async function POST(
     // =========================================================
 
     const {
-      data: accessToken,
-      error: tokenError,
-    } = await supabase
-      .from(
-        "owner_candidates_access_tokens"
-      )
-      .select(`
-        id,
-        owner_lead_id,
-        expires_at,
-        revoked_at
-      `)
-      .eq(
-        "token",
-        token
-      )
-      .single()
+      data:
+        accessToken,
+      error:
+        tokenError,
+    } =
+      await supabase
+        .from(
+          "owner_candidates_access_tokens"
+        )
+        .select(`
+          id,
+          owner_lead_id,
+          expires_at,
+          revoked_at
+        `)
+        .eq(
+          "token",
+          token
+        )
+        .single()
 
     if (
       tokenError ||
@@ -120,7 +170,8 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Invalid token",
+          error:
+            "Invalid token",
         },
         {
           status: 404,
@@ -129,12 +180,14 @@ export async function POST(
     }
 
     if (
-      accessToken.revoked_at
+      accessToken
+        .revoked_at
     ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Token revoked",
+          error:
+            "Token revoked",
         },
         {
           status: 403,
@@ -143,16 +196,19 @@ export async function POST(
     }
 
     if (
-      accessToken.expires_at &&
+      accessToken
+        .expires_at &&
       new Date(
-        accessToken.expires_at
+        accessToken
+          .expires_at
       ).getTime() <
         Date.now()
     ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Expired token",
+          error:
+            "Expired token",
         },
         {
           status: 403,
@@ -161,36 +217,42 @@ export async function POST(
     }
 
     const ownerLeadId =
-      accessToken.owner_lead_id
+      accessToken
+        .owner_lead_id
 
     // =========================================================
     // 2. BUSCAR MATCH
     // =========================================================
 
     const {
-      data: match,
-      error: matchError,
-    } = await supabase
-      .from("lead_matches")
-      .select(`
-        id,
-        tenant_lead_id,
-        owner_lead_id,
-        tenant_interest_at,
-        tenant_verified_at,
-        owner_interest_at,
-        ready_to_connect_at,
-        introduced_at
-      `)
-      .eq(
-        "id",
-        matchId
-      )
-      .eq(
-        "owner_lead_id",
-        ownerLeadId
-      )
-      .single()
+      data:
+        match,
+      error:
+        matchError,
+    } =
+      await supabase
+        .from(
+          "lead_matches"
+        )
+        .select(`
+          id,
+          tenant_lead_id,
+          owner_lead_id,
+          tenant_interest_at,
+          tenant_verified_at,
+          owner_interest_at,
+          ready_to_connect_at,
+          introduced_at
+        `)
+        .eq(
+          "id",
+          matchId
+        )
+        .eq(
+          "owner_lead_id",
+          ownerLeadId
+        )
+        .single()
 
     if (
       matchError ||
@@ -199,7 +261,8 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Match not found",
+          error:
+            "Match not found",
         },
         {
           status: 404,
@@ -212,8 +275,10 @@ export async function POST(
     // =========================================================
 
     if (
-      !match.tenant_interest_at ||
-      !match.tenant_verified_at
+      !match
+        .tenant_interest_at ||
+      !match
+        .tenant_verified_at
     ) {
       return NextResponse.json(
         {
@@ -228,99 +293,132 @@ export async function POST(
     }
 
     const now =
-      new Date().toISOString()
+      new Date()
+        .toISOString()
 
     const ownerInterestAt =
-      match.owner_interest_at ||
+      match
+        .owner_interest_at ||
       now
 
     const ready =
       Boolean(
-        match.tenant_interest_at &&
+        match
+          .tenant_interest_at &&
         ownerInterestAt
       )
 
     const update:
-      Record<string, string> = {
+      Record<
+        string,
+        string
+      > = {
         owner_interest_at:
           ownerInterestAt,
       }
 
     if (
       ready &&
-      !match.ready_to_connect_at
+      !match
+        .ready_to_connect_at
     ) {
-      update.ready_to_connect_at =
+      update
+        .ready_to_connect_at =
         now
     }
 
     // =========================================================
-    // 4. GUARDAR OK DEL OWNER
+    // 4. GUARDAR OK EXPLÍCITO DEL OWNER
     // =========================================================
 
     const {
-      error: updateError,
-    } = await supabase
-      .from("lead_matches")
-      .update(update)
-      .eq(
-        "id",
-        match.id
-      )
-      .eq(
-        "owner_lead_id",
-        ownerLeadId
-      )
+      error:
+        updateError,
+    } =
+      await supabase
+        .from(
+          "lead_matches"
+        )
+        .update(
+          update
+        )
+        .eq(
+          "id",
+          match.id
+        )
+        .eq(
+          "owner_lead_id",
+          ownerLeadId
+        )
 
-    if (updateError) {
+    if (
+      updateError
+    ) {
       throw new Error(
-        updateError.message
+        updateError
+          .message
       )
     }
 
     const becameReady =
       ready &&
-      !match.ready_to_connect_at
+      !match
+        .ready_to_connect_at
 
     let contractId:
-      string | null = null
+      string |
+      null =
+      null
 
     let tenantClosingToken:
-      string | null = null
+      string |
+      null =
+      null
 
     let ownerClosingToken:
-      string | null = null
+      string |
+      null =
+      null
 
     // =========================================================
-    // 5. CREAR / REUTILIZAR CIERRE
+    // 5. DOBLE OK #1
     //
-    // CUANDO EXISTE DOBLE OK:
-    // - lead_contracts en draft
+    // - crea/reutiliza contrato DRAFT
     // - token tenant
     // - token owner
     //
-    // El contrato todavía NO está aceptado ni generado.
-    // Estos tokens también servirán para la conexión privada.
+    // NO significa acuerdo final.
+    // NO significa alquiler cerrado.
     // =========================================================
 
-    if (ready) {
+    if (
+      ready
+    ) {
       const {
-        data: existingContract,
-        error: existingContractError,
-      } = await supabase
-        .from("lead_contracts")
-        .select("id")
-        .eq(
-          "lead_match_id",
-          match.id
-        )
-        .maybeSingle()
+        data:
+          existingContract,
+        error:
+          existingContractError,
+      } =
+        await supabase
+          .from(
+            "lead_contracts"
+          )
+          .select(
+            "id"
+          )
+          .eq(
+            "lead_match_id",
+            match.id
+          )
+          .maybeSingle()
 
       if (
         existingContractError
       ) {
         throw new Error(
-          existingContractError.message
+          existingContractError
+            .message
         )
       }
 
@@ -331,32 +429,42 @@ export async function POST(
           existingContract.id
       } else {
         const {
-          data: newContract,
-          error: contractError,
-        } = await supabase
-          .from("lead_contracts")
-          .insert({
-            lead_match_id:
-              match.id,
+          data:
+            newContract,
+          error:
+            contractError,
+        } =
+          await supabase
+            .from(
+              "lead_contracts"
+            )
+            .insert({
+              lead_match_id:
+                match.id,
 
-            tenant_lead_id:
-              match.tenant_lead_id,
+              tenant_lead_id:
+                match
+                  .tenant_lead_id,
 
-            owner_lead_id:
-              match.owner_lead_id,
+              owner_lead_id:
+                match
+                  .owner_lead_id,
 
-            status:
-              "draft",
-          })
-          .select("id")
-          .single()
+              status:
+                "draft",
+            })
+            .select(
+              "id"
+            )
+            .single()
 
         if (
           contractError ||
           !newContract
         ) {
           throw new Error(
-            contractError?.message ||
+            contractError
+              ?.message ||
               "Could not create lead contract"
           )
         }
@@ -374,70 +482,87 @@ export async function POST(
           existingTenantToken,
         error:
           tenantTokenLookupError,
-      } = await supabase
-        .from(
-          "lead_contract_access_tokens"
-        )
-        .select(`
-          token,
-          revoked_at
-        `)
-        .eq(
-          "contract_id",
-          contractId
-        )
-        .eq(
-          "role",
-          "tenant"
-        )
-        .maybeSingle()
+      } =
+        await supabase
+          .from(
+            "lead_contract_access_tokens"
+          )
+          .select(`
+            token,
+            revoked_at
+          `)
+          .eq(
+            "contract_id",
+            contractId
+          )
+          .eq(
+            "role",
+            "tenant"
+          )
+          .is(
+            "revoked_at",
+            null
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false,
+            }
+          )
+          .limit(
+            1
+          )
+          .maybeSingle()
 
       if (
         tenantTokenLookupError
       ) {
         throw new Error(
-          tenantTokenLookupError.message
+          tenantTokenLookupError
+            .message
         )
       }
 
       if (
-        existingTenantToken &&
-        !existingTenantToken.revoked_at
+        existingTenantToken
       ) {
         tenantClosingToken =
-          existingTenantToken.token
-      } else if (
-        !existingTenantToken
-      ) {
+          existingTenantToken
+            .token
+      } else {
         tenantClosingToken =
           generateToken()
 
         const {
           error:
             tenantTokenInsertError,
-        } = await supabase
-          .from(
-            "lead_contract_access_tokens"
-          )
-          .insert({
-            contract_id:
-              contractId,
+        } =
+          await supabase
+            .from(
+              "lead_contract_access_tokens"
+            )
+            .insert({
+              contract_id:
+                contractId,
 
-            lead_id:
-              match.tenant_lead_id,
+              lead_id:
+                match
+                  .tenant_lead_id,
 
-            role:
-              "tenant",
+              role:
+                "tenant",
 
-            token:
-              tenantClosingToken,
-          })
+              token:
+                tenantClosingToken,
+            })
 
         if (
           tenantTokenInsertError
         ) {
           throw new Error(
-            tenantTokenInsertError.message
+            tenantTokenInsertError
+              .message
           )
         }
       }
@@ -451,70 +576,87 @@ export async function POST(
           existingOwnerToken,
         error:
           ownerTokenLookupError,
-      } = await supabase
-        .from(
-          "lead_contract_access_tokens"
-        )
-        .select(`
-          token,
-          revoked_at
-        `)
-        .eq(
-          "contract_id",
-          contractId
-        )
-        .eq(
-          "role",
-          "owner"
-        )
-        .maybeSingle()
+      } =
+        await supabase
+          .from(
+            "lead_contract_access_tokens"
+          )
+          .select(`
+            token,
+            revoked_at
+          `)
+          .eq(
+            "contract_id",
+            contractId
+          )
+          .eq(
+            "role",
+            "owner"
+          )
+          .is(
+            "revoked_at",
+            null
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false,
+            }
+          )
+          .limit(
+            1
+          )
+          .maybeSingle()
 
       if (
         ownerTokenLookupError
       ) {
         throw new Error(
-          ownerTokenLookupError.message
+          ownerTokenLookupError
+            .message
         )
       }
 
       if (
-        existingOwnerToken &&
-        !existingOwnerToken.revoked_at
+        existingOwnerToken
       ) {
         ownerClosingToken =
-          existingOwnerToken.token
-      } else if (
-        !existingOwnerToken
-      ) {
+          existingOwnerToken
+            .token
+      } else {
         ownerClosingToken =
           generateToken()
 
         const {
           error:
             ownerTokenInsertError,
-        } = await supabase
-          .from(
-            "lead_contract_access_tokens"
-          )
-          .insert({
-            contract_id:
-              contractId,
+        } =
+          await supabase
+            .from(
+              "lead_contract_access_tokens"
+            )
+            .insert({
+              contract_id:
+                contractId,
 
-            lead_id:
-              match.owner_lead_id,
+              lead_id:
+                match
+                  .owner_lead_id,
 
-            role:
-              "owner",
+              role:
+                "owner",
 
-            token:
-              ownerClosingToken,
-          })
+              token:
+                ownerClosingToken,
+            })
 
         if (
           ownerTokenInsertError
         ) {
           throw new Error(
-            ownerTokenInsertError.message
+            ownerTokenInsertError
+              .message
           )
         }
       }
@@ -531,22 +673,16 @@ export async function POST(
         : null
 
     // =========================================================
-    // 6. DOBLE OK -> PUSH A AMBOS
-    //
-    // IMPORTANTE:
-    // Este evento NO significa "firmar contrato".
-    // Significa que ambos quieren avanzar y pueden coordinar
-    // la visita / conocer los datos de la contraparte.
-    //
-    // Los textos son provisorios y se podrán cambiar después
-    // sin tocar esta lógica.
+    // 6. DOBLE OK #1 -> UN EVENTO LÓGICO POR PERSONA
     // =========================================================
 
     let tenantPush:
-      unknown = null
+      unknown =
+      null
 
     let ownerPush:
-      unknown = null
+      unknown =
+      null
 
     if (
       becameReady &&
@@ -554,21 +690,29 @@ export async function POST(
       ownerClosingUrl
     ) {
       const {
-        data: people,
-        error: peopleError,
-      } = await supabase
-        .from("lead_intake")
-        .select(`
-          id,
-          full_name
-        `)
-        .in(
-          "id",
-          [
-            match.tenant_lead_id,
-            match.owner_lead_id,
-          ]
-        )
+        data:
+          people,
+        error:
+          peopleError,
+      } =
+        await supabase
+          .from(
+            "lead_intake"
+          )
+          .select(`
+            id,
+            full_name
+          `)
+          .in(
+            "id",
+            [
+              match
+                .tenant_lead_id,
+
+              match
+                .owner_lead_id,
+            ]
+          )
 
       if (
         peopleError
@@ -580,46 +724,73 @@ export async function POST(
       }
 
       const tenant =
-        (people || []).find(
-          (person) =>
+        (
+          people ||
+          []
+        ).find(
+          (
+            person
+          ) =>
             person.id ===
-            match.tenant_lead_id
+            match
+              .tenant_lead_id
         )
 
       const owner =
-        (people || []).find(
-          (person) =>
+        (
+          people ||
+          []
+        ).find(
+          (
+            person
+          ) =>
             person.id ===
-            match.owner_lead_id
+            match
+              .owner_lead_id
         )
 
       const tenantName =
         firstName(
-          tenant?.full_name
+          tenant
+            ?.full_name
         ) ||
         "tu inquilino"
 
       const ownerName =
         firstName(
-          owner?.full_name
+          owner
+            ?.full_name
         ) ||
         "tu propietario"
 
       try {
         tenantPush =
-          await sendPushToLead(
-            match.tenant_lead_id,
-            {
-              title:
-                "Verlo · Doble OK",
+          await notifyLeadOnce({
+            eventKey:
+              `double_ok_1:tenant:${match.id}`,
 
-              body:
-                `Vos y ${ownerName} quieren avanzar. Ya pueden coordinar la visita.`,
+            eventType:
+              "double_ok_1",
 
-              url:
-                tenantClosingUrl,
-            }
-          )
+            leadId:
+              match
+                .tenant_lead_id,
+
+            entityType:
+              "match",
+
+            entityId:
+              match.id,
+
+            title:
+              "Verlo · Doble OK",
+
+            body:
+              `Vos y ${ownerName} quieren avanzar. Ya pueden coordinar la visita.`,
+
+            url:
+              tenantClosingUrl,
+          })
       } catch (
         pushError
       ) {
@@ -631,19 +802,32 @@ export async function POST(
 
       try {
         ownerPush =
-          await sendPushToLead(
-            match.owner_lead_id,
-            {
-              title:
-                "Verlo · Doble OK",
+          await notifyLeadOnce({
+            eventKey:
+              `double_ok_1:owner:${match.id}`,
 
-              body:
-                `Vos y ${tenantName} quieren avanzar. Ya pueden coordinar la visita.`,
+            eventType:
+              "double_ok_1",
 
-              url:
-                ownerClosingUrl,
-            }
-          )
+            leadId:
+              match
+                .owner_lead_id,
+
+            entityType:
+              "match",
+
+            entityId:
+              match.id,
+
+            title:
+              "Verlo · Doble OK",
+
+            body:
+              `Vos y ${tenantName} quieren avanzar. Ya pueden coordinar la visita.`,
+
+            url:
+              ownerClosingUrl,
+          })
       } catch (
         pushError
       ) {
@@ -694,7 +878,9 @@ export async function POST(
       owner_push:
         ownerPush,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "owner-interest error:",
       error
@@ -705,7 +891,8 @@ export async function POST(
         ok: false,
 
         error:
-          error instanceof Error
+          error instanceof
+          Error
             ? error.message
             : "Unexpected server error",
       },
