@@ -610,29 +610,28 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      for (
-        const [
-          matchId,
+      contractByMatchId.forEach(
+        (
           contract,
-        ] of
-          contractByMatchId
-      ) {
-        const contractToken =
-          tokenByContractId.get(
-            contract.id
-          )
+          matchId
+        ) => {
+          const contractToken =
+            tokenByContractId.get(
+              contract.id
+            )
 
-        if (
-          contractToken
-        ) {
-          closingUrlByMatchId.set(
-            matchId,
-            `/cierre/${encodeURIComponent(
-              contractToken
-            )}`
-          )
+          if (
+            contractToken
+          ) {
+            closingUrlByMatchId.set(
+              matchId,
+              `/cierre/${encodeURIComponent(
+                contractToken
+              )}`
+            )
+          }
         }
-      }
+      )
     }
 
     // =========================================================
