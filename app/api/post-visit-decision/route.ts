@@ -8,8 +8,8 @@ import {
 } from "@supabase/supabase-js"
 
 import {
-  sendPushToLead,
-} from "@/lib/push"
+  notifyLeadOnce,
+} from "@/lib/lead-notifications"
 
 export const runtime =
   "nodejs"
@@ -85,7 +85,9 @@ export async function POST(
         body?.decision
       )
 
-    if (!token) {
+    if (
+      !token
+    ) {
       return NextResponse.json(
         {
           ok: false,
@@ -99,8 +101,10 @@ export async function POST(
     }
 
     if (
-      decision !== "yes" &&
-      decision !== "no"
+      decision !==
+        "yes" &&
+      decision !==
+        "no"
     ) {
       return NextResponse.json(
         {
@@ -368,55 +372,76 @@ export async function POST(
       )
     }
 
+    // =========================================================
+    // 4. DECISIÓN ACTUAL / CAMBIO REAL
+    // =========================================================
+
+    const previousDecision =
+      accessToken.role ===
+      "tenant"
+        ? match
+            .tenant_post_visit_decision
+        : match
+            .owner_post_visit_decision
+
+    const decisionChanged =
+      previousDecision !==
+      decision
+
     const now =
       new Date()
         .toISOString()
 
-    // =========================================================
-    // 4. GUARDAR DECISIÓN
-    // =========================================================
-
-    const update =
-      accessToken.role ===
-      "tenant"
-        ? {
-            tenant_post_visit_decision:
-              decision,
-
-            tenant_post_visit_decided_at:
-              now,
-          }
-        : {
-            owner_post_visit_decision:
-              decision,
-
-            owner_post_visit_decided_at:
-              now,
-          }
-
-    const {
-      error:
-        updateError,
-    } =
-      await supabase
-        .from(
-          "lead_matches"
-        )
-        .update(
-          update
-        )
-        .eq(
-          "id",
-          match.id
-        )
-
     if (
-      updateError
+      decisionChanged
     ) {
-      throw new Error(
-        updateError.message
-      )
+      const update =
+        accessToken.role ===
+        "tenant"
+          ? {
+              tenant_post_visit_decision:
+                decision,
+
+              tenant_post_visit_decided_at:
+                now,
+            }
+          : {
+              owner_post_visit_decision:
+                decision,
+
+              owner_post_visit_decided_at:
+                now,
+            }
+
+      const {
+        error:
+          updateError,
+      } =
+        await supabase
+          .from(
+            "lead_matches"
+          )
+          .update(
+            update
+          )
+          .eq(
+            "id",
+            match.id
+          )
+
+      if (
+        updateError
+      ) {
+        throw new Error(
+          updateError
+            .message
+        )
+      }
     }
+
+    // =========================================================
+    // 5. ESTADO RESULTANTE
+    // =========================================================
 
     const tenantDecision =
       accessToken.role ===
@@ -432,14 +457,27 @@ export async function POST(
         : match
             .owner_post_visit_decision
 
+    const previousSecondDoubleOk =
+      match
+        .tenant_post_visit_decision ===
+        "yes" &&
+      match
+        .owner_post_visit_decision ===
+        "yes"
+
     const secondDoubleOk =
       tenantDecision ===
         "yes" &&
       ownerDecision ===
         "yes"
 
+    const becameSecondDoubleOk =
+      secondDoubleOk &&
+      !previousSecondDoubleOk &&
+      decisionChanged
+
     // =========================================================
-    // 5. TOKENS DE AMBAS PARTES
+    // 6. TOKENS DE AMBAS PARTES
     // =========================================================
 
     const {
@@ -471,9 +509,9 @@ export async function POST(
     if (
       contractTokensError
     ) {
-      console.error(
-        "post-visit token lookup error:",
+      throw new Error(
         contractTokensError
+          .message
       )
     }
 
@@ -482,17 +520,23 @@ export async function POST(
         contractTokens ||
         []
       ).filter(
-        item =>
-          !item.expires_at ||
+        (
+          item
+        ) =>
+          !item
+            .expires_at ||
           new Date(
-            item.expires_at
+            item
+              .expires_at
           ).getTime() >
             Date.now()
       )
 
     const tenantToken =
       usableTokens.find(
-        item =>
+        (
+          item
+        ) =>
           item.role ===
             "tenant" &&
           item.lead_id ===
@@ -502,13 +546,29 @@ export async function POST(
 
     const ownerToken =
       usableTokens.find(
-        item =>
+        (
+          item
+        ) =>
           item.role ===
             "owner" &&
           item.lead_id ===
             contract
               .owner_lead_id
       )
+
+    const tenantUrl =
+      tenantToken?.token
+        ? `/cierre/${encodeURIComponent(
+            tenantToken.token
+          )}`
+        : null
+
+    const ownerUrl =
+      ownerToken?.token
+        ? `/cierre/${encodeURIComponent(
+            ownerToken.token
+          )}`
+        : null
 
     let tenantPush:
       unknown =
@@ -519,142 +579,201 @@ export async function POST(
       null
 
     // =========================================================
-    // 6. UNO DIJO YES -> AVISAR AL OTRO
+    // 7. UNO DIJO YES -> AVISAR AL OTRO
+    //
+    // Solo si fue un CAMBIO REAL de decisión.
+    // Repetir el mismo YES no vuelve a notificar.
     // =========================================================
 
     if (
-      decision === "yes" &&
+      decisionChanged &&
+      decision ===
+        "yes" &&
       !secondDoubleOk
     ) {
-      try {
-        if (
-          accessToken.role ===
-            "tenant" &&
-          ownerToken
-            ?.token
-        ) {
-          ownerPush =
-            await sendPushToLead(
-              contract
-                .owner_lead_id,
-              {
-                title:
-                  "Verlo · Decisión después de la visita",
-
-                body:
-                  "El inquilino quiere avanzar. Falta tu decisión.",
-
-                url:
-                  `/cierre/${encodeURIComponent(
-                    ownerToken
-                      .token
-                  )}`,
-              }
-            )
-        }
-
-        if (
-          accessToken.role ===
-            "owner" &&
-          tenantToken
-            ?.token
-        ) {
-          tenantPush =
-            await sendPushToLead(
-              contract
-                .tenant_lead_id,
-              {
-                title:
-                  "Verlo · Decisión después de la visita",
-
-                body:
-                  "El propietario quiere avanzar. Falta tu decisión.",
-
-                url:
-                  `/cierre/${encodeURIComponent(
-                    tenantToken
-                      .token
-                  )}`,
-              }
-            )
-        }
-      } catch (
-        pushError
+      if (
+        accessToken.role ===
+          "tenant" &&
+        ownerUrl
       ) {
-        console.error(
-          "post-visit waiting push error:",
+        try {
+          ownerPush =
+            await notifyLeadOnce({
+              eventKey:
+                `post_visit_waiting:owner:${match.id}:tenant_yes:${now}`,
+
+              eventType:
+                "post_visit_waiting",
+
+              leadId:
+                contract
+                  .owner_lead_id,
+
+              entityType:
+                "match",
+
+              entityId:
+                match.id,
+
+              title:
+                "Verlo · Decisión después de la visita",
+
+              body:
+                "El inquilino quiere avanzar. Falta tu decisión.",
+
+              url:
+                ownerUrl,
+            })
+        } catch (
           pushError
-        )
+        ) {
+          console.error(
+            "post-visit owner waiting push error:",
+            pushError
+          )
+        }
+      }
+
+      if (
+        accessToken.role ===
+          "owner" &&
+        tenantUrl
+      ) {
+        try {
+          tenantPush =
+            await notifyLeadOnce({
+              eventKey:
+                `post_visit_waiting:tenant:${match.id}:owner_yes:${now}`,
+
+              eventType:
+                "post_visit_waiting",
+
+              leadId:
+                contract
+                  .tenant_lead_id,
+
+              entityType:
+                "match",
+
+              entityId:
+                match.id,
+
+              title:
+                "Verlo · Decisión después de la visita",
+
+              body:
+                "El propietario quiere avanzar. Falta tu decisión.",
+
+              url:
+                tenantUrl,
+            })
+        } catch (
+          pushError
+        ) {
+          console.error(
+            "post-visit tenant waiting push error:",
+            pushError
+          )
+        }
       }
     }
 
     // =========================================================
-    // 7. SEGUNDO DOBLE OK
+    // 8. DOBLE OK #2
+    //
+    // Se notifica SOLO cuando se alcanza/re-alcanza.
+    // Si alguien cambia NO y después vuelve a YES,
+    // puede generarse un nuevo DOBLE OK válido.
     // =========================================================
 
     if (
-      secondDoubleOk
+      becameSecondDoubleOk
     ) {
-      try {
-        if (
-          tenantToken
-            ?.token
-        ) {
-          tenantPush =
-            await sendPushToLead(
-              contract
-                .tenant_lead_id,
-              {
-                title:
-                  "Verlo · Los dos quieren avanzar",
-
-                body:
-                  "Los dos confirmaron después de la visita. Ya pueden continuar con el contrato.",
-
-                url:
-                  `/cierre/${encodeURIComponent(
-                    tenantToken
-                      .token
-                  )}`,
-              }
-            )
-        }
-
-        if (
-          ownerToken
-            ?.token
-        ) {
-          ownerPush =
-            await sendPushToLead(
-              contract
-                .owner_lead_id,
-              {
-                title:
-                  "Verlo · Los dos quieren avanzar",
-
-                body:
-                  "Los dos confirmaron después de la visita. Ya pueden continuar con el contrato.",
-
-                url:
-                  `/cierre/${encodeURIComponent(
-                    ownerToken
-                      .token
-                  )}`,
-              }
-            )
-        }
-      } catch (
-        pushError
+      if (
+        tenantUrl
       ) {
-        console.error(
-          "post-visit double ok push error:",
+        try {
+          tenantPush =
+            await notifyLeadOnce({
+              eventKey:
+                `double_ok_2:tenant:${match.id}:${now}`,
+
+              eventType:
+                "double_ok_2",
+
+              leadId:
+                contract
+                  .tenant_lead_id,
+
+              entityType:
+                "match",
+
+              entityId:
+                match.id,
+
+              title:
+                "Verlo · Los dos quieren avanzar",
+
+              body:
+                "Los dos confirmaron después de la visita. Ya pueden continuar con el acuerdo final.",
+
+              url:
+                tenantUrl,
+            })
+        } catch (
           pushError
-        )
+        ) {
+          console.error(
+            "post-visit tenant double ok push error:",
+            pushError
+          )
+        }
+      }
+
+      if (
+        ownerUrl
+      ) {
+        try {
+          ownerPush =
+            await notifyLeadOnce({
+              eventKey:
+                `double_ok_2:owner:${match.id}:${now}`,
+
+              eventType:
+                "double_ok_2",
+
+              leadId:
+                contract
+                  .owner_lead_id,
+
+              entityType:
+                "match",
+
+              entityId:
+                match.id,
+
+              title:
+                "Verlo · Los dos quieren avanzar",
+
+              body:
+                "Los dos confirmaron después de la visita. Ya pueden continuar con el acuerdo final.",
+
+              url:
+                ownerUrl,
+            })
+        } catch (
+          pushError
+        ) {
+          console.error(
+            "post-visit owner double ok push error:",
+            pushError
+          )
+        }
       }
     }
 
     // =========================================================
-    // 8. RESPONSE
+    // 9. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -664,6 +783,9 @@ export async function POST(
         accessToken.role,
 
       decision,
+
+      decision_changed:
+        decisionChanged,
 
       match_id:
         match.id,
@@ -678,6 +800,9 @@ export async function POST(
 
       second_double_ok:
         secondDoubleOk,
+
+      became_second_double_ok:
+        becameSecondDoubleOk,
 
       can_accept_contract:
         secondDoubleOk,
@@ -703,7 +828,8 @@ export async function POST(
         ok: false,
 
         error:
-          error instanceof Error
+          error instanceof
+          Error
             ? error.message
             : "Unexpected server error",
       },
