@@ -192,13 +192,6 @@ export async function GET(req: NextRequest) {
 
     // =========================================================
     // 3. TODOS LOS MATCHES DEL TENANT
-    //
-    // YA NO EXIGIMOS owner_completed_at.
-    //
-    // El match puede ser visible desde el momento en que
-    // el owner tenga al menos una foto inicial cargada.
-    //
-    // La existencia de media se valida más abajo.
     // =========================================================
 
     const {
@@ -215,7 +208,11 @@ export async function GET(req: NextRequest) {
         owner_completed_at,
         tenant_interest_at,
         owner_interest_at,
-        ready_to_connect_at
+        ready_to_connect_at,
+        tenant_post_visit_decision,
+        tenant_post_visit_decided_at,
+        owner_post_visit_decision,
+        owner_post_visit_decided_at
       `)
       .eq(
         "tenant_lead_id",
@@ -325,17 +322,6 @@ export async function GET(req: NextRequest) {
 
     // =========================================================
     // 5. COMPLETIONS SUBMITTED
-    //
-    // AHORA SON OPCIONALES.
-    //
-    // Si existen, enriquecen la propiedad con:
-    // expensas
-    // piso/unidad
-    // requisitos
-    // condiciones de visita
-    // notas
-    //
-    // Pero NO son requisito para mostrar el match.
     // =========================================================
 
     const {
@@ -399,19 +385,6 @@ export async function GET(req: NextRequest) {
 
     // =========================================================
     // 6. TODA LA MEDIA DE LOS OWNERS
-    //
-    // CLAVE DEL NUEVO FLUJO:
-    //
-    // Buscamos media directamente por lead_id.
-    //
-    // Esto incluye:
-    //
-    // - fotos iniciales
-    //   completion_id = null
-    //
-    // - fotos posteriores
-    //   completion_id = completion real
-    //
     // =========================================================
 
     let media: any[] = []
@@ -494,18 +467,176 @@ export async function GET(req: NextRequest) {
     }
 
     // =========================================================
-    // 8. ARMAR MATCHES VISIBLES
-    //
-    // REGLA NUEVA:
-    //
-    // Un match es visible si:
-    //
-    // 1. existe owner
-    // 2. score >= 80
-    // 3. status activo
-    // 4. owner tiene al menos una FOTO
-    //
-    // Ya NO exigimos completion.
+    // 8. CONTRATOS + TOKEN DE CIERRE DEL TENANT
+    // =========================================================
+
+    const matchIds =
+      matches.map(
+        (match) =>
+          match.id
+      )
+
+    const {
+      data: contracts,
+      error: contractsError,
+    } = await supabase
+      .from(
+        "lead_contracts"
+      )
+      .select(`
+        id,
+        lead_match_id,
+        tenant_lead_id,
+        status
+      `)
+      .in(
+        "lead_match_id",
+        matchIds
+      )
+      .eq(
+        "tenant_lead_id",
+        tenantLeadId
+      )
+
+    if (contractsError) {
+      throw new Error(
+        contractsError.message
+      )
+    }
+
+    const contractByMatchId =
+      new Map<
+        string,
+        any
+      >()
+
+    for (
+      const contract of
+        contracts || []
+    ) {
+      contractByMatchId.set(
+        contract.lead_match_id,
+        contract
+      )
+    }
+
+    const contractIds =
+      (
+        contracts || []
+      ).map(
+        (contract) =>
+          contract.id
+      )
+
+    const closingUrlByMatchId =
+      new Map<
+        string,
+        string
+      >()
+
+    if (
+      contractIds.length > 0
+    ) {
+      const {
+        data: contractTokens,
+        error: contractTokensError,
+      } = await supabase
+        .from(
+          "lead_contract_access_tokens"
+        )
+        .select(`
+          contract_id,
+          lead_id,
+          role,
+          token,
+          expires_at,
+          revoked_at
+        `)
+        .in(
+          "contract_id",
+          contractIds
+        )
+        .eq(
+          "lead_id",
+          tenantLeadId
+        )
+        .eq(
+          "role",
+          "tenant"
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+
+      if (contractTokensError) {
+        throw new Error(
+          contractTokensError.message
+        )
+      }
+
+      const nowMs =
+        Date.now()
+
+      const tokenByContractId =
+        new Map<
+          string,
+          string
+        >()
+
+      for (
+        const item of
+          contractTokens || []
+      ) {
+        if (
+          item.expires_at &&
+          new Date(
+            item.expires_at
+          ).getTime() <=
+            nowMs
+        ) {
+          continue
+        }
+
+        if (
+          !tokenByContractId.has(
+            item.contract_id
+          )
+        ) {
+          tokenByContractId.set(
+            item.contract_id,
+            item.token
+          )
+        }
+      }
+
+      for (
+        const [
+          matchId,
+          contract,
+        ] of
+          contractByMatchId
+      ) {
+        const contractToken =
+          tokenByContractId.get(
+            contract.id
+          )
+
+        if (
+          contractToken
+        ) {
+          closingUrlByMatchId.set(
+            matchId,
+            `/cierre/${encodeURIComponent(
+              contractToken
+            )}`
+          )
+        }
+      }
+    }
+
+    // =========================================================
+    // 9. ARMAR MATCHES VISIBLES
     // =========================================================
 
     const visibleMatches =
@@ -575,6 +706,32 @@ export async function GET(req: NextRequest) {
                 Boolean(
                   match.owner_completed_at
                 ),
+
+              tenant_post_visit_decision:
+                match
+                  .tenant_post_visit_decision ||
+                null,
+
+              tenant_post_visit_decided_at:
+                match
+                  .tenant_post_visit_decided_at ||
+                null,
+
+              owner_post_visit_decision:
+                match
+                  .owner_post_visit_decision ||
+                null,
+
+              owner_post_visit_decided_at:
+                match
+                  .owner_post_visit_decided_at ||
+                null,
+
+              tenant_closing_url:
+                closingUrlByMatchId.get(
+                  match.id
+                ) ||
+                null,
 
               property: {
                 neighborhood:
@@ -664,7 +821,7 @@ export async function GET(req: NextRequest) {
       )
 
     // =========================================================
-    // 9. RESPONSE
+    // 10. RESPONSE
     // =========================================================
 
     return NextResponse.json({
