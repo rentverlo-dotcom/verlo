@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { randomBytes } from "crypto"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -93,14 +92,6 @@ export async function POST(
 
     // =========================================================
     // 1. VALIDAR TOKEN DE CARGA DEL OWNER
-    //
-    // IMPORTANTE:
-    //
-    // Este token NO se revoca al subir multimedia.
-    //
-    // El propietario tiene que poder volver al mismo enlace
-    // y seguir agregando fotos/videos mientras el token
-    // no esté vencido o revocado manualmente.
     // =========================================================
 
     const {
@@ -196,14 +187,7 @@ export async function POST(
       accessToken.completion_id
 
     // =========================================================
-    // 2. LEER MULTIMEDIA YA EXISTENTE
-    //
-    // La propiedad necesita como mínimo UNA pieza multimedia:
-    //
-    // - foto
-    // - video
-    //
-    // Puede haber sido cargada previamente o venir ahora.
+    // 2. MULTIMEDIA EXISTENTE
     // =========================================================
 
     const {
@@ -268,9 +252,8 @@ export async function POST(
     // =========================================================
     // 3. MARCAR PROPIEDAD COMPLETA
     //
-    // submitted significa que el owner ya completó esta etapa.
-    //
-    // NO significa que no pueda volver a cargar multimedia.
+    // IMPORTANTE:
+    // completar propiedad NO significa aceptar candidatos.
     // =========================================================
 
     const {
@@ -312,7 +295,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. PREPARAR MULTIMEDIA NUEVA SIN DUPLICAR
+    // 4. PREPARAR MULTIMEDIA NUEVA
     // =========================================================
 
     const existingKeys =
@@ -418,7 +401,7 @@ export async function POST(
         )
 
     // =========================================================
-    // 5. GUARDAR MULTIMEDIA NUEVA
+    // 5. GUARDAR MULTIMEDIA
     // =========================================================
 
     if (
@@ -457,7 +440,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 6. CONFIRMAR QUE EXISTE AL MENOS UNA FOTO O VIDEO
+    // 6. CONFIRMAR MULTIMEDIA
     // =========================================================
 
     const {
@@ -503,7 +486,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 7. BUSCAR MATCHES DE ESTA PROPIEDAD
+    // 7. BUSCAR MATCHES ACTIVOS
     // =========================================================
 
     const {
@@ -519,13 +502,7 @@ export async function POST(
         owner_lead_id,
         score,
         status,
-        reasons,
-        owner_completed_at,
-        owner_interest_at,
-        tenant_interest_at,
-        tenant_verified_at,
-        ready_to_connect_at,
-        notified_at
+        owner_completed_at
       `)
       .eq(
         "owner_lead_id",
@@ -558,13 +535,10 @@ export async function POST(
       matches || []
 
     // =========================================================
-    // 8. MARCAR OWNER COMPLETO + OK DEL OWNER
+    // 8. MARCAR SOLO OWNER_COMPLETED_AT
     //
-    // Completar su propiedad desde /propiedad/[token] cuenta
-    // como el OK del owner.
-    //
-    // owner_interest_at se completa sólo si todavía estaba NULL
-    // para conservar el primer momento de aceptación.
+    // NO TOCAMOS owner_interest_at.
+    // El owner deberá elegir explícitamente un candidato.
     // =========================================================
 
     const now =
@@ -604,51 +578,13 @@ export async function POST(
           ownerCompletedError.message
         )
       }
-
-      const {
-        error:
-          ownerInterestError,
-      } = await supabase
-        .from(
-          "lead_matches"
-        )
-        .update({
-          owner_interest_at:
-            now,
-        })
-        .in(
-          "id",
-          matchIds
-        )
-        .is(
-          "owner_interest_at",
-          null
-        )
-
-      if (
-        ownerInterestError
-      ) {
-        throw new Error(
-          ownerInterestError.message
-        )
-      }
     }
 
     // =========================================================
-    // 9. NOTIFICAR TENANTS CUANDO APARECE LA PRIMERA MULTIMEDIA
+    // 9. AVISAR TENANTS CUANDO APARECE PRIMERA MULTIMEDIA
     //
-    // IMPORTANTE:
-    //
-    // NO notificamos nuevamente cada vez que el owner agrega
-    // otra foto o video.
-    //
-    // Solo hacemos la llamada cuando:
-    //
-    // - antes no tenía multimedia
-    // - ahora sí tiene multimedia
-    //
-    // pilot-matches sigue siendo quien decide qué tenant
-    // realmente puede entrar al flujo.
+    // Esto sigue siendo correcto:
+    // la propiedad ahora está lista para ser mostrada.
     // =========================================================
 
     let tenantNotificationAttempted =
@@ -770,293 +706,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 10. SI EL TENANT YA VALIDÓ, EL OWNER ACABA DE SER
-    //     LA SEGUNDA PARTE EN COMPLETAR.
-    //
-    // Reutilizamos /api/owner-interest como única fuente de
-    // verdad para crear:
-    // - ready_to_connect_at
-    // - lead_contracts
-    // - dos tokens de /cierre
-    // - dos eventos al workflow Ready To Connect
-    //
-    // El token de candidatos se crea/reutiliza sólo como
-    // credencial interna para ese endpoint.
-    // =========================================================
-
-    const readyNotifications:
-      Array<{
-        match_id:
-          string
-
-        attempted:
-          boolean
-
-        ok:
-          boolean
-
-        status:
-          number | null
-
-        response:
-          unknown
-      }> = []
-
-    const readyCandidates =
-      activeMatches.filter(
-        (match) =>
-          Boolean(
-            match.tenant_interest_at
-          ) &&
-          Boolean(
-            match.tenant_verified_at
-          ) &&
-          !match.ready_to_connect_at
-      )
-
-    if (
-      readyCandidates.length >
-      0
-    ) {
-      const {
-        data:
-          existingOwnerToken,
-        error:
-          existingOwnerTokenError,
-      } = await supabase
-        .from(
-          "owner_candidates_access_tokens"
-        )
-        .select(`
-          id,
-          token,
-          expires_at
-        `)
-        .eq(
-          "owner_lead_id",
-          ownerLeadId
-        )
-        .is(
-          "revoked_at",
-          null
-        )
-        .or(
-          `expires_at.is.null,expires_at.gt.${now}`
-        )
-        .order(
-          "created_at",
-          {
-            ascending:
-              false,
-          }
-        )
-        .limit(1)
-        .maybeSingle()
-
-      if (
-        existingOwnerTokenError
-      ) {
-        throw new Error(
-          existingOwnerTokenError.message
-        )
-      }
-
-      let ownerCandidatesToken:
-        string
-
-      if (
-        existingOwnerToken
-      ) {
-        ownerCandidatesToken =
-          existingOwnerToken.token
-      } else {
-        ownerCandidatesToken =
-          randomBytes(32)
-            .toString(
-              "hex"
-            )
-
-        const expiresAt =
-          new Date(
-            Date.now() +
-              30 *
-                24 *
-                60 *
-                60 *
-                1000
-          ).toISOString()
-
-        const {
-          error:
-            ownerTokenInsertError,
-        } = await supabase
-          .from(
-            "owner_candidates_access_tokens"
-          )
-          .insert({
-            owner_lead_id:
-              ownerLeadId,
-
-            token:
-              ownerCandidatesToken,
-
-            expires_at:
-              expiresAt,
-          })
-
-        if (
-          ownerTokenInsertError
-        ) {
-          throw new Error(
-            ownerTokenInsertError.message
-          )
-        }
-      }
-
-      for (
-        const readyMatch
-        of readyCandidates
-      ) {
-        let readyStatus:
-          number | null =
-          null
-
-        let readyResponse:
-          unknown =
-          null
-
-        let readyOk =
-          false
-
-        try {
-          const response =
-            await fetch(
-              new URL(
-                "/api/owner-interest",
-                request.url
-              ),
-              {
-                method:
-                  "POST",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
-
-                body:
-                  JSON.stringify({
-                    token:
-                      ownerCandidatesToken,
-
-                    match_id:
-                      readyMatch.id,
-                  }),
-              }
-            )
-
-          readyStatus =
-            response.status
-
-          readyResponse =
-            await response
-              .json()
-              .catch(
-                async () => ({
-                  raw:
-                    await response
-                      .text()
-                      .catch(() => ""),
-                })
-              )
-
-          readyOk =
-            response.ok &&
-            (
-              !readyResponse ||
-              typeof readyResponse !==
-                "object" ||
-              !(
-                "ok" in
-                readyResponse
-              ) ||
-              (
-                readyResponse as {
-                  ok?: boolean
-                }
-              ).ok !==
-                false
-            )
-
-          if (
-            !readyOk
-          ) {
-            console.error(
-              "automatic ready-to-connect after owner completion failed:",
-              {
-                ownerLeadId,
-                matchId:
-                  readyMatch.id,
-                status:
-                  readyStatus,
-                response:
-                  readyResponse,
-              }
-            )
-          }
-        } catch (
-          readyError
-        ) {
-          readyResponse =
-            readyError instanceof
-            Error
-              ? readyError.message
-              : String(
-                  readyError
-                )
-
-          console.error(
-            "automatic ready-to-connect after owner completion error:",
-            {
-              ownerLeadId,
-              matchId:
-                readyMatch.id,
-              error:
-                readyResponse,
-            }
-          )
-        }
-
-        readyNotifications.push({
-          match_id:
-            readyMatch.id,
-
-          attempted:
-            true,
-
-          ok:
-            readyOk,
-
-          status:
-            readyStatus,
-
-          response:
-            readyResponse,
-        })
-      }
-    }
-
-    // =========================================================
-    // 11. TOKEN
-    //
-    // NO SE REVOCA.
-    //
-    // El owner puede volver al mismo link y seguir cargando
-    // fotos/videos mientras expires_at siga vigente.
-    // =========================================================
-
-    // =========================================================
-    // 12. CONTAR MULTIMEDIA TOTAL ACTUAL
+    // 10. CONTAR MULTIMEDIA ACTUAL
     // =========================================================
 
     const {
@@ -1103,7 +753,7 @@ export async function POST(
       ).length
 
     // =========================================================
-    // 13. RESPONSE
+    // 11. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -1146,7 +796,7 @@ export async function POST(
         matchIds.length,
 
       owner_interest_matches:
-        matchIds.length,
+        0,
 
       token_reusable:
         true,
@@ -1165,18 +815,6 @@ export async function POST(
 
       tenant_notification_response:
         tenantNotificationResponse,
-
-      ready_to_connect_attempts:
-        readyNotifications.length,
-
-      ready_to_connect_ok:
-        readyNotifications.filter(
-          (item) =>
-            item.ok
-        ).length,
-
-      ready_notifications:
-        readyNotifications,
     })
   } catch (
     error
