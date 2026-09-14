@@ -37,7 +37,9 @@ function savePushIdentity(
       PUSH_ROLE_STORAGE_KEY,
       role
     )
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       'push identity storage error:',
       error
@@ -50,24 +52,29 @@ function urlBase64ToUint8Array(
 ) {
   const padding =
     '='.repeat(
-      (4 -
-        (base64String.length %
-          4)) %
+      (
+        4 -
+        (
+          base64String.length %
+          4
+        )
+      ) %
         4
     )
 
-  const base64 = (
-    base64String +
-    padding
-  )
-    .replace(
-      /-/g,
-      '+'
+  const base64 =
+    (
+      base64String +
+      padding
     )
-    .replace(
-      /_/g,
-      '/'
-    )
+      .replace(
+        /-/g,
+        '+'
+      )
+      .replace(
+        /_/g,
+        '/'
+      )
 
   const rawData =
     window.atob(
@@ -92,45 +99,6 @@ function urlBase64ToUint8Array(
   }
 
   return outputArray
-}
-
-function subscriptionFailed(
-  result: any,
-  leadId: string
-) {
-  const notifications =
-    Array.isArray(
-      result?.notifications
-    )
-      ? result.notifications
-      : []
-
-  return notifications.some(
-    (
-      notification: any
-    ) => {
-      if (
-        notification?.lead_id !==
-        leadId
-      ) {
-        return false
-      }
-
-      const failed =
-        Number(
-          notification
-            ?.result
-            ?.failed ||
-            0
-        )
-
-      return (
-        notification?.sent ===
-          false ||
-        failed > 0
-      )
-    }
-  )
 }
 
 export default function PushSubscribeButton({
@@ -302,11 +270,61 @@ export default function PushSubscribeButton({
     return result
   }
 
+  async function sendIntakeConfirmation() {
+    const response =
+      await fetch(
+        '/api/push/intake-confirmation',
+        {
+          method:
+            'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json',
+          },
+
+          body:
+            JSON.stringify({
+              lead_id:
+                leadId,
+
+              role,
+            }),
+        }
+      )
+
+    const result =
+      await response
+        .json()
+        .catch(
+          () => null
+        )
+
+    if (
+      !response.ok ||
+      !result?.ok
+    ) {
+      console.error(
+        'intake confirmation failed:',
+        result
+      )
+
+      return
+    }
+
+    console.log(
+      'intake confirmation:',
+      result
+    )
+  }
+
   async function repairSubscription(
     registration:
       ServiceWorkerRegistration,
+
     oldSubscription?:
-      PushSubscription | null
+      PushSubscription |
+      null
   ) {
     if (
       oldSubscription
@@ -329,33 +347,9 @@ export default function PushSubscribeButton({
         registration
       )
 
-    const result =
-      await registerSubscription(
-        freshSubscription
-      )
-
-    if (
-      subscriptionFailed(
-        result,
-        leadId
-      )
-    ) {
-      try {
-        await freshSubscription
-          .unsubscribe()
-      } catch (
-        error
-      ) {
-        console.error(
-          'fresh push unsubscribe error:',
-          error
-        )
-      }
-
-      throw new Error(
-        'La suscripción Push fue rechazada. Volvé a intentar.'
-      )
-    }
+    await registerSubscription(
+      freshSubscription
+    )
 
     savePushIdentity(
       leadId,
@@ -363,6 +357,19 @@ export default function PushSubscribeButton({
     )
 
     return freshSubscription
+  }
+
+  async function finalizePushSuccess() {
+    savePushIdentity(
+      leadId,
+      role
+    )
+
+    await sendIntakeConfirmation()
+
+    setStatus(
+      'success'
+    )
   }
 
   async function activatePush() {
@@ -420,14 +427,7 @@ export default function PushSubscribeButton({
           backendStatus
             .active
         ) {
-          savePushIdentity(
-            leadId,
-            role
-          )
-
-          setStatus(
-            'success'
-          )
+          await finalizePushSuccess()
 
           return
         }
@@ -438,9 +438,7 @@ export default function PushSubscribeButton({
             subscription
           )
 
-        setStatus(
-          'success'
-        )
+        await finalizePushSuccess()
 
         return
       }
@@ -450,33 +448,16 @@ export default function PushSubscribeButton({
           registration
         )
 
-      const result =
-        await registerSubscription(
-          subscription
-        )
-
-      if (
-        subscriptionFailed(
-          result,
-          leadId
-        )
-      ) {
-        await repairSubscription(
-          registration,
-          subscription
-        )
-      }
-
-      savePushIdentity(
-        leadId,
-        role
+      await registerSubscription(
+        subscription
       )
 
-      setStatus(
-        'success'
-      )
-    } catch (error) {
+      await finalizePushSuccess()
+    } catch (
+      error
+    ) {
       console.error(
+        'push activation error:',
         error
       )
 
@@ -486,151 +467,154 @@ export default function PushSubscribeButton({
     }
   }
 
-  useEffect(() => {
-    let cancelled =
-      false
+  useEffect(
+    () => {
+      let cancelled =
+        false
 
-    async function checkPush() {
-      try {
-        savePushIdentity(
-          leadId,
-          role
-        )
-
-        if (
-          typeof window ===
-            'undefined' ||
-          !(
-            'Notification'
-            in window
-          ) ||
-          !(
-            'serviceWorker'
-            in navigator
-          ) ||
-          !(
-            'PushManager'
-            in window
-          )
-        ) {
-          if (
-            !cancelled
-          ) {
-            setStatus(
-              'idle'
-            )
-          }
-
-          return
-        }
-
-        if (
-          Notification
-            .permission !==
-          'granted'
-        ) {
-          if (
-            !cancelled
-          ) {
-            setStatus(
-              'idle'
-            )
-          }
-
-          return
-        }
-
-        const registration =
-          await getRegistration()
-
-        const subscription =
-          await registration
-            .pushManager
-            .getSubscription()
-
-        if (
-          !subscription
-        ) {
-          if (
-            !cancelled
-          ) {
-            setStatus(
-              'idle'
-            )
-          }
-
-          return
-        }
-
-        const backendStatus =
-          await getBackendStatus(
-            subscription
-          )
-
-        if (
-          cancelled
-        ) {
-          return
-        }
-
-        if (
-          backendStatus
-            .active
-        ) {
+      async function checkPush() {
+        try {
           savePushIdentity(
             leadId,
             role
           )
 
-          setStatus(
-            'success'
-          )
+          if (
+            typeof window ===
+              'undefined' ||
+            !(
+              'Notification'
+              in window
+            ) ||
+            !(
+              'serviceWorker'
+              in navigator
+            ) ||
+            !(
+              'PushManager'
+              in window
+            )
+          ) {
+            if (
+              !cancelled
+            ) {
+              setStatus(
+                'idle'
+              )
+            }
 
-          return
-        }
+            return
+          }
 
-        setStatus(
-          'loading'
-        )
+          if (
+            Notification
+              .permission !==
+            'granted'
+          ) {
+            if (
+              !cancelled
+            ) {
+              setStatus(
+                'idle'
+              )
+            }
 
-        await repairSubscription(
-          registration,
-          subscription
-        )
+            return
+          }
 
-        if (
-          !cancelled
-        ) {
-          setStatus(
-            'success'
-          )
-        }
-      } catch (error) {
-        console.error(
-          'push health check error:',
+          const registration =
+            await getRegistration()
+
+          let subscription =
+            await registration
+              .pushManager
+              .getSubscription()
+
+          if (
+            !subscription
+          ) {
+            if (
+              !cancelled
+            ) {
+              setStatus(
+                'idle'
+              )
+            }
+
+            return
+          }
+
+          const backendStatus =
+            await getBackendStatus(
+              subscription
+            )
+
+          if (
+            cancelled
+          ) {
+            return
+          }
+
+          if (
+            !backendStatus
+              .active
+          ) {
+            setStatus(
+              'loading'
+            )
+
+            subscription =
+              await repairSubscription(
+                registration,
+                subscription
+              )
+          }
+
+          if (
+            cancelled
+          ) {
+            return
+          }
+
+          await sendIntakeConfirmation()
+
+          if (
+            !cancelled
+          ) {
+            setStatus(
+              'success'
+            )
+          }
+        } catch (
           error
-        )
-
-        if (
-          !cancelled
         ) {
-          setStatus(
-            'error'
+          console.error(
+            'push health check error:',
+            error
           )
+
+          if (
+            !cancelled
+          ) {
+            setStatus(
+              'error'
+            )
+          }
         }
       }
-    }
 
-    checkPush()
+      checkPush()
 
-    return () => {
-      cancelled =
-        true
-    }
-  }, [
-    leadId,
-    role,
-  ])
+      return () => {
+        cancelled =
+          true
+      }
+    },
+    [
+      leadId,
+      role,
+    ]
+  )
 
   if (
     status ===
@@ -649,9 +633,11 @@ export default function PushSubscribeButton({
   return (
     <button
       type="button"
+
       onClick={
         activatePush
       }
+
       disabled={
         status ===
           'loading' ||
@@ -659,16 +645,18 @@ export default function PushSubscribeButton({
           'checking'
       }
     >
-      {status ===
-      'checking'
-        ? 'Comprobando notificaciones...'
-        : status ===
-            'loading'
-          ? 'Activando...'
+      {
+        status ===
+        'checking'
+          ? 'Comprobando notificaciones...'
           : status ===
-              'error'
-            ? 'Reintentar notificaciones'
-            : 'Activar notificaciones'}
+              'loading'
+            ? 'Activando...'
+            : status ===
+                'error'
+              ? 'Reintentar notificaciones'
+              : 'Activar notificaciones'
+      }
     </button>
   )
 }
