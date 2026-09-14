@@ -10,110 +10,22 @@ const PUSH_LEAD_STORAGE_KEY =
 const PUSH_ROLE_STORAGE_KEY =
   'verlo_push_role'
 
-function urlBase64ToUint8Array(
-  base64String: string
-) {
-  const padding =
-    '='.repeat(
-      (4 -
-        (base64String.length %
-          4)) %
-        4
-    )
-
-  const base64 = (
-    base64String +
-    padding
-  )
-    .replace(
-      /-/g,
-      '+'
-    )
-    .replace(
-      /_/g,
-      '/'
-    )
-
-  const rawData =
-    window.atob(
-      base64
-    )
-
-  const outputArray =
-    new Uint8Array(
-      rawData.length
-    )
-
-  for (
-    let i = 0;
-    i <
-    rawData.length;
-    i += 1
-  ) {
-    outputArray[i] =
-      rawData.charCodeAt(
-        i
-      )
-  }
-
-  return outputArray
-}
-
-function subscriptionFailed(
-  result: any,
-  leadId: string
-) {
-  const notifications =
-    Array.isArray(
-      result?.notifications
-    )
-      ? result.notifications
-      : []
-
-  return notifications.some(
-    (
-      notification: any
-    ) => {
+export default function PwaRegister() {
+  useEffect(
+    () => {
       if (
-        notification?.lead_id !==
-        leadId
+        !(
+          'serviceWorker'
+          in navigator
+        )
       ) {
-        return false
+        return
       }
 
-      const failed =
-        Number(
-          notification
-            ?.result
-            ?.failed ||
-            0
-        )
+      let cancelled =
+        false
 
-      return (
-        notification?.sent ===
-          false ||
-        failed > 0
-      )
-    }
-  )
-}
-
-export default function PwaRegister() {
-  useEffect(() => {
-    if (
-      !(
-        'serviceWorker'
-        in navigator
-      )
-    ) {
-      return
-    }
-
-    let cancelled =
-      false
-
-    const registerAndRepairPush =
-      async () => {
+      async function registerAndRepairPush() {
         try {
           const registration =
             await navigator
@@ -150,7 +62,8 @@ export default function PwaRegister() {
           }
 
           const leadId =
-            window.localStorage
+            window
+              .localStorage
               .getItem(
                 PUSH_LEAD_STORAGE_KEY
               )
@@ -158,7 +71,8 @@ export default function PwaRegister() {
             ''
 
           const storedRole =
-            window.localStorage
+            window
+              .localStorage
               .getItem(
                 PUSH_ROLE_STORAGE_KEY
               )
@@ -182,218 +96,105 @@ export default function PwaRegister() {
               | 'tenant'
               | 'owner'
 
-          const publicKey =
-            process.env
-              .NEXT_PUBLIC_VAPID_PUBLIC_KEY
-
-          if (
-            !publicKey
-          ) {
-            console.error(
-              'Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY'
-            )
-
-            return
-          }
-
-          const createSubscription =
-            async () => {
-              return registration
-                .pushManager
-                .subscribe({
-                  userVisibleOnly:
-                    true,
-
-                  applicationServerKey:
-                    urlBase64ToUint8Array(
-                      publicKey
-                    ),
-                })
-            }
-
-          const registerSubscription =
-            async (
-              subscription:
-                PushSubscription
-            ) => {
-              const response =
-                await fetch(
-                  '/api/push/subscribe',
-                  {
-                    method:
-                      'POST',
-
-                    headers: {
-                      'Content-Type':
-                        'application/json',
-                    },
-
-                    body:
-                      JSON.stringify({
-                        lead_id:
-                          leadId,
-
-                        role,
-
-                        subscription:
-                          subscription
-                            .toJSON(),
-                      }),
-                  }
-                )
-
-              const result =
-                await response
-                  .json()
-                  .catch(
-                    () => null
-                  )
-
-              if (
-                !response.ok ||
-                !result?.ok
-              ) {
-                throw new Error(
-                  result?.error ||
-                    'Push registration failed'
-                )
-              }
-
-              return result
-            }
-
-          const getBackendStatus =
-            async (
-              subscription:
-                PushSubscription
-            ) => {
-              const response =
-                await fetch(
-                  '/api/push/status',
-                  {
-                    method:
-                      'POST',
-
-                    headers: {
-                      'Content-Type':
-                        'application/json',
-                    },
-
-                    body:
-                      JSON.stringify({
-                        lead_id:
-                          leadId,
-
-                        endpoint:
-                          subscription
-                            .endpoint,
-                      }),
-                  }
-                )
-
-              const result =
-                await response
-                  .json()
-                  .catch(
-                    () => null
-                  )
-
-              if (
-                !response.ok ||
-                !result?.ok
-              ) {
-                throw new Error(
-                  result?.error ||
-                    'Push status failed'
-                )
-              }
-
-              return result
-            }
-
-          const createAndRegister =
-            async () => {
-              const subscription =
-                await createSubscription()
-
-              const result =
-                await registerSubscription(
-                  subscription
-                )
-
-              if (
-                subscriptionFailed(
-                  result,
-                  leadId
-                )
-              ) {
-                try {
-                  await subscription
-                    .unsubscribe()
-                } catch (
-                  error
-                ) {
-                  console.error(
-                    'push auto-repair unsubscribe error:',
-                    error
-                  )
-                }
-
-                throw new Error(
-                  'Fresh push subscription was rejected'
-                )
-              }
-
-              return subscription
-            }
-
-          const currentSubscription =
+          const subscription =
             await registration
               .pushManager
               .getSubscription()
 
           if (
-            !currentSubscription
+            !subscription
           ) {
-            await createAndRegister()
-
-            console.log(
-              'Verlo Push subscription restored'
-            )
-
             return
           }
 
-          const backendStatus =
-            await getBackendStatus(
-              currentSubscription
+          const statusResponse =
+            await fetch(
+              '/api/push/status',
+              {
+                method:
+                  'POST',
+
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                body:
+                  JSON.stringify({
+                    lead_id:
+                      leadId,
+
+                    endpoint:
+                      subscription
+                        .endpoint,
+                  }),
+              }
             )
+
+          const statusResult =
+            await statusResponse
+              .json()
+              .catch(
+                () => null
+              )
 
           if (
-            backendStatus
-              .active
+            statusResponse.ok &&
+            statusResult?.ok &&
+            statusResult?.active
           ) {
             return
           }
 
-          try {
-            await currentSubscription
-              .unsubscribe()
-          } catch (
-            error
+          const subscribeResponse =
+            await fetch(
+              '/api/push/subscribe',
+              {
+                method:
+                  'POST',
+
+                headers: {
+                  'Content-Type':
+                    'application/json',
+                },
+
+                body:
+                  JSON.stringify({
+                    lead_id:
+                      leadId,
+
+                    role,
+
+                    subscription:
+                      subscription
+                        .toJSON(),
+                  }),
+              }
+            )
+
+          const subscribeResult =
+            await subscribeResponse
+              .json()
+              .catch(
+                () => null
+              )
+
+          if (
+            !subscribeResponse.ok ||
+            !subscribeResult?.ok
           ) {
-            console.error(
-              'push stale unsubscribe error:',
-              error
+            throw new Error(
+              subscribeResult?.error ||
+                'Push repair failed'
             )
           }
-
-          await createAndRegister()
 
           console.log(
             'Verlo Push subscription repaired'
           )
-        } catch (error) {
+        } catch (
+          error
+        ) {
           console.error(
             'Push automatic health check failed:',
             error
@@ -401,13 +202,15 @@ export default function PwaRegister() {
         }
       }
 
-    registerAndRepairPush()
+      registerAndRepairPush()
 
-    return () => {
-      cancelled =
-        true
-    }
-  }, [])
+      return () => {
+        cancelled =
+          true
+      }
+    },
+    []
+  )
 
   return null
 }
