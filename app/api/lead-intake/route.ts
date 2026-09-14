@@ -3321,6 +3321,108 @@ export async function POST(
       )
     }
 
+const pushEvents = {
+  intake:
+    null as unknown,
+
+  matches:
+    [] as unknown[],
+}
+
+try {
+  pushEvents.intake =
+    await postInternal(
+      req,
+      "/api/push/intake-confirmation",
+      {
+        lead_id:
+          leadRecord.id,
+
+        role,
+      }
+    )
+} catch (
+  pushError
+) {
+  console.error(
+    "intake push event error:",
+    pushError
+  )
+}
+
+const createdMatchIds =
+  Array.isArray(
+    (
+      matchResult as {
+        match_ids?: unknown[]
+      }
+    ).match_ids
+  )
+    ? (
+        matchResult as {
+          match_ids:
+            unknown[]
+        }
+      ).match_ids
+        .map(
+          (
+            value
+          ) =>
+            clean(
+              value
+            )
+        )
+        .filter(
+          Boolean
+        )
+    : []
+
+for (
+  const matchId
+  of createdMatchIds
+) {
+  try {
+    const result =
+      await postInternal(
+        req,
+        "/api/push/match-created",
+        {
+          match_id:
+            matchId,
+        }
+      )
+
+    pushEvents.matches.push(
+      {
+        match_id:
+          matchId,
+
+        ...result,
+      }
+    )
+  } catch (
+    pushError
+  ) {
+    console.error(
+      "match-created push event error:",
+      {
+        matchId,
+        pushError,
+      }
+    )
+
+    pushEvents.matches.push(
+      {
+        match_id:
+          matchId,
+
+        ok:
+          false,
+      }
+    )
+  }
+}
+    
     const matchSummary =
       await getLeadMatchSummary({
         supabaseAdmin,
