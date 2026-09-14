@@ -1,9 +1,21 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-import { randomBytes } from "crypto"
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server"
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+import {
+  createClient,
+} from "@supabase/supabase-js"
+
+import {
+  randomBytes,
+} from "crypto"
+
+export const runtime =
+  "nodejs"
+
+export const dynamic =
+  "force-dynamic"
 
 const ACTIVE_MATCH_STATUSES = [
   "new",
@@ -11,221 +23,438 @@ const ACTIVE_MATCH_STATUSES = [
   "contacted",
 ]
 
-export async function POST(req: NextRequest) {
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
+}
+
+export async function POST(
+  req: NextRequest
+) {
   try {
     const supabaseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL
 
     const serviceRoleKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Missing Supabase env vars",
-        },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(
-      supabaseUrl,
-      serviceRoleKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      }
-    )
-
-    const body = await req.json().catch(() => ({}))
-
-    const tenantLeadId =
-      String(body?.tenant_lead_id || "").trim()
-
-    if (!tenantLeadId) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Missing tenant_lead_id",
-        },
-        { status: 400 }
-      )
-    }
-
-    // 1. VALIDAR TENANT
-
-    const {
-      data: tenantLead,
-      error: tenantError,
-    } = await supabase
-      .from("lead_intake")
-      .select(`
-        id,
-        full_name,
-        phone,
-        phone_normalized,
-        role,
-        intent
-      `)
-      .eq("id", tenantLeadId)
-      .single()
-
-    if (tenantError || !tenantLead) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Tenant lead not found",
-        },
-        { status: 404 }
-      )
-    }
+      process.env
+        .SUPABASE_SERVICE_ROLE_KEY
 
     if (
-      tenantLead.intent !== "tenant_search" &&
-      tenantLead.role !== "tenant"
+      !supabaseUrl ||
+      !serviceRoleKey
     ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Lead is not a tenant",
+          error:
+            "Missing Supabase env vars",
         },
-        { status: 400 }
+        {
+          status: 500,
+        }
       )
     }
 
-    // 2. VERIFICAR QUE TENGA MATCHES ACTIVOS
+    const supabase =
+      createClient(
+        supabaseUrl,
+        serviceRoleKey,
+        {
+          auth: {
+            persistSession:
+              false,
 
-    const {
-      data: matches,
-      error: matchesError,
-    } = await supabase
-      .from("lead_matches")
-      .select(`
-        id,
-        owner_lead_id,
-        score,
-        status
-      `)
-      .eq("tenant_lead_id", tenantLeadId)
-      .in("status", ACTIVE_MATCH_STATUSES)
-      .gte("score", 80)
-      .order("score", {
-        ascending: false,
-      })
+            autoRefreshToken:
+              false,
+          },
+        }
+      )
 
-    if (matchesError) {
-      throw new Error(matchesError.message)
-    }
+    const body =
+      await req
+        .json()
+        .catch(
+          () => ({})
+        )
 
-    if (!matches || matches.length === 0) {
+    const tenantLeadId =
+      clean(
+        body?.tenant_lead_id
+      )
+
+    if (
+      !tenantLeadId
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Tenant has no active matches",
+          error:
+            "Missing tenant_lead_id",
         },
-        { status: 409 }
+        {
+          status: 400,
+        }
       )
     }
 
-    // 3. REUTILIZAR TOKEN ACTIVO
-
-    const nowIso = new Date().toISOString()
+    // =========================================================
+    // 1. VALIDAR TENANT
+    // =========================================================
 
     const {
-      data: existingToken,
-      error: tokenLookupError,
-    } = await supabase
-      .from("tenant_matches_access_tokens")
-      .select(`
-        id,
-        token,
-        expires_at
-      `)
-      .eq("tenant_lead_id", tenantLeadId)
-      .is("revoked_at", null)
-      .or(
-        `expires_at.is.null,expires_at.gt.${nowIso}`
-      )
-      .order("created_at", {
-        ascending: false,
-      })
-      .limit(1)
-      .maybeSingle()
+      data:
+        tenantLead,
+      error:
+        tenantError,
+    } =
+      await supabase
+        .from(
+          "lead_intake"
+        )
+        .select(`
+          id,
+          role,
+          intent
+        `)
+        .eq(
+          "id",
+          tenantLeadId
+        )
+        .single()
 
-    if (tokenLookupError) {
-      throw new Error(tokenLookupError.message)
+    if (
+      tenantError ||
+      !tenantLead
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Tenant lead not found",
+        },
+        {
+          status: 404,
+        }
+      )
     }
 
-    if (existingToken) {
+    if (
+      tenantLead.intent !==
+        "tenant_search" &&
+      tenantLead.role !==
+        "tenant"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Lead is not a tenant",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // =========================================================
+    // 2. DEBE TENER MATCHES ACTIVOS
+    // =========================================================
+
+    const {
+      data:
+        matches,
+      error:
+        matchesError,
+    } =
+      await supabase
+        .from(
+          "lead_matches"
+        )
+        .select(`
+          id,
+          owner_lead_id,
+          score,
+          status
+        `)
+        .eq(
+          "tenant_lead_id",
+          tenantLeadId
+        )
+        .in(
+          "status",
+          ACTIVE_MATCH_STATUSES
+        )
+        .gte(
+          "score",
+          80
+        )
+        .order(
+          "score",
+          {
+            ascending:
+              false,
+          }
+        )
+
+    if (
+      matchesError
+    ) {
+      throw new Error(
+        matchesError.message
+      )
+    }
+
+    if (
+      !matches ||
+      matches.length ===
+        0
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Tenant has no active matches",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    // =========================================================
+    // 3. REUTILIZAR TOKEN ACTIVO
+    // =========================================================
+
+    const nowIso =
+      new Date()
+        .toISOString()
+
+    const {
+      data:
+        existingToken,
+      error:
+        tokenLookupError,
+    } =
+      await supabase
+        .from(
+          "tenant_matches_access_tokens"
+        )
+        .select(`
+          id,
+          token,
+          expires_at
+        `)
+        .eq(
+          "tenant_lead_id",
+          tenantLeadId
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+        .or(
+          `expires_at.is.null,expires_at.gt.${nowIso}`
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
+        .limit(1)
+        .maybeSingle()
+
+    if (
+      tokenLookupError
+    ) {
+      throw new Error(
+        tokenLookupError.message
+      )
+    }
+
+    if (
+      existingToken
+    ) {
       return NextResponse.json({
         ok: true,
 
-        tenant_lead_id: tenantLeadId,
+        tenant_lead_id:
+          tenantLeadId,
 
-        token: existingToken.token,
+        token:
+          existingToken.token,
 
         matches_url:
-          `https://verlo.lat/matches/${existingToken.token}`,
+          `/matches/${existingToken.token}`,
 
-        match_count: matches.length,
+        match_count:
+          matches.length,
 
         best_match_score:
-          Number(matches[0]?.score || 0),
+          Number(
+            matches[0]
+              ?.score ||
+              0
+          ),
 
-        reused: true,
+        reused:
+          true,
       })
     }
 
-    // 4. CREAR TOKEN PRIVADO DEL TENANT
+    // =========================================================
+    // 4. CREAR TOKEN
+    // =========================================================
 
     const token =
-      randomBytes(32).toString("hex")
+      randomBytes(
+        32
+      ).toString(
+        "hex"
+      )
 
     const expiresAt =
       new Date(
         Date.now() +
-          30 * 24 * 60 * 60 * 1000
+          30 *
+            24 *
+            60 *
+            60 *
+            1000
       ).toISOString()
 
     const {
-      error: tokenInsertError,
-    } = await supabase
-      .from("tenant_matches_access_tokens")
-      .insert({
-        tenant_lead_id: tenantLeadId,
-        token,
-        expires_at: expiresAt,
-      })
+      error:
+        tokenInsertError,
+    } =
+      await supabase
+        .from(
+          "tenant_matches_access_tokens"
+        )
+        .insert({
+          tenant_lead_id:
+            tenantLeadId,
 
-    if (tokenInsertError) {
-      throw new Error(tokenInsertError.message)
+          token,
+
+          expires_at:
+            expiresAt,
+        })
+
+    // =========================================================
+    // 5. SI HUBO CARRERA, RECONSULTAR
+    // =========================================================
+
+    if (
+      tokenInsertError
+    ) {
+      const {
+        data:
+          racedToken,
+        error:
+          racedTokenError,
+      } =
+        await supabase
+          .from(
+            "tenant_matches_access_tokens"
+          )
+          .select(`
+            token,
+            expires_at
+          `)
+          .eq(
+            "tenant_lead_id",
+            tenantLeadId
+          )
+          .is(
+            "revoked_at",
+            null
+          )
+          .or(
+            `expires_at.is.null,expires_at.gt.${nowIso}`
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false,
+            }
+          )
+          .limit(1)
+          .maybeSingle()
+
+      if (
+        racedTokenError ||
+        !racedToken
+      ) {
+        throw new Error(
+          tokenInsertError.message
+        )
+      }
+
+      return NextResponse.json({
+        ok: true,
+
+        tenant_lead_id:
+          tenantLeadId,
+
+        token:
+          racedToken.token,
+
+        matches_url:
+          `/matches/${racedToken.token}`,
+
+        match_count:
+          matches.length,
+
+        best_match_score:
+          Number(
+            matches[0]
+              ?.score ||
+              0
+          ),
+
+        reused:
+          true,
+      })
     }
 
-    // 5. URL ÚNICA CON TODOS LOS MATCHES
-
-    const matchesUrl =
-      `https://verlo.lat/matches/${token}`
+    // =========================================================
+    // 6. RESPONSE
+    // =========================================================
 
     return NextResponse.json({
       ok: true,
 
-      tenant_lead_id: tenantLeadId,
+      tenant_lead_id:
+        tenantLeadId,
 
       token,
 
-      matches_url: matchesUrl,
+      matches_url:
+        `/matches/${token}`,
 
-      match_count: matches.length,
+      match_count:
+        matches.length,
 
       best_match_score:
-        Number(matches[0]?.score || 0),
+        Number(
+          matches[0]
+            ?.score ||
+            0
+        ),
 
-      reused: false,
+      reused:
+        false,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "tenant-matches-token error:",
       error
@@ -234,9 +463,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Unexpected server error",
+
+        error:
+          error instanceof
+          Error
+            ? error.message
+            : "Unexpected server error",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     )
   }
 }
