@@ -1,9 +1,21 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-import { randomBytes } from "crypto"
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server"
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+import {
+  createClient,
+} from "@supabase/supabase-js"
+
+import {
+  randomBytes,
+} from "crypto"
+
+export const runtime =
+  "nodejs"
+
+export const dynamic =
+  "force-dynamic"
 
 const ACTIVE_MATCH_STATUSES = [
   "new",
@@ -11,289 +23,570 @@ const ACTIVE_MATCH_STATUSES = [
   "contacted",
 ]
 
-export async function POST(req: NextRequest) {
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
+}
+
+export async function POST(
+  req: NextRequest
+) {
   try {
     const supabaseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL
 
     const serviceRoleKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Missing Supabase env vars",
-        },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(
-      supabaseUrl,
-      serviceRoleKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      }
-    )
-
-    const body = await req.json().catch(() => ({}))
-
-    const ownerLeadId =
-      String(body?.owner_lead_id || "").trim()
-
-    if (!ownerLeadId) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Missing owner_lead_id",
-        },
-        { status: 400 }
-      )
-    }
-
-    // =========================================================
-    // 1. VALIDAR QUE SEA UNA PROPIEDAD / LEAD OWNER REAL
-    // =========================================================
-
-    const {
-      data: ownerLead,
-      error: ownerError,
-    } = await supabase
-      .from("lead_intake")
-      .select(`
-        id,
-        full_name,
-        phone,
-        phone_normalized,
-        role,
-        intent,
-        property_type,
-        property_rooms,
-        approx_price_number,
-        neighborhood_slug
-      `)
-      .eq("id", ownerLeadId)
-      .single()
-
-    if (ownerError || !ownerLead) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Owner lead not found",
-        },
-        { status: 404 }
-      )
-    }
+      process.env
+        .SUPABASE_SERVICE_ROLE_KEY
 
     if (
-      ownerLead.intent !== "owner_new_listing" &&
-      ownerLead.role !== "owner"
+      !supabaseUrl ||
+      !serviceRoleKey
     ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Lead is not an owner property",
+          error:
+            "Missing Supabase env vars",
         },
-        { status: 400 }
+        {
+          status: 500,
+        }
       )
     }
 
-    // =========================================================
-    // 2. VERIFICAR QUE ESA PROPIEDAD TENGA MATCHES
-    // =========================================================
+    const supabase =
+      createClient(
+        supabaseUrl,
+        serviceRoleKey,
+        {
+          auth: {
+            persistSession:
+              false,
 
-    const {
-      data: matches,
-      error: matchesError,
-    } = await supabase
-      .from("lead_matches")
-      .select(`
-        id,
-        tenant_lead_id,
-        score,
-        status
-      `)
-      .eq("owner_lead_id", ownerLeadId)
-      .in("status", ACTIVE_MATCH_STATUSES)
-      .gte("score", 80)
+            autoRefreshToken:
+              false,
+          },
+        }
+      )
 
-    if (matchesError) {
-      throw new Error(matchesError.message)
-    }
+    const body =
+      await req
+        .json()
+        .catch(
+          () => ({})
+        )
 
-    if (!matches || matches.length === 0) {
+    const ownerLeadId =
+      clean(
+        body?.owner_lead_id
+      )
+
+    if (
+      !ownerLeadId
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Owner property has no active matches",
+          error:
+            "Missing owner_lead_id",
         },
-        { status: 409 }
+        {
+          status: 400,
+        }
       )
     }
 
     // =========================================================
-    // 3. BUSCAR / CREAR LA FICHA DE ESTA PROPIEDAD
-    //
-    // Cada lead owner representa una propiedad.
-    // Un mismo propietario puede tener varios owner_lead_id.
+    // 1. VALIDAR OWNER
     // =========================================================
-
-    let completionId: string | null = null
 
     const {
-      data: existingCompletion,
-      error: completionLookupError,
-    } = await supabase
-      .from("owner_property_completions")
-      .select("id, status")
-      .eq("lead_id", ownerLeadId)
-      .order("created_at", {
-        ascending: false,
-      })
-      .limit(1)
-      .maybeSingle()
+      data:
+        ownerLead,
+      error:
+        ownerError,
+    } =
+      await supabase
+        .from(
+          "lead_intake"
+        )
+        .select(`
+          id,
+          role,
+          intent
+        `)
+        .eq(
+          "id",
+          ownerLeadId
+        )
+        .single()
 
-    if (completionLookupError) {
-      throw new Error(
-        completionLookupError.message
+    if (
+      ownerError ||
+      !ownerLead
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Owner lead not found",
+        },
+        {
+          status: 404,
+        }
       )
     }
 
-    if (existingCompletion) {
-      completionId = existingCompletion.id
+    if (
+      ownerLead.intent !==
+        "owner_new_listing" &&
+      ownerLead.role !==
+        "owner"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Lead is not an owner property",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // =========================================================
+    // 2. DEBE TENER MATCH ACTIVO
+    // =========================================================
+
+    const {
+      data:
+        matches,
+      error:
+        matchesError,
+    } =
+      await supabase
+        .from(
+          "lead_matches"
+        )
+        .select(
+          "id"
+        )
+        .eq(
+          "owner_lead_id",
+          ownerLeadId
+        )
+        .in(
+          "status",
+          ACTIVE_MATCH_STATUSES
+        )
+        .gte(
+          "score",
+          80
+        )
+
+    if (
+      matchesError
+    ) {
+      throw new Error(
+        matchesError.message
+      )
+    }
+
+    if (
+      !matches ||
+      matches.length ===
+        0
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Owner property has no active matches",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    // =========================================================
+    // 3. REUTILIZAR / CREAR COMPLETION
+    // =========================================================
+
+    let completionId:
+      string | null =
+      null
+
+    const {
+      data:
+        existingCompletion,
+      error:
+        completionLookupError,
+    } =
+      await supabase
+        .from(
+          "owner_property_completions"
+        )
+        .select(
+          "id"
+        )
+        .eq(
+          "lead_id",
+          ownerLeadId
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
+        .limit(1)
+        .maybeSingle()
+
+    if (
+      completionLookupError
+    ) {
+      throw new Error(
+        completionLookupError
+          .message
+      )
+    }
+
+    if (
+      existingCompletion
+    ) {
+      completionId =
+        existingCompletion.id
     } else {
       const {
-        data: newCompletion,
-        error: completionInsertError,
-      } = await supabase
-        .from("owner_property_completions")
-        .insert({
-          lead_id: ownerLeadId,
-          match_id: null,
-          status: "draft",
-        })
-        .select("id")
-        .single()
+        data:
+          newCompletion,
+        error:
+          completionInsertError,
+      } =
+        await supabase
+          .from(
+            "owner_property_completions"
+          )
+          .insert({
+            lead_id:
+              ownerLeadId,
+
+            match_id:
+              null,
+
+            status:
+              "draft",
+          })
+          .select(
+            "id"
+          )
+          .single()
 
       if (
         completionInsertError ||
         !newCompletion
       ) {
-        throw new Error(
-          completionInsertError?.message ||
-            "Could not create property completion"
-        )
-      }
+        /*
+         * Puede haber entrado otro request
+         * casi al mismo tiempo.
+         * Reconsultamos antes de fallar.
+         */
 
-      completionId = newCompletion.id
+        const {
+          data:
+            racedCompletion,
+          error:
+            racedCompletionError,
+        } =
+          await supabase
+            .from(
+              "owner_property_completions"
+            )
+            .select(
+              "id"
+            )
+            .eq(
+              "lead_id",
+              ownerLeadId
+            )
+            .order(
+              "created_at",
+              {
+                ascending:
+                  false,
+              }
+            )
+            .limit(1)
+            .maybeSingle()
+
+        if (
+          racedCompletionError ||
+          !racedCompletion
+        ) {
+          throw new Error(
+            completionInsertError
+              ?.message ||
+              "Could not create property completion"
+          )
+        }
+
+        completionId =
+          racedCompletion.id
+      } else {
+        completionId =
+          newCompletion.id
+      }
+    }
+
+    if (
+      !completionId
+    ) {
+      throw new Error(
+        "Missing completion id"
+      )
     }
 
     // =========================================================
-    // 4. REUTILIZAR TOKEN ACTIVO SI YA EXISTE
+    // 4. REUTILIZAR TOKEN ACTIVO
     // =========================================================
 
-    const nowIso = new Date().toISOString()
+    const nowIso =
+      new Date()
+        .toISOString()
 
     const {
-      data: existingToken,
-      error: tokenLookupError,
-    } = await supabase
-      .from("owner_property_access_tokens")
-      .select(`
-        id,
-        token,
-        expires_at
-      `)
-      .eq("owner_lead_id", ownerLeadId)
-      .eq("completion_id", completionId)
-      .is("revoked_at", null)
-      .or(
-        `expires_at.is.null,expires_at.gt.${nowIso}`
-      )
-      .order("created_at", {
-        ascending: false,
-      })
-      .limit(1)
-      .maybeSingle()
+      data:
+        existingToken,
+      error:
+        tokenLookupError,
+    } =
+      await supabase
+        .from(
+          "owner_property_access_tokens"
+        )
+        .select(`
+          id,
+          token,
+          expires_at
+        `)
+        .eq(
+          "owner_lead_id",
+          ownerLeadId
+        )
+        .eq(
+          "completion_id",
+          completionId
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+        .or(
+          `expires_at.is.null,expires_at.gt.${nowIso}`
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
+        .limit(1)
+        .maybeSingle()
 
-    if (tokenLookupError) {
-      throw new Error(tokenLookupError.message)
+    if (
+      tokenLookupError
+    ) {
+      throw new Error(
+        tokenLookupError
+          .message
+      )
     }
 
-    if (existingToken) {
+    if (
+      existingToken
+    ) {
       return NextResponse.json({
         ok: true,
 
-        owner_lead_id: ownerLeadId,
+        owner_lead_id:
+          ownerLeadId,
 
-        completion_id: completionId,
+        completion_id:
+          completionId,
 
-        token: existingToken.token,
+        token:
+          existingToken.token,
 
         property_url:
-          `https://verlo.lat/propiedad/${existingToken.token}`,
+          `/propiedad/${existingToken.token}`,
 
-        match_count: matches.length,
+        match_count:
+          matches.length,
 
-        reused: true,
+        reused:
+          true,
       })
     }
 
     // =========================================================
-    // 5. CREAR TOKEN PRIVADO
+    // 5. CREAR TOKEN
     // =========================================================
 
     const token =
-      randomBytes(32).toString("hex")
+      randomBytes(
+        32
+      ).toString(
+        "hex"
+      )
 
     const expiresAt =
       new Date(
         Date.now() +
-          30 * 24 * 60 * 60 * 1000
+          30 *
+            24 *
+            60 *
+            60 *
+            1000
       ).toISOString()
 
     const {
-      error: tokenInsertError,
-    } = await supabase
-      .from("owner_property_access_tokens")
-      .insert({
-        owner_lead_id: ownerLeadId,
-        completion_id: completionId,
-        token,
-        expires_at: expiresAt,
-      })
+      error:
+        tokenInsertError,
+    } =
+      await supabase
+        .from(
+          "owner_property_access_tokens"
+        )
+        .insert({
+          owner_lead_id:
+            ownerLeadId,
 
-    if (tokenInsertError) {
-      throw new Error(tokenInsertError.message)
+          completion_id:
+            completionId,
+
+          token,
+
+          expires_at:
+            expiresAt,
+        })
+
+    if (
+      tokenInsertError
+    ) {
+      /*
+       * Si otro request creó el token
+       * entre el SELECT y este INSERT,
+       * reconsultamos y reutilizamos.
+       */
+
+      const {
+        data:
+          racedToken,
+        error:
+          racedTokenError,
+      } =
+        await supabase
+          .from(
+            "owner_property_access_tokens"
+          )
+          .select(`
+            token,
+            expires_at
+          `)
+          .eq(
+            "owner_lead_id",
+            ownerLeadId
+          )
+          .eq(
+            "completion_id",
+            completionId
+          )
+          .is(
+            "revoked_at",
+            null
+          )
+          .or(
+            `expires_at.is.null,expires_at.gt.${nowIso}`
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false,
+            }
+          )
+          .limit(1)
+          .maybeSingle()
+
+      if (
+        racedTokenError ||
+        !racedToken
+      ) {
+        throw new Error(
+          tokenInsertError
+            .message
+        )
+      }
+
+      return NextResponse.json({
+        ok: true,
+
+        owner_lead_id:
+          ownerLeadId,
+
+        completion_id:
+          completionId,
+
+        token:
+          racedToken.token,
+
+        property_url:
+          `/propiedad/${racedToken.token}`,
+
+        match_count:
+          matches.length,
+
+        reused:
+          true,
+      })
     }
 
     // =========================================================
-    // 6. URL QUE VA EN EL BOTÓN DE WHATSAPP
+    // 6. RESPONSE
     // =========================================================
-
-    const propertyUrl =
-      `https://verlo.lat/propiedad/${token}`
 
     return NextResponse.json({
       ok: true,
 
-      owner_lead_id: ownerLeadId,
+      owner_lead_id:
+        ownerLeadId,
 
-      completion_id: completionId,
+      completion_id:
+        completionId,
 
       token,
 
-      property_url: propertyUrl,
+      property_url:
+        `/propiedad/${token}`,
 
-      match_count: matches.length,
+      match_count:
+        matches.length,
 
-      reused: false,
+      reused:
+        false,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "owner-property-token error:",
       error
@@ -302,9 +595,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Unexpected server error",
+
+        error:
+          error instanceof
+          Error
+            ? error.message
+            : "Unexpected server error",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     )
   }
 }
