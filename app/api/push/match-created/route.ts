@@ -20,10 +20,21 @@ const ACTIVE_MATCH_STATUSES = [
   'converted',
 ]
 
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ''
+  ).trim()
+}
+
 async function postInternal(
   request: Request,
   path: string,
-  body: Record<string, unknown>
+  body: Record<
+    string,
+    unknown
+  >
 ) {
   const response =
     await fetch(
@@ -44,6 +55,9 @@ async function postInternal(
           JSON.stringify(
             body
           ),
+
+        cache:
+          'no-store',
       }
     )
 
@@ -59,6 +73,9 @@ async function postInternal(
       response.ok &&
       data?.ok !==
         false,
+
+    status:
+      response.status,
 
     data,
   }
@@ -76,12 +93,13 @@ export async function POST(
         )
 
     const matchId =
-      String(
-        body?.match_id ||
-        ''
-      ).trim()
+      clean(
+        body?.match_id
+      )
 
-    if (!matchId) {
+    if (
+      !matchId
+    ) {
       return NextResponse.json(
         {
           ok: false,
@@ -95,8 +113,11 @@ export async function POST(
     }
 
     const {
-      data: match,
-      error: matchError,
+      data:
+        match,
+
+      error:
+        matchError,
     } =
       await supabaseAdmin
         .from(
@@ -113,10 +134,15 @@ export async function POST(
           'id',
           matchId
         )
-        .single()
+        .maybeSingle()
 
     if (
-      matchError ||
+      matchError
+    ) {
+      throw matchError
+    }
+
+    if (
       !match
     ) {
       return NextResponse.json(
@@ -132,11 +158,12 @@ export async function POST(
     }
 
     if (
-      !ACTIVE_MATCH_STATUSES.includes(
-        String(
-          match.status
-        )
-      ) ||
+      !ACTIVE_MATCH_STATUSES
+        .includes(
+          clean(
+            match.status
+          )
+        ) ||
       Number(
         match.score ||
         0
@@ -155,18 +182,36 @@ export async function POST(
     }
 
     const tenantLeadId =
-      String(
-        match.tenant_lead_id
+      clean(
+        match
+          .tenant_lead_id
       )
 
     const ownerLeadId =
-      String(
-        match.owner_lead_id
+      clean(
+        match
+          .owner_lead_id
       )
 
-    // =========================================================
-    // TENANT URL
-    // =========================================================
+    if (
+      !tenantLeadId ||
+      !ownerLeadId
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'Invalid match participants',
+        },
+        {
+          status: 500,
+        }
+      )
+    }
+
+    // =====================================================
+    // TENANT DESTINATION
+    // =====================================================
 
     const tenantToken =
       await postInternal(
@@ -182,23 +227,28 @@ export async function POST(
       tenantToken.ok &&
       tenantToken.data
         ?.matches_url
-        ? String(
+        ? clean(
             tenantToken.data
               .matches_url
           )
-        : null
+        : ''
 
-    // =========================================================
-    // OWNER URL
+    // =====================================================
+    // OWNER STATE
     //
-    // Si completó propiedad -> candidatos.
-    // Si todavía no -> propiedad.
-    // =========================================================
+    // Property completed:
+    // /candidatos/[token]
+    //
+    // Property incomplete:
+    // /propiedad/[token]
+    // =====================================================
 
     const {
-      data: ownerCompletion,
+      data:
+        ownerCompletion,
+
       error:
-        ownerCompletionError,
+        completionError,
     } =
       await supabaseAdmin
         .from(
@@ -226,15 +276,13 @@ export async function POST(
         .maybeSingle()
 
     if (
-      ownerCompletionError
+      completionError
     ) {
-      throw ownerCompletionError
+      throw completionError
     }
 
-    let ownerUrl:
-      string |
-      null =
-      null
+    let ownerUrl =
+      ''
 
     if (
       ownerCompletion
@@ -255,7 +303,7 @@ export async function POST(
           ?.candidates_url
       ) {
         ownerUrl =
-          String(
+          clean(
             ownerToken.data
               .candidates_url
           )
@@ -277,28 +325,55 @@ export async function POST(
           ?.property_url
       ) {
         ownerUrl =
-          String(
+          clean(
             ownerToken.data
               .property_url
           )
       }
     }
 
-    const results:
-      Record<
-        string,
-        unknown
-      > = {}
-
-    // =========================================================
-    // PUSH TENANT
-    // =========================================================
+    // =====================================================
+    // NO CREAMOS EVENTOS SIN DESTINO VÁLIDO
+    // =====================================================
 
     if (
-      tenantUrl
+      !tenantUrl ||
+      !ownerUrl
     ) {
-      results.tenant =
-        await notifyLeadOnce({
+      return NextResponse.json(
+        {
+          ok: false,
+
+          error:
+            'Could not resolve match destinations',
+
+          match_id:
+            matchId,
+
+          tenant_url:
+            tenantUrl ||
+            null,
+
+          owner_url:
+            ownerUrl ||
+            null,
+        },
+        {
+          status: 500,
+        }
+      )
+    }
+
+    // =====================================================
+    // UN EVENTO LÓGICO POR PERSONA Y MATCH
+    // =====================================================
+
+    const [
+      tenantNotification,
+      ownerNotification,
+    ] =
+      await Promise.all([
+        notifyLeadOnce({
           eventKey:
             `match_created:tenant:${matchId}`,
 
@@ -322,25 +397,9 @@ export async function POST(
 
           url:
             tenantUrl,
-        })
-    } else {
-      results.tenant = {
-        ok: false,
-        sent: false,
-        reason:
-          'tenant_url_unavailable',
-      }
-    }
+        }),
 
-    // =========================================================
-    // PUSH OWNER
-    // =========================================================
-
-    if (
-      ownerUrl
-    ) {
-      results.owner =
-        await notifyLeadOnce({
+        notifyLeadOnce({
           eventKey:
             `match_created:owner:${matchId}`,
 
@@ -360,19 +419,14 @@ export async function POST(
             'Verlo · Tenés un match',
 
           body:
-            'Encontramos una persona compatible con tu propiedad.',
+            ownerCompletion
+              ? 'Encontramos una persona compatible con tu propiedad. Revisá tus candidatos.'
+              : 'Encontramos una persona compatible con tu propiedad. Completá la publicación para continuar.',
 
           url:
             ownerUrl,
-        })
-    } else {
-      results.owner = {
-        ok: false,
-        sent: false,
-        reason:
-          'owner_url_unavailable',
-      }
-    }
+        }),
+      ])
 
     return NextResponse.json({
       ok: true,
@@ -386,7 +440,19 @@ export async function POST(
       owner_lead_id:
         ownerLeadId,
 
-      results,
+      tenant_url:
+        tenantUrl,
+
+      owner_url:
+        ownerUrl,
+
+      notifications: {
+        tenant:
+          tenantNotification,
+
+        owner:
+          ownerNotification,
+      },
     })
   } catch (
     error
