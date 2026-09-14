@@ -6,6 +6,10 @@ import {
   supabaseAdmin,
 } from '@/lib/supabase/admin'
 
+import {
+  retryFailedLeadNotifications,
+} from '@/lib/lead-notifications'
+
 export const runtime =
   'nodejs'
 
@@ -58,7 +62,9 @@ export async function POST(
         ''
       ).trim()
 
-    if (!leadId) {
+    if (
+      !leadId
+    ) {
       return NextResponse.json(
         {
           ok: false,
@@ -107,7 +113,80 @@ export async function POST(
     }
 
     const {
-      error,
+      data:
+        lead,
+
+      error:
+        leadError,
+    } =
+      await supabaseAdmin
+        .from(
+          'lead_intake'
+        )
+        .select(
+          'id, role'
+        )
+        .eq(
+          'id',
+          leadId
+        )
+        .maybeSingle()
+
+    if (
+      leadError
+    ) {
+      throw leadError
+    }
+
+    if (
+      !lead
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'Lead not found',
+        },
+        {
+          status: 404,
+        }
+      )
+    }
+
+    const leadRole =
+      String(
+        lead.role ||
+        ''
+      ).trim()
+
+    const roleAllowed =
+      leadRole ===
+        role ||
+      leadRole ===
+        'both'
+
+    if (
+      !roleAllowed
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'Role does not match lead',
+        },
+        {
+          status: 403,
+        }
+      )
+    }
+
+    const now =
+      new Date()
+        .toISOString()
+
+    const {
+      error:
+        subscriptionError,
     } =
       await supabaseAdmin
         .from(
@@ -134,8 +213,7 @@ export async function POST(
                 ),
 
             updated_at:
-              new Date()
-                .toISOString(),
+              now,
 
             revoked_at:
               null,
@@ -146,8 +224,27 @@ export async function POST(
           }
         )
 
-    if (error) {
-      throw error
+    if (
+      subscriptionError
+    ) {
+      throw subscriptionError
+    }
+
+    let retryResult:
+      unknown = null
+
+    try {
+      retryResult =
+        await retryFailedLeadNotifications(
+          leadId
+        )
+    } catch (
+      retryError
+    ) {
+      console.error(
+        'push failed-event retry error:',
+        retryError
+      )
     }
 
     return NextResponse.json({
@@ -160,6 +257,9 @@ export async function POST(
 
       registered:
         true,
+
+      retries:
+        retryResult,
     })
   } catch (
     error
