@@ -8,8 +8,8 @@ import {
 } from "@supabase/supabase-js"
 
 import {
-  sendPushToLead,
-} from "@/lib/push"
+  notifyLeadOnce,
+} from "@/lib/lead-notifications"
 
 export const runtime =
   "nodejs"
@@ -1047,7 +1047,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. SOLO EL OWNER PUEDE GENERAR / REGENERAR
+    // 3. SOLO OWNER GENERA / REGENERA
     // =========================================================
 
     if (
@@ -1169,7 +1169,7 @@ export async function POST(
         : {}
 
     // =========================================================
-    // 5. MATCH DEBE SEGUIR EN DOBLE OK
+    // 5. MATCH + DOBLE OK #2
     // =========================================================
 
     const {
@@ -1187,7 +1187,9 @@ export async function POST(
           tenant_lead_id,
           owner_lead_id,
           status,
-          ready_to_connect_at
+          ready_to_connect_at,
+          tenant_post_visit_decision,
+          owner_post_visit_decision
         `)
         .eq(
           "id",
@@ -1243,6 +1245,30 @@ export async function POST(
           ok: false,
           error:
             "Las partes del contrato no coinciden con el match.",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    const secondDoubleOk =
+      match
+        .tenant_post_visit_decision ===
+        "yes" &&
+      match
+        .owner_post_visit_decision ===
+        "yes"
+
+    if (
+      !secondDoubleOk
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+
+          error:
+            "Ambas partes deben confirmar que quieren avanzar después de la visita antes de generar el acuerdo final.",
         },
         {
           status: 409,
@@ -1332,7 +1358,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 7. DATOS LEGALES DEL TENANT
+    // 7. DATOS LEGALES TENANT
     // =========================================================
 
     let tenantDni =
@@ -1457,7 +1483,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 8. DATOS LEGALES DEL OWNER
+    // 8. DATOS LEGALES OWNER
     // =========================================================
 
     const ownerDni =
@@ -1557,7 +1583,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 9. DOMICILIO CONTRACTUAL EXACTO DEL INMUEBLE
+    // 9. DIRECCIÓN DEL INMUEBLE
     // =========================================================
 
     const propertyStreet =
@@ -1764,10 +1790,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 12. CONDICIONES ADICIONALES
-    //
-    // La UI nueva va a mandar estos campos.
-    // Mientras tanto conservamos lo que ya exista.
+    // 12. CONDICIONES
     // =========================================================
 
     const finalExpenses =
@@ -1843,7 +1866,7 @@ export async function POST(
       ""
 
     // =========================================================
-    // 13. IDENTIFICACIÓN COMPLETA DE PARTES
+    // 13. IDENTIFICACIÓN DE PARTES
     // =========================================================
 
     const ownerDocumentText =
@@ -1861,6 +1884,7 @@ export async function POST(
           ownerCity,
           ownerProvince,
           ownerCountry,
+
           ownerPostalCode
             ? `CP ${ownerPostalCode}`
             : null,
@@ -1874,6 +1898,7 @@ export async function POST(
           tenantCity,
           tenantProvince,
           tenantCountry,
+
           tenantPostalCode
             ? `CP ${tenantPostalCode}`
             : null,
@@ -1913,7 +1938,7 @@ export async function POST(
       )
 
     // =========================================================
-    // 14. FECHA ACTUAL DE CELEBRACIÓN
+    // 14. FECHA
     // =========================================================
 
     const today =
@@ -1926,7 +1951,7 @@ export async function POST(
       ""
 
     // =========================================================
-    // 15. TEXTOS VARIABLES DE CLÁUSULAS
+    // 15. CLÁUSULAS VARIABLES
     // =========================================================
 
     const furnishingClause =
@@ -2314,9 +2339,11 @@ El presente documento fue generado en Verlo a partir de los datos y condiciones 
 
     // =========================================================
     // 18. GUARDAR CONTRATO
-    //
-    // REGENERAR = RESET DE AMBOS OK
     // =========================================================
+
+    const generatedAt =
+      new Date()
+        .toISOString()
 
     const {
       data:
@@ -2358,8 +2385,7 @@ El presente documento fue generado en Verlo a partir de los datos y condiciones 
             null,
 
           updated_at:
-            new Date()
-              .toISOString(),
+            generatedAt,
         })
         .eq(
           "id",
@@ -2381,65 +2407,57 @@ El presente documento fue generado en Verlo a partir de los datos y condiciones 
           updated_at
         `)
         .single()
-if (
-  updateError ||
-  !updatedContract
-) {
-  throw new Error(
-    updateError
-      ?.message ||
-      "Could not generate contract"
-  )
-}
 
-// =========================================================
-// 19. PUSH — CONTRATO LISTO PARA ACEPTAR
-// =========================================================
-
-let tenantPush:
-  unknown =
-  null
-
-let ownerPush:
-  unknown =
-  null
-
-try {
-  const {
-    data:
-      contractTokens,
-
-    error:
-      contractTokensError,
-  } =
-    await supabase
-      .from(
-        "lead_contract_access_tokens"
+    if (
+      updateError ||
+      !updatedContract
+    ) {
+      throw new Error(
+        updateError
+          ?.message ||
+          "Could not generate contract"
       )
-      .select(`
-        token,
-        lead_id,
-        role,
-        expires_at,
-        revoked_at
-      `)
-      .eq(
-        "contract_id",
-        contract.id
-      )
-      .is(
-        "revoked_at",
-        null
-      )
+    }
 
-  if (
-    contractTokensError
-  ) {
-    console.error(
-      "closing-generate contract token lookup error:",
+    // =========================================================
+    // 19. TOKENS
+    // =========================================================
+
+    const {
+      data:
+        contractTokens,
+      error:
+        contractTokensError,
+    } =
+      await supabase
+        .from(
+          "lead_contract_access_tokens"
+        )
+        .select(`
+          token,
+          lead_id,
+          role,
+          expires_at,
+          revoked_at
+        `)
+        .eq(
+          "contract_id",
+          contract.id
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+
+    if (
       contractTokensError
-    )
-  } else {
+    ) {
+      throw new Error(
+        contractTokensError
+          .message
+      )
+    }
+
     const nowMs =
       Date.now()
 
@@ -2476,15 +2494,57 @@ try {
               .owner_lead_id
       )
 
+    const tenantUrl =
+      tenantToken?.token
+        ? `/cierre/${encodeURIComponent(
+            tenantToken.token
+          )}`
+        : null
+
+    const ownerUrl =
+      ownerToken?.token
+        ? `/cierre/${encodeURIComponent(
+            ownerToken.token
+          )}`
+        : null
+
+    // =========================================================
+    // 20. PUSH — CONTRATO FINAL GENERADO
+    //
+    // El timestamp forma parte del eventKey porque una
+    // regeneración es un nuevo evento real y resetea ambos OK.
+    // =========================================================
+
+    let tenantPush:
+      unknown =
+      null
+
+    let ownerPush:
+      unknown =
+      null
+
     if (
-      tenantToken
-        ?.token
+      tenantUrl
     ) {
-      tenantPush =
-        await sendPushToLead(
-          contract
-            .tenant_lead_id,
-          {
+      try {
+        tenantPush =
+          await notifyLeadOnce({
+            eventKey:
+              `contract_generated:tenant:${contract.id}:${generatedAt}`,
+
+            eventType:
+              "contract_generated",
+
+            leadId:
+              contract
+                .tenant_lead_id,
+
+            entityType:
+              "contract",
+
+            entityId:
+              contract.id,
+
             title:
               "Tu contrato ya está listo",
 
@@ -2492,12 +2552,16 @@ try {
               "Revisalo y confirmá tu aceptación para avanzar con el alquiler.",
 
             url:
-              `/cierre/${encodeURIComponent(
-                tenantToken
-                  .token
-              )}`,
-          }
+              tenantUrl,
+          })
+      } catch (
+        pushError
+      ) {
+        console.error(
+          "closing-generate tenant push error:",
+          pushError
         )
+      }
     } else {
       console.error(
         "closing-generate: no active tenant contract token"
@@ -2505,14 +2569,27 @@ try {
     }
 
     if (
-      ownerToken
-        ?.token
+      ownerUrl
     ) {
-      ownerPush =
-        await sendPushToLead(
-          contract
-            .owner_lead_id,
-          {
+      try {
+        ownerPush =
+          await notifyLeadOnce({
+            eventKey:
+              `contract_generated:owner:${contract.id}:${generatedAt}`,
+
+            eventType:
+              "contract_generated",
+
+            leadId:
+              contract
+                .owner_lead_id,
+
+            entityType:
+              "contract",
+
+            entityId:
+              contract.id,
+
             title:
               "Tu contrato ya está listo",
 
@@ -2520,47 +2597,46 @@ try {
               "El contrato quedó generado. Revisalo y confirmá tu aceptación.",
 
             url:
-              `/cierre/${encodeURIComponent(
-                ownerToken
-                  .token
-              )}`,
-          }
+              ownerUrl,
+          })
+      } catch (
+        pushError
+      ) {
+        console.error(
+          "closing-generate owner push error:",
+          pushError
         )
+      }
     } else {
       console.error(
         "closing-generate: no active owner contract token"
       )
     }
-  }
-} catch (
-  pushError
-) {
-  // El Push nunca debe impedir que el contrato quede generado.
-  console.error(
-    "closing-generate push error:",
-    pushError
-  )
-}
 
-// =========================================================
-// 20. RESPONSE
-// =========================================================
+    // =========================================================
+    // 21. RESPONSE
+    // =========================================================
 
-return NextResponse.json({
-  ok: true,
+    return NextResponse.json({
+      ok: true,
 
-  contract:
-    updatedContract,
+      second_double_ok:
+        true,
 
-  push: {
-    tenant:
-      tenantPush,
+      contract:
+        updatedContract,
 
-    owner:
-      ownerPush,
-  },
-})
-  } catch (error) {
+      push: {
+        tenant:
+          tenantPush,
+
+        owner:
+          ownerPush,
+      },
+    })
+  } catch (
+    error
+  ) {
     console.error(
       "closing-generate error:",
       error
@@ -2572,7 +2648,7 @@ return NextResponse.json({
 
         error:
           error instanceof
-            Error
+          Error
             ? error.message
             : "Unexpected server error",
       },
