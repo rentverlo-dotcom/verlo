@@ -12,8 +12,8 @@ import {
 } from "crypto"
 
 import {
-  sendPushToLead,
-} from "@/lib/push"
+  notifyLeadOnce,
+} from "@/lib/lead-notifications"
 
 export const runtime =
   "nodejs"
@@ -692,13 +692,11 @@ export async function POST(
     // =========================================================
     // 4. TENANT = INTERÉS REAL + VALIDACIÓN COMPLETA
     //
-    // Acá SÍ registramos:
-    //
     // tenant_interest_at
     // tenant_verified_at
     //
-    // NO tocamos owner_interest_at.
-    // NO tocamos ready_to_connect_at.
+    // NO owner_interest_at
+    // NO ready_to_connect_at
     // =========================================================
 
     const now =
@@ -840,12 +838,10 @@ export async function POST(
     // =========================================================
     // 7. PARA CADA OWNER
     //
-    // REGLA DEFINITIVA:
-    //
     // owner incompleto -> /propiedad/[token]
     // owner completo   -> /candidatos/[token]
     //
-    // NUNCA llamamos automáticamente a /api/owner-interest.
+    // NUNCA llama automáticamente a owner-interest.
     // =========================================================
 
     for (
@@ -878,9 +874,6 @@ export async function POST(
 
       // =======================================================
       // 7A. OWNER TODAVÍA INCOMPLETO
-      //
-      // Tiene interés real del tenant, pero antes de poder
-      // decidir tiene que terminar su propiedad.
       // =======================================================
 
       if (
@@ -926,34 +919,44 @@ export async function POST(
 
         try {
           pushResult =
-            await sendPushToLead(
-              ownerLeadId,
-              {
-                title:
-                  "Verlo · Hay interés",
+            await notifyLeadOnce({
+              eventKey:
+                `tenant_verified:owner:${ownerLeadId}:tenant:${tenantLeadId}`,
 
-                body:
-                  currentCandidates.length ===
-                  1
-                    ? "Una persona compatible quiere avanzar con tu propiedad. Terminá de completar tu publicación para seguir."
-                    : `${currentCandidates.length} personas compatibles quieren avanzar. Terminá de completar tu propiedad para seguir.`,
+              eventType:
+                "tenant_verified",
 
-                url:
-                  propertyUrl,
-              }
-            )
+              leadId:
+                ownerLeadId,
+
+              entityType:
+                "lead",
+
+              entityId:
+                tenantLeadId,
+
+              title:
+                "Verlo · Hay interés",
+
+              body:
+                currentCandidates.length ===
+                1
+                  ? "Una persona compatible quiere avanzar con tu propiedad. Terminá de completar tu publicación para seguir."
+                  : `${currentCandidates.length} personas compatibles quieren avanzar. Terminá de completar tu propiedad para seguir.`,
+
+              url:
+                propertyUrl,
+            })
 
           sent =
-            Number(
+            Boolean(
               (
                 pushResult as {
                   sent?:
-                    number
+                    boolean
                 }
-              )?.sent ||
-                0
-            ) >
-            0
+              )?.sent
+            )
         } catch (
           pushError
         ) {
@@ -988,9 +991,6 @@ export async function POST(
 
       // =======================================================
       // 7B. OWNER YA COMPLETÓ PROPIEDAD
-      //
-      // Ahora sí lo mandamos a su dashboard central para que
-      // ÉL decida explícitamente si quiere avanzar.
       // =======================================================
 
       const {
@@ -1108,34 +1108,44 @@ export async function POST(
 
       try {
         pushResult =
-          await sendPushToLead(
-            ownerLeadId,
-            {
-              title:
-                "Verlo · Tenés candidato",
+          await notifyLeadOnce({
+            eventKey:
+              `tenant_verified:owner:${ownerLeadId}:tenant:${tenantLeadId}`,
 
-              body:
-                currentCandidates.length ===
-                1
-                  ? "Una persona interesada completó su validación. Revisá su perfil y decidí si querés avanzar."
-                  : `${currentCandidates.length} personas interesadas completaron su validación. Revisá sus perfiles y decidí con quién querés avanzar.`,
+            eventType:
+              "tenant_verified",
 
-              url:
-                candidatesUrl,
-            }
-          )
+            leadId:
+              ownerLeadId,
+
+            entityType:
+              "lead",
+
+            entityId:
+              tenantLeadId,
+
+            title:
+              "Verlo · Tenés candidato",
+
+            body:
+              currentCandidates.length ===
+              1
+                ? "Una persona interesada completó su validación. Revisá su perfil y decidí si querés avanzar."
+                : `${currentCandidates.length} personas interesadas completaron su validación. Revisá sus perfiles y decidí con quién querés avanzar.`,
+
+            url:
+              candidatesUrl,
+          })
 
         sent =
-          Number(
+          Boolean(
             (
               pushResult as {
                 sent?:
-                  number
+                  boolean
               }
-            )?.sent ||
-              0
-          ) >
-          0
+            )?.sent
+          )
       } catch (
         pushError
       ) {
@@ -1168,10 +1178,6 @@ export async function POST(
 
     // =========================================================
     // 8. RESPONSE
-    //
-    // No existe ningún ready-to-connect automático acá.
-    // El siguiente evento depende de una acción explícita
-    // del owner desde /candidatos/[token].
     // =========================================================
 
     return NextResponse.json({
