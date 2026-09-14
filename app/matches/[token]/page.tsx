@@ -30,6 +30,28 @@ type MatchItem = {
   owner_interested: boolean
   ready_to_connect: boolean
 
+  tenant_post_visit_decision:
+    | "yes"
+    | "no"
+    | null
+
+  tenant_post_visit_decided_at:
+    | string
+    | null
+
+  owner_post_visit_decision:
+    | "yes"
+    | "no"
+    | null
+
+  owner_post_visit_decided_at:
+    | string
+    | null
+
+  tenant_closing_url:
+    | string
+    | null
+
   property: {
     neighborhood:
       | string
@@ -317,7 +339,9 @@ export default function MatchesPage() {
                   MatchItem
               ) =>
                 match
-                  .tenant_interested
+                  .tenant_interested &&
+                !match
+                  .ready_to_connect
             )
             .map(
               (
@@ -534,6 +558,17 @@ export default function MatchesPage() {
                         match.id
                       )
                     }
+                    onOpenOperation={() => {
+                      if (
+                        match
+                          .tenant_closing_url
+                      ) {
+                        router.push(
+                          match
+                            .tenant_closing_url
+                        )
+                      }
+                    }}
                   />
                 )
               )}
@@ -589,10 +624,12 @@ function PropertyCard({
   match,
   selected,
   onToggle,
+  onOpenOperation,
 }: {
   match: MatchItem
   selected: boolean
   onToggle: () => void
+  onOpenOperation: () => void
 }) {
   const [
     mediaIndex,
@@ -776,17 +813,56 @@ function PropertyCard({
           </p>
         )}
 
-        <button
-          type="button"
-          className="select"
-          onClick={
-            onToggle
-          }
-        >
-          {selected
-            ? "✓ ME INTERESA"
-            : "ME INTERESA"}
-        </button>
+        {match
+          .ready_to_connect &&
+        match
+          .tenant_closing_url ? (
+          <>
+            <div className="operation-status">
+              <strong>
+                Doble OK
+              </strong>
+
+              <span>
+                {match
+                  .tenant_post_visit_decision ===
+                "yes"
+                  ? match
+                      .owner_post_visit_decision ===
+                    "yes"
+                    ? "Los dos confirmaron después de la visita."
+                    : "Vos querés avanzar. Falta la decisión del propietario."
+                  : match
+                      .tenant_post_visit_decision ===
+                    "no"
+                    ? "Marcaste que por ahora no querés avanzar. Podés cambiar tu decisión."
+                    : "La operación está en etapa de visita y cierre."}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="operation-button"
+              onClick={
+                onOpenOperation
+              }
+            >
+              VER OPERACIÓN / CAMBIAR DECISIÓN
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="select"
+            onClick={
+              onToggle
+            }
+          >
+            {selected
+              ? "✓ ME INTERESA"
+              : "ME INTERESA"}
+          </button>
+        )}
       </div>
     </article>
   )
@@ -996,6 +1072,36 @@ function Styles() {
       .selected .select {
         background: #161616;
         color: white;
+      }
+
+      .operation-status {
+        margin-top: 18px;
+        padding: 14px;
+        border-radius: 16px;
+        background: #f2ebec;
+      }
+
+      .operation-status strong,
+      .operation-status span {
+        display: block;
+      }
+
+      .operation-status span {
+        margin-top: 5px;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .operation-button {
+        width: 100%;
+        margin-top: 12px;
+        min-height: 52px;
+        border-radius: 999px;
+        border: 0;
+        background: #161616;
+        color: white;
+        font-weight: 900;
+        cursor: pointer;
       }
 
       .bottom {
