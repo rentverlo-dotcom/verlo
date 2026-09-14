@@ -85,6 +85,60 @@ function clean(value: unknown) {
   return String(value || "").trim()
 }
 
+async function postInternal(
+  request: NextRequest,
+  path: string,
+  body: Record<
+    string,
+    unknown
+  >
+) {
+  const response =
+    await fetch(
+      new URL(
+        path,
+        request.url
+      ),
+      {
+        method:
+          "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify(
+            body
+          ),
+
+        cache:
+          "no-store",
+      }
+    )
+
+  const data =
+    await response
+      .json()
+      .catch(
+        () => null
+      )
+
+  return {
+    ok:
+      response.ok &&
+      data?.ok !==
+        false,
+
+    status:
+      response.status,
+
+    data,
+  }
+}
+
+
 function normalizePhone(phone: string) {
   const digits = phone.replace(/\D/g, "")
 
