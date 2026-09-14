@@ -3,54 +3,170 @@ import {
 } from 'next/server'
 
 import {
+  supabaseAdmin,
+} from '@/lib/supabase/admin'
+
+import {
   notifyLeadOnce,
 } from '@/lib/lead-notifications'
 
 export const runtime =
   'nodejs'
 
-async function postInternal(
-  request: Request,
-  path: string,
-  body: Record<string, unknown>
+function clean(
+  value: unknown
 ) {
-  const response =
-    await fetch(
-      new URL(
-        path,
-        request.url
-      ),
-      {
-        method:
-          'POST',
+  return String(
+    value || ''
+  ).trim()
+}
 
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-
-        body:
-          JSON.stringify(
-            body
-          ),
-      }
-    )
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
+async function getOwnerDestination(
+  leadId: string
+) {
+  const {
+    data:
+      candidateToken,
+  } =
+    await supabaseAdmin
+      .from(
+        'owner_candidates_access_tokens'
       )
+      .select(
+        'token, expires_at, revoked_at, created_at'
+      )
+      .eq(
+        'owner_lead_id',
+        leadId
+      )
+      .is(
+        'revoked_at',
+        null
+      )
+      .order(
+        'created_at',
+        {
+          ascending:
+            false,
+        }
+      )
+      .limit(1)
+      .maybeSingle()
 
-  return {
-    ok:
-      response.ok &&
-      data?.ok !==
-        false,
-
-    data,
+  if (
+    candidateToken &&
+    (
+      !candidateToken
+        .expires_at ||
+      new Date(
+        candidateToken
+          .expires_at
+      ).getTime() >
+        Date.now()
+    )
+  ) {
+    return `/candidatos/${candidateToken.token}`
   }
+
+  const {
+    data:
+      propertyToken,
+  } =
+    await supabaseAdmin
+      .from(
+        'owner_property_access_tokens'
+      )
+      .select(
+        'token, expires_at, revoked_at, created_at'
+      )
+      .eq(
+        'owner_lead_id',
+        leadId
+      )
+      .is(
+        'revoked_at',
+        null
+      )
+      .order(
+        'created_at',
+        {
+          ascending:
+            false,
+        }
+      )
+      .limit(1)
+      .maybeSingle()
+
+  if (
+    propertyToken &&
+    (
+      !propertyToken
+        .expires_at ||
+      new Date(
+        propertyToken
+          .expires_at
+      ).getTime() >
+        Date.now()
+    )
+  ) {
+    return `/propiedad/${propertyToken.token}`
+  }
+
+  return `/success?role=owner&lead=${encodeURIComponent(
+    leadId
+  )}`
+}
+
+async function getTenantDestination(
+  leadId: string
+) {
+  const {
+    data:
+      matchesToken,
+  } =
+    await supabaseAdmin
+      .from(
+        'tenant_matches_access_tokens'
+      )
+      .select(
+        'token, expires_at, revoked_at, created_at'
+      )
+      .eq(
+        'tenant_lead_id',
+        leadId
+      )
+      .is(
+        'revoked_at',
+        null
+      )
+      .order(
+        'created_at',
+        {
+          ascending:
+            false,
+        }
+      )
+      .limit(1)
+      .maybeSingle()
+
+  if (
+    matchesToken &&
+    (
+      !matchesToken
+        .expires_at ||
+      new Date(
+        matchesToken
+          .expires_at
+      ).getTime() >
+        Date.now()
+    )
+  ) {
+    return `/matches/${matchesToken.token}`
+  }
+
+  return `/success?role=tenant&lead=${encodeURIComponent(
+    leadId
+  )}`
 }
 
 export async function POST(
@@ -65,18 +181,18 @@ export async function POST(
         )
 
     const leadId =
-      String(
-        body?.lead_id ||
-        ''
-      ).trim()
+      clean(
+        body?.lead_id
+      )
 
     const role =
-      String(
-        body?.role ||
-        ''
-      ).trim()
+      clean(
+        body?.role
+      )
 
-    if (!leadId) {
+    if (
+      !leadId
+    ) {
       return NextResponse.json(
         {
           ok: false,
@@ -107,83 +223,83 @@ export async function POST(
       )
     }
 
-    let url =
-      `/success?role=${role}&lead=${encodeURIComponent(
-        leadId
-      )}`
-
-    // ===============================================
-    // OWNER
-    //
-    // Si ya tiene match, lo mandamos al flujo
-    // real de su propiedad.
-    // ===============================================
+    const {
+      data:
+        lead,
+      error:
+        leadError,
+    } =
+      await supabaseAdmin
+        .from(
+          'lead_intake'
+        )
+        .select(
+          'id, role'
+        )
+        .eq(
+          'id',
+          leadId
+        )
+        .maybeSingle()
 
     if (
+      leadError
+    ) {
+      throw leadError
+    }
+
+    if (
+      !lead
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'Lead not found',
+        },
+        {
+          status: 404,
+        }
+      )
+    }
+
+    const leadRole =
+      clean(
+        lead.role
+      )
+
+    if (
+      leadRole !==
+        role &&
+      leadRole !==
+        'both'
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'Role does not match lead',
+        },
+        {
+          status: 403,
+        }
+      )
+    }
+
+    const url =
       role ===
       'owner'
-    ) {
-      const result =
-        await postInternal(
-          request,
-          '/api/owner-property-token',
-          {
-            owner_lead_id:
-              leadId,
-          }
-        )
-
-      if (
-        result.ok &&
-        result.data
-          ?.property_url
-      ) {
-        url =
-          String(
-            result.data
-              .property_url
+        ? await getOwnerDestination(
+            leadId
           )
-      }
-    }
-
-    // ===============================================
-    // TENANT
-    //
-    // Si ya tiene match, lo mandamos directo
-    // a su dashboard de matches.
-    // ===============================================
-
-    if (
-      role ===
-      'tenant'
-    ) {
-      const result =
-        await postInternal(
-          request,
-          '/api/tenant-matches-token',
-          {
-            tenant_lead_id:
-              leadId,
-          }
-        )
-
-      if (
-        result.ok &&
-        result.data
-          ?.matches_url
-      ) {
-        url =
-          String(
-            result.data
-              .matches_url
+        : await getTenantDestination(
+            leadId
           )
-      }
-    }
 
     const notification =
       await notifyLeadOnce({
         eventKey:
-          `intake_received:${leadId}`,
+          `intake_received:${role}:${leadId}`,
 
         eventType:
           'intake_received',
@@ -210,6 +326,9 @@ export async function POST(
 
     return NextResponse.json({
       ok: true,
+      lead_id:
+        leadId,
+      role,
       url,
       notification,
     })
