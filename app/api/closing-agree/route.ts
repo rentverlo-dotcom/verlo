@@ -8,8 +8,8 @@ import {
 } from "@supabase/supabase-js"
 
 import {
-  sendPushToLead,
-} from "@/lib/push"
+  notifyLeadOnce,
+} from "@/lib/lead-notifications"
 
 export const runtime =
   "nodejs"
@@ -80,7 +80,9 @@ export async function POST(
         body?.token
       )
 
-    if (!token) {
+    if (
+      !token
+    ) {
       return NextResponse.json(
         {
           ok: false,
@@ -218,7 +220,8 @@ export async function POST(
           start_date,
           end_date,
           tenant_agreed_at,
-          owner_agreed_at
+          owner_agreed_at,
+          updated_at
         `)
         .eq(
           "id",
@@ -283,7 +286,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. VALIDAR QUE EL TOKEN SEA DE ESA PARTE
+    // 3. TOKEN DEBE PERTENECER A ESA PARTE
     // =========================================================
 
     if (
@@ -325,7 +328,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. MATCH DEBE SEGUIR SIENDO EL CORRECTO
+    // 4. VALIDAR MATCH
     // =========================================================
 
     const {
@@ -412,14 +415,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 4B. SEGUNDO DOBLE OK POST-VISITA
-    //
-    // El contrato puede verse y generarse antes de la visita,
-    // pero NO puede aceptarse definitivamente hasta que:
-    //
-    // tenant_post_visit_decision = yes
-    // owner_post_visit_decision  = yes
-    //
+    // 5. DOBLE OK #2 OBLIGATORIO
     // =========================================================
 
     const tenantPostVisitYes =
@@ -462,12 +458,31 @@ export async function POST(
     }
 
     // =========================================================
-    // 5. GUARDAR ACEPTACIÓN
+    // 6. REGISTRAR ACEPTACIÓN
     // =========================================================
 
     const now =
       new Date()
         .toISOString()
+
+    const contractVersion =
+      clean(
+        contract
+          .updated_at
+      ) ||
+      contract.id
+
+    const previouslyAgreed =
+      accessToken.role ===
+      "tenant"
+        ? Boolean(
+            contract
+              .tenant_agreed_at
+          )
+        : Boolean(
+            contract
+              .owner_agreed_at
+          )
 
     const tenantAgreedAt =
       accessToken.role ===
@@ -487,47 +502,63 @@ export async function POST(
         : contract
             .owner_agreed_at
 
+    const previouslyBothAgreed =
+      Boolean(
+        contract
+          .tenant_agreed_at &&
+        contract
+          .owner_agreed_at
+      )
+
     const bothAgreed =
       Boolean(
         tenantAgreedAt &&
-          ownerAgreedAt
+        ownerAgreedAt
       )
 
-    const {
-      error:
-        contractUpdateError,
-    } =
-      await supabase
-        .from(
-          "lead_contracts"
-        )
-        .update({
-          tenant_agreed_at:
-            tenantAgreedAt,
-
-          owner_agreed_at:
-            ownerAgreedAt,
-
-          status:
-            bothAgreed
-              ? "agreed"
-              : "generated",
-
-          updated_at:
-            now,
-        })
-        .eq(
-          "id",
-          contract.id
-        )
+    const becameBothAgreed =
+      bothAgreed &&
+      !previouslyBothAgreed
 
     if (
-      contractUpdateError
+      !previouslyAgreed
     ) {
-      throw new Error(
+      const {
+        error:
+          contractUpdateError,
+      } =
+        await supabase
+          .from(
+            "lead_contracts"
+          )
+          .update({
+            tenant_agreed_at:
+              tenantAgreedAt,
+
+            owner_agreed_at:
+              ownerAgreedAt,
+
+            status:
+              bothAgreed
+                ? "agreed"
+                : "generated",
+
+            updated_at:
+              now,
+          })
+          .eq(
+            "id",
+            contract.id
+          )
+
+      if (
         contractUpdateError
-          .message
-      )
+      ) {
+        throw new Error(
+          contractUpdateError
+            .message
+        )
+      }
     }
 
     let rentalId:
@@ -535,15 +566,12 @@ export async function POST(
       null
 
     // =========================================================
-    // 6. SI AMBOS ACEPTARON:
-    // CIERRE OPERATIVO COMPLETO
+    // 7. AMBOS ACEPTARON → CREAR ALQUILER
     // =========================================================
 
-    if (bothAgreed) {
-      // -------------------------------------------------------
-      // 6A. CREAR / REUTILIZAR ALQUILER ACTIVO
-      // -------------------------------------------------------
-
+    if (
+      bothAgreed
+    ) {
       const {
         data:
           existingRental,
@@ -644,9 +672,9 @@ export async function POST(
           createdRental.id
       }
 
-      // -------------------------------------------------------
-      // 6B. MATCH ELEGIDO = CONVERTED
-      // -------------------------------------------------------
+      // =======================================================
+      // 7A. MATCH ELEGIDO = CONVERTED
+      // =======================================================
 
       const {
         error:
@@ -675,9 +703,9 @@ export async function POST(
         )
       }
 
-      // -------------------------------------------------------
-      // 6C. DESCARTAR RESTO DE MATCHES DE ESA BÚSQUEDA TENANT
-      // -------------------------------------------------------
+      // =======================================================
+      // 7B. DESCARTAR OTROS MATCHES DEL TENANT
+      // =======================================================
 
       const {
         error:
@@ -719,9 +747,9 @@ export async function POST(
         )
       }
 
-      // -------------------------------------------------------
-      // 6D. DESCARTAR RESTO DE MATCHES DE ESA PUBLICACIÓN OWNER
-      // -------------------------------------------------------
+      // =======================================================
+      // 7C. DESCARTAR OTROS MATCHES DEL OWNER
+      // =======================================================
 
       const {
         error:
@@ -763,9 +791,9 @@ export async function POST(
         )
       }
 
-      // -------------------------------------------------------
-      // 6E. CERRAR PANEL DE MATCHES DEL TENANT
-      // -------------------------------------------------------
+      // =======================================================
+      // 7D. CERRAR PANEL DE MATCHES TENANT
+      // =======================================================
 
       const {
         error:
@@ -798,9 +826,9 @@ export async function POST(
         )
       }
 
-      // -------------------------------------------------------
-      // 6F. CERRAR PANEL DE CANDIDATOS DEL OWNER
-      // -------------------------------------------------------
+      // =======================================================
+      // 7E. CERRAR PANEL DE CANDIDATOS OWNER
+      // =======================================================
 
       const {
         error:
@@ -833,9 +861,9 @@ export async function POST(
         )
       }
 
-      // -------------------------------------------------------
-      // 6G. CERRAR TOKEN DE CARGA DE ESA PUBLICACIÓN
-      // -------------------------------------------------------
+      // =======================================================
+      // 7F. CERRAR TOKEN DE CARGA DE PROPIEDAD
+      // =======================================================
 
       const {
         error:
@@ -870,7 +898,111 @@ export async function POST(
     }
 
     // =========================================================
-    // 7. PUSH — ACEPTACIÓN / CIERRE FINAL
+    // 8. TOKENS DE CIERRE
+    // =========================================================
+
+    const {
+      data:
+        contractTokens,
+
+      error:
+        contractTokensError,
+    } =
+      await supabase
+        .from(
+          "lead_contract_access_tokens"
+        )
+        .select(`
+          token,
+          lead_id,
+          role,
+          expires_at,
+          revoked_at
+        `)
+        .eq(
+          "contract_id",
+          contract.id
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+
+    if (
+      contractTokensError
+    ) {
+      throw new Error(
+        contractTokensError
+          .message
+      )
+    }
+
+    const nowMs =
+      Date.now()
+
+    const usableTokens =
+      (
+        contractTokens ||
+        []
+      ).filter(
+        item =>
+          !item.expires_at ||
+          new Date(
+            item.expires_at
+          ).getTime() >
+            nowMs
+      )
+
+    const tenantToken =
+      usableTokens.find(
+        item =>
+          item.role ===
+            "tenant" &&
+          item.lead_id ===
+            contract
+              .tenant_lead_id
+      )
+
+    const ownerToken =
+      usableTokens.find(
+        item =>
+          item.role ===
+            "owner" &&
+          item.lead_id ===
+            contract
+              .owner_lead_id
+      )
+
+    const tenantClosingUrl =
+      tenantToken?.token
+        ? `/cierre/${encodeURIComponent(
+            tenantToken.token
+          )}`
+        : null
+
+    const ownerClosingUrl =
+      ownerToken?.token
+        ? `/cierre/${encodeURIComponent(
+            ownerToken.token
+          )}`
+        : null
+
+    const tenantFinalUrl =
+      tenantToken?.token
+        ? `/final/${encodeURIComponent(
+            tenantToken.token
+          )}`
+        : null
+
+    const ownerFinalUrl =
+      ownerToken?.token
+        ? `/final/${encodeURIComponent(
+            ownerToken.token
+          )}`
+        : null
+
+    // =========================================================
+    // 9. PUSH
     // =========================================================
 
     let tenantPush:
@@ -881,205 +1013,199 @@ export async function POST(
       unknown =
       null
 
-    try {
-      const {
-        data:
-          contractTokens,
+    // =========================================================
+    // 9A. UNA PARTE ACEPTÓ → AVISAR A LA OTRA
+    //
+    // Solo si esta aceptación ocurrió AHORA.
+    // =========================================================
 
-        error:
-          contractTokensError,
-      } =
-        await supabase
-          .from(
-            "lead_contract_access_tokens"
-          )
-          .select(`
-            token,
-            lead_id,
-            role,
-            expires_at,
-            revoked_at
-          `)
-          .eq(
-            "contract_id",
-            contract.id
-          )
-          .is(
-            "revoked_at",
-            null
-          )
-
+    if (
+      !previouslyAgreed &&
+      !bothAgreed
+    ) {
       if (
-        contractTokensError
+        accessToken.role ===
+          "tenant" &&
+        ownerClosingUrl
       ) {
-        console.error(
-          "closing-agree contract token lookup error:",
-          contractTokensError
-        )
-      } else {
-        const nowMs =
-          Date.now()
+        try {
+          ownerPush =
+            await notifyLeadOnce({
+              eventKey:
+                `contract_accept_waiting:owner:${contract.id}:tenant:${contractVersion}`,
 
-        const usableTokens =
-          (
-            contractTokens ||
-            []
-          ).filter(
-            item =>
-              !item.expires_at ||
-              new Date(
-                item.expires_at
-              ).getTime() >
-                nowMs
-          )
+              eventType:
+                "contract_accept_waiting",
 
-        const tenantToken =
-          usableTokens.find(
-            item =>
-              item.role ===
-                "tenant" &&
-              item.lead_id ===
-                contract
-                  .tenant_lead_id
-          )
-
-        const ownerToken =
-          usableTokens.find(
-            item =>
-              item.role ===
-                "owner" &&
-              item.lead_id ===
-                contract
-                  .owner_lead_id
-          )
-
-        // -----------------------------------------------------
-        // UNO ACEPTÓ → AVISAR AL OTRO
-        // -----------------------------------------------------
-
-        if (
-          !bothAgreed
-        ) {
-          if (
-            accessToken.role ===
-              "tenant" &&
-            ownerToken
-              ?.token
-          ) {
-            ownerPush =
-              await sendPushToLead(
+              leadId:
                 contract
                   .owner_lead_id,
-                {
-                  title:
-                    "Falta tu aceptación",
 
-                  body:
-                    "El inquilino ya aceptó el contrato. Revisalo y confirmá tu aceptación para cerrar el alquiler.",
+              entityType:
+                "contract",
 
-                  url:
-                    `/cierre/${encodeURIComponent(
-                      ownerToken
-                        .token
-                    )}`,
-                }
-              )
-          }
+              entityId:
+                contract.id,
 
-          if (
-            accessToken.role ===
-              "owner" &&
-            tenantToken
-              ?.token
-          ) {
-            tenantPush =
-              await sendPushToLead(
-                contract
-                  .tenant_lead_id,
-                {
-                  title:
-                    "Falta tu aceptación",
+              title:
+                "Falta tu aceptación",
 
-                  body:
-                    "El propietario ya aceptó el contrato. Revisalo y confirmá tu aceptación para cerrar el alquiler.",
+              body:
+                "El inquilino ya aceptó el contrato. Revisalo y confirmá tu aceptación para cerrar el alquiler.",
 
-                  url:
-                    `/cierre/${encodeURIComponent(
-                      tenantToken
-                        .token
-                    )}`,
-                }
-              )
-          }
-        }
-
-        // -----------------------------------------------------
-        // AMBOS ACEPTARON → AVISAR A LOS DOS
-        // -----------------------------------------------------
-
-        if (
-          bothAgreed
+              url:
+                ownerClosingUrl,
+            })
+        } catch (
+          pushError
         ) {
-          if (
-            tenantToken
-              ?.token
-          ) {
-            tenantPush =
-              await sendPushToLead(
-                contract
-                  .tenant_lead_id,
-                {
-                  title:
-                    "🎉 Alquiler confirmado",
-
-                  body:
-                    "Las dos partes aceptaron el contrato. Gracias por usar Verlo.",
-
-                  url:
-                    `/final/${encodeURIComponent(
-                      tenantToken
-                        .token
-                    )}`,
-                }
-              )
-          }
-
-          if (
-            ownerToken
-              ?.token
-          ) {
-            ownerPush =
-              await sendPushToLead(
-                contract
-                  .owner_lead_id,
-                {
-                  title:
-                    "🎉 Alquiler confirmado",
-
-                  body:
-                    "Las dos partes aceptaron el contrato. Gracias por usar Verlo.",
-
-                  url:
-                    `/final/${encodeURIComponent(
-                      ownerToken
-                        .token
-                    )}`,
-                }
-              )
-          }
+          console.error(
+            "closing-agree owner waiting push error:",
+            pushError
+          )
         }
       }
-    } catch (
-      pushError
-    ) {
-      console.error(
-        "closing-agree push error:",
-        pushError
-      )
+
+      if (
+        accessToken.role ===
+          "owner" &&
+        tenantClosingUrl
+      ) {
+        try {
+          tenantPush =
+            await notifyLeadOnce({
+              eventKey:
+                `contract_accept_waiting:tenant:${contract.id}:owner:${contractVersion}`,
+
+              eventType:
+                "contract_accept_waiting",
+
+              leadId:
+                contract
+                  .tenant_lead_id,
+
+              entityType:
+                "contract",
+
+              entityId:
+                contract.id,
+
+              title:
+                "Falta tu aceptación",
+
+              body:
+                "El propietario ya aceptó el contrato. Revisalo y confirmá tu aceptación para cerrar el alquiler.",
+
+              url:
+                tenantClosingUrl,
+            })
+        } catch (
+          pushError
+        ) {
+          console.error(
+            "closing-agree tenant waiting push error:",
+            pushError
+          )
+        }
+      }
     }
 
     // =========================================================
-    // 8. RESPONSE
+    // 9B. AMBOS ACEPTARON → ALQUILER CONFIRMADO
+    //
+    // Solo cuando pasa de uno a ambos.
+    // =========================================================
+
+    if (
+      becameBothAgreed
+    ) {
+      if (
+        tenantFinalUrl
+      ) {
+        try {
+          tenantPush =
+            await notifyLeadOnce({
+              eventKey:
+                `rental_confirmed:tenant:${contract.id}:${contractVersion}`,
+
+              eventType:
+                "rental_confirmed",
+
+              leadId:
+                contract
+                  .tenant_lead_id,
+
+              entityType:
+                "rental",
+
+              entityId:
+                rentalId ||
+                contract.id,
+
+              title:
+                "🎉 Alquiler confirmado",
+
+              body:
+                "Las dos partes aceptaron el contrato. Gracias por usar Verlo.",
+
+              url:
+                tenantFinalUrl,
+            })
+        } catch (
+          pushError
+        ) {
+          console.error(
+            "closing-agree tenant final push error:",
+            pushError
+          )
+        }
+      }
+
+      if (
+        ownerFinalUrl
+      ) {
+        try {
+          ownerPush =
+            await notifyLeadOnce({
+              eventKey:
+                `rental_confirmed:owner:${contract.id}:${contractVersion}`,
+
+              eventType:
+                "rental_confirmed",
+
+              leadId:
+                contract
+                  .owner_lead_id,
+
+              entityType:
+                "rental",
+
+              entityId:
+                rentalId ||
+                contract.id,
+
+              title:
+                "🎉 Alquiler confirmado",
+
+              body:
+                "Las dos partes aceptaron el contrato. Gracias por usar Verlo.",
+
+              url:
+                ownerFinalUrl,
+            })
+        } catch (
+          pushError
+        ) {
+          console.error(
+            "closing-agree owner final push error:",
+            pushError
+          )
+        }
+      }
+    }
+
+    // =========================================================
+    // 10. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -1091,6 +1217,9 @@ export async function POST(
 
       agreed:
         true,
+
+      already_agreed:
+        previouslyAgreed,
 
       tenant_agreed:
         Boolean(
@@ -1104,6 +1233,9 @@ export async function POST(
 
       both_agreed:
         bothAgreed,
+
+      became_both_agreed:
+        becameBothAgreed,
 
       contract_status:
         bothAgreed
