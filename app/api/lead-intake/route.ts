@@ -3502,42 +3502,16 @@ for (
         zone,
       })
 
-    if (
-      !meta.ok
-    ) {
-      console.error(
-        "meta capi error:",
-        meta.error
-      )
-    }
+   if (
+  !meta.ok
+) {
+  console.error(
+    "meta capi error:",
+    meta.error
+  )
+}
 
-    return NextResponse.json({
-      ok: true,
-
-      meta,
-
-      tags,
-
-      match_result:
-        matchResult,
-
-      match_summary:
-        matchSummary,
-
-      event_id:
-        eventId,
-
-      lead_id:
-        leadRecord?.id ||
-        null,
-    })
-  } catch (err) {
-    console.error(
-      "lead intake api error:",
-      err
-    )
-
-  return NextResponse.json({
+return NextResponse.json({
   ok: true,
 
   meta,
