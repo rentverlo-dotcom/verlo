@@ -140,6 +140,18 @@ type ClosingData = {
 
     ready_to_connect_at:
       string | null
+
+    tenant_post_visit_decision:
+      string | null
+
+    tenant_post_visit_decided_at:
+      string | null
+
+    owner_post_visit_decision:
+      string | null
+
+    owner_post_visit_decided_at:
+      string | null
   }
 
   tenant: {
@@ -956,6 +968,14 @@ export default function ClosingPage() {
   const [
     accepting,
     setAccepting,
+  ] =
+    useState(
+      false
+    )
+
+  const [
+    decidingPostVisit,
+    setDecidingPostVisit,
   ] =
     useState(
       false
@@ -2096,8 +2116,129 @@ export default function ClosingPage() {
     }
   }
 
+  async function savePostVisitDecision(
+    decision:
+      | "yes"
+      | "no"
+  ) {
+    if (!data) {
+      return
+    }
+
+    const label =
+      decision ===
+      "yes"
+        ? "querés seguir avanzando"
+        : "por ahora no querés seguir avanzando"
+
+    const confirmed =
+      window.confirm(
+        `¿Confirmás que ${label} después de la visita? Podés cambiar esta decisión mientras el alquiler no esté cerrado.`
+      )
+
+    if (
+      !confirmed
+    ) {
+      return
+    }
+
+    try {
+      setDecidingPostVisit(
+        true
+      )
+
+      setError(
+        ""
+      )
+
+      setSuccessMessage(
+        ""
+      )
+
+      const response =
+        await fetch(
+          "/api/post-visit-decision",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                token,
+                decision,
+              }),
+          }
+        )
+
+      const json =
+        await response.json()
+
+      if (
+        !response.ok ||
+        !json?.ok
+      ) {
+        throw new Error(
+          json?.error ||
+            "No pudimos guardar tu decisión."
+        )
+      }
+
+      await load(
+        false
+      )
+
+      setSuccessMessage(
+        json
+          .second_double_ok
+          ? "Los dos confirmaron después de la visita. Ya pueden avanzar con la aceptación final del contrato."
+          : decision ===
+              "yes"
+            ? "Tu decisión quedó guardada. Falta la decisión de la otra parte."
+            : "Tu decisión quedó guardada. Este match seguirá disponible y podés cambiarla más adelante."
+      )
+    } catch (
+      err
+    ) {
+      setError(
+        err instanceof
+          Error
+          ? err.message
+          : "No pudimos guardar tu decisión."
+      )
+    } finally {
+      setDecidingPostVisit(
+        false
+      )
+    }
+  }
+
   async function agreeContract() {
     if (!data) {
+      return
+    }
+
+    const secondDoubleOk =
+      data
+        .match
+        .tenant_post_visit_decision ===
+        "yes" &&
+      data
+        .match
+        .owner_post_visit_decision ===
+        "yes"
+
+    if (
+      !secondDoubleOk
+    ) {
+      setError(
+        "Antes de aceptar el contrato, las dos partes deben confirmar que quieren avanzar después de la visita."
+      )
+
       return
     }
 
@@ -2326,6 +2467,40 @@ if (
       : data
           .contract
           .tenant_agreed
+
+  const myPostVisitDecision =
+    data
+      .viewer
+      .role ===
+    "tenant"
+      ? data
+          .match
+          .tenant_post_visit_decision
+      : data
+          .match
+          .owner_post_visit_decision
+
+  const otherPostVisitDecision =
+    data
+      .viewer
+      .role ===
+    "tenant"
+      ? data
+          .match
+          .owner_post_visit_decision
+      : data
+          .match
+          .tenant_post_visit_decision
+
+  const secondDoubleOk =
+    data
+      .match
+      .tenant_post_visit_decision ===
+      "yes" &&
+    data
+      .match
+      .owner_post_visit_decision ===
+      "yes"
 
   const myLegalComplete =
     isOwner
@@ -3792,6 +3967,148 @@ if (
                 )}
             </article>
 
+            <article className="verlo-card no-print post-visit-card">
+              <span className="card-kicker">
+                DESPUÉS DE LA VISITA
+              </span>
+
+              <h2>
+                ¿Querés seguir avanzando con este alquiler?
+              </h2>
+
+              <p>
+                Coordiná la visita directamente con la otra parte. Después, registrá acá tu decisión. Si marcás que no por ahora, el match no se elimina y podés cambiar tu decisión más adelante.
+              </p>
+
+              <div className="visit-details">
+                <Info
+                  label="Dirección"
+                  value={
+                    data
+                      .property
+                      .address ||
+                    "Ver con la otra parte"
+                  }
+                />
+
+                <Info
+                  label="Condiciones de visita"
+                  value={
+                    data
+                      .property
+                      .visit_conditions ||
+                    "Coordinar directamente"
+                  }
+                />
+              </div>
+
+              <div className="post-visit-status-grid">
+                <div className="decision-status">
+                  <span>
+                    TU DECISIÓN
+                  </span>
+
+                  <strong>
+                    {myPostVisitDecision ===
+                    "yes"
+                      ? "Quiero avanzar"
+                      : myPostVisitDecision ===
+                          "no"
+                        ? "No quiero avanzar por ahora"
+                        : "Todavía no decidiste"}
+                  </strong>
+                </div>
+
+                <div className="decision-status">
+                  <span>
+                    OTRA PARTE
+                  </span>
+
+                  <strong>
+                    {otherPostVisitDecision ===
+                    "yes"
+                      ? "Quiere avanzar"
+                      : otherPostVisitDecision ===
+                          "no"
+                        ? "No quiere avanzar por ahora"
+                        : "Todavía no decidió"}
+                  </strong>
+                </div>
+              </div>
+
+              {secondDoubleOk ? (
+                <div className="post-visit-ready">
+                  <strong>
+                    ✓ Los dos quieren avanzar
+                  </strong>
+
+                  <span>
+                    El segundo doble OK está completo. Ya pueden aceptar la versión final del contrato.
+                  </span>
+                </div>
+              ) : (
+                <div className="post-visit-actions">
+                  <button
+                    type="button"
+                    className={
+                      myPostVisitDecision ===
+                      "yes"
+                        ? "primary-button decision-active"
+                        : "primary-button"
+                    }
+                    disabled={
+                      decidingPostVisit ||
+                      contractLocked
+                    }
+                    onClick={
+                      () =>
+                        savePostVisitDecision(
+                          "yes"
+                        )
+                    }
+                  >
+                    {decidingPostVisit
+                      ? "GUARDANDO..."
+                      : myPostVisitDecision ===
+                          "yes"
+                        ? "✓ QUIERO AVANZAR"
+                        : "QUIERO AVANZAR"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={
+                      myPostVisitDecision ===
+                      "no"
+                        ? "secondary-button decision-active-no"
+                        : "secondary-button"
+                    }
+                    disabled={
+                      decidingPostVisit ||
+                      contractLocked
+                    }
+                    onClick={
+                      () =>
+                        savePostVisitDecision(
+                          "no"
+                        )
+                    }
+                  >
+                    {myPostVisitDecision ===
+                    "no"
+                      ? "✓ NO QUIERO AVANZAR POR AHORA"
+                      : "NO QUIERO AVANZAR POR AHORA"}
+                  </button>
+                </div>
+              )}
+
+              {myPostVisitDecision && (
+                <p className="decision-help">
+                  Podés cambiar esta decisión mientras el alquiler no esté cerrado.
+                </p>
+              )}
+            </article>
+
             <article className="verlo-card no-print">
               <span className="card-kicker">
                 PROPIEDAD
@@ -4505,13 +4822,15 @@ if (
                                 ? otherAgreed
                                   ? "Las dos partes ya confirmaron."
                                   : "Ahora falta que la otra parte confirme esta misma versión."
-                                : data
-                                    .review_assets
-                                    .ready
-                                  ? "Confirmá solamente después de revisar la información disponible y leer el contrato completo."
-                                  : isOwner
-                                    ? "Antes de aceptar necesitás poder revisar la documentación del inquilino."
-                                    : "Antes de aceptar necesitás poder revisar la multimedia de la propiedad."}
+                                : !secondDoubleOk
+                                  ? "Primero las dos partes deben confirmar que quieren avanzar después de la visita."
+                                  : data
+                                      .review_assets
+                                      .ready
+                                    ? "Confirmá solamente después de revisar la información disponible y leer el contrato completo."
+                                    : isOwner
+                                      ? "Antes de aceptar necesitás poder revisar la documentación del inquilino."
+                                      : "Antes de aceptar necesitás poder revisar la multimedia de la propiedad."}
                             </p>
                           </div>
 
@@ -4525,6 +4844,7 @@ if (
                             disabled={
                               accepting ||
                               viewerAgreed ||
+                              !secondDoubleOk ||
                               !data
                                 .review_assets
                                 .ready
@@ -4537,11 +4857,13 @@ if (
                               ? "REGISTRANDO..."
                               : viewerAgreed
                                 ? "✓ YA ACEPTASTE ESTE CONTRATO"
-                                : !data
-                                    .review_assets
-                                    .ready
-                                  ? "FALTA REVISAR INFORMACIÓN"
-                                  : "ESTOY DE ACUERDO CON ESTE CONTRATO"}
+                                : !secondDoubleOk
+                                  ? "FALTA CONFIRMACIÓN POST-VISITA"
+                                  : !data
+                                      .review_assets
+                                      .ready
+                                    ? "FALTA REVISAR INFORMACIÓN"
+                                    : "ESTOY DE ACUERDO CON ESTE CONTRATO"}
                           </button>
                         </>
                       )}
@@ -4610,6 +4932,26 @@ if (
                   label="Contrato generado"
                   done={
                     contractGenerated
+                  }
+                />
+
+                <Step
+                  label="Post-visita inquilino"
+                  done={
+                    data
+                      .match
+                      .tenant_post_visit_decision ===
+                    "yes"
+                  }
+                />
+
+                <Step
+                  label="Post-visita propietario"
+                  done={
+                    data
+                      .match
+                      .owner_post_visit_decision ===
+                    "yes"
                   }
                 />
 
@@ -5747,6 +6089,83 @@ function Styles() {
         letter-spacing: 0.1em;
       }
 
+      .post-visit-card {
+        border-color: rgba(195, 121, 134, 0.28);
+      }
+
+      .visit-details,
+      .post-visit-status-grid {
+        margin-top: 22px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .decision-status {
+        padding: 16px;
+        border-radius: 16px;
+        background: #faf8f5;
+        border: 1px solid #eee7e2;
+      }
+
+      .decision-status span {
+        display: block;
+        margin-bottom: 7px;
+        color: #9c9194;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+      }
+
+      .decision-status strong {
+        font-size: 14px;
+      }
+
+      .post-visit-actions {
+        margin-top: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .post-visit-actions button {
+        flex: 1 1 220px;
+      }
+
+      .decision-active {
+        box-shadow: inset 0 0 0 2px #050002;
+      }
+
+      .decision-active-no {
+        border-color: #c37986;
+        background: #f2ebec;
+      }
+
+      .post-visit-ready {
+        margin-top: 20px;
+        padding: 16px;
+        border-radius: 16px;
+        background: #050002;
+        color: white;
+      }
+
+      .post-visit-ready strong,
+      .post-visit-ready span {
+        display: block;
+      }
+
+      .post-visit-ready span {
+        margin-top: 5px;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 12px;
+      }
+
+      .decision-help {
+        margin-top: 12px !important;
+        font-size: 12px;
+        color: #8a8184 !important;
+      }
+
       .legal-status-grid {
         margin-top: 24px;
         display: grid;
@@ -6585,7 +7004,9 @@ function Styles() {
         .form-grid,
         .review-grid,
         .legal-status-grid,
-        .documents-grid {
+        .documents-grid,
+        .visit-details,
+        .post-visit-status-grid {
           grid-template-columns: 1fr;
         }
 
