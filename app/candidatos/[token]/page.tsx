@@ -1131,20 +1131,20 @@ function CandidateCard({
             </button>
           )}
         </>
-      ) : match
-          .owner_interest ? (
-        <div className="waiting-box">
-          <strong>
-            Tu OK ya está
-            registrado
-          </strong>
+   ) : match
+    .owner_interest ? (
+  <div className="waiting-box">
+    <strong>
+      Expresaste interés 
+    </strong>
 
-          <span>
-            Este match sigue
-            avanzando dentro de
-            Verlo.
-          </span>
-        </div>
+    <span>
+      Estamos esperando la decisión
+      del inquilino. Ya le avisamos
+      para que entre a Verlo.
+    </span>
+  </div>
+)
       ) : match
           .waiting_verification ? (
         <div className="waiting-box">
