@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
+import {
+  notifyLeadOnce,
+} from "@/lib/lead-notifications"
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -21,6 +25,57 @@ type MediaItem = {
 
 function clean(value: unknown) {
   return String(value || "").trim()
+}
+
+async function postInternal(
+  request: Request,
+  path: string,
+  body: Record<
+    string,
+    unknown
+  >
+) {
+  const response =
+    await fetch(
+      new URL(
+        path,
+        request.url
+      ),
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify(
+            body
+          ),
+
+        cache:
+          "no-store",
+      }
+    )
+
+  const data =
+    await response
+      .json()
+      .catch(
+        () => null
+      )
+
+  return {
+    ok:
+      response.ok &&
+      data?.ok !== false,
+
+    status:
+      response.status,
+
+    data,
+  }
 }
 
 export async function POST(
@@ -250,52 +305,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. MARCAR PROPIEDAD COMPLETA
-    //
-    // IMPORTANTE:
-    // completar propiedad NO significa aceptar candidatos.
-    // =========================================================
-
-    const {
-      error: completionError,
-    } = await supabase
-      .from(
-        "owner_property_completions"
-      )
-      .update({
-        status: "submitted",
-      })
-      .eq(
-        "id",
-        completionId
-      )
-      .eq(
-        "lead_id",
-        ownerLeadId
-      )
-
-    if (
-      completionError
-    ) {
-      console.error(
-        "completion update:",
-        completionError
-      )
-
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Could not complete property",
-        },
-        {
-          status: 500,
-        }
-      )
-    }
-
-    // =========================================================
-    // 4. PREPARAR MULTIMEDIA NUEVA
+    // 3. PREPARAR MULTIMEDIA NUEVA
     // =========================================================
 
     const existingKeys =
@@ -401,7 +411,7 @@ export async function POST(
         )
 
     // =========================================================
-    // 5. GUARDAR MULTIMEDIA
+    // 4. GUARDAR MULTIMEDIA
     // =========================================================
 
     if (
@@ -430,7 +440,7 @@ export async function POST(
           {
             ok: false,
             error:
-              "Property completed but media metadata failed",
+              "Could not save property media metadata",
           },
           {
             status: 500,
@@ -440,7 +450,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 6. CONFIRMAR MULTIMEDIA
+    // 5. CONFIRMAR MULTIMEDIA
     // =========================================================
 
     const {
@@ -481,6 +491,52 @@ export async function POST(
         },
         {
           status: 409,
+        }
+      )
+    }
+
+    // =========================================================
+    // 6. AHORA SÍ MARCAR PROPIEDAD COMPLETA
+    //
+    // Primero confirmamos que realmente existe multimedia.
+    //
+    // Completar propiedad NO significa aceptar candidatos.
+    // =========================================================
+
+    const {
+      error: completionError,
+    } = await supabase
+      .from(
+        "owner_property_completions"
+      )
+      .update({
+        status: "submitted",
+      })
+      .eq(
+        "id",
+        completionId
+      )
+      .eq(
+        "lead_id",
+        ownerLeadId
+      )
+
+    if (
+      completionError
+    ) {
+      console.error(
+        "completion update:",
+        completionError
+      )
+
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Could not complete property",
+        },
+        {
+          status: 500,
         }
       )
     }
@@ -581,127 +637,225 @@ export async function POST(
     }
 
     // =========================================================
-    // 9. AVISAR TENANTS CUANDO APARECE PRIMERA MULTIMEDIA
+    // 9. NOTIFICAR TENANTS
     //
-    // Esto sigue siendo correcto:
-    // la propiedad ahora está lista para ser mostrada.
+    // REGLA:
+    // Owner completa propiedad/fotos.
+    // La Push va al TENANT compatible.
+    //
+    // Una notificación lógica por match.
+    // URL estable del tenant: /matches/[token]
+    //
+    // notifyLeadOnce evita duplicados mediante event_key UNIQUE.
     // =========================================================
 
     let tenantNotificationAttempted =
       false
 
     let tenantNotificationOk =
-      false
+      true
 
-    let tenantNotificationStatus:
-      number | null =
-      null
-
-    let tenantNotificationResponse:
-      unknown =
-      null
+    const tenantNotificationResponse:
+      Array<{
+        match_id: string
+        tenant_lead_id: string
+        url: string | null
+        notification: unknown
+        error: string | null
+      }> =
+      []
 
     if (
       !hadMediaBefore &&
       cleanMedia.length > 0 &&
-      matchIds.length > 0
+      activeMatches.length > 0
     ) {
       tenantNotificationAttempted =
         true
 
-      try {
-        const origin =
-          new URL(
-            request.url
-          ).origin
-
-        const pilotResponse =
-          await fetch(
-            `${origin}/api/pilot-matches`,
-            {
-              method:
-                "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body:
-                JSON.stringify({
-                  send: true,
-
-                  lead_ids: [
-                    ownerLeadId,
-                  ],
-
-                  notify_roles: [
-                    "tenant",
-                  ],
-                }),
-            }
+      for (
+        const match of
+        activeMatches
+      ) {
+        const tenantLeadId =
+          clean(
+            match.tenant_lead_id
           )
 
-        tenantNotificationStatus =
-          pilotResponse.status
+        const matchId =
+          clean(
+            match.id
+          )
 
-        const pilotData =
-          await pilotResponse
-            .json()
-            .catch(
-              async () => {
-                const text =
-                  await pilotResponse
-                    .text()
-                    .catch(
-                      () =>
-                        ""
-                    )
+        if (
+          !tenantLeadId ||
+          !matchId
+        ) {
+          tenantNotificationOk =
+            false
 
-                return {
-                  raw:
-                    text,
-                }
+          tenantNotificationResponse.push({
+            match_id:
+              matchId ||
+              "",
+
+            tenant_lead_id:
+              tenantLeadId ||
+              "",
+
+            url:
+              null,
+
+            notification:
+              null,
+
+            error:
+              "Invalid match participants",
+          })
+
+          continue
+        }
+
+        try {
+          // ===================================================
+          // URL ESTABLE DEL TENANT
+          // ===================================================
+
+          const tokenResult =
+            await postInternal(
+              request,
+              "/api/tenant-matches-token",
+              {
+                tenant_lead_id:
+                  tenantLeadId,
               }
             )
 
-        tenantNotificationResponse =
-          pilotData
+          const tenantUrl =
+            tokenResult.ok &&
+            tokenResult.data
+              ?.matches_url
+              ? clean(
+                  tokenResult
+                    .data
+                    .matches_url
+                )
+              : ""
 
-        tenantNotificationOk =
-          pilotResponse.ok
+          if (
+            !tenantUrl
+          ) {
+            tenantNotificationOk =
+              false
 
-        if (
-          !pilotResponse.ok
+            tenantNotificationResponse.push({
+              match_id:
+                matchId,
+
+              tenant_lead_id:
+                tenantLeadId,
+
+              url:
+                null,
+
+              notification:
+                null,
+
+              error:
+                `Could not resolve tenant matches URL. HTTP ${tokenResult.status}`,
+            })
+
+            continue
+          }
+
+          // ===================================================
+          // EVENTO DE NEGOCIO REAL
+          // ===================================================
+
+          const notification =
+            await notifyLeadOnce({
+              eventKey:
+                `owner_property_ready:tenant:${matchId}`,
+
+              eventType:
+                "owner_property_ready",
+
+              leadId:
+                tenantLeadId,
+
+              entityType:
+                "match",
+
+              entityId:
+                matchId,
+
+              title:
+                "Verlo · Propiedad lista",
+
+              body:
+                "La propiedad compatible ya tiene información y fotos disponibles. Podés revisarla y decidir si te interesa.",
+
+              url:
+                tenantUrl,
+            })
+
+          tenantNotificationResponse.push({
+            match_id:
+              matchId,
+
+            tenant_lead_id:
+              tenantLeadId,
+
+            url:
+              tenantUrl,
+
+            notification,
+
+            error:
+              null,
+          })
+        } catch (
+          notificationError
         ) {
+          tenantNotificationOk =
+            false
+
+          const message =
+            notificationError instanceof
+            Error
+              ? notificationError.message
+              : String(
+                  notificationError
+                )
+
           console.error(
-            "tenant notification after owner media failed:",
+            "tenant notification after owner completion failed:",
             {
-              status:
-                pilotResponse.status,
-
-              response:
-                pilotData,
-
               ownerLeadId,
+              tenantLeadId,
+              matchId,
+              error:
+                message,
             }
           )
-        }
-      } catch (
-        notificationError
-      ) {
-        console.error(
-          "tenant notification after owner media error:",
-          notificationError
-        )
 
-        tenantNotificationResponse =
-          notificationError instanceof
-          Error
-            ? notificationError.message
-            : String(
-                notificationError
-              )
+          tenantNotificationResponse.push({
+            match_id:
+              matchId,
+
+            tenant_lead_id:
+              tenantLeadId,
+
+            url:
+              null,
+
+            notification:
+              null,
+
+            error:
+              message,
+          })
+        }
       }
     }
 
@@ -809,9 +963,6 @@ export async function POST(
 
       tenant_notification_ok:
         tenantNotificationOk,
-
-      tenant_notification_status:
-        tenantNotificationStatus,
 
       tenant_notification_response:
         tenantNotificationResponse,
