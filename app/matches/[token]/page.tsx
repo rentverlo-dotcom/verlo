@@ -4,10 +4,12 @@ import {
   useEffect,
   useState,
 } from "react"
+
 import {
   useParams,
   useRouter,
 } from "next/navigation"
+
 import VerloBrand from "@/components/VerloBrand"
 
 type MediaItem = {
@@ -22,10 +24,12 @@ type MediaItem = {
 type MatchItem = {
   id: string
   score: number
+
   reasons: Record<
     string,
     unknown
   >
+
   tenant_interested: boolean
   owner_interested: boolean
   ready_to_connect: boolean
@@ -143,7 +147,9 @@ function money(
     | number
     | null
 ) {
-  if (!value) return null
+  if (!value) {
+    return null
+  }
 
   return new Intl.NumberFormat(
     "es-AR",
@@ -160,7 +166,9 @@ function humanize(
     | string
     | null
 ) {
-  if (!value) return null
+  if (!value) {
+    return null
+  }
 
   const dictionary:
     Record<
@@ -255,6 +263,68 @@ export default function MatchesPage() {
       string[]
     >([])
 
+  const [
+    submitting,
+    setSubmitting,
+  ] =
+    useState(false)
+
+  async function loadMatches(
+    showLoading =
+      false
+  ) {
+    if (!token) {
+      return null
+    }
+
+    if (showLoading) {
+      setLoading(true)
+    }
+
+    try {
+      const response =
+        await fetch(
+          `/api/tenant-matches-view?token=${encodeURIComponent(
+            token
+          )}`,
+          {
+            cache:
+              "no-store",
+          }
+        )
+
+      const json =
+        await response.json()
+
+      if (
+        !response.ok ||
+        !json?.ok
+      ) {
+        throw new Error(
+          json?.error ||
+            "No pudimos cargar tus propiedades."
+        )
+      }
+
+      setData(json)
+      setError("")
+
+      return json as MatchesData
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No pudimos cargar tus propiedades."
+      )
+
+      return null
+    } finally {
+      if (showLoading) {
+        setLoading(false)
+      }
+    }
+  }
+
   useEffect(() => {
     if (!token) {
       return
@@ -266,19 +336,26 @@ export default function MatchesPage() {
           await fetch(
             "/api/match-link-open",
             {
-              method: "POST",
+              method:
+                "POST",
+
               headers: {
                 "Content-Type":
                   "application/json",
               },
-              body: JSON.stringify({
-                token,
-                role: "tenant",
-              }),
+
+              body:
+                JSON.stringify({
+                  token,
+                  role:
+                    "tenant",
+                }),
             }
           )
 
-        if (!response.ok) {
+        if (
+          !response.ok
+        ) {
           const text =
             await response
               .text()
@@ -304,78 +381,39 @@ export default function MatchesPage() {
   }, [token])
 
   useEffect(() => {
-    async function load() {
-      try {
-        const response =
-          await fetch(
-            `/api/tenant-matches-view?token=${encodeURIComponent(
-              token
-            )}`
-          )
-
-        const json =
-          await response.json()
-
-        if (
-          !response.ok ||
-          !json?.ok
-        ) {
-          throw new Error(
-            json?.error ||
-              "No pudimos cargar tus propiedades."
-          )
-        }
-
-        setData(json)
-
-        const alreadyInterested =
-          (
-            json.matches ||
-            []
-          )
-            .filter(
-              (
-                match:
-                  MatchItem
-              ) =>
-                match
-                  .tenant_interested &&
-                !match
-                  .ready_to_connect
-            )
-            .map(
-              (
-                match:
-                  MatchItem
-              ) =>
-                match.id
-            )
-
-        setSelected(
-          alreadyInterested
-        )
-      } catch (err) {
-        setError(
-          err instanceof
-            Error
-            ? err.message
-            : "No pudimos cargar tus propiedades."
-        )
-      } finally {
-        setLoading(
-          false
-        )
-      }
+    async function initialLoad() {
+      await loadMatches(
+        true
+      )
     }
 
     if (token) {
-      load()
+      initialLoad()
     }
   }, [token])
 
   function toggleMatch(
     matchId: string
   ) {
+    const match =
+      data?.matches.find(
+        (
+          item
+        ) =>
+          item.id ===
+          matchId
+      )
+
+    if (
+      !match ||
+      match
+        .tenant_interested ||
+      match
+        .ready_to_connect
+    ) {
+      return
+    }
+
     setSelected(
       (
         current
@@ -384,7 +422,9 @@ export default function MatchesPage() {
           matchId
         )
           ? current.filter(
-              (id) =>
+              (
+                id
+              ) =>
                 id !==
                 matchId
             )
@@ -395,7 +435,7 @@ export default function MatchesPage() {
     )
   }
 
-  function continueFlow() {
+  async function continueFlow() {
     if (
       selected.length ===
       0
@@ -407,16 +447,96 @@ export default function MatchesPage() {
       return
     }
 
+    setSubmitting(true)
     setError("")
 
-    const matchIds =
-      encodeURIComponent(
-        selected.join(",")
-      )
+    try {
+      const results:
+        any[] =
+        []
 
-    router.push(
-      `/tenant/validacion/${token}?matches=${matchIds}`
-    )
+      for (
+        const matchId of
+          selected
+      ) {
+        const response =
+          await fetch(
+            "/api/match-interest",
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  token,
+                  match_id:
+                    matchId,
+                }),
+            }
+          )
+
+        const json =
+          await response
+            .json()
+            .catch(
+              () => null
+            )
+
+        if (
+          !response.ok ||
+          !json?.ok
+        ) {
+          throw new Error(
+            json?.error ||
+              "No pudimos registrar tu interés."
+          )
+        }
+
+        results.push(
+          json
+        )
+      }
+
+      setSelected([])
+
+      await loadMatches()
+
+      const readyResult =
+        results.find(
+          (
+            result
+          ) =>
+            result
+              ?.ready_to_connect &&
+            result
+              ?.tenant_closing_url
+        )
+
+      if (
+        readyResult
+          ?.tenant_closing_url
+      ) {
+        router.push(
+          readyResult
+            .tenant_closing_url
+        )
+
+        return
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No pudimos registrar tu interés."
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (loading) {
@@ -468,31 +588,43 @@ export default function MatchesPage() {
   return (
     <>
       <main className="page">
-     <header
-  style={{
-    position: "sticky",
-    top: 0,
-    zIndex: 50,
-    height: "76px",
-    background: "rgba(242,235,236,0.82)",
-    backdropFilter: "blur(18px)",
-    WebkitBackdropFilter: "blur(18px)",
-    borderBottom: "1px solid rgba(5,0,2,0.08)",
-    display: "flex",
-    alignItems: "center",
-  }}
->
-  <div
-    style={{
-      width: "min(1160px, calc(100% - 40px))",
-      margin: "0 auto",
-      display: "flex",
-      alignItems: "center",
-    }}
-  >
-    <VerloBrand />
-  </div>
-</header>
+        <header
+          style={{
+            position:
+              "sticky",
+            top: 0,
+            zIndex: 50,
+            height:
+              "76px",
+            background:
+              "rgba(242,235,236,0.82)",
+            backdropFilter:
+              "blur(18px)",
+            WebkitBackdropFilter:
+              "blur(18px)",
+            borderBottom:
+              "1px solid rgba(5,0,2,0.08)",
+            display:
+              "flex",
+            alignItems:
+              "center",
+          }}
+        >
+          <div
+            style={{
+              width:
+                "min(1160px, calc(100% - 40px))",
+              margin:
+                "0 auto",
+              display:
+                "flex",
+              alignItems:
+                "center",
+            }}
+          >
+            <VerloBrand />
+          </div>
+        </header>
 
         <section className="intro">
           <span className="eyebrow">
@@ -504,6 +636,7 @@ export default function MatchesPage() {
             Encontramos
             opciones
             <br />
+
             <em>
               para vos.
             </em>
@@ -550,9 +683,11 @@ export default function MatchesPage() {
                     match={
                       match
                     }
-                    selected={selected.includes(
-                      match.id
-                    )}
+                    selected={
+                      selected.includes(
+                        match.id
+                      )
+                    }
                     onToggle={() =>
                       toggleMatch(
                         match.id
@@ -594,15 +729,19 @@ export default function MatchesPage() {
               </div>
 
               <button
+                type="button"
                 onClick={
                   continueFlow
                 }
                 disabled={
                   selected.length ===
-                  0
+                    0 ||
+                  submitting
                 }
               >
-                ME INTERESA
+                {submitting
+                  ? "GUARDANDO..."
+                  : "ME INTERESA"}
               </button>
             </section>
 
@@ -626,10 +765,17 @@ function PropertyCard({
   onToggle,
   onOpenOperation,
 }: {
-  match: MatchItem
-  selected: boolean
-  onToggle: () => void
-  onOpenOperation: () => void
+  match:
+    MatchItem
+
+  selected:
+    boolean
+
+  onToggle:
+    () => void
+
+  onOpenOperation:
+    () => void
 }) {
   const [
     mediaIndex,
@@ -685,7 +831,8 @@ function PropertyCard({
       </div>
 
       {match.media
-        .length > 1 && (
+        .length >
+        1 && (
         <div className="thumbs">
           {match.media.map(
             (
@@ -765,6 +912,7 @@ function PropertyCard({
                 .property
                 .price
             )}
+
             <small>
               {" "}
               / mes
@@ -836,7 +984,7 @@ function PropertyCard({
                       .tenant_post_visit_decision ===
                     "no"
                     ? "Marcaste que por ahora no querés avanzar. Podés cambiar tu decisión."
-                    : "La operación está en etapa de visita y cierre."}
+                    : "Los dos quieren avanzar. Entrá para continuar."}
               </span>
             </div>
 
@@ -847,21 +995,54 @@ function PropertyCard({
                 onOpenOperation
               }
             >
-              VER OPERACIÓN / CAMBIAR DECISIÓN
+              VER OPERACIÓN
             </button>
           </>
+        ) : match
+            .tenant_interested ? (
+          <div className="operation-status">
+            <strong>
+              Expresaste interés
+            </strong>
+
+            <span>
+              Estamos esperando
+              la decisión del
+              propietario. Ya le
+              avisamos para que
+              entre a Verlo.
+            </span>
+          </div>
         ) : (
-          <button
-            type="button"
-            className="select"
-            onClick={
-              onToggle
-            }
-          >
-            {selected
-              ? "✓ ME INTERESA"
-              : "ME INTERESA"}
-          </button>
+          <>
+            {match
+              .owner_interested && (
+              <div className="owner-interest">
+                <strong>
+                  El propietario
+                  quiere avanzar
+                </strong>
+
+                <span>
+                  Si esta propiedad
+                  te interesa, podés
+                  dar tu OK ahora.
+                </span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="select"
+              onClick={
+                onToggle
+              }
+            >
+              {selected
+                ? "✓ ME INTERESA"
+                : "ME INTERESA"}
+            </button>
+          </>
         )}
       </div>
     </article>
@@ -872,65 +1053,80 @@ function Styles() {
   return (
     <style jsx global>{`
       * {
-        box-sizing: border-box;
+        box-sizing:
+          border-box;
       }
 
       body {
         margin: 0;
-        background: #f8f6f1;
-        color: #161616;
-        font-family: Arial,
+        background:
+          #f8f6f1;
+        color:
+          #161616;
+        font-family:
+          Arial,
           sans-serif;
       }
 
       .page {
-        max-width: 1180px;
-        margin: 0 auto;
-        padding: 30px 24px 80px;
-      }
-
-      .count {
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        padding: 10px 14px;
-        border: 1px solid #161616;
-        border-radius: 999px;
+        max-width:
+          1180px;
+        margin:
+          0 auto;
+        padding:
+          30px
+          24px
+          80px;
       }
 
       .intro {
-        margin-bottom: 42px;
+        margin-bottom:
+          42px;
       }
 
       .eyebrow {
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
+        font-size:
+          12px;
+        font-weight:
+          800;
+        letter-spacing:
+          0.12em;
       }
 
       .intro h1 {
-        font-size: clamp(
-          46px,
-          7vw,
-          86px
-        );
-        line-height: 0.95;
-        letter-spacing: -0.055em;
-        margin: 14px 0 20px;
+        font-size:
+          clamp(
+            46px,
+            7vw,
+            86px
+          );
+        line-height:
+          0.95;
+        letter-spacing:
+          -0.055em;
+        margin:
+          14px
+          0
+          20px;
       }
 
       .intro h1 em {
-        font-weight: inherit;
+        font-weight:
+          inherit;
       }
 
       .intro p {
-        font-size: 18px;
-        max-width: 480px;
-        line-height: 1.5;
+        font-size:
+          18px;
+        max-width:
+          480px;
+        line-height:
+          1.5;
       }
 
       .grid {
-        display: grid;
+        display:
+          grid;
         grid-template-columns:
           repeat(
             2,
@@ -939,235 +1135,383 @@ function Styles() {
               1fr
             )
           );
-        gap: 28px;
+        gap:
+          28px;
       }
 
       .card {
-        background: white;
-        border: 2px solid transparent;
-        border-radius: 24px;
-        overflow: hidden;
-        transition: 0.2s ease;
+        background:
+          white;
+        border:
+          2px solid
+          transparent;
+        border-radius:
+          24px;
+        overflow:
+          hidden;
+        transition:
+          0.2s ease;
       }
 
       .card.selected {
-        border-color: #161616;
-        transform: translateY(
-          -2px
-        );
+        border-color:
+          #161616;
+        transform:
+          translateY(
+            -2px
+          );
       }
 
       .media {
-        position: relative;
-        aspect-ratio: 4 / 3;
-        background: #ddd;
+        position:
+          relative;
+        aspect-ratio:
+          4 / 3;
+        background:
+          #ddd;
       }
 
       .media img,
       .media video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+        width:
+          100%;
+        height:
+          100%;
+        object-fit:
+          cover;
       }
 
       .score {
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        background: white;
-        border-radius: 999px;
-        padding: 9px 12px;
-        font-size: 12px;
-        font-weight: 900;
+        position:
+          absolute;
+        top:
+          16px;
+        right:
+          16px;
+        background:
+          white;
+        border-radius:
+          999px;
+        padding:
+          9px
+          12px;
+        font-size:
+          12px;
+        font-weight:
+          900;
       }
 
       .placeholder {
-        height: 100%;
-        display: grid;
-        place-items: center;
+        height:
+          100%;
+        display:
+          grid;
+        place-items:
+          center;
       }
 
       .thumbs {
-        display: flex;
-        gap: 8px;
-        padding: 10px 14px 0;
-        overflow-x: auto;
+        display:
+          flex;
+        gap:
+          8px;
+        padding:
+          10px
+          14px
+          0;
+        overflow-x:
+          auto;
       }
 
       .thumb {
-        width: 58px;
-        height: 44px;
-        padding: 0;
-        border: 2px solid transparent;
-        border-radius: 8px;
-        overflow: hidden;
-        cursor: pointer;
-        background: #eee;
-        flex: 0 0 auto;
+        width:
+          58px;
+        height:
+          44px;
+        padding:
+          0;
+        border:
+          2px solid
+          transparent;
+        border-radius:
+          8px;
+        overflow:
+          hidden;
+        cursor:
+          pointer;
+        background:
+          #eee;
+        flex:
+          0 0 auto;
       }
 
       .thumb.active {
-        border-color: #161616;
+        border-color:
+          #161616;
       }
 
       .thumb img,
       .thumb video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+        width:
+          100%;
+        height:
+          100%;
+        object-fit:
+          cover;
       }
 
       .content {
-        padding: 24px;
+        padding:
+          24px;
       }
 
       .location {
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        font-size:
+          12px;
+        font-weight:
+          800;
+        text-transform:
+          uppercase;
+        letter-spacing:
+          0.08em;
       }
 
       .content h2 {
-        font-size: 28px;
-        margin: 8px 0 14px;
-        letter-spacing: -0.03em;
+        font-size:
+          28px;
+        margin:
+          8px
+          0
+          14px;
+        letter-spacing:
+          -0.03em;
       }
 
       .price {
-        display: block;
-        font-size: 24px;
-        margin-bottom: 18px;
+        display:
+          block;
+        font-size:
+          24px;
+        margin-bottom:
+          18px;
       }
 
       .price small {
-        font-size: 13px;
-        font-weight: 500;
+        font-size:
+          13px;
+        font-weight:
+          500;
       }
 
       .facts {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        font-size: 14px;
-        margin-bottom: 18px;
+        display:
+          flex;
+        flex-direction:
+          column;
+        gap:
+          6px;
+        font-size:
+          14px;
+        margin-bottom:
+          18px;
       }
 
       .content p {
-        font-size: 14px;
-        line-height: 1.5;
+        font-size:
+          14px;
+        line-height:
+          1.5;
       }
 
       .select {
-        width: 100%;
-        margin-top: 18px;
-        min-height: 52px;
-        border-radius: 999px;
-        border: 1px solid #161616;
-        background: white;
-        font-weight: 900;
-        cursor: pointer;
+        width:
+          100%;
+        margin-top:
+          18px;
+        min-height:
+          52px;
+        border-radius:
+          999px;
+        border:
+          1px solid
+          #161616;
+        background:
+          white;
+        font-weight:
+          900;
+        cursor:
+          pointer;
       }
 
-      .selected .select {
-        background: #161616;
-        color: white;
+      .selected
+      .select {
+        background:
+          #161616;
+        color:
+          white;
       }
 
-      .operation-status {
-        margin-top: 18px;
-        padding: 14px;
-        border-radius: 16px;
-        background: #f2ebec;
+      .operation-status,
+      .owner-interest {
+        margin-top:
+          18px;
+        padding:
+          14px;
+        border-radius:
+          16px;
+        background:
+          #f2ebec;
+      }
+
+      .owner-interest {
+        background:
+          #e7c776;
       }
 
       .operation-status strong,
-      .operation-status span {
-        display: block;
+      .operation-status span,
+      .owner-interest strong,
+      .owner-interest span {
+        display:
+          block;
       }
 
-      .operation-status span {
-        margin-top: 5px;
-        font-size: 12px;
-        line-height: 1.45;
+      .operation-status span,
+      .owner-interest span {
+        margin-top:
+          5px;
+        font-size:
+          12px;
+        line-height:
+          1.45;
       }
 
       .operation-button {
-        width: 100%;
-        margin-top: 12px;
-        min-height: 52px;
-        border-radius: 999px;
-        border: 0;
-        background: #161616;
-        color: white;
-        font-weight: 900;
-        cursor: pointer;
+        width:
+          100%;
+        margin-top:
+          12px;
+        min-height:
+          52px;
+        border-radius:
+          999px;
+        border:
+          0;
+        background:
+          #161616;
+        color:
+          white;
+        font-weight:
+          900;
+        cursor:
+          pointer;
       }
 
       .bottom {
-        position: sticky;
-        bottom: 18px;
-        margin-top: 34px;
-        background: #161616;
-        color: white;
-        border-radius: 20px;
-        padding: 18px 22px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 20px;
+        position:
+          sticky;
+        bottom:
+          18px;
+        margin-top:
+          34px;
+        background:
+          #161616;
+        color:
+          white;
+        border-radius:
+          20px;
+        padding:
+          18px
+          22px;
+        display:
+          flex;
+        justify-content:
+          space-between;
+        align-items:
+          center;
+        gap:
+          20px;
       }
 
       .bottom div {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
+        display:
+          flex;
+        flex-direction:
+          column;
+        gap:
+          3px;
       }
 
       .bottom span {
-        font-size: 12px;
-        opacity: 0.72;
+        font-size:
+          12px;
+        opacity:
+          0.72;
       }
 
       .bottom button {
-        border: 0;
-        border-radius: 999px;
-        padding: 15px 24px;
-        background: white;
-        color: #161616;
-        font-weight: 900;
-        cursor: pointer;
+        border:
+          0;
+        border-radius:
+          999px;
+        padding:
+          15px
+          24px;
+        background:
+          white;
+        color:
+          #161616;
+        font-weight:
+          900;
+        cursor:
+          pointer;
       }
 
       .bottom button:disabled {
-        opacity: 0.4;
-        cursor: default;
+        opacity:
+          0.4;
+        cursor:
+          default;
       }
 
       .error {
-        margin-top: 16px;
-        padding: 14px;
-        background: #ffe3e3;
-        border-radius: 12px;
+        margin-top:
+          16px;
+        padding:
+          14px;
+        background:
+          #ffe3e3;
+        border-radius:
+          12px;
       }
 
       .empty {
-        background: white;
-        border-radius: 24px;
-        padding: 40px;
+        background:
+          white;
+        border-radius:
+          24px;
+        padding:
+          40px;
       }
 
       .centered {
-        min-height: 100vh;
-        display: grid;
-        place-content: center;
-        text-align: center;
-        gap: 20px;
-        padding: 24px;
+        min-height:
+          100vh;
+        display:
+          grid;
+        place-content:
+          center;
+        text-align:
+          center;
+        gap:
+          20px;
+        padding:
+          24px;
       }
 
       @media (
-        max-width: 760px
+        max-width:
+          760px
       ) {
         .page {
           padding:
@@ -1177,24 +1521,31 @@ function Styles() {
         }
 
         header {
-          margin-bottom: 44px;
+          margin-bottom:
+            44px;
         }
 
         .grid {
-          grid-template-columns: 1fr;
+          grid-template-columns:
+            1fr;
         }
 
         .intro h1 {
-          font-size: 52px;
+          font-size:
+            52px;
         }
 
         .bottom {
-          bottom: 10px;
-          padding: 14px;
+          bottom:
+            10px;
+          padding:
+            14px;
         }
 
         .bottom button {
-          padding: 13px 18px;
+          padding:
+            13px
+            18px;
         }
       }
     `}</style>
