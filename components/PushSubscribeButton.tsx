@@ -436,13 +436,18 @@ export default function PushSubscribeButton({
             return
           }
 
-          if (
-            !active
-          ) {
-            await registerSubscription(
-              subscription
-            )
-          }
+        if (!active) {
+  await subscription.unsubscribe()
+
+  const freshSubscription =
+    await createSubscription(
+      registration
+    )
+
+  await registerSubscription(
+    freshSubscription
+  )
+}
 
           if (
             !cancelled
