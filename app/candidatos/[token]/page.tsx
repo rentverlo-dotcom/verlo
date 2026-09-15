@@ -1210,29 +1210,29 @@ function MatchStatus({
     )
   }
 
-  if (
-    match.requires_owner_action
-  ) {
-    return (
-      <div className="match-status action">
-        <span className="status-dot" />
+if (
+  match.requires_owner_action
+) {
+  return (
+    <div className="match-status action">
+      <span className="status-dot" />
 
-        Esperando tu decisión
-      </div>
-    )
-  }
+      Esperando tu decisión
+    </div>
+  )
+}
 
-  if (
-    match.waiting_verification
-  ) {
-    return (
-      <div className="match-status">
-        <span className="status-dot" />
+if (
+  match.waiting_tenant
+) {
+  return (
+    <div className="match-status">
+      <span className="status-dot" />
 
-        Está completando su perfil
-      </div>
-    )
-  }
+      Esperando al inquilino
+    </div>
+  )
+}
 
   if (
     match.tenant_interest
