@@ -309,14 +309,14 @@ function sectionDescription(
   if (
     stage === "new"
   ) {
-    return "Personas compatibles con tu propiedad que todavía están evaluando sus opciones."
+    return "Personas compatibles con tu propiedad."
   }
 
   if (
     stage ===
     "in_progress"
   ) {
-    return "Matches donde alguna de las partes ya dio un paso para avanzar."
+    return "Matches donde alguna de las partes ya decidió avanzar."
   }
 
   if (
@@ -981,14 +981,6 @@ function CandidateCard({
               <StatusLine
                 active={
                   match
-                    .tenant_verified
-                }
-                text="Perfil validado"
-              />
-
-              <StatusLine
-                active={
-                  match
                     .owner_interest
                 }
                 text="Vos también diste OK"
@@ -1131,32 +1123,18 @@ function CandidateCard({
             </button>
           )}
         </>
-   ) : match
-    .owner_interest ? (
-  <div className="waiting-box">
-    <strong>
-      Expresaste interés 
-    </strong>
-
-    <span>
-      Estamos esperando la decisión
-      del inquilino. Ya le avisamos
-      para que entre a Verlo.
-    </span>
-  </div>
-)
       ) : match
-          .waiting_verification ? (
+          .owner_interest ? (
         <div className="waiting-box">
           <strong>
-            Mostró interés
+            Expresaste interés
           </strong>
 
           <span>
-            Estamos esperando
-            que complete la
-            validación antes de
-            pedirte una decisión.
+            Estamos esperando la
+            decisión del inquilino.
+            Ya le avisamos para que
+            entre a Verlo.
           </span>
         </div>
       ) : (
@@ -1166,12 +1144,9 @@ function CandidateCard({
           </strong>
 
           <span>
-            Encontramos
-            compatibilidad. Si
-            esta persona decide
-            avanzar con tu
-            propiedad, te
-            avisamos.
+            Encontramos compatibilidad.
+            Podés decidir ahora si
+            querés avanzar.
           </span>
         </div>
       )}
@@ -1210,29 +1185,29 @@ function MatchStatus({
     )
   }
 
-if (
-  match.requires_owner_action
-) {
-  return (
-    <div className="match-status action">
-      <span className="status-dot" />
+  if (
+    match.requires_owner_action
+  ) {
+    return (
+      <div className="match-status action">
+        <span className="status-dot" />
 
-      Esperando tu decisión
-    </div>
-  )
-}
+        Esperando tu decisión
+      </div>
+    )
+  }
 
-if (
-  match.waiting_tenant
-) {
-  return (
-    <div className="match-status">
-      <span className="status-dot" />
+  if (
+    match.waiting_tenant
+  ) {
+    return (
+      <div className="match-status">
+        <span className="status-dot" />
 
-      Esperando al inquilino
-    </div>
-  )
-}
+        Esperando al inquilino
+      </div>
+    )
+  }
 
   if (
     match.tenant_interest
