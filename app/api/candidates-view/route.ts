@@ -1032,18 +1032,19 @@ export async function GET(
 
                 introduced,
 
-                requires_owner_action:
-                  tenantInterested &&
-                  tenantVerified &&
-                  !ownerInterested,
+           requires_owner_action:
+  !ownerInterested &&
+  !readyToConnect &&
+  match.status !==
+    "converted",
 
-                waiting_tenant:
-                  !tenantInterested,
+waiting_tenant:
+  ownerInterested &&
+  !tenantInterested &&
+  !readyToConnect,
 
-                waiting_verification:
-                  tenantInterested &&
-                  !tenantVerified,
-
+waiting_verification:
+  false,
                 operation_active:
                   readyToConnect ||
                   match.status ===
