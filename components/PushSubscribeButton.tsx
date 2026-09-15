@@ -313,19 +313,31 @@ export default function PushSubscribeButton({
       const registration =
         await getRegistration()
 
-      let subscription =
-        await registration
-          .pushManager
-          .getSubscription()
+  let subscription =
+  await registration
+    .pushManager
+    .getSubscription()
 
-      if (
-        !subscription
-      ) {
-        subscription =
-          await createSubscription(
-            registration
-          )
-      }
+if (subscription) {
+  const active =
+    await getBackendStatus(
+      subscription
+    )
+
+  if (!active) {
+    await subscription.unsubscribe()
+
+    subscription =
+      await createSubscription(
+        registration
+      )
+  }
+} else {
+  subscription =
+    await createSubscription(
+      registration
+    )
+}
 
       await registerSubscription(
         subscription
