@@ -7,14 +7,6 @@ import {
   createClient,
 } from "@supabase/supabase-js"
 
-import {
-  randomBytes,
-} from "crypto"
-
-import {
-  notifyLeadOnce,
-} from "@/lib/lead-notifications"
-
 export const runtime =
   "nodejs"
 
@@ -25,6 +17,7 @@ const ACTIVE_MATCH_STATUSES = [
   "new",
   "reviewed",
   "contacted",
+  "converted",
 ]
 
 const MIN_MATCH_SCORE =
@@ -36,56 +29,6 @@ function clean(
   return String(
     value || ""
   ).trim()
-}
-
-async function postInternal(
-  request: NextRequest,
-  path: string,
-  body: Record<
-    string,
-    unknown
-  >
-) {
-  const response =
-    await fetch(
-      new URL(
-        path,
-        request.url
-      ),
-      {
-        method:
-          "POST",
-
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-
-        body:
-          JSON.stringify(
-            body
-          ),
-      }
-    )
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
-      )
-
-  return {
-    ok:
-      response.ok &&
-      data?.ok !==
-        false,
-
-    status:
-      response.status,
-
-    data,
-  }
 }
 
 export async function POST(
@@ -196,7 +139,13 @@ export async function POST(
       body?.documents &&
       typeof body.documents ===
         "object"
-        ? body.documents
+        ? body.documents as {
+            dni_front?: string
+            dni_back?: string
+            selfie?: string
+            income_proof?: string
+            guarantee_proof?: string
+          }
         : {}
 
     if (!token) {
@@ -312,7 +261,7 @@ export async function POST(
         .tenant_lead_id
 
     // =========================================================
-    // 2. VALIDAR MATCHES ELEGIDOS
+    // 2. VALIDAR MATCHES
     // =========================================================
 
     const {
@@ -330,12 +279,7 @@ export async function POST(
           tenant_lead_id,
           owner_lead_id,
           score,
-          status,
-          owner_completed_at,
-          owner_interest_at,
-          tenant_interest_at,
-          tenant_verified_at,
-          ready_to_connect_at
+          status
         `)
         .in(
           "id",
@@ -381,7 +325,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 2B. LA PROPIEDAD DEBE TENER AL MENOS UNA FOTO
+    // 3. VALIDAR QUE LAS PROPIEDADES TENGAN FOTO
     // =========================================================
 
     const selectedOwnerLeadIds =
@@ -482,7 +426,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. GUARDAR / REUTILIZAR VERIFICACIÓN DEL TENANT
+    // 4. BUSCAR VERIFICACIÓN REUTILIZABLE
     // =========================================================
 
     const {
@@ -531,6 +475,10 @@ export async function POST(
       )
     }
 
+    // =========================================================
+    // 5. GUARDAR VALIDACIÓN
+    // =========================================================
+
     const verificationPayload = {
       lead_id:
         tenantLeadId,
@@ -539,19 +487,22 @@ export async function POST(
         null,
 
       dni_front_path:
-        documents.dni_front ||
+        documents
+          .dni_front ||
         existingVerification
           ?.dni_front_path ||
         null,
 
       dni_back_path:
-        documents.dni_back ||
+        documents
+          .dni_back ||
         existingVerification
           ?.dni_back_path ||
         null,
 
       selfie_path:
-        documents.selfie ||
+        documents
+          .selfie ||
         existingVerification
           ?.selfie_path ||
         null,
@@ -601,7 +552,8 @@ export async function POST(
     }
 
     let verificationId:
-      string | null =
+      string |
+      null =
       null
 
     if (
@@ -690,13 +642,11 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. TENANT = INTERÉS REAL + VALIDACIÓN COMPLETA
+    // 6. MARCAR VALIDACIÓN COMPLETA
     //
-    // tenant_interest_at
-    // tenant_verified_at
-    //
-    // NO owner_interest_at
-    // NO ready_to_connect_at
+    // IMPORTANTE:
+    // tenant_interest_at NO se toca acá.
+    // El interés se registra en /api/match-interest.
     // =========================================================
 
     const now =
@@ -712,9 +662,6 @@ export async function POST(
           "lead_matches"
         )
         .update({
-          tenant_interest_at:
-            now,
-
           tenant_verified_at:
             now,
         })
@@ -737,447 +684,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 5. OWNERS INVOLUCRADOS
-    // =========================================================
-
-    const ownerLeadIds =
-      Array.from(
-        new Set(
-          selectedMatches.map(
-            (
-              match
-            ) =>
-              clean(
-                match
-                  .owner_lead_id
-              )
-          )
-        )
-      ).filter(
-        Boolean
-      )
-
-    // =========================================================
-    // 6. SABER QUÉ OWNERS YA COMPLETARON PROPIEDAD
-    // =========================================================
-
-    const {
-      data:
-        completionRows,
-      error:
-        completionRowsError,
-    } =
-      await supabase
-        .from(
-          "owner_property_completions"
-        )
-        .select(`
-          id,
-          lead_id,
-          status
-        `)
-        .in(
-          "lead_id",
-          ownerLeadIds
-        )
-        .eq(
-          "status",
-          "submitted"
-        )
-
-    if (
-      completionRowsError
-    ) {
-      throw new Error(
-        completionRowsError
-          .message
-      )
-    }
-
-    const completedOwners =
-      new Set(
-        (
-          completionRows ||
-          []
-        )
-          .map(
-            (
-              row
-            ) =>
-              clean(
-                row.lead_id
-              )
-          )
-          .filter(
-            Boolean
-          )
-      )
-
-    const ownerNotifications:
-      Array<{
-        owner_lead_id:
-          string
-
-        destination:
-          "property" |
-          "candidates"
-
-        url:
-          string
-
-        candidate_count:
-          number
-
-        sent:
-          boolean
-
-        result:
-          unknown
-      }> = []
-
-    // =========================================================
-    // 7. PARA CADA OWNER
-    //
-    // owner incompleto -> /propiedad/[token]
-    // owner completo   -> /candidatos/[token]
-    //
-    // NUNCA llama automáticamente a owner-interest.
-    // =========================================================
-
-    for (
-      const ownerLeadId
-      of ownerLeadIds
-    ) {
-      const currentCandidates =
-        selectedMatches.filter(
-          (
-            match
-          ) =>
-            clean(
-              match
-                .owner_lead_id
-            ) ===
-            ownerLeadId
-        )
-
-      if (
-        currentCandidates.length ===
-        0
-      ) {
-        continue
-      }
-
-      const ownerCompleted =
-        completedOwners.has(
-          ownerLeadId
-        )
-
-      // =======================================================
-      // 7A. OWNER TODAVÍA INCOMPLETO
-      // =======================================================
-
-      if (
-        !ownerCompleted
-      ) {
-        const propertyTokenResult =
-          await postInternal(
-            request,
-            "/api/owner-property-token",
-            {
-              owner_lead_id:
-                ownerLeadId,
-            }
-          )
-
-        const propertyUrl =
-          propertyTokenResult.ok
-            ? clean(
-                propertyTokenResult
-                  .data
-                  ?.property_url
-              )
-            : ""
-
-        if (
-          !propertyUrl
-        ) {
-          console.error(
-            "owner property token error after tenant verification:",
-            ownerLeadId,
-            propertyTokenResult
-          )
-
-          continue
-        }
-
-        let sent =
-          false
-
-        let pushResult:
-          unknown =
-          null
-
-        try {
-          pushResult =
-            await notifyLeadOnce({
-              eventKey:
-                `tenant_verified:owner:${ownerLeadId}:tenant:${tenantLeadId}`,
-
-              eventType:
-                "tenant_verified",
-
-              leadId:
-                ownerLeadId,
-
-              entityType:
-                "lead",
-
-              entityId:
-                tenantLeadId,
-
-              title:
-                "Verlo · Hay interés",
-
-              body:
-                currentCandidates.length ===
-                1
-                  ? "Una persona compatible quiere avanzar con tu propiedad. Terminá de completar tu publicación para seguir."
-                  : `${currentCandidates.length} personas compatibles quieren avanzar. Terminá de completar tu propiedad para seguir.`,
-
-              url:
-                propertyUrl,
-            })
-
-          sent =
-            Boolean(
-              (
-                pushResult as {
-                  sent?:
-                    boolean
-                }
-              )?.sent
-            )
-        } catch (
-          pushError
-        ) {
-          console.error(
-            "owner property push after tenant verification error:",
-            ownerLeadId,
-            pushError
-          )
-        }
-
-        ownerNotifications.push({
-          owner_lead_id:
-            ownerLeadId,
-
-          destination:
-            "property",
-
-          url:
-            propertyUrl,
-
-          candidate_count:
-            currentCandidates.length,
-
-          sent,
-
-          result:
-            pushResult,
-        })
-
-        continue
-      }
-
-      // =======================================================
-      // 7B. OWNER YA COMPLETÓ PROPIEDAD
-      // =======================================================
-
-      const {
-        data:
-          existingOwnerToken,
-        error:
-          tokenLookupError,
-      } =
-        await supabase
-          .from(
-            "owner_candidates_access_tokens"
-          )
-          .select(`
-            id,
-            token,
-            expires_at
-          `)
-          .eq(
-            "owner_lead_id",
-            ownerLeadId
-          )
-          .is(
-            "revoked_at",
-            null
-          )
-          .or(
-            `expires_at.is.null,expires_at.gt.${now}`
-          )
-          .order(
-            "created_at",
-            {
-              ascending:
-                false,
-            }
-          )
-          .limit(
-            1
-          )
-          .maybeSingle()
-
-      if (
-        tokenLookupError
-      ) {
-        throw new Error(
-          tokenLookupError
-            .message
-        )
-      }
-
-      let ownerToken:
-        string
-
-      if (
-        existingOwnerToken
-      ) {
-        ownerToken =
-          existingOwnerToken
-            .token
-      } else {
-        ownerToken =
-          randomBytes(
-            32
-          ).toString(
-            "hex"
-          )
-
-        const expiresAt =
-          new Date(
-            Date.now() +
-              30 *
-                24 *
-                60 *
-                60 *
-                1000
-          ).toISOString()
-
-        const {
-          error:
-            tokenInsertError,
-        } =
-          await supabase
-            .from(
-              "owner_candidates_access_tokens"
-            )
-            .insert({
-              owner_lead_id:
-                ownerLeadId,
-
-              token:
-                ownerToken,
-
-              expires_at:
-                expiresAt,
-            })
-
-        if (
-          tokenInsertError
-        ) {
-          throw new Error(
-            tokenInsertError
-              .message
-          )
-        }
-      }
-
-      const candidatesUrl =
-        `/candidatos/${ownerToken}`
-
-      let sent =
-        false
-
-      let pushResult:
-        unknown =
-        null
-
-      try {
-        pushResult =
-          await notifyLeadOnce({
-            eventKey:
-              `tenant_verified:owner:${ownerLeadId}:tenant:${tenantLeadId}`,
-
-            eventType:
-              "tenant_verified",
-
-            leadId:
-              ownerLeadId,
-
-            entityType:
-              "lead",
-
-            entityId:
-              tenantLeadId,
-
-            title:
-              "Verlo · Tenés candidato",
-
-            body:
-              currentCandidates.length ===
-              1
-                ? "Una persona interesada completó su validación. Revisá su perfil y decidí si querés avanzar."
-                : `${currentCandidates.length} personas interesadas completaron su validación. Revisá sus perfiles y decidí con quién querés avanzar.`,
-
-            url:
-              candidatesUrl,
-          })
-
-        sent =
-          Boolean(
-            (
-              pushResult as {
-                sent?:
-                  boolean
-              }
-            )?.sent
-          )
-      } catch (
-        pushError
-      ) {
-        console.error(
-          "owner candidates push error:",
-          ownerLeadId,
-          pushError
-        )
-      }
-
-      ownerNotifications.push({
-        owner_lead_id:
-          ownerLeadId,
-
-        destination:
-          "candidates",
-
-        url:
-          candidatesUrl,
-
-        candidate_count:
-          currentCandidates.length,
-
-        sent,
-
-        result:
-          pushResult,
-      })
-    }
-
-    // =========================================================
-    // 8. RESPONSE
+    // 7. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -1195,28 +702,8 @@ export async function POST(
       match_ids:
         matchIds,
 
-      owners_ready:
-        ownerLeadIds.length,
-
-      owners_notified:
-        ownerNotifications.filter(
-          (
-            item
-          ) =>
-            item.sent
-        ).length,
-
-      owner_notifications:
-        ownerNotifications,
-
-      ready_to_connect_attempts:
-        0,
-
-      ready_to_connect_ok:
-        0,
-
-      ready_notifications:
-        [],
+      verified:
+        true,
     })
   } catch (
     error
@@ -1231,8 +718,7 @@ export async function POST(
         ok: false,
 
         error:
-          error instanceof
-          Error
+          error instanceof Error
             ? error.message
             : "Unexpected server error",
       },
