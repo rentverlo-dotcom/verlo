@@ -7,7 +7,6 @@ import {
   useSearchParams,
 } from "next/navigation"
 import VerloBrand from "@/components/VerloBrand"
-import PushSubscribeByTokenButton from "@/components/PushSubscribeByTokenButton"
 
 const CONTACT_HREF =
   "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
@@ -272,13 +271,6 @@ export default function TenantValidationPage() {
               </a>
             </div>
 
-
-            <div style={{ marginTop: 16 }}>
-  <PushSubscribeByTokenButton
-    token={token}
-    role="tenant"
-  />
-</div>
             <div className="trust-row">
               <span>Documentación privada</span>
               <span>Validación manual</span>
@@ -990,11 +982,11 @@ const styles = `
     gap: 12px;
   }
 
- .docs-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-}
+  .docs-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+  }
 
   .file-field {
     padding: 18px;
@@ -1009,27 +1001,27 @@ const styles = `
     color: rgba(5,0,2,.72);
   }
 
- .file-field input {
-  width: 100%;
-  max-width: 100%;
-  padding: 12px;
-  background: white;
-  cursor: pointer;
-  font-size: 12px;
-  overflow: hidden;
-}
+  .file-field input {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px;
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+    overflow: hidden;
+  }
 
-.file-field input::file-selector-button {
-  max-width: 100%;
-  margin-right: 8px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--black);
-  color: white;
-  padding: 10px 14px;
-  font-weight: 950;
-  cursor: pointer;
-}
+  .file-field input::file-selector-button {
+    max-width: 100%;
+    margin-right: 8px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--black);
+    color: white;
+    padding: 10px 14px;
+    font-weight: 950;
+    cursor: pointer;
+  }
 
   .file-field input::file-selector-button {
     margin-right: 14px;
