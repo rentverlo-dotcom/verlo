@@ -4,7 +4,12 @@ import { createClient } from "@supabase/supabase-js"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const ACTIVE_MATCH_STATUSES = ["new", "reviewed", "contacted"]
+const ACTIVE_MATCH_STATUSES = [
+  "new",
+  "reviewed",
+  "contacted",
+  "converted",
+]
 const MIN_MATCH_SCORE = 80
 
 function clean(value: unknown) {
