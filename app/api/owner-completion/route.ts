@@ -12,6 +12,7 @@ const ACTIVE_MATCH_STATUSES = [
   "new",
   "reviewed",
   "contacted",
+  "converted",
 ]
 
 const MIN_MATCH_SCORE = 80
