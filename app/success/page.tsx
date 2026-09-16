@@ -4,7 +4,11 @@ import {
   useEffect,
   useState,
 } from "react"
-import { useSearchParams } from "next/navigation"
+
+import {
+  useSearchParams,
+} from "next/navigation"
+
 import VerloBrand from "@/components/VerloBrand"
 import PushSubscribeButton from "@/components/PushSubscribeButton"
 
@@ -15,10 +19,12 @@ type Role =
 type BeforeInstallPromptEvent =
   Event & {
     prompt: () => Promise<void>
+
     userChoice: Promise<{
       outcome:
         | "accepted"
         | "dismissed"
+
       platform: string
     }>
   }
@@ -33,6 +39,7 @@ const styles = `
     --yellow: #e7c776;
 
     min-height: 100vh;
+
     background:
       radial-gradient(
         circle at 18% 15%,
@@ -55,9 +62,6 @@ const styles = `
       BlinkMacSystemFont,
       "Segoe UI",
       sans-serif;
-
-    overflow: hidden;
-    position: relative;
   }
 
   .success-root * {
@@ -66,8 +70,10 @@ const styles = `
 
   .success-nav {
     height: 76px;
+
     display: flex;
     align-items: center;
+
     border-bottom:
       1px solid
       rgba(5, 0, 2, 0.08);
@@ -104,13 +110,7 @@ const styles = `
       center;
 
     padding:
-      64px 0 86px;
-
-    position:
-      relative;
-
-    z-index:
-      2;
+      54px 0 80px;
   }
 
   .success-card {
@@ -118,10 +118,10 @@ const styles = `
       100%;
 
     max-width:
-      720px;
+      760px;
 
     padding:
-      56px;
+      52px;
 
     border-radius:
       42px;
@@ -131,7 +131,7 @@ const styles = `
         255,
         255,
         255,
-        0.76
+        0.78
       );
 
     border:
@@ -154,18 +154,12 @@ const styles = `
 
     backdrop-filter:
       blur(18px);
-
-    text-align:
-      center;
-
-    position:
-      relative;
-
-    overflow:
-      hidden;
   }
 
   .success-badge {
+    width:
+      fit-content;
+
     display:
       inline-flex;
 
@@ -205,45 +199,7 @@ const styles = `
       uppercase;
 
     margin-bottom:
-      24px;
-  }
-
-  .success-icon {
-    width:
-      90px;
-
-    height:
-      90px;
-
-    border-radius:
-      999px;
-
-    display:
-      grid;
-
-    place-items:
-      center;
-
-    margin:
-      0 auto 28px;
-
-    background:
-      var(--black);
-
-    color:
-      white;
-
-    font-size:
-      40px;
-
-    box-shadow:
-      0 18px 48px
-      rgba(
-        5,
-        0,
-        2,
-        0.18
-      );
+      22px;
   }
 
   .success-title {
@@ -252,13 +208,13 @@ const styles = `
 
     font-size:
       clamp(
-        46px,
+        42px,
         7vw,
-        76px
+        70px
       );
 
     line-height:
-      0.94;
+      0.95;
 
     letter-spacing:
       -0.07em;
@@ -278,60 +234,169 @@ const styles = `
 
     font-weight:
       400;
-
-    letter-spacing:
-      -0.04em;
   }
 
   .success-copy {
     max-width:
-      520px;
+      580px;
 
     margin:
-      24px auto 0;
+      20px 0 0;
 
     color:
       rgba(
         5,
         0,
         2,
-        0.66
+        0.64
       );
 
     font-size:
-      18px;
+      17px;
 
     line-height:
-      1.55;
+      1.5;
 
     font-weight:
       650;
   }
 
-  .success-actions {
+  .steps-title {
+    margin:
+      38px 0 18px;
+
+    font-size:
+      22px;
+
+    font-weight:
+      950;
+
+    letter-spacing:
+      -0.03em;
+  }
+
+  .steps {
     display:
       grid;
 
     gap:
-      12px;
+      14px;
+  }
 
-    max-width:
-      430px;
+  .step {
+    display:
+      grid;
 
+    grid-template-columns:
+      42px 1fr;
+
+    gap:
+      14px;
+
+    padding:
+      20px;
+
+    border-radius:
+      26px;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        0.72
+      );
+
+    border:
+      1px solid
+      rgba(
+        5,
+        0,
+        2,
+        0.08
+      );
+  }
+
+  .step-number {
+    width:
+      42px;
+
+    height:
+      42px;
+
+    border-radius:
+      999px;
+
+    display:
+      grid;
+
+    place-items:
+      center;
+
+    background:
+      var(--black);
+
+    color:
+      white;
+
+    font-size:
+      15px;
+
+    font-weight:
+      950;
+  }
+
+  .step-content h2 {
     margin:
-      34px auto 0;
+      2px 0 0;
+
+    font-size:
+      18px;
+
+    font-weight:
+      950;
+
+    letter-spacing:
+      -0.025em;
+  }
+
+  .step-content p {
+    margin:
+      7px 0 0;
+
+    color:
+      rgba(
+        5,
+        0,
+        2,
+        0.58
+      );
+
+    font-size:
+      14px;
+
+    line-height:
+      1.5;
+
+    font-weight:
+      650;
+  }
+
+  .step-action {
+    margin-top:
+      16px;
   }
 
   .push-wrap button,
-  .install-button {
+  .action-button {
     width:
       100%;
 
     min-height:
-      58px;
+      56px;
 
     padding:
-      0 24px;
+      0 22px;
 
     border-radius:
       999px;
@@ -340,7 +405,7 @@ const styles = `
       inherit;
 
     font-size:
-      16px;
+      15px;
 
     font-weight:
       950;
@@ -350,11 +415,11 @@ const styles = `
 
     transition:
       transform 160ms ease,
-      box-shadow 160ms ease,
-      background 160ms ease;
+      opacity 160ms ease;
   }
 
-  .push-wrap button {
+  .push-wrap button,
+  .primary-button {
     border:
       1px solid
       var(--black);
@@ -364,32 +429,9 @@ const styles = `
 
     color:
       white;
-
-    box-shadow:
-      0 18px 45px
-      rgba(
-        5,
-        0,
-        2,
-        0.18
-      );
   }
 
-  .push-wrap button:not(:disabled):hover,
-  .install-button:hover {
-    transform:
-      translateY(-2px);
-  }
-
-  .push-wrap button:disabled {
-    cursor:
-      default;
-
-    opacity:
-      0.76;
-  }
-
-  .install-button {
+  .secondary-button {
     border:
       1px solid
       rgba(
@@ -400,39 +442,36 @@ const styles = `
       );
 
     background:
-      rgba(
-        255,
-        255,
-        255,
-        0.88
-      );
+      white;
 
     color:
       var(--black);
   }
 
-  .install-button:disabled {
+  .push-wrap button:not(:disabled):hover,
+  .action-button:not(:disabled):hover {
+    transform:
+      translateY(-2px);
+  }
+
+  .push-wrap button:disabled,
+  .action-button:disabled {
     opacity:
-      0.52;
+      0.55;
 
     cursor:
       default;
   }
 
-  .success-help {
+  .message {
     margin:
-      18px auto 0;
+      12px 0 0;
 
-    max-width:
-      430px;
+    padding:
+      12px 14px;
 
-    color:
-      rgba(
-        5,
-        0,
-        2,
-        0.48
-      );
+    border-radius:
+      16px;
 
     font-size:
       13px;
@@ -441,63 +480,33 @@ const styles = `
       1.45;
 
     font-weight:
-      700;
+      800;
   }
 
-  .confetti {
-    position:
-      fixed;
+  .message.ok {
+    background:
+      rgba(
+        116,
+        190,
+        220,
+        0.16
+      );
 
-    top:
-      -40px;
-
-    width:
-      12px;
-
-    height:
-      20px;
-
-    border-radius:
-      3px;
-
-    z-index:
-      1;
-
-    pointer-events:
-      none;
-
-    animation:
-      confetti-fall
-      linear
-      forwards;
+    color:
+      #255a6d;
   }
 
-  @keyframes confetti-fall {
-    0% {
-      transform:
-        translate3d(
-          0,
-          -10vh,
-          0
-        )
-        rotate(0deg);
+  .message.error {
+    background:
+      rgba(
+        195,
+        121,
+        134,
+        0.14
+      );
 
-      opacity:
-        1;
-    }
-
-    100% {
-      transform:
-        translate3d(
-          var(--drift),
-          115vh,
-          0
-        )
-        rotate(760deg);
-
-      opacity:
-        0.12;
-    }
+    color:
+      #7f2435;
   }
 
   @media (
@@ -523,31 +532,36 @@ const styles = `
         );
 
       padding:
-        38px 0 56px;
+        34px 0 54px;
     }
 
     .success-card {
       padding:
-        38px 22px;
+        34px 20px;
 
       border-radius:
         32px;
     }
 
-    .success-icon {
-      width:
-        78px;
-
-      height:
-        78px;
-
-      font-size:
-        34px;
-    }
-
     .success-copy {
       font-size:
         16px;
+    }
+
+    .step {
+      grid-template-columns:
+        36px 1fr;
+
+      padding:
+        17px;
+    }
+
+    .step-number {
+      width:
+        36px;
+
+      height:
+        36px;
     }
   }
 `
@@ -592,6 +606,28 @@ export default function SuccessPage() {
   ] =
     useState(false)
 
+  const [
+    magicLoading,
+    setMagicLoading,
+  ] =
+    useState(false)
+
+  const [
+    magicMessage,
+    setMagicMessage,
+  ] =
+    useState<string | null>(
+      null
+    )
+
+  const [
+    magicError,
+    setMagicError,
+  ] =
+    useState<string | null>(
+      null
+    )
+
   useEffect(
     () => {
       const standalone =
@@ -604,7 +640,8 @@ export default function SuccessPage() {
           window.navigator as Navigator & {
             standalone?: boolean
           }
-        ).standalone === true
+        ).standalone ===
+        true
 
       if (
         standalone ||
@@ -671,101 +708,82 @@ export default function SuccessPage() {
     []
   )
 
-  useEffect(
-    () => {
-      const colors = [
-        "#f2a8a9",
-        "#c37986",
-        "#050002",
-        "#74bedc",
-        "#e7c776",
-      ]
+  async function sendMagicLink() {
+    if (
+      !leadId ||
+      magicLoading
+    ) {
+      return
+    }
 
-      const pieces =
-        Array.from(
+    setMagicLoading(
+      true
+    )
+
+    setMagicMessage(
+      null
+    )
+
+    setMagicError(
+      null
+    )
+
+    try {
+      const response =
+        await fetch(
+          "/api/auth/activate-lead",
           {
-            length:
-              42,
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                lead_id:
+                  leadId,
+              }),
           }
         )
 
-      const nodes =
-        pieces.map(
-          (_, index) => {
-            const element =
-              document.createElement(
-                "span"
-              )
+      const result =
+        await response
+          .json()
+          .catch(
+            () => ({})
+          )
 
-            element.className =
-              "confetti"
-
-            element.style.left =
-              `${
-                Math.random() *
-                100
-              }vw`
-
-            element.style.background =
-              colors[
-                index %
-                  colors.length
-              ]
-
-            element.style.animationDuration =
-              `${
-                2.8 +
-                Math.random() *
-                  2.4
-              }s`
-
-            element.style.animationDelay =
-              `${
-                Math.random() *
-                0.8
-              }s`
-
-            element.style.setProperty(
-              "--drift",
-              `${
-                -120 +
-                Math.random() *
-                  240
-              }px`
-            )
-
-            document.body.appendChild(
-              element
-            )
-
-            return element
-          }
-        )
-
-      const timeout =
-        window.setTimeout(
-          () => {
-            nodes.forEach(
-              (node) =>
-                node.remove()
-            )
-          },
-          6500
-        )
-
-      return () => {
-        window.clearTimeout(
-          timeout
-        )
-
-        nodes.forEach(
-          (node) =>
-            node.remove()
+      if (
+        !response.ok ||
+        !result?.ok
+      ) {
+        throw new Error(
+          result?.error ||
+            "No pudimos enviar el acceso."
         )
       }
-    },
-    []
-  )
+
+      setMagicMessage(
+        `Te enviamos el acceso a ${result.email}. Revisá también Spam o Correo no deseado.`
+      )
+    } catch (
+      error
+    ) {
+      setMagicError(
+        error instanceof
+          Error
+          ? error.message
+          : "No pudimos enviar el acceso."
+      )
+    } finally {
+      setMagicLoading(
+        false
+      )
+    }
+  }
 
   async function installApp() {
     if (
@@ -780,7 +798,8 @@ export default function SuccessPage() {
       await installPrompt.prompt()
 
       const choice =
-        await installPrompt.userChoice
+        await installPrompt
+          .userChoice
 
       if (
         choice.outcome ===
@@ -816,8 +835,8 @@ export default function SuccessPage() {
   const copy =
     role ===
     "owner"
-      ? "Recibimos los datos de tu propiedad. Activá las notificaciones para enterarte cuando aparezcan interesados compatibles."
-      : "Guardamos tu búsqueda. Activá las notificaciones para enterarte apenas aparezca una propiedad compatible."
+      ? "Recibimos los datos de tu propiedad. Ahora dejá preparado tu acceso para poder seguir todo desde Verlo."
+      : "Guardamos tu búsqueda. Ahora dejá preparado tu acceso para poder seguir todo desde Verlo."
 
   return (
     <>
@@ -835,15 +854,9 @@ export default function SuccessPage() {
         <main className="success-main">
           <div className="success-container">
             <section className="success-card">
+
               <div className="success-badge">
                 Todo listo
-              </div>
-
-              <div
-                className="success-icon"
-                aria-hidden="true"
-              >
-                ✓
               </div>
 
               <h1 className="success-title">
@@ -857,42 +870,137 @@ export default function SuccessPage() {
                 {copy}
               </p>
 
-              <div className="success-actions">
-                {leadId ? (
-                  <div className="push-wrap">
-                    <PushSubscribeButton
-                      leadId={
-                        leadId
-                      }
-                      role={
-                        role
-                      }
-                    />
+              <h2 className="steps-title">
+                Seguí estos 3 pasos en orden:
+              </h2>
+
+              <div className="steps">
+
+                <article className="step">
+                  <div className="step-number">
+                    1
                   </div>
-                ) : null}
 
-                <button
-                  type="button"
-                  className="install-button"
-                  onClick={
-                    installApp
-                  }
-                  disabled={
-                    installed
-                  }
-                >
-                  {installed
-                    ? "Verlo ya está instalado"
-                    : "Instalar Verlo"}
-                </button>
+                  <div className="step-content">
+                    <h2>
+                      Activá las notificaciones
+                    </h2>
+
+                    <p>
+                      Te vamos a avisar cuando tengas
+                      nuevos matches, cuando alguien quiera
+                      avanzar con vos y cuando tengas una
+                      acción pendiente.
+                    </p>
+
+                    <div className="step-action">
+                      {leadId ? (
+                        <div className="push-wrap">
+                          <PushSubscribeButton
+                            leadId={
+                              leadId
+                            }
+                            role={
+                              role
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <p className="message error">
+                          No encontramos tu registro para
+                          activar las notificaciones.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </article>
+
+                <article className="step">
+                  <div className="step-number">
+                    2
+                  </div>
+
+                  <div className="step-content">
+                    <h2>
+                      Entrá a Mi Verlo
+                    </h2>
+
+                    <p>
+                      Tocá el botón y revisá tu email.
+                      Te va a llegar un enlace seguro para
+                      entrar a tu espacio personal.
+                      Revisá también Spam o Correo no deseado.
+                    </p>
+
+                    <div className="step-action">
+                      <button
+                        type="button"
+                        className="action-button primary-button"
+                        onClick={
+                          sendMagicLink
+                        }
+                        disabled={
+                          !leadId ||
+                          magicLoading
+                        }
+                      >
+                        {magicLoading
+                          ? "Enviando acceso..."
+                          : "ENTRAR A MI VERLO"}
+                      </button>
+
+                      {magicMessage && (
+                        <p className="message ok">
+                          {magicMessage}
+                        </p>
+                      )}
+
+                      {magicError && (
+                        <p className="message error">
+                          {magicError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </article>
+
+                <article className="step">
+                  <div className="step-number">
+                    3
+                  </div>
+
+                  <div className="step-content">
+                    <h2>
+                      Instalá Verlo en tu celular
+                    </h2>
+
+                    <p>
+                      Consejo: no ocupa prácticamente lugar
+                      en tu celular y vas a tener el ícono de
+                      Verlo en tu pantalla para entrar y operar
+                      más rápido.
+                    </p>
+
+                    <div className="step-action">
+                      <button
+                        type="button"
+                        className="action-button secondary-button"
+                        onClick={
+                          installApp
+                        }
+                        disabled={
+                          installed
+                        }
+                      >
+                        {installed
+                          ? "VERLO YA ESTÁ INSTALADO"
+                          : "INSTALAR VERLO"}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
               </div>
-
-              <p className="success-help">
-                Las notificaciones te avisan
-                solamente cuando haya novedades
-                importantes sobre tu búsqueda o
-                propiedad.
-              </p>
             </section>
           </div>
         </main>
