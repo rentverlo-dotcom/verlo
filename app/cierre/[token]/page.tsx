@@ -13,6 +13,7 @@ import {
 } from "next/navigation"
 
 import VerloBrand from "@/components/VerloBrand"
+import TenantVerificationCard from "@/components/closing/TenantVerificationCard"
 
 const ARGENTINA_PROVINCES = [
   "Ciudad Autónoma de Buenos Aires",
@@ -2839,6 +2840,33 @@ if (
               </div>
             </article>
 
+{!isOwner &&
+  data.tenant.verification_status !==
+    "submitted" && (
+    <TenantVerificationCard
+      token={token}
+      onCompleted={async () => {
+        setSuccessMessage(
+          "Documentación cargada correctamente."
+        )
+
+        await load(false)
+      }}
+    />
+  )}
+
+{!isOwner && (
+  <article className="verlo-card no-print review-card">
+    <span className="card-kicker">
+      INFORMACIÓN PARA REVISAR
+    </span>
+
+    <h2>
+      Multimedia de la propiedad
+    </h2>
+
+
+            
             {!isOwner && (
               <article className="verlo-card no-print review-card">
                 <span className="card-kicker">
