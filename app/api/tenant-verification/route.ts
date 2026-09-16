@@ -86,7 +86,7 @@ export async function POST(
         body?.token
       )
 
-    const matchIds =
+    let matchIds =
       Array.isArray(
         body?.match_ids
       )
@@ -161,6 +161,307 @@ export async function POST(
       )
     }
 
+    // =========================================================
+    // 1. RESOLVER TOKEN DEL TENANT
+    //
+    // Acepta:
+    // - tenant_matches_access_tokens
+    // - lead_contract_access_tokens role=tenant
+    // =========================================================
+
+    let tenantLeadId =
+      ""
+
+    let tokenSource:
+      | "matches"
+      | "closing"
+      | null =
+      null
+
+    let closingContractId =
+      ""
+
+    // =========================================================
+    // 1A. TOKEN DE MATCHES
+    // =========================================================
+
+    const {
+      data:
+        matchesAccessToken,
+      error:
+        matchesTokenError,
+    } =
+      await supabase
+        .from(
+          "tenant_matches_access_tokens"
+        )
+        .select(`
+          id,
+          tenant_lead_id,
+          expires_at,
+          revoked_at
+        `)
+        .eq(
+          "token",
+          token
+        )
+        .maybeSingle()
+
+    if (
+      matchesTokenError
+    ) {
+      console.error(
+        "tenant matches token lookup error:",
+        matchesTokenError
+      )
+    }
+
+    if (
+      matchesAccessToken
+    ) {
+      if (
+        matchesAccessToken
+          .revoked_at
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Token revoked",
+          },
+          {
+            status: 403,
+          }
+        )
+      }
+
+      if (
+        matchesAccessToken
+          .expires_at &&
+        new Date(
+          matchesAccessToken
+            .expires_at
+        ).getTime() <
+          Date.now()
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Expired token",
+          },
+          {
+            status: 403,
+          }
+        )
+      }
+
+      tenantLeadId =
+        clean(
+          matchesAccessToken
+            .tenant_lead_id
+        )
+
+      tokenSource =
+        "matches"
+    }
+
+    // =========================================================
+    // 1B. TOKEN DE CIERRE
+    // =========================================================
+
+    if (
+      !tenantLeadId
+    ) {
+      const {
+        data:
+          closingAccessToken,
+        error:
+          closingTokenError,
+      } =
+        await supabase
+          .from(
+            "lead_contract_access_tokens"
+          )
+          .select(`
+            id,
+            contract_id,
+            lead_id,
+            role,
+            expires_at,
+            revoked_at
+          `)
+          .eq(
+            "token",
+            token
+          )
+          .eq(
+            "role",
+            "tenant"
+          )
+          .maybeSingle()
+
+      if (
+        closingTokenError
+      ) {
+        console.error(
+          "tenant closing token lookup error:",
+          closingTokenError
+        )
+      }
+
+      if (
+        closingAccessToken
+      ) {
+        if (
+          closingAccessToken
+            .revoked_at
+        ) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error:
+                "Token revoked",
+            },
+            {
+              status: 403,
+            }
+          )
+        }
+
+        if (
+          closingAccessToken
+            .expires_at &&
+          new Date(
+            closingAccessToken
+              .expires_at
+          ).getTime() <
+            Date.now()
+        ) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error:
+                "Expired token",
+            },
+            {
+              status: 403,
+            }
+          )
+        }
+
+        tenantLeadId =
+          clean(
+            closingAccessToken
+              .lead_id
+          )
+
+        closingContractId =
+          clean(
+            closingAccessToken
+              .contract_id
+          )
+
+        tokenSource =
+          "closing"
+      }
+    }
+
+    if (
+      !tenantLeadId
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Invalid token",
+        },
+        {
+          status: 404,
+        }
+      )
+    }
+
+    // =========================================================
+    // 2. SI VIENE DESDE CIERRE, OBTENER MATCH DESDE CONTRATO
+    // =========================================================
+
+    if (
+      tokenSource ===
+        "closing" &&
+      closingContractId
+    ) {
+      const {
+        data:
+          closingContract,
+        error:
+          closingContractError,
+      } =
+        await supabase
+          .from(
+            "lead_contracts"
+          )
+          .select(`
+            id,
+            lead_match_id,
+            tenant_lead_id
+          `)
+          .eq(
+            "id",
+            closingContractId
+          )
+          .eq(
+            "tenant_lead_id",
+            tenantLeadId
+          )
+          .single()
+
+      if (
+        closingContractError ||
+        !closingContract
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Contract not found",
+          },
+          {
+            status: 404,
+          }
+        )
+      }
+
+      const closingMatchId =
+        clean(
+          closingContract
+            .lead_match_id
+        )
+
+      if (
+        !closingMatchId
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Contract has no match",
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
+      matchIds = [
+        closingMatchId,
+      ]
+    }
+
+    // =========================================================
+    // 3. TOKEN DE MATCHES NECESITA MATCH_IDS
+    // =========================================================
+
     if (
       matchIds.length ===
       0
@@ -178,90 +479,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 1. VALIDAR TOKEN AGREGADO DEL TENANT
-    // =========================================================
-
-    const {
-      data:
-        accessToken,
-      error:
-        tokenError,
-    } =
-      await supabase
-        .from(
-          "tenant_matches_access_tokens"
-        )
-        .select(`
-          id,
-          tenant_lead_id,
-          expires_at,
-          revoked_at
-        `)
-        .eq(
-          "token",
-          token
-        )
-        .single()
-
-    if (
-      tokenError ||
-      !accessToken
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Invalid token",
-        },
-        {
-          status: 404,
-        }
-      )
-    }
-
-    if (
-      accessToken
-        .revoked_at
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Token revoked",
-        },
-        {
-          status: 403,
-        }
-      )
-    }
-
-    if (
-      accessToken
-        .expires_at &&
-      new Date(
-        accessToken
-          .expires_at
-      ).getTime() <
-        Date.now()
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Expired token",
-        },
-        {
-          status: 403,
-        }
-      )
-    }
-
-    const tenantLeadId =
-      accessToken
-        .tenant_lead_id
-
-    // =========================================================
-    // 2. VALIDAR MATCHES
+    // 4. VALIDAR MATCHES
     // =========================================================
 
     const {
@@ -325,7 +543,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. VALIDAR QUE LAS PROPIEDADES TENGAN FOTO
+    // 5. VALIDAR QUE LAS PROPIEDADES TENGAN FOTO
     // =========================================================
 
     const selectedOwnerLeadIds =
@@ -426,7 +644,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. BUSCAR VERIFICACIÓN REUTILIZABLE
+    // 6. BUSCAR VERIFICACIÓN REUTILIZABLE
     // =========================================================
 
     const {
@@ -476,7 +694,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 5. GUARDAR VALIDACIÓN
+    // 7. GUARDAR VERIFICACIÓN
     // =========================================================
 
     const verificationPayload = {
@@ -642,11 +860,9 @@ export async function POST(
     }
 
     // =========================================================
-    // 6. MARCAR VALIDACIÓN COMPLETA
+    // 8. MARCAR VALIDACIÓN COMPLETA
     //
-    // IMPORTANTE:
-    // tenant_interest_at NO se toca acá.
-    // El interés se registra en /api/match-interest.
+    // NO TOCA tenant_interest_at
     // =========================================================
 
     const now =
@@ -684,7 +900,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 7. RESPONSE
+    // 9. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -704,6 +920,9 @@ export async function POST(
 
       verified:
         true,
+
+      token_source:
+        tokenSource,
     })
   } catch (
     error
