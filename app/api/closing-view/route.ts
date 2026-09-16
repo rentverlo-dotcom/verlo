@@ -1548,51 +1548,120 @@ export async function GET(
       signingPlaceComplete &&
       furnishingComplete
 
-    // =========================================================
-    // 16. ESTADO DE ASSETS PARA REVISIÓN
-    // =========================================================
+// =========================================================
+// 16. ESTADO DE ASSETS PARA REVISIÓN
+//
+// TENANT:
+// - debe poder revisar multimedia de la propiedad.
+//
+// OWNER:
+// - debe existir validación submitted.
+// - DNI frente obligatorio.
+// - DNI dorso obligatorio.
+// - selfie obligatoria.
+// - los 3 deben poder abrirse.
+//
+// Comprobante de ingresos y garantía son adicionales.
+// No bloquean si no fueron cargados.
+// Si existen, igualmente se muestran.
+// =========================================================
 
-    const propertyAssetsExpected =
-      accessToken.role ===
-        "tenant"
+const propertyAssetsExpected =
+  accessToken.role ===
+    "tenant"
 
-    const tenantDocumentsExpected =
-      accessToken.role ===
-        "owner"
+const tenantDocumentsExpected =
+  accessToken.role ===
+    "owner"
 
-    const propertyMediaReadable =
-      !propertyAssetsExpected ||
-      (
-        propertyMedia.length >
-          0 &&
-        propertyMedia.every(
-          item =>
-            Boolean(
-              item.url
-            )
+// =========================================================
+// 16A. MULTIMEDIA PROPIEDAD
+// =========================================================
+
+const propertyMediaReadable =
+  !propertyAssetsExpected ||
+  (
+    propertyMedia.length >
+      0 &&
+    propertyMedia.every(
+      item =>
+        Boolean(
+          item.url
         )
-      )
+    )
+  )
 
-    const existingTenantDocuments =
-      tenantDocuments.filter(
+// =========================================================
+// 16B. DOCUMENTOS TENANT
+// =========================================================
+
+const existingTenantDocuments =
+  tenantDocuments.filter(
+    document =>
+      document.available
+  )
+
+const REQUIRED_TENANT_DOCUMENTS = [
+  "dni_front",
+  "dni_back",
+  "selfie",
+]
+
+const requiredTenantDocuments =
+  REQUIRED_TENANT_DOCUMENTS.map(
+    kind =>
+      tenantDocuments.find(
         document =>
-          document.available
+          document.kind ===
+          kind
       )
+  )
 
-    const tenantDocumentsReadable =
-      !tenantDocumentsExpected ||
-      (
-        existingTenantDocuments.length >
-          0 &&
-        existingTenantDocuments.every(
-          document =>
-            document.readable
-        )
+const requiredTenantDocumentsAvailable =
+  requiredTenantDocuments.every(
+    document =>
+      Boolean(
+        document?.available
       )
+  )
 
-    const reviewAssetsReady =
-      propertyMediaReadable &&
-      tenantDocumentsReadable
+const requiredTenantDocumentsReadable =
+  requiredTenantDocuments.every(
+    document =>
+      Boolean(
+        document?.available &&
+        document?.readable &&
+        document?.url
+      )
+  )
+
+const tenantVerificationSubmitted =
+  tenantVerification
+    ?.status ===
+  "submitted"
+
+const tenantDocumentsReadable =
+  !tenantDocumentsExpected ||
+  (
+    Boolean(
+      tenantVerification
+    ) &&
+    tenantVerificationSubmitted &&
+    Boolean(
+      tenantVerification
+        ?.document_number
+    ) &&
+    requiredTenantDocumentsAvailable &&
+    requiredTenantDocumentsReadable
+  )
+
+// =========================================================
+// 16C. RESULTADO FINAL
+// =========================================================
+
+const reviewAssetsReady =
+  propertyMediaReadable &&
+  tenantDocumentsReadable
 
     // =========================================================
     // 17. RESPONSE
