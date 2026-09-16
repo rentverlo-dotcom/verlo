@@ -3154,16 +3154,223 @@ export async function POST(
         }
       )
 
-    const {
-      data:
-        leadRecord,
-      error,
-    } =
-      await supabaseAdmin
-        .from(
-          "lead_intake"
-        )
-        .insert({
+  // =========================================================
+// REUTILIZAR LEAD EXISTENTE
+//
+// Misma persona + mismo rol + misma intención
+// = actualizamos el registro existente.
+//
+// NO mezclamos owner con tenant.
+// NO mezclamos distintas intenciones.
+// =========================================================
+
+const {
+  data:
+    existingLead,
+
+  error:
+    existingLeadError,
+} =
+  await supabaseAdmin
+    .from(
+      "lead_intake"
+    )
+    .select(`
+      id,
+      email,
+      role,
+      intent,
+      created_at
+    `)
+    .eq(
+      "email",
+      email
+    )
+    .eq(
+      "role",
+      role
+    )
+    .eq(
+      "intent",
+      intent
+    )
+    .order(
+      "created_at",
+      {
+        ascending:
+          false,
+      }
+    )
+    .limit(1)
+    .maybeSingle()
+
+if (
+  existingLeadError
+) {
+  console.error(
+    "existing lead lookup error:",
+    existingLeadError
+  )
+
+  return NextResponse.json(
+    {
+      ok: false,
+      error:
+        "No pudimos verificar tu registro",
+    },
+    {
+      status: 500,
+    }
+  )
+}
+
+const leadPayload = {
+  full_name,
+  email,
+
+  phone,
+  phone_raw,
+  phone_normalized,
+
+  role,
+  intent,
+
+  zone,
+  area_macro,
+
+  neighborhood_labels,
+  neighborhood_slugs,
+  neighborhood_slug,
+
+  property_type,
+  property_rooms,
+
+  availability_status,
+
+  approx_price,
+  approx_price_number,
+
+  desired_property_type,
+  desired_rooms,
+
+  budget_range,
+  budget_max,
+
+  move_timing,
+
+  renewal_role,
+  contract_expiration,
+  other_party_status,
+  renewal_need,
+
+  source,
+
+  income_proof_type,
+  income_range,
+  income_max,
+
+  guarantee_types,
+
+  accepted_income_proof_types,
+  min_income_ratio,
+  accepted_guarantee_types,
+
+  match_notifications,
+
+  metadata:
+    normalizedMetadata,
+}
+
+let leadRecord:
+  {
+    id: string
+  } | null =
+  null
+
+let leadWriteError:
+  {
+    message: string
+  } | null =
+  null
+
+if (
+  existingLead
+) {
+  const {
+    data:
+      updatedLead,
+
+    error:
+      updateError,
+  } =
+    await supabaseAdmin
+      .from(
+        "lead_intake"
+      )
+      .update(
+        leadPayload
+      )
+      .eq(
+        "id",
+        existingLead.id
+      )
+      .select(
+        "id"
+      )
+      .single()
+
+  leadRecord =
+    updatedLead
+
+  leadWriteError =
+    updateError
+} else {
+  const {
+    data:
+      insertedLead,
+
+    error:
+      insertError,
+  } =
+    await supabaseAdmin
+      .from(
+        "lead_intake"
+      )
+      .insert(
+        leadPayload
+      )
+      .select(
+        "id"
+      )
+      .single()
+
+  leadRecord =
+    insertedLead
+
+  leadWriteError =
+    insertError
+}
+
+if (
+  leadWriteError ||
+  !leadRecord
+) {
+  console.error(
+    "lead intake write error:",
+    leadWriteError
+  )
+
+  return NextResponse.json(
+    {
+      ok: false,
+      error:
+        "No pudimos guardar tus datos",
+    },
+    {
+      status: 500,
+    }
+  )
+}
           full_name,
           email,
 
