@@ -1,13 +1,23 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server"
+
+import {
+  createClient,
+} from "@supabase/supabase-js"
+
 import {
   createHash,
   createHmac,
   randomUUID,
 } from "crypto"
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+export const runtime =
+  "nodejs"
+
+export const dynamic =
+  "force-dynamic"
 
 const ALLOWED_DOC_TYPES = [
   "dni_front",
@@ -17,47 +27,100 @@ const ALLOWED_DOC_TYPES = [
   "guarantee_proof",
 ] as const
 
-function clean(value: unknown) {
-  return String(value || "").trim()
+function clean(
+  value: unknown
+) {
+  return String(
+    value || ""
+  ).trim()
 }
 
-function safeFilename(value: string) {
+function safeFilename(
+  value: string
+) {
   return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 120)
+    .normalize(
+      "NFD"
+    )
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(
+      /[^a-zA-Z0-9._-]/g,
+      "-"
+    )
+    .replace(
+      /-+/g,
+      "-"
+    )
+    .slice(
+      0,
+      120
+    )
 }
 
-function sha256(value: string) {
-  return createHash("sha256")
-    .update(value)
-    .digest("hex")
+function sha256(
+  value: string
+) {
+  return createHash(
+    "sha256"
+  )
+    .update(
+      value
+    )
+    .digest(
+      "hex"
+    )
 }
 
 function hmac(
-  key: Buffer | string,
-  value: string
+  key:
+    | Buffer
+    | string,
+
+  value:
+    string
 ) {
-  return createHmac("sha256", key)
-    .update(value)
+  return createHmac(
+    "sha256",
+    key
+  )
+    .update(
+      value
+    )
     .digest()
 }
 
-function encodePath(path: string) {
+function encodePath(
+  path: string
+) {
   return path
-    .split("/")
-    .map((part) =>
-      encodeURIComponent(part)
+    .split(
+      "/"
     )
-    .join("/")
+    .map(
+      (
+        part
+      ) =>
+        encodeURIComponent(
+          part
+        )
+    )
+    .join(
+      "/"
+    )
 }
 
-function amzDate(date: Date) {
+function amzDate(
+  date: Date
+) {
   return date
     .toISOString()
-    .replace(/[:-]|\.\d{3}/g, "")
+    .replace(
+      /[:-]|\.\d{3}/g,
+      ""
+    )
 }
 
 function createR2PresignedPutUrl({
@@ -67,23 +130,48 @@ function createR2PresignedPutUrl({
   accessKeyId,
   secretAccessKey,
 }: {
-  endpoint: string
-  bucket: string
-  key: string
-  accessKeyId: string
-  secretAccessKey: string
-}) {
-  const region = "auto"
-  const service = "s3"
-  const expires = 900
+  endpoint:
+    string
 
-  const now = new Date()
-  const fullAmzDate = amzDate(now)
+  bucket:
+    string
+
+  key:
+    string
+
+  accessKeyId:
+    string
+
+  secretAccessKey:
+    string
+}) {
+  const region =
+    "auto"
+
+  const service =
+    "s3"
+
+  const expires =
+    900
+
+  const now =
+    new Date()
+
+  const fullAmzDate =
+    amzDate(
+      now
+    )
+
   const dateStamp =
-    fullAmzDate.slice(0, 8)
+    fullAmzDate.slice(
+      0,
+      8
+    )
 
   const endpointUrl =
-    new URL(endpoint)
+    new URL(
+      endpoint
+    )
 
   const host =
     endpointUrl.host
@@ -91,7 +179,9 @@ function createR2PresignedPutUrl({
   const canonicalUri =
     `/${encodeURIComponent(
       bucket
-    )}/${encodePath(key)}`
+    )}/${encodePath(
+      key
+    )}`
 
   const credentialScope =
     `${dateStamp}/${region}/${service}/aws4_request`
@@ -119,7 +209,9 @@ function createR2PresignedPutUrl({
 
   queryParams.set(
     "X-Amz-Expires",
-    String(expires)
+    String(
+      expires
+    )
   )
 
   queryParams.set(
@@ -129,20 +221,38 @@ function createR2PresignedPutUrl({
 
   const canonicalQueryString =
     Array.from(
-      queryParams.entries()
+      queryParams
+        .entries()
     )
-      .sort(([a], [b]) =>
-        a.localeCompare(b)
+      .sort(
+        (
+          [
+            a,
+          ],
+          [
+            b,
+          ]
+        ) =>
+          a.localeCompare(
+            b
+          )
       )
       .map(
-        ([key, value]) =>
+        (
+          [
+            key,
+            value,
+          ]
+        ) =>
           `${encodeURIComponent(
             key
           )}=${encodeURIComponent(
             value
           )}`
       )
-      .join("&")
+      .join(
+        "&"
+      )
 
   const canonicalHeaders =
     `host:${host}\n`
@@ -153,21 +263,29 @@ function createR2PresignedPutUrl({
   const payloadHash =
     "UNSIGNED-PAYLOAD"
 
-  const canonicalRequest = [
-    "PUT",
-    canonicalUri,
-    canonicalQueryString,
-    canonicalHeaders,
-    signedHeaders,
-    payloadHash,
-  ].join("\n")
+  const canonicalRequest =
+    [
+      "PUT",
+      canonicalUri,
+      canonicalQueryString,
+      canonicalHeaders,
+      signedHeaders,
+      payloadHash,
+    ].join(
+      "\n"
+    )
 
-  const stringToSign = [
-    "AWS4-HMAC-SHA256",
-    fullAmzDate,
-    credentialScope,
-    sha256(canonicalRequest),
-  ].join("\n")
+  const stringToSign =
+    [
+      "AWS4-HMAC-SHA256",
+      fullAmzDate,
+      credentialScope,
+      sha256(
+        canonicalRequest
+      ),
+    ].join(
+      "\n"
+    )
 
   const kDate =
     hmac(
@@ -198,8 +316,12 @@ function createR2PresignedPutUrl({
       "sha256",
       kSigning
     )
-      .update(stringToSign)
-      .digest("hex")
+      .update(
+        stringToSign
+      )
+      .digest(
+        "hex"
+      )
 
   return (
     `${endpointUrl.protocol}//${host}` +
@@ -210,7 +332,8 @@ function createR2PresignedPutUrl({
 }
 
 export async function POST(
-  req: NextRequest
+  req:
+    NextRequest
 ) {
   try {
     const supabaseUrl =
@@ -222,26 +345,35 @@ export async function POST(
         .SUPABASE_SERVICE_ROLE_KEY
 
     const r2Endpoint =
-      process.env.R2_ENDPOINT
+      process.env
+        .R2_ENDPOINT
 
     const r2AccessKey =
-      process.env.R2_ACCESS_KEY_ID
+      process.env
+        .R2_ACCESS_KEY_ID
 
     const r2SecretKey =
-      process.env.R2_SECRET_ACCESS_KEY
+      process.env
+        .R2_SECRET_ACCESS_KEY
 
     const r2Bucket =
-      process.env.R2_BUCKET
+      process.env
+        .R2_BUCKET
 
     const r2Prefix =
       clean(
-        process.env.R2_PREFIX
+        process.env
+          .R2_PREFIX
       )
 
     const r2PublicUrl =
       clean(
-        process.env.R2_PUBLIC_URL
-      ).replace(/\/+$/, "")
+        process.env
+          .R2_PUBLIC_URL
+      ).replace(
+        /\/+$/,
+        ""
+      )
 
     if (
       !supabaseUrl ||
@@ -253,12 +385,15 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Missing server configuration",
         },
         {
-          status: 500,
+          status:
+            500,
         }
       )
     }
@@ -266,24 +401,32 @@ export async function POST(
     const body =
       await req
         .json()
-        .catch(() => ({}))
+        .catch(
+          () => ({})
+        )
 
     const token =
-      clean(body?.token)
+      clean(
+        body?.token
+      )
 
     const docType =
-      clean(body?.docType)
+      clean(
+        body?.docType
+      )
 
     const filename =
       safeFilename(
         clean(
           body?.filename
-        ) || "archivo"
+        ) ||
+          "archivo"
       )
 
     const contentType =
       clean(
-        body?.contentType
+        body
+          ?.contentType
       )
 
     if (
@@ -294,39 +437,49 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Missing required fields",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       )
     }
 
     if (
       !ALLOWED_DOC_TYPES.includes(
-        docType as any
+        docType as
+          (
+            typeof ALLOWED_DOC_TYPES
+          )[number]
       )
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Invalid document type",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       )
     }
 
-    const allowedContentTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "application/pdf",
-    ]
+    const allowedContentTypes =
+      [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "application/pdf",
+      ]
 
     if (
       !allowedContentTypes.includes(
@@ -335,12 +488,15 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Invalid file type",
         },
         {
-          status: 400,
+          status:
+            400,
         }
       )
     }
@@ -351,80 +507,238 @@ export async function POST(
         serviceRoleKey,
         {
           auth: {
-            persistSession: false,
-            autoRefreshToken: false,
+            persistSession:
+              false,
+
+            autoRefreshToken:
+              false,
           },
         }
       )
 
+    // =========================================================
+    // 1. RESOLVER TOKEN DEL TENANT
+    //
+    // Aceptamos:
+    // - tenant_matches_access_tokens
+    // - lead_contract_access_tokens (cierre)
+    // =========================================================
+
+    let tenantLeadId =
+      ""
+
+    let tokenSource:
+      | "matches"
+      | "closing"
+      | null =
+      null
+
+    // =========================================================
+    // 1A. TOKEN DE MATCHES
+    // =========================================================
+
     const {
-      data: accessToken,
-      error: tokenError,
-    } = await supabase
-      .from(
-        "tenant_matches_access_tokens"
-      )
-      .select(`
-        id,
-        tenant_lead_id,
-        expires_at,
-        revoked_at
-      `)
-      .eq(
-        "token",
-        token
-      )
-      .single()
+      data:
+        matchesAccessToken,
+    } =
+      await supabase
+        .from(
+          "tenant_matches_access_tokens"
+        )
+        .select(`
+          id,
+          tenant_lead_id,
+          expires_at,
+          revoked_at
+        `)
+        .eq(
+          "token",
+          token
+        )
+        .maybeSingle()
 
     if (
-      tokenError ||
-      !accessToken
+      matchesAccessToken
+    ) {
+      if (
+        matchesAccessToken
+          .revoked_at
+      ) {
+        return NextResponse.json(
+          {
+            ok:
+              false,
+
+            error:
+              "Token revoked",
+          },
+          {
+            status:
+              403,
+          }
+        )
+      }
+
+      if (
+        matchesAccessToken
+          .expires_at &&
+        new Date(
+          matchesAccessToken
+            .expires_at
+        ).getTime() <
+          Date.now()
+      ) {
+        return NextResponse.json(
+          {
+            ok:
+              false,
+
+            error:
+              "Token expired",
+          },
+          {
+            status:
+              403,
+          }
+        )
+      }
+
+      tenantLeadId =
+        clean(
+          matchesAccessToken
+            .tenant_lead_id
+        )
+
+      tokenSource =
+        "matches"
+    }
+
+    // =========================================================
+    // 1B. SI NO ES TOKEN DE MATCHES, PROBAR TOKEN DE CIERRE
+    // =========================================================
+
+    if (
+      !tenantLeadId
+    ) {
+      const {
+        data:
+          closingAccessToken,
+        error:
+          closingTokenError,
+      } =
+        await supabase
+          .from(
+            "lead_contract_access_tokens"
+          )
+          .select(`
+            id,
+            contract_id,
+            lead_id,
+            role,
+            expires_at,
+            revoked_at
+          `)
+          .eq(
+            "token",
+            token
+          )
+          .eq(
+            "role",
+            "tenant"
+          )
+          .maybeSingle()
+
+      if (
+        closingTokenError
+      ) {
+        console.error(
+          "closing token lookup error:",
+          closingTokenError
+        )
+      }
+
+      if (
+        closingAccessToken
+      ) {
+        if (
+          closingAccessToken
+            .revoked_at
+        ) {
+          return NextResponse.json(
+            {
+              ok:
+                false,
+
+              error:
+                "Token revoked",
+            },
+            {
+              status:
+                403,
+            }
+          )
+        }
+
+        if (
+          closingAccessToken
+            .expires_at &&
+          new Date(
+            closingAccessToken
+              .expires_at
+          ).getTime() <
+            Date.now()
+        ) {
+          return NextResponse.json(
+            {
+              ok:
+                false,
+
+              error:
+                "Token expired",
+            },
+            {
+              status:
+                403,
+            }
+          )
+        }
+
+        tenantLeadId =
+          clean(
+            closingAccessToken
+              .lead_id
+          )
+
+        tokenSource =
+          "closing"
+      }
+    }
+
+    // =========================================================
+    // 1C. TOKEN INVÁLIDO
+    // =========================================================
+
+    if (
+      !tenantLeadId
     ) {
       return NextResponse.json(
         {
-          ok: false,
+          ok:
+            false,
+
           error:
             "Invalid token",
         },
         {
-          status: 404,
+          status:
+            404,
         }
       )
     }
 
-    if (
-      accessToken.revoked_at
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Token revoked",
-        },
-        {
-          status: 403,
-        }
-      )
-    }
-
-    if (
-      accessToken.expires_at &&
-      new Date(
-        accessToken.expires_at
-      ).getTime() <
-        Date.now()
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Token expired",
-        },
-        {
-          status: 403,
-        }
-      )
-    }
+    // =========================================================
+    // 2. CREAR KEY DE R2
+    // =========================================================
 
     const prefix =
       r2Prefix
@@ -436,9 +750,13 @@ export async function POST(
 
     const key =
       `${prefix}tenants/` +
-      `${accessToken.tenant_lead_id}/` +
+      `${tenantLeadId}/` +
       `${docType}/` +
       `${randomUUID()}-${filename}`
+
+    // =========================================================
+    // 3. GENERAR URL PRESIGNED
+    // =========================================================
 
     const uploadUrl =
       createR2PresignedPutUrl({
@@ -462,8 +780,13 @@ export async function POST(
         ? `${r2PublicUrl}/${key}`
         : null
 
+    // =========================================================
+    // 4. RESPONSE
+    // =========================================================
+
     return NextResponse.json({
-      ok: true,
+      ok:
+        true,
 
       upload_url:
         uploadUrl,
@@ -474,13 +797,17 @@ export async function POST(
         publicUrl,
 
       tenant_lead_id:
-        accessToken
-          .tenant_lead_id,
+        tenantLeadId,
 
       document_type:
         docType,
+
+      token_source:
+        tokenSource,
     })
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "tenant-document-upload error:",
       error
@@ -488,12 +815,17 @@ export async function POST(
 
     return NextResponse.json(
       {
-        ok: false,
+        ok:
+          false,
+
         error:
-          "Unexpected server error",
+          error instanceof Error
+            ? error.message
+            : "Unexpected server error",
       },
       {
-        status: 500,
+        status:
+          500,
       }
     )
   }
