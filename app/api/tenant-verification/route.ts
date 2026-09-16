@@ -7,6 +7,10 @@ import {
   createClient,
 } from "@supabase/supabase-js"
 
+import {
+  notifyLeadOnce,
+} from "@/lib/lead-notifications"
+
 export const runtime =
   "nodejs"
 
@@ -164,9 +168,9 @@ export async function POST(
     // =========================================================
     // 1. RESOLVER TOKEN DEL TENANT
     //
-    // Acepta:
-    // - tenant_matches_access_tokens
-    // - lead_contract_access_tokens role=tenant
+    // Puede venir desde:
+    // - panel de matches
+    // - cierre
     // =========================================================
 
     let tenantLeadId =
@@ -182,12 +186,13 @@ export async function POST(
       ""
 
     // =========================================================
-    // 1A. TOKEN DE MATCHES
+    // 1A. TOKEN PANEL MATCHES
     // =========================================================
 
     const {
       data:
         matchesAccessToken,
+
       error:
         matchesTokenError,
     } =
@@ -276,6 +281,7 @@ export async function POST(
       const {
         data:
           closingAccessToken,
+
         error:
           closingTokenError,
       } =
@@ -383,17 +389,32 @@ export async function POST(
     }
 
     // =========================================================
-    // 2. SI VIENE DESDE CIERRE, OBTENER MATCH DESDE CONTRATO
+    // 2. SI VIENE DE CIERRE, RESOLVER MATCH DESDE CONTRATO
     // =========================================================
 
     if (
       tokenSource ===
-        "closing" &&
-      closingContractId
+        "closing"
     ) {
+      if (
+        !closingContractId
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Closing contract missing",
+          },
+          {
+            status: 400,
+          }
+        )
+      }
+
       const {
         data:
           closingContract,
+
         error:
           closingContractError,
       } =
@@ -404,7 +425,8 @@ export async function POST(
           .select(`
             id,
             lead_match_id,
-            tenant_lead_id
+            tenant_lead_id,
+            owner_lead_id
           `)
           .eq(
             "id",
@@ -459,7 +481,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. TOKEN DE MATCHES NECESITA MATCH_IDS
+    // 3. NECESITAMOS MATCH
     // =========================================================
 
     if (
@@ -485,6 +507,7 @@ export async function POST(
     const {
       data:
         selectedMatches,
+
       error:
         matchesError,
     } =
@@ -497,7 +520,8 @@ export async function POST(
           tenant_lead_id,
           owner_lead_id,
           score,
-          status
+          status,
+          ready_to_connect_at
         `)
         .in(
           "id",
@@ -543,16 +567,42 @@ export async function POST(
     }
 
     // =========================================================
-    // 5. VALIDAR QUE LAS PROPIEDADES TENGAN FOTO
+    // 4B. SI VIENE DE CIERRE, EL MATCH DEBE ESTAR EN DOBLE OK #1
+    // =========================================================
+
+    if (
+      tokenSource ===
+      "closing"
+    ) {
+      const closingMatch =
+        selectedMatches[0]
+
+      if (
+        !closingMatch
+          ?.ready_to_connect_at
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              "Match is not ready for closing",
+          },
+          {
+            status: 409,
+          }
+        )
+      }
+    }
+
+    // =========================================================
+    // 5. VALIDAR PROPIEDAD
     // =========================================================
 
     const selectedOwnerLeadIds =
       Array.from(
         new Set(
           selectedMatches.map(
-            (
-              match
-            ) =>
+            match =>
               clean(
                 match
                   .owner_lead_id
@@ -566,6 +616,7 @@ export async function POST(
     const {
       data:
         selectedOwnerMedia,
+
       error:
         selectedOwnerMediaError,
     } =
@@ -603,11 +654,10 @@ export async function POST(
           []
         )
           .map(
-            (
-              item
-            ) =>
+            item =>
               clean(
-                item.lead_id
+                item
+                  .lead_id
               )
           )
           .filter(
@@ -617,9 +667,7 @@ export async function POST(
 
     const allSelectedMatchesHavePhoto =
       selectedMatches.every(
-        (
-          match
-        ) =>
+        match =>
           ownersWithPhoto.has(
             clean(
               match
@@ -650,6 +698,7 @@ export async function POST(
     const {
       data:
         existingVerification,
+
       error:
         existingVerificationError,
     } =
@@ -659,10 +708,16 @@ export async function POST(
         )
         .select(`
           id,
+          document_number,
           dni_front_path,
           dni_back_path,
           selfie_path,
-          income_proof_path
+          income_proof_path,
+          employment_status,
+          income_range,
+          guarantee_type,
+          move_notes,
+          status
         `)
         .eq(
           "lead_id",
@@ -694,7 +749,182 @@ export async function POST(
     }
 
     // =========================================================
-    // 7. GUARDAR VERIFICACIÓN
+    // 7. RESOLVER VALORES FINALES
+    // =========================================================
+
+    const finalDocumentNumber =
+      documentNumber ||
+      clean(
+        existingVerification
+          ?.document_number
+      )
+
+    const finalDniFront =
+      clean(
+        documents
+          .dni_front
+      ) ||
+      clean(
+        existingVerification
+          ?.dni_front_path
+      )
+
+    const finalDniBack =
+      clean(
+        documents
+          .dni_back
+      ) ||
+      clean(
+        existingVerification
+          ?.dni_back_path
+      )
+
+    const finalSelfie =
+      clean(
+        documents
+          .selfie
+      ) ||
+      clean(
+        existingVerification
+          ?.selfie_path
+      )
+
+    const finalIncomeProof =
+      clean(
+        documents
+          .income_proof
+      ) ||
+      clean(
+        existingVerification
+          ?.income_proof_path
+      )
+
+    const finalEmploymentStatus =
+      employmentStatus ||
+      clean(
+        existingVerification
+          ?.employment_status
+      )
+
+    const finalIncomeRange =
+      incomeRange ||
+      clean(
+        existingVerification
+          ?.income_range
+      )
+
+    const finalGuaranteeType =
+      guaranteeType ||
+      clean(
+        existingVerification
+          ?.guarantee_type
+      )
+
+    // =========================================================
+    // 7B. DOCUMENTACIÓN OBLIGATORIA
+    // =========================================================
+
+    if (
+      !finalDocumentNumber
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "DNI number is required",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    if (
+      !finalDniFront ||
+      !finalDniBack ||
+      !finalSelfie
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "DNI front, DNI back and selfie are required",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // =========================================================
+    // 7C. MOVE NOTES + GARANTÍA
+    // =========================================================
+
+    const existingMoveNotes =
+      clean(
+        existingVerification
+          ?.move_notes
+      )
+
+    const guaranteeProofLine =
+      documents
+        .guarantee_proof
+        ? `Garantía / seguro / caución: ${documents.guarantee_proof}`
+        : ""
+
+    const previousHumanNotes =
+      existingMoveNotes
+        .split(
+          /\r?\n/
+        )
+        .filter(
+          line =>
+            !line
+              .trim()
+              .toLowerCase()
+              .startsWith(
+                "garantía / seguro / caución:"
+              )
+        )
+        .join(
+          "\n"
+        )
+        .trim()
+
+    const previousGuaranteeLine =
+      existingMoveNotes
+        .split(
+          /\r?\n/
+        )
+        .find(
+          line =>
+            line
+              .trim()
+              .toLowerCase()
+              .startsWith(
+                "garantía / seguro / caución:"
+              )
+        ) ||
+      ""
+
+    const finalMoveNotes =
+      [
+        guaranteeProofLine ||
+          previousGuaranteeLine,
+
+        moveNotes ||
+          previousHumanNotes,
+      ]
+        .filter(
+          Boolean
+        )
+        .join(
+          "\n\n"
+        ) ||
+      null
+
+    // =========================================================
+    // 8. GUARDAR VERIFICACIÓN
     // =========================================================
 
     const verificationPayload = {
@@ -705,65 +935,35 @@ export async function POST(
         null,
 
       dni_front_path:
-        documents
-          .dni_front ||
-        existingVerification
-          ?.dni_front_path ||
-        null,
+        finalDniFront,
 
       dni_back_path:
-        documents
-          .dni_back ||
-        existingVerification
-          ?.dni_back_path ||
-        null,
+        finalDniBack,
 
       selfie_path:
-        documents
-          .selfie ||
-        existingVerification
-          ?.selfie_path ||
-        null,
+        finalSelfie,
 
       income_proof_path:
-        documents
-          .income_proof ||
-        existingVerification
-          ?.income_proof_path ||
+        finalIncomeProof ||
         null,
 
       document_number:
-        documentNumber ||
-        null,
+        finalDocumentNumber,
 
       employment_status:
-        employmentStatus ||
+        finalEmploymentStatus ||
         null,
 
       income_range:
-        incomeRange ||
+        finalIncomeRange ||
         null,
 
       guarantee_type:
-        guaranteeType ||
+        finalGuaranteeType ||
         null,
 
       move_notes:
-        [
-          documents
-            .guarantee_proof
-            ? `Garantía / seguro / caución: ${documents.guarantee_proof}`
-            : "",
-
-          moveNotes,
-        ]
-          .filter(
-            Boolean
-          )
-          .join(
-            "\n\n"
-          ) ||
-        null,
+        finalMoveNotes,
 
       status:
         "submitted",
@@ -780,6 +980,7 @@ export async function POST(
       const {
         data:
           updatedVerification,
+
         error:
           verificationError,
       } =
@@ -823,6 +1024,7 @@ export async function POST(
       const {
         data:
           newVerification,
+
         error:
           verificationError,
       } =
@@ -860,9 +1062,10 @@ export async function POST(
     }
 
     // =========================================================
-    // 8. MARCAR VALIDACIÓN COMPLETA
+    // 9. MARCAR TENANT VERIFIED
     //
-    // NO TOCA tenant_interest_at
+    // IMPORTANTE:
+    // NO toca tenant_interest_at.
     // =========================================================
 
     const now =
@@ -900,7 +1103,145 @@ export async function POST(
     }
 
     // =========================================================
-    // 9. RESPONSE
+    // 10. PUSH AL OWNER
+    //
+    // SOLO corresponde cuando la documentación se completa
+    // dentro de una operación que ya está en /cierre.
+    // =========================================================
+
+    let ownerPush:
+      unknown =
+      null
+
+    if (
+      tokenSource ===
+        "closing" &&
+      closingContractId &&
+      verificationId
+    ) {
+      const closingMatch =
+        selectedMatches[0]
+
+      const ownerLeadId =
+        clean(
+          closingMatch
+            ?.owner_lead_id
+        )
+
+      if (
+        ownerLeadId
+      ) {
+        const {
+          data:
+            ownerClosingToken,
+
+          error:
+            ownerTokenError,
+        } =
+          await supabase
+            .from(
+              "lead_contract_access_tokens"
+            )
+            .select(`
+              token,
+              lead_id,
+              role,
+              expires_at,
+              revoked_at
+            `)
+            .eq(
+              "contract_id",
+              closingContractId
+            )
+            .eq(
+              "lead_id",
+              ownerLeadId
+            )
+            .eq(
+              "role",
+              "owner"
+            )
+            .is(
+              "revoked_at",
+              null
+            )
+            .maybeSingle()
+
+        if (
+          ownerTokenError
+        ) {
+          console.error(
+            "owner closing token lookup error:",
+            ownerTokenError
+          )
+        }
+
+        const ownerTokenUsable =
+          ownerClosingToken &&
+          (
+            !ownerClosingToken
+              .expires_at ||
+            new Date(
+              ownerClosingToken
+                .expires_at
+            ).getTime() >
+              Date.now()
+          )
+
+        const ownerClosingUrl =
+          ownerTokenUsable &&
+          ownerClosingToken
+            ?.token
+            ? `/cierre/${encodeURIComponent(
+                ownerClosingToken
+                  .token
+              )}`
+            : null
+
+        if (
+          ownerClosingUrl
+        ) {
+          try {
+            ownerPush =
+              await notifyLeadOnce({
+                eventKey:
+                  `tenant_verification_submitted:owner:${closingContractId}:${verificationId}`,
+
+                eventType:
+                  "tenant_verification_submitted",
+
+                leadId:
+                  ownerLeadId,
+
+                entityType:
+                  "contract",
+
+                entityId:
+                  closingContractId,
+
+                title:
+                  "Verlo · Documentación disponible",
+
+                body:
+                  "El inquilino cargó su documentación. Ya podés revisarla desde el cierre.",
+
+                url:
+                  ownerClosingUrl,
+              })
+          } catch (
+            pushError
+          ) {
+            console.error(
+              "tenant verification owner push error:",
+              pushError
+            )
+          }
+        }
+      }
+    }
+
+    // =========================================================
+    // 11. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -923,6 +1264,11 @@ export async function POST(
 
       token_source:
         tokenSource,
+
+      push: {
+        owner:
+          ownerPush,
+      },
     })
   } catch (
     error
