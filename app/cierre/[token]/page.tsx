@@ -2855,17 +2855,6 @@ if (
     />
   )}
 
-{!isOwner && (
-  <article className="verlo-card no-print review-card">
-    <span className="card-kicker">
-      INFORMACIÓN PARA REVISAR
-    </span>
-
-    <h2>
-      Multimedia de la propiedad
-    </h2>
-
-
             
             {!isOwner && (
               <article className="verlo-card no-print review-card">
