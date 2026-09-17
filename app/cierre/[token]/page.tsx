@@ -1831,6 +1831,33 @@ export default function ClosingPage() {
     )
   }
 
+  function continueOwnerToContract(
+    event:
+      FormEvent
+  ) {
+    event.preventDefault()
+
+    if (!isOwner) {
+      return
+    }
+
+    setError(
+      ""
+    )
+
+    setSuccessMessage(
+      ""
+    )
+
+    setShowLegalForm(
+      false
+    )
+
+    setShowContractForm(
+      true
+    )
+  }
+
   async function saveLegalData(
     event:
       FormEvent
@@ -2073,6 +2100,22 @@ export default function ClosingPage() {
                 special_conditions:
                   contractForm
                     .special_conditions,
+
+                owner: {
+                  ...ownerLegalForm,
+                },
+
+                property: {
+                  ...propertyLegalForm,
+                },
+
+                signing_place: {
+                  ...signingForm,
+                },
+
+                furnishing: {
+                  ...furnishingForm,
+                },
               }),
           }
         )
@@ -3282,7 +3325,7 @@ if (
                     {isOwner ? (
                       <form
                         onSubmit={
-                          saveLegalData
+                          continueOwnerToContract
                         }
                       >
                         <div className="edit-alert">
@@ -3808,13 +3851,8 @@ if (
                           <button
                             type="submit"
                             className="primary-button"
-                            disabled={
-                              savingLegal
-                            }
                           >
-                            {savingLegal
-                              ? "GUARDANDO..."
-                              : "GUARDAR DATOS"}
+                            CONTINUAR AL CONTRATO
                           </button>
                         </div>
                       </form>
@@ -4151,6 +4189,11 @@ if (
                 <Info
                   label="Zona"
                   value={
+                    propertyLegalForm.city ||
+                    data
+                      .legal
+                      .property
+                      .city ||
                     data
                       .property
                       .neighborhood ||
@@ -4916,7 +4959,7 @@ if (
                 />
 
                 <Step
-                  label="Datos tenant"
+                  label="Datos inquilino"
                   done={
                     data
                       .legal
@@ -4926,7 +4969,7 @@ if (
                 />
 
                 <Step
-                  label="Datos owner"
+                  label="Datos propietario"
                   done={
                     data
                       .legal
