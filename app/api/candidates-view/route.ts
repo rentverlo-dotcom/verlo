@@ -976,23 +976,10 @@ export async function GET(
                   .introduced_at
               )
 
-            // =================================================
-            // PRIVACIDAD
-            //
-            // Match puramente algorítmico:
-            // mostramos "Perfil compatible".
-            //
-            // Cuando el tenant efectivamente muestra interés,
-            // recién ahí mostramos su primer nombre.
-            // =================================================
-
-            const displayName =
-              tenantInterested
-                ? firstName(
-                    tenant
-                      .full_name
-                  )
-                : "Perfil compatible"
+          const displayName =
+  clean(
+    tenant.full_name
+  ) || "Candidato"
 
             return {
               match: {
