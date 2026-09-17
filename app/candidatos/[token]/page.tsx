@@ -961,6 +961,13 @@ function CandidateCard({
               tenant.first_name
             }
           </h3>
+
+          <p className="candidate-date">
+            Match del{" "}
+            {formatMatchDate(
+              match.created_at
+            )}
+          </p>
         </div>
 
         <div className="score">
@@ -982,13 +989,17 @@ function CandidateCard({
         <Fact
           label="Presupuesto"
           value={
-            tenant.budget_max
-              ? money(
-                  tenant.budget_max
+            tenant.budget_range
+              ? humanize(
+                  tenant
+                    .budget_range
                 )
-              : tenant
-                  .budget_range ||
-                "—"
+              : tenant.budget_max
+                ? money(
+                    tenant
+                      .budget_max
+                  )
+                : "—"
           }
         />
 
@@ -1028,15 +1039,17 @@ function CandidateCard({
         <Fact
           label="Ingresos"
           value={
-            tenant
-              .income_range ||
-            (tenant
-              .income_max
-              ? money(
+            tenant.income_range
+              ? humanize(
                   tenant
-                    .income_max
+                    .income_range
                 )
-              : "—")
+              : tenant.income_max
+                ? money(
+                    tenant
+                      .income_max
+                  )
+                : "—"
           }
         />
       </div>
@@ -1717,6 +1730,14 @@ function Styles() {
         margin: 0;
         font-size: 32px;
         letter-spacing: -0.05em;
+      }
+
+      .candidate-date {
+        margin: 6px 0 0;
+        font-size: 12px;
+        line-height: 1.35;
+        font-weight: 750;
+        opacity: 0.55;
       }
 
       .score {
