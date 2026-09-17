@@ -839,6 +839,34 @@ export async function POST(
           ?.insurance_terms
       )
 
+    const ownerLegalInput =
+      isObject(
+        body?.owner
+      )
+        ? body.owner
+        : null
+
+    const propertyLegalInput =
+      isObject(
+        body?.property
+      )
+        ? body.property
+        : null
+
+    const signingPlaceInput =
+      isObject(
+        body?.signing_place
+      )
+        ? body.signing_place
+        : null
+
+    const furnishingInput =
+      isObject(
+        body?.furnishing
+      )
+        ? body.furnishing
+        : null
+
     // =========================================================
     // 1. VALIDACIÓN BÁSICA
     // =========================================================
@@ -1167,6 +1195,172 @@ export async function POST(
               .terms_json,
           }
         : {}
+
+    // =========================================================
+    // 4.B DATOS LEGALES ENVIADOS AL GENERAR
+    //
+    // El propietario completa todo en pantalla y hace una sola
+    // acción final: GENERAR CONTRATO. Los datos legales actuales
+    // viajan en esta misma request, se validan y quedan guardados
+    // dentro de terms_json junto con el contrato generado.
+    // =========================================================
+
+    if (
+      ownerLegalInput
+    ) {
+      Object.assign(
+        currentTerms,
+        {
+          owner_dni:
+            nullableString(
+              ownerLegalInput.dni
+            ),
+
+          owner_tax_id:
+            nullableString(
+              ownerLegalInput.tax_id
+            ),
+
+          owner_civil_status:
+            nullableString(
+              ownerLegalInput.civil_status
+            ),
+
+          owner_legal_address:
+            nullableString(
+              ownerLegalInput.legal_address
+            ),
+
+          owner_city:
+            nullableString(
+              ownerLegalInput.city
+            ),
+
+          owner_province:
+            nullableString(
+              ownerLegalInput.province
+            ),
+
+          owner_country:
+            nullableString(
+              ownerLegalInput.country
+            ),
+
+          owner_postal_code:
+            nullableString(
+              ownerLegalInput.postal_code
+            ),
+
+          owner_acting_as:
+            nullableString(
+              ownerLegalInput.acting_as
+            ) ||
+            "owner",
+
+          owner_power_details:
+            nullableString(
+              ownerLegalInput.power_details
+            ),
+        }
+      )
+    }
+
+    if (
+      propertyLegalInput
+    ) {
+      Object.assign(
+        currentTerms,
+        {
+          property_street:
+            nullableString(
+              propertyLegalInput.street
+            ),
+
+          property_number:
+            nullableString(
+              propertyLegalInput.number
+            ),
+
+          property_floor:
+            nullableString(
+              propertyLegalInput.floor
+            ),
+
+          property_unit:
+            nullableString(
+              propertyLegalInput.unit
+            ),
+
+          property_city:
+            nullableString(
+              propertyLegalInput.city
+            ),
+
+          property_province:
+            nullableString(
+              propertyLegalInput.province
+            ),
+
+          property_country:
+            nullableString(
+              propertyLegalInput.country
+            ),
+
+          property_postal_code:
+            nullableString(
+              propertyLegalInput.postal_code
+            ),
+        }
+      )
+    }
+
+    if (
+      signingPlaceInput
+    ) {
+      Object.assign(
+        currentTerms,
+        {
+          signing_city:
+            nullableString(
+              signingPlaceInput.city
+            ),
+
+          signing_province:
+            nullableString(
+              signingPlaceInput.province
+            ),
+
+          signing_country:
+            nullableString(
+              signingPlaceInput.country
+            ),
+        }
+      )
+    }
+
+    if (
+      furnishingInput
+    ) {
+      Object.assign(
+        currentTerms,
+        {
+          furnishing_status:
+            nullableString(
+              furnishingInput.status
+            ),
+
+          furnishing_inventory:
+            nullableString(
+              furnishingInput.inventory
+            ),
+
+          furnishing_condition_notes:
+            nullableString(
+              furnishingInput.condition_notes
+            ),
+        }
+      )
+    }
 
     // =========================================================
     // 5. MATCH + DOBLE OK #2
