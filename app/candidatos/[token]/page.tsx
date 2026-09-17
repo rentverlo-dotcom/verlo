@@ -690,17 +690,27 @@ export default function CandidatesPage() {
                 "Ubicación cargada"}
             </p>
 
-            {data.owner
-              .approx_price_number !==
-              null && (
-              <b>
-                {money(
-                  data.owner
-                    .approx_price_number
-                )}{" "}
-                / mes
-              </b>
-            )}
+          {(
+  data.owner
+    .approx_price ||
+  data.owner
+    .approx_price_number !==
+    null
+) && (
+  <b>
+    {data.owner
+      .approx_price
+      ? humanize(
+          data.owner
+            .approx_price
+        )
+      : money(
+          data.owner
+            .approx_price_number
+        )}{" "}
+    / mes
+  </b>
+)}
           </div>
         </section>
 
