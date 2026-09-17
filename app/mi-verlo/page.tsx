@@ -16,6 +16,8 @@ import {
 
 import VerloBrand from "@/components/VerloBrand"
 
+import PushSubscribeButton from "@/components/PushSubscribeButton"
+
 type Role =
   | "tenant"
   | "owner"
@@ -2103,31 +2105,40 @@ export default function MiVerloPage() {
 
       <div className="mv-root">
 
-        <header className="mv-nav">
-          <div className="mv-container mv-nav-inner">
-            <VerloBrand />
+     <header className="mv-nav">
+  <div className="mv-container mv-nav-inner">
+    <VerloBrand />
 
-            <div className="mv-nav-actions">
-              <span className="mv-user">
-                {
-                  data
-                    .user
-                    .email
-                }
-              </span>
+    <div className="mv-nav-actions">
+      <span className="mv-user">
+        {
+          data
+            .user
+            .email
+        }
+      </span>
 
-              <button
-                type="button"
-                className="mv-logout"
-                onClick={
-                  logout
-                }
-              >
-                Salir
-              </button>
-            </div>
-          </div>
-        </header>
+      <PushSubscribeButton
+        leadId={data.user.lead_id}
+        role={
+          data.user.role === "owner"
+            ? "owner"
+            : "tenant"
+        }
+      />
+
+      <button
+        type="button"
+        className="mv-logout"
+        onClick={
+          logout
+        }
+      >
+        Salir
+      </button>
+    </div>
+  </div>
+</header>
 
         <main className="mv-main">
           <div className="mv-container">
