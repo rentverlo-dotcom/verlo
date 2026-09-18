@@ -3338,12 +3338,13 @@ export default function PageDePrueba() {
               </p>
             </div>
 
-            <form
-              className="form"
-              onSubmit={
-                handleSubmit
-              }
-            >
+           <form
+  className="form"
+  onSubmit={
+    handleSubmit
+  }
+  noValidate
+>
               <input
                 type="text"
                 name="website"
