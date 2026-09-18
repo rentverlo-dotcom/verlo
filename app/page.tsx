@@ -2772,7 +2772,7 @@ export default function PageDePrueba() {
                   }}
                 />
 
-                <div
+                {/*  <div
                   style={{
                     fontSize:
                       "12px",
@@ -2785,7 +2785,7 @@ export default function PageDePrueba() {
                   }}
                 >
                   PRIMEROS 20 CONTRATOS
-                </div>
+                </div>*/}
               </div>
             </div>
 
