@@ -1923,19 +1923,18 @@ export default function PageDePrueba() {
         form
       )
 
-    const website =
-      String(
-        formData.get(
-          "website"
-        ) || ""
-      ).trim()
+   const honeypot =
+  String(
+    formData.get(
+      "verlo_honeypot"
+    ) || ""
+  ).trim()
 
-    if (website) {
-      form.reset()
-      setLoading(false)
-      setSuccess("Listo.")
-      return
-    }
+if (honeypot) {
+  console.warn(
+    "Honeypot completado. Ignorando valor para evitar falsos positivos de autofill."
+  )
+}
 
     const eventId =
       `lead_${Date.now()}_${Math.random()
