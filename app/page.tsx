@@ -3371,13 +3371,15 @@ export default function PageDePrueba() {
                 />
               </div>
 
-              <input
-                className="input"
-                name="email"
-                type="email"
-                placeholder="Email"
-                required
-              />
+             <input
+  type="text"
+  name="verlo_honeypot"
+  tabIndex={-1}
+  autoComplete="new-password"
+  className="honeypot"
+  aria-hidden="true"
+  defaultValue=""
+/>
 
               {path ===
                 "tenant" && (
