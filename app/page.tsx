@@ -3118,9 +3118,57 @@ export default function PageDePrueba() {
                 </em>
               </h2>
 
-              <p className="section-copy">
-                Todos los campos son necesarios para poder ordenar y matchear bien.
-              </p>
+           <p className="section-copy">
+  Todos los campos son necesarios para poder ordenar y matchear bien.
+</p>
+
+<div
+  style={{
+    marginTop: "18px",
+    padding: "18px 20px",
+    borderRadius: "20px",
+    background: "rgba(255,255,255,.65)",
+    border: "1px solid rgba(5,0,2,.08)",
+  }}
+>
+  <p
+    style={{
+      margin: 0,
+      fontSize: "14px",
+      lineHeight: 1.5,
+      fontWeight: 800,
+      color: "rgba(5,0,2,.68)",
+    }}
+  >
+    ¿Todavía no usás Verlo? No necesitás crear una cuenta.
+    Podés buscar un alquiler o publicar tu propiedad directamente.
+  </p>
+
+  <p
+    style={{
+      margin: "10px 0 0",
+      fontSize: "14px",
+      lineHeight: 1.5,
+      fontWeight: 800,
+      color: "rgba(5,0,2,.68)",
+    }}
+  >
+    ¿Ya cargaste una búsqueda o una propiedad?
+  </p>
+
+  <a
+    href="/login"
+    style={{
+      display: "inline-flex",
+      marginTop: "12px",
+      fontWeight: 950,
+      color: "#050002",
+      textDecoration: "underline",
+    }}
+  >
+    Ingresá a Mi Verlo con el mismo email
+  </a>
+</div>
             </div>
 
             <div className="path-grid">
