@@ -2846,6 +2846,88 @@ export default function PageDePrueba() {
         </div>
       </section>
 
+
+<section
+  className="section"
+  style={{
+    paddingTop: 0,
+  }}
+>
+  <div className="container">
+    <div
+      style={{
+        maxWidth: "860px",
+        margin: "0 auto",
+        padding: "28px 30px",
+        borderRadius: "28px",
+        background: "rgba(255,255,255,.72)",
+        border: "1px solid rgba(5,0,2,.08)",
+        boxShadow: "0 18px 50px rgba(5,0,2,.06)",
+        textAlign: "center",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontSize: "22px",
+          lineHeight: 1.2,
+          fontWeight: 950,
+          color: "#050002",
+        }}
+      >
+        ¿Primera vez en Verlo?
+      </p>
+
+      <p
+        style={{
+          margin: "10px auto 0",
+          maxWidth: "680px",
+          fontSize: "16px",
+          lineHeight: 1.55,
+          fontWeight: 700,
+          color: "rgba(5,0,2,.68)",
+        }}
+      >
+        No necesitás crear una cuenta para empezar.
+        Podés buscar un alquiler, publicar una propiedad
+        o renovar directamente.
+      </p>
+
+      <div
+        style={{
+          width: "100%",
+          height: "1px",
+          background: "rgba(5,0,2,.08)",
+          margin: "22px 0",
+        }}
+      />
+
+      <p
+        style={{
+          margin: 0,
+          fontSize: "15px",
+          lineHeight: 1.5,
+          fontWeight: 800,
+          color: "rgba(5,0,2,.68)",
+        }}
+      >
+        ¿Ya cargaste una búsqueda o una propiedad?
+      </p>
+
+      <a
+        href="/login"
+        className="btn btn-primary"
+        style={{
+          marginTop: "14px",
+        }}
+      >
+        Ingresar a Mi Verlo
+      </a>
+    </div>
+  </div>
+</section>
+
+      
       <section
         className="section"
         id="caminos"
