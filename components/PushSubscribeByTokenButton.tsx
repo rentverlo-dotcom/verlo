@@ -1,182 +1,182 @@
-'use client'
+self.addEventListener("install", () => {
+  self.skipWaiting()
+})
 
-import { useState } from 'react'
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim())
+})
 
-type Props = {
-  token: string
-  role: 'tenant' | 'owner'
-}
-
-function urlBase64ToUint8Array(
-  base64String: string
+async function sendPushAck(
+  deliveryId,
+  stage
 ) {
-  const padding =
-    '='.repeat(
-      (4 -
-        (base64String.length %
-          4)) %
-        4
-    )
-
-  const base64 =
-    (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
-
-  const rawData =
-    window.atob(base64)
-
-  const outputArray =
-    new Uint8Array(
-      rawData.length
-    )
-
-  for (
-    let i = 0;
-    i < rawData.length;
-    i += 1
-  ) {
-    outputArray[i] =
-      rawData.charCodeAt(i)
+  if (!deliveryId) {
+    return
   }
 
-  return outputArray
+  try {
+    await fetch(
+      "/api/push/ack",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body:
+          JSON.stringify({
+            delivery_id:
+              deliveryId,
+
+            stage,
+          }),
+      }
+    )
+  } catch (error) {
+    console.error(
+      "Push ACK failed",
+      {
+        deliveryId,
+        stage,
+        error,
+      }
+    )
+  }
 }
 
-export default function PushSubscribeByTokenButton({
-  token,
-  role,
-}: Props) {
-  const [status, setStatus] =
-    useState<
-      'idle' |
-      'loading' |
-      'success' |
-      'error'
-    >('idle')
+self.addEventListener("push", (event) => {
+  let data = {}
 
-  async function activatePush() {
-    try {
-      setStatus('loading')
+  try {
+    data =
+      event.data
+        ? event.data.json()
+        : {}
+  } catch {
+    data = {
+      title:
+        "Verlo",
 
-      if (
-        !('serviceWorker' in navigator)
-      ) {
-        throw new Error(
-          'Service Worker no disponible'
-        )
-      }
-
-      if (
-        !('PushManager' in window)
-      ) {
-        throw new Error(
-          'Web Push no disponible'
-        )
-      }
-
-      const permission =
-        await Notification.requestPermission()
-
-      if (
-        permission !== 'granted'
-      ) {
-        throw new Error(
-          'Permiso de notificaciones rechazado'
-        )
-      }
-
-      const registration =
-        await navigator.serviceWorker.ready
-
-      let subscription =
-        await registration
-          .pushManager
-          .getSubscription()
-
-      if (!subscription) {
-        const publicKey =
-          process.env
-            .NEXT_PUBLIC_VAPID_PUBLIC_KEY
-
-        if (!publicKey) {
-          throw new Error(
-            'Falta NEXT_PUBLIC_VAPID_PUBLIC_KEY'
-          )
-        }
-
-        subscription =
-          await registration
-            .pushManager
-            .subscribe({
-              userVisibleOnly: true,
-              applicationServerKey:
-                urlBase64ToUint8Array(
-                  publicKey
-                ),
-            })
-      }
-
-      const response =
-        await fetch(
-          '/api/push/subscribe-by-token',
-          {
-            method: 'POST',
-
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-
-            body: JSON.stringify({
-              token,
-              role,
-              subscription:
-                subscription.toJSON(),
-            }),
-          }
-        )
-
-      const result =
-        await response.json()
-
-      if (
-        !response.ok ||
-        !result.ok
-      ) {
-        throw new Error(
-          result.error ||
-            'No se pudo registrar la notificación'
-        )
-      }
-
-      setStatus('success')
-    } catch (error) {
-      console.error(
-        'Push activation error',
-        error
-      )
-
-      setStatus('error')
+      body:
+        event.data
+          ? event.data.text()
+          : "",
     }
   }
 
-  return (
-    <button
-      type="button"
-      onClick={activatePush}
-      disabled={
-        status === 'loading' ||
-        status === 'success'
-      }
-    >
-      {status === 'loading'
-        ? 'Activando...'
-        : status === 'success'
-          ? 'Notificaciones activadas'
-          : status === 'error'
-            ? 'Reintentar notificaciones'
-            : 'Activar notificaciones'}
-    </button>
+  const title =
+    data.title ||
+    "Verlo"
+
+  const deliveryId =
+    data.delivery_id ||
+    null
+
+  const options = {
+    body:
+      data.body ||
+      "",
+
+    icon:
+      "/logo-verlo.png",
+
+    badge:
+      "/logo-verlo.png",
+
+    data: {
+      url:
+        data.url ||
+        "/",
+
+      delivery_id:
+        deliveryId,
+
+      lead_id:
+        data.lead_id ||
+        null,
+
+      subscription_id:
+        data.subscription_id ||
+        null,
+    },
+  }
+
+  event.waitUntil(
+    (async () => {
+      await sendPushAck(
+        deliveryId,
+        "delivered"
+      )
+
+      await self.registration
+        .showNotification(
+          title,
+          options
+        )
+
+      await sendPushAck(
+        deliveryId,
+        "displayed"
+      )
+    })()
   )
-}
+})
+
+self.addEventListener(
+  "notificationclick",
+  (event) => {
+    event.notification.close()
+
+    const url =
+      event.notification
+        ?.data
+        ?.url ||
+      "/"
+
+    const deliveryId =
+      event.notification
+        ?.data
+        ?.delivery_id ||
+      null
+
+    event.waitUntil(
+      (async () => {
+        await sendPushAck(
+          deliveryId,
+          "clicked"
+        )
+
+        const clientList =
+          await clients.matchAll({
+            type:
+              "window",
+
+            includeUncontrolled:
+              true,
+          })
+
+        for (
+          const client
+          of clientList
+        ) {
+          if (
+            "focus"
+            in client
+          ) {
+            await client.navigate(
+              url
+            )
+
+            return client.focus()
+          }
+        }
+
+        return clients.openWindow(
+          url
+        )
+      })()
+    )
+  }
+)
