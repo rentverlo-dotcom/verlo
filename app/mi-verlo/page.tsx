@@ -2040,6 +2040,10 @@ export default function MiVerloPage() {
     error ||
     !data
   ) {
+    const missingProfile =
+      error ===
+      "User profile not found"
+
     return (
       <>
         <style>
@@ -2055,24 +2059,61 @@ export default function MiVerloPage() {
 
           <main className="mv-error">
             <div className="mv-state-card">
-              <h1>
-                No pudimos cargar
-              </h1>
+              {missingProfile ? (
+                <>
+                  <h1>
+                    Todavía no tenés Mi Verlo
+                  </h1>
 
-              <p>
-                {error ||
-                  "Probá nuevamente."}
-              </p>
+                  <p>
+                    Para empezar, cargá una búsqueda
+                    o publicá una propiedad.
+                  </p>
 
-              <button
-                type="button"
-                className="mv-action"
-                onClick={
-                  load
-                }
-              >
-                REINTENTAR
-              </button>
+                  <a
+                    href="/#sumate"
+                    className="mv-action"
+                  >
+                    EMPEZAR EN VERLO
+                  </a>
+
+                  <button
+                    type="button"
+                    className="mv-action"
+                    style={{
+                      marginTop: "10px",
+                      background: "rgba(5,0,2,.08)",
+                      color: "#050002",
+                    }}
+                    onClick={
+                      logout
+                    }
+                  >
+                    SALIR
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h1>
+                    No pudimos cargar
+                  </h1>
+
+                  <p>
+                    {error ||
+                      "Probá nuevamente."}
+                  </p>
+
+                  <button
+                    type="button"
+                    className="mv-action"
+                    onClick={
+                      load
+                    }
+                  >
+                    REINTENTAR
+                  </button>
+                </>
+              )}
             </div>
           </main>
         </div>
