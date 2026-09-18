@@ -3344,32 +3344,6 @@ if (honeypot) {
   }
   noValidate
 >
-              <input
-                type="text"
-                name="website"
-                tabIndex={-1}
-                autoComplete="off"
-                className="honeypot"
-                aria-hidden="true"
-              />
-
-              <div className="row">
-                <input
-                  className="input"
-                  name="full_name"
-                  placeholder="Nombre y apellido"
-                  required
-                />
-
-                <input
-                  className="input"
-                  name="phone"
-                  placeholder="Teléfono con característica. Ej: 11 3361 4865"
-                  inputMode="tel"
-                  required
-                />
-              </div>
-
              <input
   type="text"
   name="verlo_honeypot"
@@ -3378,6 +3352,31 @@ if (honeypot) {
   className="honeypot"
   aria-hidden="true"
   defaultValue=""
+/>
+
+<div className="row">
+  <input
+    className="input"
+    name="full_name"
+    placeholder="Nombre y apellido"
+    required
+  />
+
+  <input
+    className="input"
+    name="phone"
+    placeholder="Teléfono con característica. Ej: 11 2345 6789"
+    inputMode="tel"
+    required
+  />
+</div>
+
+<input
+  className="input"
+  name="email"
+  type="email"
+  placeholder="Email"
+  required
 />
 
               {path ===
