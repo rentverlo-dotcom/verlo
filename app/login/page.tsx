@@ -805,6 +805,40 @@ export default function LoginPage() {
             <p className="help">
               No necesitás contraseña.
             </p>
+
+            <div
+              style={{
+                marginTop: "8px",
+                paddingTop: "18px",
+                borderTop: "1px solid rgba(5,0,2,.08)",
+                textAlign: "center",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "14px",
+                  lineHeight: 1.5,
+                  fontWeight: 800,
+                  color: "rgba(5,0,2,.58)",
+                }}
+              >
+                ¿Todavía no cargaste una búsqueda o una propiedad?
+              </p>
+
+              <a
+                href="/#sumate"
+                style={{
+                  display: "inline-flex",
+                  marginTop: "12px",
+                  fontWeight: 950,
+                  color: "#050002",
+                  textDecoration: "underline",
+                }}
+              >
+                Empezar en Verlo
+              </a>
+            </div>
           </form>
         </section>
       </main>
