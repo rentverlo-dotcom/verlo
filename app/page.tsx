@@ -2577,55 +2577,55 @@ export default function PageDePrueba() {
         {styles}
       </style>
 
-      <header className="nav">
-        <div className="container nav-inner">
-          <VerloBrand
-            width={112}
-          />
+ <header className="nav">
+  <div className="container nav-inner">
+    <VerloBrand
+      width={112}
+    />
 
-          <nav className="nav-links">
-            <a
-              href="#sumate"
-              onClick={() =>
-                choosePath(
-                  "tenant"
-                )
-              }
-            >
-              Alquilar
-            </a>
+    <nav className="nav-links">
+      <a
+        href="#sumate"
+        onClick={() =>
+          choosePath(
+            "tenant"
+          )
+        }
+      >
+        Alquilar
+      </a>
 
-            <a
-              href="#sumate"
-              onClick={() =>
-                choosePath(
-                  "owner"
-                )
-              }
-            >
-              Publicar
-            </a>
+      <a
+        href="#sumate"
+        onClick={() =>
+          choosePath(
+            "owner"
+          )
+        }
+      >
+        Publicar
+      </a>
 
-            <a
-              href="#sumate"
-              onClick={() =>
-                choosePath(
-                  "renewal"
-                )
-              }
-            >
-              Renovar
-            </a>
+      <a
+        href="#sumate"
+        onClick={() =>
+          choosePath(
+            "renewal"
+          )
+        }
+      >
+        Renovar
+      </a>
 
-            <a
-              href="#sumate"
-              className="nav-cta"
-            >
-              Sumate
-            </a>
-          </nav>
-        </div>
-      </header>
+      <a
+        href="/login"
+        className="nav-cta"
+      >
+        Ingresar
+      </a>
+    </nav>
+  </div>
+</header>
 
       <section className="hero">
         <div className="container hero-grid">
