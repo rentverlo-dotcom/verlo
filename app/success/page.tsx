@@ -29,6 +29,15 @@ type BeforeInstallPromptEvent =
     }>
   }
 
+const PUSH_LEAD_STORAGE_KEY =
+  "verlo_push_lead_id"
+
+const PUSH_ROLE_STORAGE_KEY =
+  "verlo_push_role"
+
+const PWA_RESUME_URL_STORAGE_KEY =
+  "verlo_pwa_resume_url"
+
 const styles = `
   .success-root {
     --pink: #f2a8a9;
@@ -607,6 +616,12 @@ export default function SuccessPage() {
     useState(false)
 
   const [
+    deviceChecked,
+    setDeviceChecked,
+  ] =
+    useState(false)
+
+  const [
     magicLoading,
     setMagicLoading,
   ] =
@@ -643,9 +658,12 @@ export default function SuccessPage() {
         ).standalone ===
         true
 
-      if (
+      const isStandalone =
         standalone ||
         navigatorStandalone
+
+      if (
+        isStandalone
       ) {
         setInstalled(
           true
@@ -657,11 +675,65 @@ export default function SuccessPage() {
           .userAgent
           .toLowerCase()
 
-      setIsIos(
+      const platform =
+        window.navigator
+          .platform || ""
+
+      const maxTouchPoints =
+        window.navigator
+          .maxTouchPoints || 0
+
+      const appleMobile =
         /iphone|ipad|ipod/.test(
           ua
+        ) ||
+        (
+          platform ===
+            "MacIntel" &&
+          maxTouchPoints >
+            1
         )
+
+      setIsIos(
+        appleMobile
       )
+
+      setDeviceChecked(
+        true
+      )
+
+      try {
+        if (
+          leadId
+        ) {
+          window.localStorage.setItem(
+            PUSH_LEAD_STORAGE_KEY,
+            leadId
+          )
+
+          window.localStorage.setItem(
+            PUSH_ROLE_STORAGE_KEY,
+            role
+          )
+
+          if (
+            appleMobile &&
+            !isStandalone
+          ) {
+            window.localStorage.setItem(
+              PWA_RESUME_URL_STORAGE_KEY,
+              `${window.location.pathname}${window.location.search}`
+            )
+          }
+        }
+      } catch (
+        error
+      ) {
+        console.error(
+          "success storage error:",
+          error
+        )
+      }
 
       function handleBeforeInstallPrompt(
         event: Event
@@ -705,7 +777,10 @@ export default function SuccessPage() {
         )
       }
     },
-    []
+    [
+      leadId,
+      role,
+    ]
   )
 
   async function sendMagicLink() {
@@ -821,7 +896,7 @@ export default function SuccessPage() {
       isIos
     ) {
       window.alert(
-        "En iPhone: tocá Compartir y después “Agregar a pantalla de inicio”."
+        "En iPhone o iPad: tocá Compartir, después “Agregar a pantalla de inicio” y abrí Verlo desde el nuevo ícono."
       )
 
       return
@@ -837,6 +912,11 @@ export default function SuccessPage() {
     "owner"
       ? "Recibimos los datos de tu propiedad. Ahora dejá preparado tu acceso para poder seguir todo desde Verlo."
       : "Guardamos tu búsqueda. Ahora dejá preparado tu acceso para poder seguir todo desde Verlo."
+
+  const iosNeedsInstall =
+    deviceChecked &&
+    isIos &&
+    !installed
 
   return (
     <>
@@ -870,137 +950,238 @@ export default function SuccessPage() {
                 {copy}
               </p>
 
-              <h2 className="steps-title">
-                Seguí estos 3 pasos en orden:
-              </h2>
+              {iosNeedsInstall ? (
+                <>
+                  <h2 className="steps-title">
+                    Seguí estos pasos en orden:
+                  </h2>
 
-              <div className="steps">
+                  <div className="steps">
 
-                <article className="step">
-                  <div className="step-number">
-                    1
-                  </div>
+                    <article className="step">
+                      <div className="step-number">
+                        1
+                      </div>
 
-                  <div className="step-content">
-                    <h2>
-                      Activá las notificaciones
-                    </h2>
+                      <div className="step-content">
+                        <h2>
+                          Instalá Verlo
+                        </h2>
 
-                    <p>
-                      Te vamos a avisar cuando tengas
-                      nuevos matches, cuando alguien quiera
-                      avanzar con vos y cuando tengas una
-                      acción pendiente.
-                    </p>
+                        <p>
+                          En iPhone o iPad, las notificaciones
+                          de Verlo funcionan desde la app web
+                          instalada en tu pantalla de inicio.
+                        </p>
 
-                    <div className="step-action">
-                      {leadId ? (
-                        <div className="push-wrap">
-                          <PushSubscribeButton
-                            leadId={
-                              leadId
+                        <div className="step-action">
+                          <button
+                            type="button"
+                            className="action-button primary-button"
+                            onClick={
+                              installApp
                             }
-                            role={
-                              role
-                            }
-                          />
+                          >
+                            INSTALAR VERLO
+                          </button>
                         </div>
-                      ) : (
-                        <p className="message error">
-                          No encontramos tu registro para
-                          activar las notificaciones.
+                      </div>
+                    </article>
+
+                    <article className="step">
+                      <div className="step-number">
+                        2
+                      </div>
+
+                      <div className="step-content">
+                        <h2>
+                          Abrí Verlo desde el ícono
+                        </h2>
+
+                        <p>
+                          Después de agregar Verlo a la
+                          pantalla de inicio, cerrá esta
+                          pestaña y abrí Verlo tocando el
+                          nuevo ícono. Vamos a traerte de
+                          vuelta a este paso automáticamente.
                         </p>
-                      )}
-                    </div>
-                  </div>
-                </article>
+                      </div>
+                    </article>
 
-                <article className="step">
-                  <div className="step-number">
-                    2
-                  </div>
+                    <article className="step">
+                      <div className="step-number">
+                        3
+                      </div>
 
-                  <div className="step-content">
-                    <h2>
-                      Entrá a Mi Verlo
-                    </h2>
+                      <div className="step-content">
+                        <h2>
+                          Activá las notificaciones
+                        </h2>
 
-                    <p>
-                      Tocá el botón y revisá tu email.
-                      Te va a llegar un enlace seguro para
-                      entrar a tu espacio personal.
-                      Revisá también Spam o Correo no deseado.
-                    </p>
-
-                    <div className="step-action">
-                      <button
-                        type="button"
-                        className="action-button primary-button"
-                        onClick={
-                          sendMagicLink
-                        }
-                        disabled={
-                          !leadId ||
-                          magicLoading
-                        }
-                      >
-                        {magicLoading
-                          ? "Enviando acceso..."
-                          : "ENTRAR A MI VERLO"}
-                      </button>
-
-                      {magicMessage && (
-                        <p className="message ok">
-                          {magicMessage}
+                        <p>
+                          Una vez que abras Verlo desde el
+                          ícono, vas a poder habilitar las
+                          notificaciones para recibir matches
+                          y acciones pendientes.
                         </p>
-                      )}
+                      </div>
+                    </article>
 
-                      {magicError && (
-                        <p className="message error">
-                          {magicError}
+                    <article className="step">
+                      <div className="step-number">
+                        4
+                      </div>
+
+                      <div className="step-content">
+                        <h2>
+                          Entrá a Mi Verlo
+                        </h2>
+
+                        <p>
+                          Después vas a poder pedir tu enlace
+                          seguro de acceso a Mi Verlo.
                         </p>
-                      )}
-                    </div>
+                      </div>
+                    </article>
+
                   </div>
-                </article>
+                </>
+              ) : (
+                <>
+                  <h2 className="steps-title">
+                    Seguí estos 3 pasos en orden:
+                  </h2>
 
-                <article className="step">
-                  <div className="step-number">
-                    3
+                  <div className="steps">
+
+                    <article className="step">
+                      <div className="step-number">
+                        1
+                      </div>
+
+                      <div className="step-content">
+                        <h2>
+                          Activá las notificaciones
+                        </h2>
+
+                        <p>
+                          Te vamos a avisar cuando tengas
+                          nuevos matches, cuando alguien quiera
+                          avanzar con vos y cuando tengas una
+                          acción pendiente.
+                        </p>
+
+                        <div className="step-action">
+                          {leadId ? (
+                            <div className="push-wrap">
+                              <PushSubscribeButton
+                                leadId={
+                                  leadId
+                                }
+                                role={
+                                  role
+                                }
+                              />
+                            </div>
+                          ) : (
+                            <p className="message error">
+                              No encontramos tu registro para
+                              activar las notificaciones.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+
+                    <article className="step">
+                      <div className="step-number">
+                        2
+                      </div>
+
+                      <div className="step-content">
+                        <h2>
+                          Entrá a Mi Verlo
+                        </h2>
+
+                        <p>
+                          Tocá el botón y revisá tu email.
+                          Te va a llegar un enlace seguro para
+                          entrar a tu espacio personal.
+                          Revisá también Spam o Correo no deseado.
+                        </p>
+
+                        <div className="step-action">
+                          <button
+                            type="button"
+                            className="action-button primary-button"
+                            onClick={
+                              sendMagicLink
+                            }
+                            disabled={
+                              !leadId ||
+                              magicLoading
+                            }
+                          >
+                            {magicLoading
+                              ? "Enviando acceso..."
+                              : "ENTRAR A MI VERLO"}
+                          </button>
+
+                          {magicMessage && (
+                            <p className="message ok">
+                              {magicMessage}
+                            </p>
+                          )}
+
+                          {magicError && (
+                            <p className="message error">
+                              {magicError}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+
+                    <article className="step">
+                      <div className="step-number">
+                        3
+                      </div>
+
+                      <div className="step-content">
+                        <h2>
+                          Instalá Verlo en tu celular
+                        </h2>
+
+                        <p>
+                          Consejo: no ocupa prácticamente lugar
+                          en tu celular y vas a tener el ícono de
+                          Verlo en tu pantalla para entrar y operar
+                          más rápido.
+                        </p>
+
+                        <div className="step-action">
+                          <button
+                            type="button"
+                            className="action-button secondary-button"
+                            onClick={
+                              installApp
+                            }
+                            disabled={
+                              installed
+                            }
+                          >
+                            {installed
+                              ? "VERLO YA ESTÁ INSTALADO"
+                              : "INSTALAR VERLO"}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+
                   </div>
+                </>
+              )}
 
-                  <div className="step-content">
-                    <h2>
-                      Instalá Verlo en tu celular
-                    </h2>
-
-                    <p>
-                      Consejo: no ocupa prácticamente lugar
-                      en tu celular y vas a tener el ícono de
-                      Verlo en tu pantalla para entrar y operar
-                      más rápido.
-                    </p>
-
-                    <div className="step-action">
-                      <button
-                        type="button"
-                        className="action-button secondary-button"
-                        onClick={
-                          installApp
-                        }
-                        disabled={
-                          installed
-                        }
-                      >
-                        {installed
-                          ? "VERLO YA ESTÁ INSTALADO"
-                          : "INSTALAR VERLO"}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-
-              </div>
             </section>
           </div>
         </main>
