@@ -313,31 +313,36 @@ export default function PushSubscribeButton({
       const registration =
         await getRegistration()
 
-  let subscription =
-  await registration
-    .pushManager
-    .getSubscription()
+      let subscription =
+        await registration
+          .pushManager
+          .getSubscription()
 
-if (subscription) {
-  const active =
-    await getBackendStatus(
-      subscription
-    )
+      if (
+        subscription
+      ) {
+        const active =
+          await getBackendStatus(
+            subscription
+          )
 
-  if (!active) {
-    await subscription.unsubscribe()
+        if (
+          !active
+        ) {
+          await subscription
+            .unsubscribe()
 
-    subscription =
-      await createSubscription(
-        registration
-      )
-  }
-} else {
-  subscription =
-    await createSubscription(
-      registration
-    )
-}
+          subscription =
+            await createSubscription(
+              registration
+            )
+        }
+      } else {
+        subscription =
+          await createSubscription(
+            registration
+          )
+      }
 
       await registerSubscription(
         subscription
@@ -418,7 +423,7 @@ if (subscription) {
           const registration =
             await getRegistration()
 
-          const subscription =
+          let subscription =
             await registration
               .pushManager
               .getSubscription()
@@ -426,11 +431,20 @@ if (subscription) {
           if (
             !subscription
           ) {
+            subscription =
+              await createSubscription(
+                registration
+              )
+
+            await registerSubscription(
+              subscription
+            )
+
             if (
               !cancelled
             ) {
               setStatus(
-                'idle'
+                'success'
               )
             }
 
@@ -448,18 +462,21 @@ if (subscription) {
             return
           }
 
-        if (!active) {
-  await subscription.unsubscribe()
+          if (
+            !active
+          ) {
+            await subscription
+              .unsubscribe()
 
-  const freshSubscription =
-    await createSubscription(
-      registration
-    )
+            subscription =
+              await createSubscription(
+                registration
+              )
 
-  await registerSubscription(
-    freshSubscription
-  )
-}
+            await registerSubscription(
+              subscription
+            )
+          }
 
           if (
             !cancelled
