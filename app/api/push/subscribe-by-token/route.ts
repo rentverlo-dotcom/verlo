@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { retryFailedLeadNotifications } from '@/lib/lead-notifications'
 
 export const runtime = 'nodejs'
 
@@ -137,9 +138,24 @@ export async function POST(request: Request) {
       throw error
     }
 
+    let retryResult: unknown = null
+
+    try {
+      retryResult =
+        await retryFailedLeadNotifications(
+          leadId
+        )
+    } catch (retryError) {
+      console.error(
+        'push failed-event retry by token error',
+        retryError
+      )
+    }
+
     return NextResponse.json({
       ok: true,
       lead_id: leadId,
+      retries: retryResult,
     })
   } catch (error) {
     console.error(
