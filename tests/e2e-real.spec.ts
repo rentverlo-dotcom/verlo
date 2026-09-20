@@ -518,7 +518,79 @@ test(
     )
 
     // =========================================================
-    // 9. DATOS LEGALES TENANT
+    // 9. DOBLE OK #2 POST-VISITA
+    // =========================================================
+
+    const tenantPostVisitResponse =
+      await request.post(
+        "/api/post-visit-decision",
+        {
+          data: {
+            token:
+              tenantClosingToken,
+            decision:
+              "yes",
+          },
+        }
+      )
+
+    const tenantPostVisitData =
+      await tenantPostVisitResponse.json()
+
+    expect(
+      tenantPostVisitResponse.status()
+    ).toBe(200)
+
+    expect(
+      tenantPostVisitData?.ok
+    ).toBe(true)
+
+    expect(
+      tenantPostVisitData?.tenant_decision
+    ).toBe("yes")
+
+    expect(
+      tenantPostVisitData?.second_double_ok
+    ).toBe(false)
+
+    const ownerPostVisitResponse =
+      await request.post(
+        "/api/post-visit-decision",
+        {
+          data: {
+            token:
+              ownerClosingToken,
+            decision:
+              "yes",
+          },
+        }
+      )
+
+    const ownerPostVisitData =
+      await ownerPostVisitResponse.json()
+
+    expect(
+      ownerPostVisitResponse.status()
+    ).toBe(200)
+
+    expect(
+      ownerPostVisitData?.ok
+    ).toBe(true)
+
+    expect(
+      ownerPostVisitData?.owner_decision
+    ).toBe("yes")
+
+    expect(
+      ownerPostVisitData?.second_double_ok
+    ).toBe(true)
+
+    expect(
+      ownerPostVisitData?.can_accept_contract
+    ).toBe(true)
+
+    // =========================================================
+    // 10. DATOS LEGALES TENANT
     // =========================================================
 
     const tenantLegalResponse =
@@ -576,7 +648,7 @@ test(
     ).toBe(true)
 
     // =========================================================
-    // 10. DATOS LEGALES OWNER + INMUEBLE
+    // 11. DATOS LEGALES OWNER + INMUEBLE
     // =========================================================
 
     const ownerLegalResponse =
@@ -691,7 +763,7 @@ test(
     ).toBe(true)
 
     // =========================================================
-    // 11. GENERAR CONTRATO
+    // 12. GENERAR CONTRATO
     // SOLO OWNER
     // =========================================================
 
@@ -769,7 +841,7 @@ test(
     ).toBe(true)
 
     // =========================================================
-    // 12. TENANT ACEPTA
+    // 13. TENANT ACEPTA
     // =========================================================
 
     const tenantAgreeResponse =
@@ -812,7 +884,7 @@ test(
     ).toBe(false)
 
     // =========================================================
-    // 13. OWNER ACEPTA
+    // 14. OWNER ACEPTA
     // =========================================================
 
     const ownerAgreeResponse =
