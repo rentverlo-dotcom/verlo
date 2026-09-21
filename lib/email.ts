@@ -17,6 +17,9 @@ type EmailEventRow = {
   event_key: string
   lead_id: string
   email: string
+  subject: string
+  body: string
+  url: string
   status:
     | "pending"
     | "sent"
@@ -740,7 +743,7 @@ export async function sendEmailToLeadOnce(
           now,
       })
       .select(
-        "id, event_key, lead_id, email, status, updated_at"
+        "id, event_key, lead_id, email, subject, body, url, status, updated_at"
       )
       .maybeSingle()
 
@@ -791,7 +794,7 @@ export async function sendEmailToLeadOnce(
           "lead_email_events"
         )
         .select(
-          "id, event_key, lead_id, email, status, updated_at"
+          "id, event_key, lead_id, email, subject, body, url, status, updated_at"
         )
         .eq(
           "event_key",
@@ -911,7 +914,7 @@ export async function sendEmailToLeadOnce(
           emailEvent.updated_at
         )
         .select(
-          "id, event_key, lead_id, email, status, updated_at"
+          "id, event_key, lead_id, email, subject, body, url, status, updated_at"
         )
         .maybeSingle()
 
@@ -1022,5 +1025,223 @@ export async function sendEmailToLeadOnce(
     email,
     provider_id:
       result.provider_id,
+  }
+}
+
+
+export async function retryFailedLeadEmails(
+  leadIdInput: string,
+  limitInput = 3
+) {
+  const leadId =
+    clean(
+      leadIdInput
+    )
+
+  const limit =
+    Math.min(
+      Math.max(
+        Number(
+          limitInput ||
+          1
+        ),
+        1
+      ),
+      3
+    )
+
+  if (
+    !leadId
+  ) {
+    return {
+      ok: false,
+      retried: 0,
+      sent: 0,
+    }
+  }
+
+  const retryBefore =
+    new Date(
+      Date.now() -
+        5 *
+          60 *
+          1000
+    ).toISOString()
+
+  const {
+    data:
+      failedEvents,
+
+    error,
+  } =
+    await supabaseAdmin
+      .from(
+        "lead_email_events"
+      )
+      .select(
+        "id, event_key, lead_id, email, subject, body, url, status, updated_at"
+      )
+      .eq(
+        "lead_id",
+        leadId
+      )
+      .eq(
+        "status",
+        "failed"
+      )
+      .lte(
+        "updated_at",
+        retryBefore
+      )
+      .order(
+        "created_at",
+        {
+          ascending:
+            true,
+        }
+      )
+      .limit(
+        limit
+      )
+
+  if (
+    error
+  ) {
+    throw error
+  }
+
+  let retried =
+    0
+
+  let sent =
+    0
+
+  for (
+    const row
+    of failedEvents ||
+      []
+  ) {
+    const event =
+      row as
+        EmailEventRow
+
+    const claimNow =
+      new Date()
+        .toISOString()
+
+    const {
+      data:
+        claimed,
+
+      error:
+        claimError,
+    } =
+      await supabaseAdmin
+        .from(
+          "lead_email_events"
+        )
+        .update({
+          status:
+            "pending",
+
+          last_error:
+            null,
+
+          updated_at:
+            claimNow,
+        })
+        .eq(
+          "id",
+          event.id
+        )
+        .eq(
+          "status",
+          "failed"
+        )
+        .eq(
+          "updated_at",
+          event.updated_at
+        )
+        .select(
+          "id, event_key, lead_id, email, subject, body, url, status, updated_at"
+        )
+        .maybeSingle()
+
+    if (
+      claimError ||
+      !claimed
+    ) {
+      continue
+    }
+
+    retried +=
+      1
+
+    const result =
+      await sendZohoEmail(
+        event.email,
+        event.subject,
+        event.body,
+        event.url,
+        event.event_key
+      )
+
+    if (
+      !result.ok
+    ) {
+      await markEmailFailed(
+        event.id,
+        result.error ||
+          "Email delivery failed"
+      )
+
+      continue
+    }
+
+    const sentAt =
+      new Date()
+        .toISOString()
+
+    const {
+      error:
+        sentError,
+    } =
+      await supabaseAdmin
+        .from(
+          "lead_email_events"
+        )
+        .update({
+          status:
+            "sent",
+
+          sent_at:
+            sentAt,
+
+          provider_id:
+            result.provider_id,
+
+          last_error:
+            null,
+
+          updated_at:
+            sentAt,
+        })
+        .eq(
+          "id",
+          event.id
+        )
+
+    if (
+      !sentError
+    ) {
+      sent +=
+        1
+    }
+  }
+
+  return {
+    ok: true,
+    retried,
+    sent,
   }
 }
