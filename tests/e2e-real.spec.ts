@@ -5,7 +5,10 @@ const PNG_1X1 = Buffer.from(
   "base64"
 )
 
-const RUN_ID = Date.now().toString()\nconst OWNER_EMAIL = `e2e-owner-${RUN_ID}@example.com`\nconst TENANT_EMAIL = `e2e-tenant-${RUN_ID}@example.com`\n
+const RUN_ID = Date.now().toString()
+const OWNER_EMAIL = `e2e-owner-${RUN_ID}@example.com`
+const TENANT_EMAIL = `e2e-tenant-${RUN_ID}@example.com`
+
 const OWNER_PHOTO_1 = `verlo-owner-${RUN_ID}-1.png`
 const OWNER_PHOTO_2 = `verlo-owner-${RUN_ID}-2.png`
 const OWNER_PHOTO_3 = `verlo-owner-${RUN_ID}-3.png`
@@ -35,11 +38,11 @@ test(
 
     await page
       .locator('input[name="full_name"]')
-      .fill("Juan Manuel Oddone")
+      .fill("Owner E2E Test")
 
     await page
       .locator('input[name="phone"]')
-      .fill("1133614865")
+      .fill("1111111111")
 
     await page
       .locator('input[name="email"]')
@@ -144,11 +147,11 @@ test(
 
     await page
       .locator('input[name="full_name"]')
-      .fill("Alejandro Devincenzi")
+      .fill("Tenant E2E Test")
 
     await page
       .locator('input[name="phone"]')
-      .fill("1154217300")
+      .fill("1122222222")
 
     await page
       .locator('input[name="email"]')
@@ -328,7 +331,7 @@ test(
 
     await validationForm
       .getByLabel("DNI / documento")
-      .fill("30123456")
+      .fill("30999999")
 
     await validationForm
       .getByLabel("Situación laboral")
@@ -618,7 +621,7 @@ test(
 
             tenant: {
               dni:
-                "30123456",
+                "30999999",
 
               civil_status:
                 "Soltero",
@@ -676,10 +679,10 @@ test(
 
             owner: {
               dni:
-                "20123456",
+                "20999999",
 
               tax_id:
-                "20201234567",
+                "20209999997",
 
               civil_status:
                 "Soltero",
