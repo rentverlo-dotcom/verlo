@@ -15,6 +15,7 @@ test("PWA expone manifest y service worker", async ({ page, request }) => {
   const manifest =
     await manifestResponse.json()
 
+  expect(manifest.id).toBe("/")
   expect(manifest.name).toBe("Verlo")
   expect(manifest.short_name).toBe("Verlo")
   expect(manifest.display).toBe("standalone")
@@ -32,6 +33,9 @@ test("PWA expone manifest y service worker", async ({ page, request }) => {
 
   expect(swText).toContain('self.addEventListener("push"')
   expect(swText).toMatch(/self\.addEventListener\(\s*["']notificationclick["']/)
+  expect(swText).toContain('"clicked"')
+  expect(swText).toContain("client.navigate(")
+  expect(swText).toContain("clients.openWindow(")
 
   await page.goto("/success?role=tenant&lead=test")
 
