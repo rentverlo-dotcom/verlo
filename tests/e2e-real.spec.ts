@@ -5,8 +5,7 @@ const PNG_1X1 = Buffer.from(
   "base64"
 )
 
-const RUN_ID = Date.now().toString()
-
+const RUN_ID = Date.now().toString()\nconst OWNER_EMAIL = `e2e-owner-${RUN_ID}@example.com`\nconst TENANT_EMAIL = `e2e-tenant-${RUN_ID}@example.com`\n
 const OWNER_PHOTO_1 = `verlo-owner-${RUN_ID}-1.png`
 const OWNER_PHOTO_2 = `verlo-owner-${RUN_ID}-2.png`
 const OWNER_PHOTO_3 = `verlo-owner-${RUN_ID}-3.png`
@@ -44,7 +43,7 @@ test(
 
     await page
       .locator('input[name="email"]')
-      .fill("juancho12oddone@gmail.com")
+      .fill(OWNER_EMAIL)
 
     await page
       .locator('select[name="owner_neighborhood"]')
@@ -153,7 +152,7 @@ test(
 
     await page
       .locator('input[name="email"]')
-      .fill("aedevincenzi@gmail.com")
+      .fill(TENANT_EMAIL)
 
     await page
       .locator("button.area-tab")
