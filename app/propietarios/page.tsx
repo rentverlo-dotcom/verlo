@@ -16,6 +16,235 @@ type UploadedOwnerMedia = {
   mediaType: "photo" | "video"
 }
 
+async function optimizeOwnerUploadFile(
+  file: File
+): Promise<File> {
+  if (
+    !file.type.startsWith(
+      "image/"
+    ) ||
+    file.size <
+      1.5 * 1024 * 1024
+  ) {
+    return file
+  }
+
+  try {
+    const objectUrl =
+      URL.createObjectURL(
+        file
+      )
+
+    try {
+      const image =
+        await new Promise<HTMLImageElement>(
+          (
+            resolve,
+            reject
+          ) => {
+            const img =
+              new Image()
+
+            img.onload =
+              () =>
+                resolve(
+                  img
+                )
+
+            img.onerror =
+              () =>
+                reject(
+                  new Error(
+                    "No pudimos optimizar la imagen"
+                  )
+                )
+
+            img.src =
+              objectUrl
+          }
+        )
+
+      const maxDimension =
+        1920
+
+      const scale =
+        Math.min(
+          1,
+          maxDimension /
+            Math.max(
+              image.naturalWidth,
+              image.naturalHeight
+            )
+        )
+
+      const canvas =
+        document.createElement(
+          "canvas"
+        )
+
+      canvas.width =
+        Math.max(
+          1,
+          Math.round(
+            image.naturalWidth *
+              scale
+          )
+        )
+
+      canvas.height =
+        Math.max(
+          1,
+          Math.round(
+            image.naturalHeight *
+              scale
+          )
+        )
+
+      const context =
+        canvas.getContext(
+          "2d"
+        )
+
+      if (
+        !context
+      ) {
+        return file
+      }
+
+      context.drawImage(
+        image,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      )
+
+      const blob =
+        await new Promise<Blob | null>(
+          (
+            resolve
+          ) => {
+            canvas.toBlob(
+              resolve,
+              "image/webp",
+              0.82
+            )
+          }
+        )
+
+      if (
+        !blob ||
+        blob.size >=
+          file.size
+      ) {
+        return file
+      }
+
+      const baseName =
+        file.name.replace(
+          /\.[^.]+$/,
+          ""
+        ) ||
+        "foto"
+
+      return new File(
+        [
+          blob,
+        ],
+        `${baseName}.webp`,
+        {
+          type:
+            "image/webp",
+
+          lastModified:
+            file.lastModified,
+        }
+      )
+    } finally {
+      URL.revokeObjectURL(
+        objectUrl
+      )
+    }
+  } catch {
+    return file
+  }
+}
+
+async function uploadOwnerFilesFast(
+  files: File[],
+  ownerLeadId: string,
+  onProgress: (
+    completed: number,
+    total: number
+  ) => void
+) {
+  const results:
+    UploadedOwnerMedia[] =
+    new Array(
+      files.length
+    )
+
+  let nextIndex =
+    0
+
+  let completed =
+    0
+
+  const concurrency =
+    Math.min(
+      3,
+      files.length
+    )
+
+  async function worker() {
+    while (
+      true
+    ) {
+      const index =
+        nextIndex++
+
+      if (
+        index >=
+        files.length
+      ) {
+        return
+      }
+
+      const optimizedFile =
+        await optimizeOwnerUploadFile(
+          files[index]
+        )
+
+      results[index] =
+        await uploadOwnerFileToR2(
+          optimizedFile,
+          ownerLeadId
+        )
+
+      completed +=
+        1
+
+      onProgress(
+        completed,
+        files.length
+      )
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      {
+        length:
+          concurrency,
+      },
+      () =>
+        worker()
+    )
+  )
+
+  return results
+}
+
 async function uploadOwnerFileToR2(
   file: File,
   ownerLeadId: string
@@ -410,6 +639,7 @@ const PROPERTY_TYPES = [
   "PH",
   "Local",
   "Oficina",
+  "Habitación",
   "Otro",
 ]
 
@@ -812,36 +1042,26 @@ export default function PropietariosPage() {
         )
       }
 
-      const uploadedMedia:
-        UploadedOwnerMedia[] =
-        []
+      setUploadProgress(
+        `Optimizando y subiendo 0 de ${ownerFiles.length}...`
+      )
 
-      for (
-        let index = 0;
-        index <
-        ownerFiles.length;
-        index++
-      ) {
-        const file =
-          ownerFiles[index]
-
-        setUploadProgress(
-          `Subiendo ${index + 1} de ${ownerFiles.length}: ${file.name}`
+      const uploadedMedia =
+        await uploadOwnerFilesFast(
+          ownerFiles,
+          ownerLeadId,
+          (
+            completed,
+            total
+          ) => {
+            setUploadProgress(
+              `Subiendo ${completed} de ${total}...`
+            )
+          }
         )
-
-        const uploaded =
-          await uploadOwnerFileToR2(
-            file,
-            ownerLeadId
-          )
-
-        uploadedMedia.push(
-          uploaded
-        )
-      }
 
       setUploadProgress(
-        "Guardando fotos y videos..."
+        "Guardando publicación..."
       )
 
       const mediaResponse =
@@ -863,6 +1083,9 @@ export default function PropietariosPage() {
 
                 media:
                   uploadedMedia,
+
+                dispatch_matches:
+                  false,
               }),
           }
         )
@@ -884,6 +1107,41 @@ export default function PropietariosPage() {
             "La propiedad se creó pero no pudimos registrar sus fotos y videos."
         )
       }
+
+      void fetch(
+        "/api/pilot-matches",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body:
+            JSON.stringify({
+              send:
+                true,
+
+              lead_ids: [
+                ownerLeadId,
+              ],
+
+              notify_roles: [
+                "tenant",
+              ],
+
+              limit:
+                200,
+            }),
+
+          keepalive:
+            true,
+        }
+      ).catch(
+        () => null
+      )
 
   window.location.href =
   `/success?role=owner&lead=${encodeURIComponent(
