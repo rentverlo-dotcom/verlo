@@ -6,6 +6,10 @@ import {
   sendPushToLead,
 } from "@/lib/push"
 
+import {
+  sendEmailToLeadOnce,
+} from "@/lib/email"
+
 type NotifyLeadOnceInput = {
   eventKey: string
   eventType: string
@@ -468,6 +472,44 @@ export async function notifyLeadOnce(
   ) {
     throw new Error(
       "Invalid notification event"
+    )
+  }
+
+  try {
+    const emailResult =
+      await sendEmailToLeadOnce({
+        eventKey,
+        leadId,
+        title,
+        body,
+        url,
+      })
+
+    if (
+      !emailResult?.ok &&
+      !emailResult?.skipped
+    ) {
+      console.error(
+        "email notification delivery error:",
+        {
+          eventKey,
+          leadId,
+          result:
+            emailResult,
+        }
+      )
+    }
+  } catch (
+    emailError
+  ) {
+    console.error(
+      "email notification unexpected error:",
+      {
+        eventKey,
+        leadId,
+        error:
+          emailError,
+      }
     )
   }
 
