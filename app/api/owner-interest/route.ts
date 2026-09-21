@@ -284,6 +284,7 @@ export async function POST(
           tenant_lead_id,
           owner_lead_id,
           tenant_interest_at,
+          tenant_verified_at,
           owner_interest_at,
           ready_to_connect_at
         `)
@@ -314,10 +315,43 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. GUARDAR OK OWNER
-    //
-    // NO espera al tenant.
-    // NO exige validación.
+    // 3. EXIGIR INTERÉS + VALIDACIÓN DEL TENANT
+    // =========================================================
+
+    if (
+      !match
+        .tenant_interest_at
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Tenant has not expressed interest",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    if (
+      !match
+        .tenant_verified_at
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Tenant verification required",
+        },
+        {
+          status: 409,
+        }
+      )
+    }
+
+    // =========================================================
+    // 4. GUARDAR OK OWNER
     // =========================================================
 
     const now =
@@ -360,7 +394,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. RELEER MATCH
+    // 5. RELEER MATCH
     // =========================================================
 
     const {
@@ -405,7 +439,7 @@ export async function POST(
       )
 
     // =========================================================
-    // 5. OWNER FUE PRIMERO
+    // 6. OWNER FUE PRIMERO
     //
     // Avisar tenant y esperar.
     // =========================================================
@@ -503,7 +537,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 6. DOBLE OK
+    // 7. DOBLE OK
     // =========================================================
 
     let becameReady =
