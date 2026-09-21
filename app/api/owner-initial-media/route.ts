@@ -67,6 +67,10 @@ export async function POST(
         ? body.media
         : []
 
+    const dispatchMatches =
+      body?.dispatch_matches !==
+      false
+
     if (!ownerLeadId) {
       return NextResponse.json(
         {
@@ -466,8 +470,11 @@ export async function POST(
           false,
       }
 
-    try {
-      const pilotUrl =
+    if (
+      dispatchMatches
+    ) {
+      try {
+        const pilotUrl =
         new URL(
           "/api/pilot-matches",
           request.url
@@ -527,21 +534,22 @@ export async function POST(
         response:
           data,
       }
-    } catch (
-      error
-    ) {
-      pilotMatch = {
-        triggered:
-          true,
+      } catch (
+        error
+      ) {
+        pilotMatch = {
+          triggered:
+            true,
 
-        ok:
-          false,
+          ok:
+            false,
 
-        error:
-          error instanceof
-          Error
-            ? error.message
-            : "Pilot dispatch failed",
+          error:
+            error instanceof
+            Error
+              ? error.message
+              : "Pilot dispatch failed",
+        }
       }
     }
 
