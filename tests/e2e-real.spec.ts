@@ -8,6 +8,7 @@ const PNG_1X1 = Buffer.from(
 const RUN_ID = Date.now().toString()
 const OWNER_EMAIL = `e2e-owner-${RUN_ID}@example.com`
 const TENANT_EMAIL = `e2e-tenant-${RUN_ID}@example.com`
+const TENANT_NAME = `Tenant E2E ${RUN_ID}`
 
 const OWNER_PHOTO_1 = `verlo-owner-${RUN_ID}-1.png`
 const OWNER_PHOTO_2 = `verlo-owner-${RUN_ID}-2.png`
@@ -147,7 +148,7 @@ test(
 
     await page
       .locator('input[name="full_name"]')
-      .fill("Tenant E2E Test")
+      .fill(TENANT_NAME)
 
     await page
       .locator('input[name="phone"]')
@@ -453,7 +454,7 @@ test(
     const tenantCard =
       page
         .locator("article.candidate-card")
-        .filter({ hasText: "Tenant E2E Test" })
+        .filter({ hasText: TENANT_NAME })
 
     await expect(
       tenantCard
