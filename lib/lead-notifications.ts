@@ -485,9 +485,14 @@ export async function notifyLeadOnce(
         url,
       })
 
+    const emailSkipped =
+      "skipped" in emailResult &&
+      emailResult.skipped ===
+        true
+
     if (
       !emailResult?.ok &&
-      !emailResult?.skipped
+      !emailSkipped
     ) {
       console.error(
         "email notification delivery error:",
