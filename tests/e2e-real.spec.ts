@@ -440,7 +440,7 @@ test(
       juanNotification.candidates_url
 
     // =========================================================
-    // 7. OWNER VE A ALEJANDRO
+    // 7. OWNER VE AL TENANT DE ESTA CORRIDA
     // =========================================================
 
     await page.goto(
@@ -450,13 +450,13 @@ test(
       }
     )
 
-    const alejandroCard =
+    const tenantCard =
       page
         .locator("article.candidate-card")
-        .filter({ hasText: "Alejandro" })
+        .filter({ hasText: "Tenant E2E Test" })
 
     await expect(
-      alejandroCard
+      tenantCard
     ).toHaveCount(1)
 
     // =========================================================
@@ -472,7 +472,7 @@ test(
           response.request().method() === "POST"
       )
 
-    await alejandroCard
+    await tenantCard
       .locator("button.accept-button")
       .click()
 
