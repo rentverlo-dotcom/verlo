@@ -173,6 +173,8 @@ async function sendZohoEmail(
       ok: false,
       configured:
         false,
+      provider_id:
+        null,
       error:
         "Zoho SMTP not configured",
     }
