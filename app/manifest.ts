@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: '/',
     name: 'Verlo',
     short_name: 'Verlo',
     description: 'Alquiler directo, seguro y sin comisión.',
