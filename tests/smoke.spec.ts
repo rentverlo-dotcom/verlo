@@ -31,7 +31,7 @@ test("PWA expone manifest y service worker", async ({ page, request }) => {
     await swResponse.text()
 
   expect(swText).toContain('self.addEventListener("push"')
-  expect(swText).toContain('self.addEventListener("notificationclick"')
+  expect(swText).toMatch(/self\.addEventListener\(\s*["']notificationclick["']/)
 
   await page.goto("/success?role=tenant&lead=test")
 
