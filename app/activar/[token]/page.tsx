@@ -1013,7 +1013,7 @@ export default function ActivationPage() {
       isIos
     ) {
       window.alert(
-        "En iPhone, tocá Compartir y después “Agregar a pantalla de inicio”. Luego abrí Verlo desde el ícono instalado."
+        "En iPhone o iPad: abrí verlo.lat en Safari. Tocá Compartir → Agregar a Inicio → activá “Abrir como app web” → Agregar. Después abrí Verlo desde el nuevo ícono."
       )
 
       return
