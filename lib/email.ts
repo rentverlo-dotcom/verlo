@@ -1,3 +1,5 @@
+import tls from "node:tls"
+
 import {
   supabaseAdmin,
 } from "@/lib/supabase/admin"
@@ -25,7 +27,7 @@ type EmailEventRow = {
 const SITE_URL =
   (
     process.env
-      .NEXT_PUBLIC_SITE_URL ||
+      .SITE_URL ||
     "https://verlo.lat"
   ).replace(
     /\/$/,
@@ -120,35 +122,59 @@ async function markEmailFailed(
     )
 }
 
-async function sendResendEmail(
+async function sendZohoEmail(
   to: string,
   subject: string,
   body: string,
   url: string,
   eventKey: string
 ) {
-  const apiKey =
+  const host =
     clean(
       process.env
-        .RESEND_API_KEY
+        .ZOHO_SMTP_HOST
+    ) ||
+    "smtp.zoho.com"
+
+  const port =
+    Number(
+      process.env
+        .ZOHO_SMTP_PORT ||
+      465
+    )
+
+  const user =
+    clean(
+      process.env
+        .ZOHO_SMTP_USER
+    )
+
+  const pass =
+    clean(
+      process.env
+        .ZOHO_SMTP_PASS
     )
 
   const from =
     clean(
       process.env
         .EMAIL_FROM
-    )
+    ) ||
+    `Verlo <${user}>`
 
   if (
-    !apiKey ||
-    !from
+    !user ||
+    !pass ||
+    !Number.isFinite(
+      port
+    )
   ) {
     return {
       ok: false,
       configured:
         false,
       error:
-        "Email provider not configured",
+        "Zoho SMTP not configured",
     }
   }
 
@@ -172,70 +198,429 @@ async function sendResendEmail(
       </div>
     `
 
-  const response =
-    await fetch(
-      "https://api.resend.com/emails",
-      {
-        method:
-          "POST",
+  const boundary =
+    `verlo-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}`
 
-        headers: {
-          Authorization:
-            `Bearer ${apiKey}`,
-
-          "Content-Type":
-            "application/json",
-
-          "Idempotency-Key":
-            eventKey,
-        },
-
-        body:
-          JSON.stringify({
-            from,
-            to: [
-              to,
-            ],
-            subject,
-            html,
-            text:
-              `${body}\n\nAbrir Verlo: ${targetUrl}`,
-          }),
-      }
-    )
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
+  const encodedSubject =
+    Buffer
+      .from(
+        subject,
+        "utf8"
+      )
+      .toString(
+        "base64"
       )
 
-  if (
-    !response.ok
-  ) {
-    return {
-      ok: false,
-      configured:
-        true,
-      error:
-        clean(
-          data?.message
-        ) ||
-        `Resend HTTP ${response.status}`,
-    }
-  }
+  const textBody =
+    `${body}\n\nAbrir Verlo: ${targetUrl}`
 
-  return {
-    ok: true,
-    configured:
-      true,
-    provider_id:
-      clean(
-        data?.id
-      ) ||
-      null,
-  }
+  const message =
+    [
+      `From: ${from}`,
+      `To: ${to}`,
+      `Subject: =?UTF-8?B?${encodedSubject}?=`,
+      `Date: ${new Date().toUTCString()}`,
+      `Message-ID: <${eventKey.replace(/[^a-zA-Z0-9._-]/g, "-")}@verlo.lat>`,
+      `X-Verlo-Event-Key: ${eventKey}`,
+      "MIME-Version: 1.0",
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      "",
+      `--${boundary}`,
+      'Content-Type: text/plain; charset="UTF-8"',
+      "",
+      textBody,
+      "",
+      `--${boundary}`,
+      'Content-Type: text/html; charset="UTF-8"',
+      "",
+      html,
+      "",
+      `--${boundary}--`,
+      "",
+    ]
+      .join(
+        "\r\n"
+      )
+      .replace(
+        /^\./gm,
+        ".."
+      )
+
+  return await new Promise<{
+    ok: boolean
+    configured: boolean
+    provider_id: string | null
+    error?: string
+  }>(
+    (
+      resolve
+    ) => {
+      let settled =
+        false
+
+      function finish(
+        result: {
+          ok: boolean
+          configured: boolean
+          provider_id: string | null
+          error?: string
+        }
+      ) {
+        if (
+          settled
+        ) {
+          return
+        }
+
+        settled =
+          true
+
+        resolve(
+          result
+        )
+      }
+
+      const socket =
+        tls.connect({
+          host,
+          port,
+          servername:
+            host,
+          rejectUnauthorized:
+            true,
+        })
+
+      let buffer =
+        ""
+
+      const waiters:
+        Array<{
+          expected:
+            number[]
+          resolve:
+            () => void
+          reject:
+            (
+              error:
+                Error
+            ) => void
+        }> = []
+
+      function consumeResponse() {
+        while (
+          waiters.length >
+          0
+        ) {
+          const lines =
+            buffer.split(
+              "\r\n"
+            )
+
+          if (
+            lines.length <
+            2
+          ) {
+            return
+          }
+
+          const first =
+            lines[0]
+              .match(
+                /^(\d{3})([ -])/
+              )
+
+          if (
+            !first
+          ) {
+            return
+          }
+
+          const code =
+            Number(
+              first[1]
+            )
+
+          let endIndex =
+            -1
+
+          for (
+            let i = 0;
+            i <
+            lines.length -
+              1;
+            i += 1
+          ) {
+            if (
+              lines[i]
+                .startsWith(
+                  `${code} `
+                )
+            ) {
+              endIndex =
+                i
+
+              break
+            }
+          }
+
+          if (
+            endIndex <
+            0
+          ) {
+            return
+          }
+
+          const responseLines =
+            lines.slice(
+              0,
+              endIndex +
+                1
+            )
+
+          buffer =
+            lines
+              .slice(
+                endIndex +
+                  1
+              )
+              .join(
+                "\r\n"
+              )
+
+          const waiter =
+            waiters.shift()
+
+          if (
+            !waiter
+          ) {
+            return
+          }
+
+          if (
+            waiter.expected
+              .includes(
+                code
+              )
+          ) {
+            waiter.resolve()
+          } else {
+            waiter.reject(
+              new Error(
+                `SMTP ${code}: ${responseLines.join(" | ")}`
+              )
+            )
+          }
+        }
+      }
+
+      socket.on(
+        "data",
+        (
+          chunk
+        ) => {
+          buffer +=
+            chunk.toString(
+              "utf8"
+            )
+
+          consumeResponse()
+        }
+      )
+
+      function waitFor(
+        expected:
+          number[]
+      ) {
+        return new Promise<void>(
+          (
+            resolveCommand,
+            rejectCommand
+          ) => {
+            waiters.push({
+              expected,
+              resolve:
+                resolveCommand,
+              reject:
+                rejectCommand,
+            })
+
+            consumeResponse()
+          }
+        )
+      }
+
+      async function command(
+        value:
+          string,
+        expected:
+          number[]
+      ) {
+        socket.write(
+          `${value}\r\n`
+        )
+
+        await waitFor(
+          expected
+        )
+      }
+
+      socket.setTimeout(
+        15000
+      )
+
+      socket.on(
+        "timeout",
+        () => {
+          socket.destroy()
+
+          finish({
+            ok: false,
+            configured:
+              true,
+            provider_id:
+              null,
+            error:
+              "Zoho SMTP timeout",
+          })
+        }
+      )
+
+      socket.on(
+        "error",
+        (
+          error
+        ) => {
+          finish({
+            ok: false,
+            configured:
+              true,
+            provider_id:
+              null,
+            error:
+              error.message,
+          })
+        }
+      )
+
+      socket.on(
+        "secureConnect",
+        async () => {
+          try {
+            await waitFor(
+              [
+                220,
+              ]
+            )
+
+            await command(
+              "EHLO verlo.lat",
+              [
+                250,
+              ]
+            )
+
+            await command(
+              "AUTH LOGIN",
+              [
+                334,
+              ]
+            )
+
+            await command(
+              Buffer
+                .from(
+                  user,
+                  "utf8"
+                )
+                .toString(
+                  "base64"
+                ),
+              [
+                334,
+              ]
+            )
+
+            await command(
+              Buffer
+                .from(
+                  pass,
+                  "utf8"
+                )
+                .toString(
+                  "base64"
+                ),
+              [
+                235,
+              ]
+            )
+
+            await command(
+              `MAIL FROM:<${user}>`,
+              [
+                250,
+              ]
+            )
+
+            await command(
+              `RCPT TO:<${to}>`,
+              [
+                250,
+                251,
+              ]
+            )
+
+            await command(
+              "DATA",
+              [
+                354,
+              ]
+            )
+
+            socket.write(
+              `${message}\r\n.\r\n`
+            )
+
+            await waitFor(
+              [
+                250,
+              ]
+            )
+
+            socket.end(
+              "QUIT\r\n"
+            )
+
+            finish({
+              ok: true,
+              configured:
+                true,
+              provider_id:
+                eventKey,
+            })
+          } catch (
+            error
+          ) {
+            socket.destroy()
+
+            finish({
+              ok: false,
+              configured:
+                true,
+              provider_id:
+                null,
+              error:
+                error instanceof
+                Error
+                  ? error.message
+                  : "Zoho SMTP error",
+            })
+          }
+        }
+      )
+    }
+  )
 }
 
 export async function sendEmailToLeadOnce(
@@ -558,7 +943,7 @@ export async function sendEmailToLeadOnce(
   }
 
   const result =
-    await sendResendEmail(
+    await sendZohoEmail(
       email,
       input.title,
       input.body,
