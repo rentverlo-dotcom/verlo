@@ -234,128 +234,27 @@ export async function POST(
         : ''
 
     // =====================================================
-    // OWNER STATE
+    // OWNER NO SE NOTIFICA EN MATCH PASIVO
     //
-    // Property completed:
-    // /candidatos/[token]
-    //
-    // Property incomplete:
-    // /propiedad/[token]
-    // =====================================================
-
-    const {
-      data:
-        ownerCompletion,
-
-      error:
-        completionError,
-    } =
-      await supabaseAdmin
-        .from(
-          'owner_property_completions'
-        )
-        .select(
-          'id, status'
-        )
-        .eq(
-          'lead_id',
-          ownerLeadId
-        )
-        .eq(
-          'status',
-          'submitted'
-        )
-        .order(
-          'created_at',
-          {
-            ascending:
-              false,
-          }
-        )
-        .limit(1)
-        .maybeSingle()
-
-    if (
-      completionError
-    ) {
-      throw completionError
-    }
-
-    let ownerUrl =
-      ''
-
-    if (
-      ownerCompletion
-    ) {
-      const ownerToken =
-        await postInternal(
-          request,
-          '/api/owner-candidates-token',
-          {
-            owner_lead_id:
-              ownerLeadId,
-          }
-        )
-
-      if (
-        ownerToken.ok &&
-        ownerToken.data
-          ?.candidates_url
-      ) {
-        ownerUrl =
-          clean(
-            ownerToken.data
-              .candidates_url
-          )
-      }
-    } else {
-      const ownerToken =
-        await postInternal(
-          request,
-          '/api/owner-property-token',
-          {
-            owner_lead_id:
-              ownerLeadId,
-          }
-        )
-
-      if (
-        ownerToken.ok &&
-        ownerToken.data
-          ?.property_url
-      ) {
-        ownerUrl =
-          clean(
-            ownerToken.data
-              .property_url
-          )
-      }
-    }
-
-    // =====================================================
-    // NO CREAMOS EVENTOS SIN DESTINO VÁLIDO
+    // Flujo de producto:
+    // match -> tenant muestra interés -> tenant valida ->
+    // recién entonces owner recibe candidato validado.
     // =====================================================
 
     if (
-      !tenantUrl ||
-      !ownerUrl
+      !tenantUrl
     ) {
       return NextResponse.json(
         {
           ok: false,
 
           error:
-            'Could not resolve match destinations',
+            'Could not resolve tenant match destination',
 
           match_id:
             matchId,
 
           tenant_url:
-            tenantUrl ||
-            null,
-
-          owner_url:
-            ownerUrl ||
             null,
         },
         {
@@ -364,69 +263,32 @@ export async function POST(
       )
     }
 
-    // =====================================================
-    // UN EVENTO LÓGICO POR PERSONA Y MATCH
-    // =====================================================
+    const tenantNotification =
+      await notifyLeadOnce({
+        eventKey:
+          `match_created:tenant:${matchId}`,
 
-    const [
-      tenantNotification,
-      ownerNotification,
-    ] =
-      await Promise.all([
-        notifyLeadOnce({
-          eventKey:
-            `match_created:tenant:${matchId}`,
+        eventType:
+          'match_created',
 
-          eventType:
-            'match_created',
+        leadId:
+          tenantLeadId,
 
-          leadId:
-            tenantLeadId,
+        entityType:
+          'match',
 
-          entityType:
-            'match',
+        entityId:
+          matchId,
 
-          entityId:
-            matchId,
+        title:
+          'Verlo · Tenés un match',
 
-          title:
-            'Verlo · Tenés un match',
+        body:
+          'Encontramos una propiedad compatible con tu búsqueda.',
 
-          body:
-            'Encontramos una propiedad compatible con tu búsqueda.',
-
-          url:
-            tenantUrl,
-        }),
-
-        notifyLeadOnce({
-          eventKey:
-            `match_created:owner:${matchId}`,
-
-          eventType:
-            'match_created',
-
-          leadId:
-            ownerLeadId,
-
-          entityType:
-            'match',
-
-          entityId:
-            matchId,
-
-          title:
-            'Verlo · Tenés un match',
-
-          body:
-            ownerCompletion
-              ? 'Encontramos una persona compatible con tu propiedad. Revisá tus candidatos.'
-              : 'Encontramos una persona compatible con tu propiedad. Completá la publicación para continuar.',
-
-          url:
-            ownerUrl,
-        }),
-      ])
+        url:
+          tenantUrl,
+      })
 
     return NextResponse.json({
       ok: true,
@@ -443,15 +305,9 @@ export async function POST(
       tenant_url:
         tenantUrl,
 
-      owner_url:
-        ownerUrl,
-
       notifications: {
         tenant:
           tenantNotification,
-
-        owner:
-          ownerNotification,
       },
     })
   } catch (
