@@ -450,64 +450,12 @@ export async function POST(
     // =========================================================
 
     if (!ready) {
-      const ownerTokenResult =
-        await postInternal(
-          request,
-          "/api/owner-candidates-token",
-          {
-            owner_lead_id:
-              currentMatch
-                .owner_lead_id,
-          }
-        )
-
-      const candidatesUrl =
-        ownerTokenResult.ok &&
-        ownerTokenResult
-          .data
-          ?.candidates_url
-          ? clean(
-              ownerTokenResult
-                .data
-                .candidates_url
-            )
-          : ""
-
-      let ownerPush:
-        unknown =
-        null
-
-      if (
-        candidatesUrl
-      ) {
-        ownerPush =
-          await notifyLeadOnce({
-            eventKey:
-              `tenant_interest_waiting_owner:${currentMatch.id}`,
-
-            eventType:
-              "tenant_interest_waiting_owner",
-
-            leadId:
-              currentMatch
-                .owner_lead_id,
-
-            entityType:
-              "match",
-
-            entityId:
-              currentMatch.id,
-
-            title:
-              "Verlo · Quieren avanzar",
-
-            body:
-              "Una persona compatible quiere avanzar con tu propiedad. Entrá a Verlo para decidir.",
-
-            url:
-              candidatesUrl,
-          })
-      }
+      const verificationUrl =
+        `/tenant/validacion/${encodeURIComponent(
+          token
+        )}?matches=${encodeURIComponent(
+          currentMatch.id
+        )}`
 
       return NextResponse.json({
         ok: true,
@@ -525,10 +473,10 @@ export async function POST(
           false,
 
         waiting_for:
-          "owner",
+          "tenant_verification",
 
-        owner_push:
-          ownerPush,
+        verification_url:
+          verificationUrl,
       })
     }
 
