@@ -14,10 +14,11 @@ jobs:
       )
 
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     env:
-      PLAYWRIGHT_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && 'https://verlo.lat' || github.event.deployment_status.environment_url }}
+      PREVIEW_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && 'https://verlo.lat' || github.event.deployment_status.environment_url }}
+      PROD_BASE_URL: https://verlo.lat
 
     steps:
       - name: Checkout deployed ref
@@ -37,10 +38,14 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Smoke
+      - name: Smoke preview
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.PREVIEW_BASE_URL }}
         run: npm run test:smoke
 
-      - name: Full E2E
+      - name: Full E2E production
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.PROD_BASE_URL }}
         run: npm run test:e2e
 
       - name: Upload Playwright artifacts

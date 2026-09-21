@@ -1020,6 +1020,8 @@ export async function GET(
                 introduced,
 
            requires_owner_action:
+  tenantInterested &&
+  tenantVerified &&
   !ownerInterested &&
   !readyToConnect &&
   match.status !==
@@ -1031,7 +1033,9 @@ waiting_tenant:
   !readyToConnect,
 
 waiting_verification:
-  false,
+  tenantInterested &&
+  !tenantVerified &&
+  !readyToConnect,
                 operation_active:
                   readyToConnect ||
                   match.status ===

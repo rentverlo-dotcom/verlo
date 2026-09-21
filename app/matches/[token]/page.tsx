@@ -528,6 +528,27 @@ export default function MatchesPage() {
 
         return
       }
+
+      const verificationResult =
+        results.find(
+          (
+            result
+          ) =>
+            result
+              ?.verification_url
+        )
+
+      if (
+        verificationResult
+          ?.verification_url
+      ) {
+        router.push(
+          verificationResult
+            .verification_url
+        )
+
+        return
+      }
     } catch (err) {
       setError(
         err instanceof Error
