@@ -607,6 +607,16 @@ const ALL_NEIGHBORHOODS =
     (group) => group.neighborhoods
   )
 
+const PROPERTY_TYPES = [
+  "Departamento",
+  "Casa",
+  "PH",
+  "Local",
+  "Oficina",
+  "Habitación",
+  "Otro",
+] as const
+
 type AreaKey =
   keyof typeof AREA_GROUPS
 
@@ -3739,25 +3749,24 @@ if (honeypot) {
                         Tipo de propiedad
                       </option>
 
-                      <option>
-                        Departamento
-                      </option>
-
-                      <option>
-                        Casa
-                      </option>
-
-                      <option>
-                        PH
-                      </option>
-
-                      <option>
-                        Habitación
-                      </option>
-
-                      <option>
-                        Otro
-                      </option>
+                      {PROPERTY_TYPES.map(
+                        (
+                          propertyType
+                        ) => (
+                          <option
+                            key={
+                              propertyType
+                            }
+                            value={
+                              propertyType
+                            }
+                          >
+                            {
+                              propertyType
+                            }
+                          </option>
+                        )
+                      )}
                     </select>
 
                     <select
@@ -4036,29 +4045,24 @@ if (honeypot) {
                         Tipo de propiedad
                       </option>
 
-                      <option>
-                        Departamento
-                      </option>
-
-                      <option>
-                        Casa
-                      </option>
-
-                      <option>
-                        PH
-                      </option>
-
-                      <option>
-                        Local
-                      </option>
-
-                      <option>
-                        Oficina
-                      </option>
-
-                      <option>
-                        Otro
-                      </option>
+                      {PROPERTY_TYPES.map(
+                        (
+                          propertyType
+                        ) => (
+                          <option
+                            key={
+                              propertyType
+                            }
+                            value={
+                              propertyType
+                            }
+                          >
+                            {
+                              propertyType
+                            }
+                          </option>
+                        )
+                      )}
                     </select>
                   </div>
 
