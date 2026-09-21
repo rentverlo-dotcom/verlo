@@ -1103,6 +1103,143 @@ export async function POST(
     }
 
     // =========================================================
+    // 10. NOTIFICAR OWNERS DESDE VALIDACIÓN PREVIA
+    // =========================================================
+
+    const ownerNotifications: Array<{
+      owner_lead_id: string
+      candidates_url: string
+      push: unknown
+    }> = []
+
+    if (
+      tokenSource ===
+        "matches" &&
+      verificationId
+    ) {
+      const uniqueOwnerLeadIds =
+        Array.from(
+          new Set(
+            selectedMatches
+              .map(
+                (
+                  match
+                ) =>
+                  clean(
+                    match
+                      .owner_lead_id
+                  )
+              )
+              .filter(
+                Boolean
+              )
+          )
+        )
+
+      for (
+        const ownerLeadId
+        of uniqueOwnerLeadIds
+      ) {
+        const tokenResponse =
+          await fetch(
+            new URL(
+              "/api/owner-candidates-token",
+              request.url
+            ),
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  owner_lead_id:
+                    ownerLeadId,
+                }),
+            }
+          )
+
+        const tokenData =
+          await tokenResponse
+            .json()
+            .catch(
+              () => null
+            )
+
+        const candidatesUrl =
+          tokenResponse.ok &&
+          tokenData?.ok &&
+          tokenData
+            ?.candidates_url
+            ? clean(
+                tokenData
+                  .candidates_url
+              )
+            : ""
+
+        if (
+          !candidatesUrl
+        ) {
+          continue
+        }
+
+        let push:
+          unknown =
+          null
+
+        try {
+          push =
+            await notifyLeadOnce({
+              eventKey:
+                `tenant_verification_submitted:owner:${ownerLeadId}:${verificationId}`,
+
+              eventType:
+                "tenant_verification_submitted",
+
+              leadId:
+                ownerLeadId,
+
+              entityType:
+                "verification",
+
+              entityId:
+                verificationId,
+
+              title:
+                "Verlo · Candidato validado",
+
+              body:
+                "Una persona interesada completó su validación. Ya podés revisar el perfil.",
+
+              url:
+                candidatesUrl,
+            })
+        } catch (
+          pushError
+        ) {
+          console.error(
+            "tenant verification owner candidates push error:",
+            pushError
+          )
+        }
+
+        ownerNotifications.push({
+          owner_lead_id:
+            ownerLeadId,
+
+          candidates_url:
+            candidatesUrl,
+
+          push,
+        })
+      }
+    }
+
+    // =========================================================
     // 10. PUSH AL OWNER
     //
     // SOLO corresponde cuando la documentación se completa
@@ -1264,6 +1401,9 @@ export async function POST(
 
       token_source:
         tokenSource,
+
+      owner_notifications:
+        ownerNotifications,
 
       push: {
         owner:
