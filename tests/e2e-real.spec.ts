@@ -500,6 +500,10 @@ test(
       ownerInterestData?.owner_closing_url
     ).toBeTruthy()
 
+    expect(
+      ownerInterestData?.tenant_push
+    ).not.toBeNull()
+
     const tenantClosingUrl =
       ownerInterestData.tenant_closing_url
 
@@ -553,6 +557,10 @@ test(
       tenantPostVisitData?.second_double_ok
     ).toBe(false)
 
+    expect(
+      tenantPostVisitData?.push?.owner
+    ).not.toBeNull()
+
     const ownerPostVisitResponse =
       await request.post(
         "/api/post-visit-decision",
@@ -588,6 +596,14 @@ test(
     expect(
       ownerPostVisitData?.can_accept_contract
     ).toBe(true)
+
+    expect(
+      ownerPostVisitData?.push?.tenant
+    ).not.toBeNull()
+
+    expect(
+      ownerPostVisitData?.push?.owner
+    ).not.toBeNull()
 
     // =========================================================
     // 10. DATOS LEGALES TENANT
@@ -840,6 +856,14 @@ test(
       generateData?.ok
     ).toBe(true)
 
+    expect(
+      generateData?.push?.tenant
+    ).not.toBeNull()
+
+    expect(
+      generateData?.push?.owner
+    ).not.toBeNull()
+
     // =========================================================
     // 13. TENANT ACEPTA
     // =========================================================
@@ -882,6 +906,10 @@ test(
     expect(
       tenantAgreeData?.both_agreed
     ).toBe(false)
+
+    expect(
+      tenantAgreeData?.push?.owner
+    ).not.toBeNull()
 
     // =========================================================
     // 14. OWNER ACEPTA
@@ -937,6 +965,14 @@ test(
     expect(
       ownerAgreeData?.rental_id
     ).toBeTruthy()
+
+    expect(
+      ownerAgreeData?.push?.tenant
+    ).not.toBeNull()
+
+    expect(
+      ownerAgreeData?.push?.owner
+    ).not.toBeNull()
 
     console.log(
       "RENTAL ACTIVE:",
