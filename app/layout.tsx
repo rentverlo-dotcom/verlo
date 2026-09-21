@@ -12,6 +12,11 @@ export const metadata = {
     shortcut: ogImageUrl,
     apple: ogImageUrl,
   },
+  appleWebApp: {
+    capable: true,
+    title: 'Verlo',
+    statusBarStyle: 'default',
+  },
   openGraph: {
     title: 'VERLO',
     description: 'Alquiler directo, seguro y sin comisión.',
