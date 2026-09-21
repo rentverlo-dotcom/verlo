@@ -500,6 +500,10 @@ test(
       ownerInterestData?.owner_closing_url
     ).toBeTruthy()
 
+    expect(
+      ownerInterestData?.tenant_push
+    ).not.toBeNull()
+
     const tenantClosingUrl =
       ownerInterestData.tenant_closing_url
 
@@ -518,7 +522,91 @@ test(
     )
 
     // =========================================================
-    // 9. DATOS LEGALES TENANT
+    // 9. DOBLE OK #2 POST-VISITA
+    // =========================================================
+
+    const tenantPostVisitResponse =
+      await request.post(
+        "/api/post-visit-decision",
+        {
+          data: {
+            token:
+              tenantClosingToken,
+            decision:
+              "yes",
+          },
+        }
+      )
+
+    const tenantPostVisitData =
+      await tenantPostVisitResponse.json()
+
+    expect(
+      tenantPostVisitResponse.status()
+    ).toBe(200)
+
+    expect(
+      tenantPostVisitData?.ok
+    ).toBe(true)
+
+    expect(
+      tenantPostVisitData?.tenant_decision
+    ).toBe("yes")
+
+    expect(
+      tenantPostVisitData?.second_double_ok
+    ).toBe(false)
+
+    expect(
+      tenantPostVisitData?.push?.owner
+    ).not.toBeNull()
+
+    const ownerPostVisitResponse =
+      await request.post(
+        "/api/post-visit-decision",
+        {
+          data: {
+            token:
+              ownerClosingToken,
+            decision:
+              "yes",
+          },
+        }
+      )
+
+    const ownerPostVisitData =
+      await ownerPostVisitResponse.json()
+
+    expect(
+      ownerPostVisitResponse.status()
+    ).toBe(200)
+
+    expect(
+      ownerPostVisitData?.ok
+    ).toBe(true)
+
+    expect(
+      ownerPostVisitData?.owner_decision
+    ).toBe("yes")
+
+    expect(
+      ownerPostVisitData?.second_double_ok
+    ).toBe(true)
+
+    expect(
+      ownerPostVisitData?.can_accept_contract
+    ).toBe(true)
+
+    expect(
+      ownerPostVisitData?.push?.tenant
+    ).not.toBeNull()
+
+    expect(
+      ownerPostVisitData?.push?.owner
+    ).not.toBeNull()
+
+    // =========================================================
+    // 10. DATOS LEGALES TENANT
     // =========================================================
 
     const tenantLegalResponse =
@@ -576,7 +664,7 @@ test(
     ).toBe(true)
 
     // =========================================================
-    // 10. DATOS LEGALES OWNER + INMUEBLE
+    // 11. DATOS LEGALES OWNER + INMUEBLE
     // =========================================================
 
     const ownerLegalResponse =
@@ -691,7 +779,7 @@ test(
     ).toBe(true)
 
     // =========================================================
-    // 11. GENERAR CONTRATO
+    // 12. GENERAR CONTRATO
     // SOLO OWNER
     // =========================================================
 
@@ -768,8 +856,16 @@ test(
       generateData?.ok
     ).toBe(true)
 
+    expect(
+      generateData?.push?.tenant
+    ).not.toBeNull()
+
+    expect(
+      generateData?.push?.owner
+    ).not.toBeNull()
+
     // =========================================================
-    // 12. TENANT ACEPTA
+    // 13. TENANT ACEPTA
     // =========================================================
 
     const tenantAgreeResponse =
@@ -811,8 +907,12 @@ test(
       tenantAgreeData?.both_agreed
     ).toBe(false)
 
+    expect(
+      tenantAgreeData?.push?.owner
+    ).not.toBeNull()
+
     // =========================================================
-    // 13. OWNER ACEPTA
+    // 14. OWNER ACEPTA
     // =========================================================
 
     const ownerAgreeResponse =
@@ -865,6 +965,14 @@ test(
     expect(
       ownerAgreeData?.rental_id
     ).toBeTruthy()
+
+    expect(
+      ownerAgreeData?.push?.tenant
+    ).not.toBeNull()
+
+    expect(
+      ownerAgreeData?.push?.owner
+    ).not.toBeNull()
 
     console.log(
       "RENTAL ACTIVE:",
