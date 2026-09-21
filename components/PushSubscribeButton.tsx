@@ -17,6 +17,8 @@ type Status =
   | 'idle'
   | 'loading'
   | 'success'
+  | 'install_required'
+  | 'unsupported'
   | 'error'
 
 const PUSH_LEAD_STORAGE_KEY =
@@ -379,7 +381,49 @@ export default function PushSubscribeButton({
 
           if (
             typeof window ===
-              'undefined' ||
+              'undefined'
+          ) {
+            return
+          }
+
+          const iosLike =
+            /iphone|ipad|ipod/i.test(
+              window.navigator.userAgent
+            ) ||
+            (
+              window.navigator.platform ===
+                'MacIntel' &&
+              window.navigator.maxTouchPoints >
+                1
+            )
+
+          const standalone =
+            window.matchMedia(
+              '(display-mode: standalone)'
+            ).matches ||
+            (
+              window.navigator as Navigator & {
+                standalone?: boolean
+              }
+            ).standalone ===
+              true
+
+          if (
+            iosLike &&
+            !standalone
+          ) {
+            if (
+              !cancelled
+            ) {
+              setStatus(
+                'install_required'
+              )
+            }
+
+            return
+          }
+
+          if (
             !(
               'Notification'
               in window
@@ -397,7 +441,7 @@ export default function PushSubscribeButton({
               !cancelled
             ) {
               setStatus(
-                'idle'
+                'unsupported'
               )
             }
 
@@ -542,7 +586,11 @@ export default function PushSubscribeButton({
         status ===
           'loading' ||
         status ===
-          'checking'
+          'checking' ||
+        status ===
+          'install_required' ||
+        status ===
+          'unsupported'
       }
     >
       {
@@ -553,9 +601,15 @@ export default function PushSubscribeButton({
               'loading'
             ? 'Activando...'
             : status ===
-                'error'
-              ? 'Reintentar notificaciones'
-              : 'Activar notificaciones'
+                'install_required'
+              ? 'Instalá Verlo para activar notificaciones'
+              : status ===
+                  'unsupported'
+                ? 'Notificaciones no compatibles'
+                : status ===
+                    'error'
+                  ? 'Reintentar notificaciones'
+                  : 'Activar notificaciones'
       }
     </button>
   )
