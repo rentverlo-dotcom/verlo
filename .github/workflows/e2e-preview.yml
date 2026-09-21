@@ -1,22 +1,29 @@
 name: E2E Preview
 
 on:
-  push:
-    branches:
-      - fix/e2e-post-visit-double-ok
+  deployment_status:
   workflow_dispatch:
 
 jobs:
   e2e:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.deployment_status.state == 'success' &&
+        github.event.deployment_status.environment_url != ''
+      )
+
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     env:
-      PLAYWRIGHT_BASE_URL: https://verlopunto0-git-fix-e2e-post-vi-2c8fd5-verlos-projects-b9e9c595.vercel.app
+      PLAYWRIGHT_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && 'https://verlo.lat' || github.event.deployment_status.environment_url }}
 
     steps:
-      - name: Checkout
+      - name: Checkout deployed ref
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.ref || github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
