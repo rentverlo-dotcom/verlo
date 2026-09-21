@@ -896,7 +896,7 @@ export default function SuccessPage() {
       isIos
     ) {
       window.alert(
-        "En iPhone o iPad: tocá Compartir, después “Agregar a pantalla de inicio” y abrí Verlo desde el nuevo ícono."
+        "En iPhone o iPad: abrí verlo.lat en Safari. Tocá Compartir → Agregar a Inicio → activá “Abrir como app web” → Agregar. Después abrí Verlo desde el nuevo ícono."
       )
 
       return
@@ -969,9 +969,9 @@ export default function SuccessPage() {
                         </h2>
 
                         <p>
-                          En iPhone o iPad, las notificaciones
-                          de Verlo funcionan desde la app web
-                          instalada en tu pantalla de inicio.
+                          En iPhone o iPad, abrí esta página en Safari.
+                          Desde Safari agregá Verlo a Inicio como app web.
+                          Recién después vas a poder activar notificaciones.
                         </p>
 
                         <div className="step-action">
@@ -982,7 +982,7 @@ export default function SuccessPage() {
                               installApp
                             }
                           >
-                            INSTALAR VERLO
+                            CÓMO INSTALAR VERLO EN IPHONE
                           </button>
                         </div>
                       </div>
