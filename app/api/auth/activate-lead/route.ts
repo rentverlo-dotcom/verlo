@@ -202,6 +202,102 @@ export async function POST(
     // - luego callback vincula auth.user ↔ lead_id
     // =========================================================
 
+    // =========================================================
+    // 3A. SI EL AUTH USER YA EXISTE, ACTUALIZAR SU METADATA
+    //
+    // signInWithOtp(data) no garantiza reemplazar metadata en
+    // usuarios ya existentes. Sin esto un magic link puede volver
+    // con un lead_id viejo que ya fue borrado.
+    // =========================================================
+
+    const {
+      data:
+        usersPage,
+
+      error:
+        usersError,
+    } =
+      await supabaseAdmin
+        .auth
+        .admin
+        .listUsers({
+          page: 1,
+          perPage: 1000,
+        })
+
+    if (
+      usersError
+    ) {
+      throw new Error(
+        usersError.message
+      )
+    }
+
+    const existingAuthUser =
+      (
+        usersPage.users ||
+        []
+      ).find(
+        (item) =>
+          clean(
+            item.email
+          ).toLowerCase() ===
+          email
+      )
+
+    const activationMetadata = {
+      full_name:
+        clean(
+          lead.full_name
+        ),
+
+      phone:
+        clean(
+          lead.phone_normalized ||
+          lead.phone
+        ),
+
+      role,
+
+      intent:
+        clean(
+          lead.intent
+        ),
+
+      lead_id:
+        lead.id,
+
+      source:
+        "lead_activation",
+    }
+
+    if (
+      existingAuthUser
+    ) {
+      const {
+        error:
+          metadataError,
+      } =
+        await supabaseAdmin
+          .auth
+          .admin
+          .updateUserById(
+            existingAuthUser.id,
+            {
+              user_metadata:
+                activationMetadata,
+            }
+          )
+
+      if (
+        metadataError
+      ) {
+        throw new Error(
+          metadataError.message
+        )
+      }
+    }
+
     const {
       error:
         authError,
@@ -218,34 +314,8 @@ export async function POST(
             emailRedirectTo:
               "https://verlo.lat/auth/callback",
 
-            data: {
-              full_name:
-                clean(
-                  lead
-                    .full_name
-                ),
-
-              phone:
-                clean(
-                  lead
-                    .phone_normalized ||
-                  lead
-                    .phone
-                ),
-
-              role,
-
-              intent:
-                clean(
-                  lead.intent
-                ),
-
-              lead_id:
-                lead.id,
-
-              source:
-                "lead_activation",
-            },
+            data:
+              activationMetadata,
           },
         })
 
