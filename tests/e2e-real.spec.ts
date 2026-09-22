@@ -302,6 +302,321 @@ test(
 )
 
 test(
+  "PUSH REAL: intake tenant y match_created salen por una sola subscription",
+  async ({ page, context, request }) => {
+    test.setTimeout(150_000)
+
+    await context.grantPermissions(
+      ["notifications"],
+      {
+        origin:
+          "https://verlo.lat",
+      }
+    )
+
+    const id =
+      Date.now().toString()
+
+    const tenantEmail =
+      `push-tenant-${id}@example.com`
+
+    const tenantResponse =
+      await request.post(
+        "/api/lead-intake",
+        {
+          data: {
+            full_name:
+              "Push Tenant E2E",
+
+            email:
+              tenantEmail,
+
+            phone:
+              "1166666666",
+
+            role:
+              "tenant",
+
+            intent:
+              "tenant_search",
+
+            zone:
+              "Munro",
+
+            area_macro:
+              "gba_norte",
+
+            neighborhood_labels:
+              [
+                "Munro",
+              ],
+
+            neighborhood_slugs:
+              [
+                "munro",
+              ],
+
+            neighborhood_slug:
+              "munro",
+
+            desired_property_type:
+              "Departamento",
+
+            desired_rooms:
+              "2 ambientes",
+
+            budget_range:
+              "700001-900000",
+
+            move_timing:
+              "En 1 a 3 meses",
+
+            income_proof_type:
+              "salary_receipt",
+
+            income_range:
+              "2000001-3000000",
+
+            guarantee_types:
+              [
+                "surety_insurance",
+              ],
+
+            source:
+              "e2e_push_isolated",
+          },
+        }
+      )
+
+    expect(
+      tenantResponse.status()
+    ).toBe(200)
+
+    const tenantData =
+      await tenantResponse.json()
+
+    expect(
+      tenantData?.ok
+    ).toBe(true)
+
+    expect(
+      tenantData?.lead_id
+    ).toBeTruthy()
+
+    await page.goto(
+      `/success?role=tenant&lead=${tenantData.lead_id}`,
+      {
+        waitUntil:
+          "domcontentloaded",
+      }
+    )
+
+    const pushButton =
+      page.locator(
+        ".push-wrap button"
+      )
+
+    await expect(
+      pushButton
+    ).toHaveText(
+      "Activar notificaciones"
+    )
+
+    const subscribePromise =
+      page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(
+              "/api/push/subscribe"
+            ) &&
+          response
+            .request()
+            .method() ===
+            "POST"
+      )
+
+    await pushButton.click()
+
+    const subscribeResponse =
+      await subscribePromise
+
+    expect(
+      subscribeResponse.status()
+    ).toBe(200)
+
+    const subscribeData =
+      await subscribeResponse.json()
+
+    expect(
+      subscribeData?.ok
+    ).toBe(true)
+
+    expect(
+      subscribeData?.registered
+    ).toBe(true)
+
+    expect(
+      subscribeData?.lead_id
+    ).toBe(
+      tenantData.lead_id
+    )
+
+    // El intake se creó antes de que existiera la subscription.
+    // Al activarla, debe reintentarse y salir por este mismo endpoint.
+    expect(
+      Number(
+        subscribeData
+          ?.retries
+          ?.sent ||
+        0
+      )
+    ).toBeGreaterThanOrEqual(1)
+
+    await expect(
+      pushButton
+    ).toHaveText(
+      "Notificaciones activadas",
+      {
+        timeout:
+          30_000,
+      }
+    )
+
+    const ownerResponse =
+      await request.post(
+        "/api/lead-intake",
+        {
+          data: {
+            full_name:
+              "Push Owner E2E",
+
+            email:
+              `push-owner-${id}@example.com`,
+
+            phone:
+              "1177777777",
+
+            role:
+              "owner",
+
+            intent:
+              "owner_new_listing",
+
+            zone:
+              "Munro",
+
+            area_macro:
+              "owner_landing",
+
+            neighborhood_labels:
+              [
+                "Munro",
+              ],
+
+            neighborhood_slugs:
+              [
+                "munro",
+              ],
+
+            neighborhood_slug:
+              "munro",
+
+            property_type:
+              "Departamento",
+
+            property_rooms:
+              "2 ambientes",
+
+            approx_price:
+              "700001-900000",
+
+            availability_status:
+              "En 1 a 3 meses",
+
+            accepted_income_proof_types:
+              [
+                "salary_receipt",
+              ],
+
+            min_income_ratio:
+              2,
+
+            accepted_guarantee_types:
+              [
+                "surety_insurance",
+              ],
+
+            source:
+              "e2e_push_isolated",
+          },
+        }
+      )
+
+    expect(
+      ownerResponse.status()
+    ).toBe(200)
+
+    const ownerData =
+      await ownerResponse.json()
+
+    expect(
+      ownerData?.ok
+    ).toBe(true)
+
+    expect(
+      Number(
+        ownerData
+          ?.match_result
+          ?.created ||
+        0
+      )
+    ).toBeGreaterThanOrEqual(1)
+
+    const matchPushes =
+      ownerData
+        ?.push_events
+        ?.matches ||
+      []
+
+    expect(
+      matchPushes.length
+    ).toBeGreaterThanOrEqual(1)
+
+    const tenantMatchPush =
+      matchPushes.find(
+        (item: any) =>
+          item?.ok ===
+            true &&
+          item?.data
+            ?.notifications
+            ?.tenant
+            ?.sent ===
+            true &&
+          Number(
+            item?.data
+              ?.notifications
+              ?.tenant
+              ?.devices_sent ||
+            0
+          ) >= 1
+      )
+
+    expect(
+      tenantMatchPush
+    ).toBeTruthy()
+
+    expect(
+      tenantMatchPush
+        ?.data
+        ?.tenant_lead_id
+    ).toBe(
+      tenantData.lead_id
+    )
+  }
+)
+
+test(
   "Mismo owner puede publicar dos propiedades y ambas matchean al mismo tenant",
   async ({ request }) => {
     const id =
