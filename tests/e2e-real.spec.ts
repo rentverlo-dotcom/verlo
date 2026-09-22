@@ -15,6 +15,63 @@ const OWNER_PHOTO_2 = `verlo-owner-${RUN_ID}-2.png`
 const OWNER_PHOTO_3 = `verlo-owner-${RUN_ID}-3.png`
 
 test(
+  "Owner media selector acumula y evita duplicados en /propietarios",
+  async ({ page }) => {
+    await page.goto("/propietarios", {
+      waitUntil: "domcontentloaded",
+    })
+
+    await expect(
+      page.getByText(
+        "Subí al menos 1 foto. Si tenés un match, después vas a poder agregar todas las fotos y videos que quieras."
+      )
+    ).toBeVisible()
+
+    const input =
+      page.locator(
+        'input[type="file"][accept="image/*,video/*"]'
+      )
+
+    await input.setInputFiles({
+      name: "propietarios-a.png",
+      mimeType: "image/png",
+      buffer: PNG_1X1,
+    })
+
+    await expect(
+      page.getByText("1 archivo seleccionado")
+    ).toBeVisible()
+
+    await input.setInputFiles([
+      {
+        name: "propietarios-b.png",
+        mimeType: "image/png",
+        buffer: PNG_1X1,
+      },
+      {
+        name: "propietarios-c.png",
+        mimeType: "image/png",
+        buffer: PNG_1X1,
+      },
+    ])
+
+    await expect(
+      page.getByText("3 archivos seleccionados")
+    ).toBeVisible()
+
+    await input.setInputFiles({
+      name: "propietarios-b.png",
+      mimeType: "image/png",
+      buffer: PNG_1X1,
+    })
+
+    await expect(
+      page.getByText("3 archivos seleccionados")
+    ).toBeVisible()
+  }
+)
+
+test(
   "E2E REAL Verlo completo hasta alquiler activo",
   async ({ page, context, request }) => {
     test.setTimeout(240_000)
@@ -85,27 +142,68 @@ test(
       )
       .check()
 
-    await page
-      .locator(
+    const ownerMediaInput =
+      page.locator(
         'input[type="file"][accept="image/*,video/*"]'
       )
-      .setInputFiles([
-        {
-          name: OWNER_PHOTO_1,
-          mimeType: "image/png",
-          buffer: PNG_1X1,
-        },
-        {
-          name: OWNER_PHOTO_2,
-          mimeType: "image/png",
-          buffer: PNG_1X1,
-        },
-        {
-          name: OWNER_PHOTO_3,
-          mimeType: "image/png",
-          buffer: PNG_1X1,
-        },
-      ])
+
+    await expect(
+      page.getByText(
+        "Subí al menos 1 foto. Si tenés un match, después vas a poder agregar todas las fotos y videos que quieras."
+      )
+    ).toBeVisible()
+
+    // Primera selección: 1 archivo.
+    await ownerMediaInput.setInputFiles({
+      name: OWNER_PHOTO_1,
+      mimeType: "image/png",
+      buffer: PNG_1X1,
+    })
+
+    await expect(
+      page.getByText("1 archivo seleccionado")
+    ).toBeVisible()
+
+    // Segunda selección: se SUMA a la anterior.
+    await ownerMediaInput.setInputFiles([
+      {
+        name: OWNER_PHOTO_2,
+        mimeType: "image/png",
+        buffer: PNG_1X1,
+      },
+      {
+        name: OWNER_PHOTO_3,
+        mimeType: "image/png",
+        buffer: PNG_1X1,
+      },
+    ])
+
+    await expect(
+      page.getByText("3 archivos seleccionados")
+    ).toBeVisible()
+
+    // Repetimos una foto: no debe duplicarla.
+    await ownerMediaInput.setInputFiles({
+      name: OWNER_PHOTO_2,
+      mimeType: "image/png",
+      buffer: PNG_1X1,
+    })
+
+    await expect(
+      page.getByText("3 archivos seleccionados")
+    ).toBeVisible()
+
+    await expect(
+      page.getByText(OWNER_PHOTO_1)
+    ).toBeVisible()
+
+    await expect(
+      page.getByText(OWNER_PHOTO_2)
+    ).toBeVisible()
+
+    await expect(
+      page.getByText(OWNER_PHOTO_3)
+    ).toBeVisible()
 
     const ownerIntakePromise =
       page.waitForResponse(
