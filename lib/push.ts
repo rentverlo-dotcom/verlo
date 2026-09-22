@@ -38,7 +38,70 @@ export async function sendPushToLead(
   payload: PushPayload
 ) {
   const {
-    data: subscriptions,
+    data:
+      targetLead,
+    error:
+      targetLeadError,
+  } =
+    await supabaseAdmin
+      .from('lead_intake')
+      .select('id, email')
+      .eq('id', leadId)
+      .maybeSingle()
+
+  if (targetLeadError) {
+    throw targetLeadError
+  }
+
+  const identityEmail =
+    String(
+      targetLead?.email || ''
+    )
+      .trim()
+      .toLowerCase()
+
+  let relatedLeadIds =
+    [leadId]
+
+  if (identityEmail) {
+    const {
+      data:
+        relatedLeads,
+      error:
+        relatedLeadsError,
+    } =
+      await supabaseAdmin
+        .from('lead_intake')
+        .select('id')
+        .ilike(
+          'email',
+          identityEmail
+        )
+
+    if (relatedLeadsError) {
+      throw relatedLeadsError
+    }
+
+    relatedLeadIds =
+      Array.from(
+        new Set([
+          leadId,
+          ...(
+            relatedLeads ||
+            []
+          ).map(
+            (row) =>
+              String(
+                row.id
+              )
+          ),
+        ])
+      )
+  }
+
+  const {
+    data:
+      subscriptionRows,
     error,
   } =
     await supabaseAdmin
@@ -46,15 +109,29 @@ export async function sendPushToLead(
       .select(
         'id, endpoint, p256dh, auth'
       )
-      .eq(
+      .in(
         'lead_id',
-        leadId
+        relatedLeadIds
       )
       .is(
         'revoked_at',
         null
       )
 
+  const subscriptions =
+    Array.from(
+      new Map(
+        (
+          subscriptionRows ||
+          []
+        ).map(
+          (subscription) => [
+            subscription.endpoint,
+            subscription,
+          ]
+        )
+      ).values()
+    )
   if (error) {
     throw error
   }
