@@ -10,6 +10,10 @@ import {
   sendEmailToLeadOnce,
 } from "@/lib/email"
 
+import {
+  sendWhatsApp,
+} from "@/lib/notifications/whatsapp"
+
 type NotifyLeadOnceInput = {
   eventKey: string
   eventType: string
@@ -580,10 +584,129 @@ export async function notifyLeadOnce(
     !insertError &&
     insertedEvent
   ) {
-    return deliverEvent(
-      insertedEvent as
-        NotificationEventRow
-    )
+    const {
+      data:
+        lead,
+      error:
+        leadError,
+    } =
+      await supabaseAdmin
+        .from(
+          "lead_intake"
+        )
+        .select(
+          "phone_normalized, role"
+        )
+        .eq(
+          "id",
+          leadId
+        )
+        .maybeSingle()
+
+    if (
+      leadError
+    ) {
+      console.error(
+        "whatsapp lead lookup error:",
+        {
+          eventKey,
+          leadId,
+          error:
+            leadError,
+        }
+      )
+    }
+
+    const whatsappPromise =
+      sendWhatsApp({
+        to:
+          clean(
+            lead
+              ?.phone_normalized
+          ) ||
+          undefined,
+
+        role:
+          lead?.role ===
+            "owner" ||
+          lead?.role ===
+            "tenant"
+            ? lead.role
+            : undefined,
+
+        template:
+          eventType,
+
+        eventKey,
+        eventType,
+        leadId,
+        title,
+        body,
+        url,
+
+        context: {
+          entity_type:
+            entityType,
+
+          entity_id:
+            entityId,
+        },
+      })
+        .then(
+          (
+            result
+          ) => {
+            if (
+              !result.success &&
+              !result.skipped
+            ) {
+              console.error(
+                "whatsapp notification delivery error:",
+                {
+                  eventKey,
+                  leadId,
+                  result,
+                }
+              )
+            }
+
+            return result
+          }
+        )
+        .catch(
+          (
+            whatsappError
+          ) => {
+            console.error(
+              "whatsapp notification unexpected error:",
+              {
+                eventKey,
+                leadId,
+                error:
+                  whatsappError,
+              }
+            )
+
+            return null
+          }
+        )
+
+    // Push y WhatsApp salen en paralelo.
+    // El resultado comercial de GHL nunca modifica el resultado
+    // del evento principal ni puede romper el flujo de Verlo.
+    const [
+      pushResult,
+    ] =
+      await Promise.all([
+        deliverEvent(
+          insertedEvent as
+            NotificationEventRow
+        ),
+
+        whatsappPromise,
+      ])
+
+    return pushResult
   }
 
   // =========================================================
