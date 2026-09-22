@@ -905,82 +905,99 @@ test(
 
 test(
   "E2E REAL Verlo completo hasta alquiler activo",
-  async ({ page, context, request }) => {
-    test.setTimeout(240_000)
+  async ({ browser, request }) => {
+    test.setTimeout(300_000)
 
-    await context.grantPermissions(
+    const ownerContext =
+      await browser.newContext()
+
+    const tenantContext =
+      await browser.newContext()
+
+    await ownerContext.grantPermissions(
       ["notifications"],
       { origin: "https://verlo.lat" }
     )
+
+    await tenantContext.grantPermissions(
+      ["notifications"],
+      { origin: "https://verlo.lat" }
+    )
+
+    const ownerPage =
+      await ownerContext.newPage()
+
+    const tenantPage =
+      await tenantContext.newPage()
 
     // =========================================================
     // 1. OWNER — JUAN
     // =========================================================
 
-    await page.goto("/", {
+    await ownerPage.goto("/", {
       waitUntil: "domcontentloaded",
     })
 
-    await page
+    await ownerPage
       .locator("button.path-card")
       .filter({ hasText: "Tengo una propiedad" })
       .click()
 
-    await page
+    await ownerPage
       .locator('input[name="full_name"]')
       .fill("Owner E2E Test")
 
-    await page
+    await ownerPage
       .locator('input[name="phone"]')
       .fill("1111111111")
 
-    await page
+    await ownerPage
       .locator('input[name="email"]')
       .fill(OWNER_EMAIL)
 
-    await page
+    await ownerPage
       .locator('select[name="owner_neighborhood"]')
       .selectOption({ label: "Munro" })
 
-    await page
+    await ownerPage
       .locator('select[name="property_type"]')
       .selectOption({ label: "Departamento" })
 
-    await page
+    await ownerPage
       .locator('select[name="property_rooms"]')
       .selectOption({ label: "2 ambientes" })
 
-    await page
+    await ownerPage
       .locator('select[name="approx_price"]')
       .selectOption("700001-900000")
 
-    await page
+    await ownerPage
       .locator('select[name="availability_status"]')
       .selectOption("En 1 a 3 meses")
 
-    await page
+    await ownerPage
       .locator(
         'input[name="accepted_income_proof_types"][value="salary_receipt"]'
       )
       .check()
 
-    await page
+    await ownerPage
       .locator('select[name="min_income_ratio"]')
       .selectOption("2")
 
-    await page
+    await ownerPage
       .locator(
         'input[name="accepted_guarantee_types"][value="surety_insurance"]'
       )
       .check()
 
     const ownerMediaInput =
-      page.locator(
+      ownerPage.locator(
         'input[type="file"][accept="image/*,video/*"]'
       )
 
     await expect(
-      page.getByText(
+      ownerPage.getByText(
         "Subí al menos 1 foto. Si tenés un match, después vas a poder agregar todas las fotos y videos que quieras."
       )
     ).toBeVisible()
@@ -993,7 +1010,7 @@ test(
     })
 
     await expect(
-      page.getByText("1 archivo seleccionado")
+      ownerPage.getByText("1 archivo seleccionado")
     ).toBeVisible()
 
     // Segunda selección: se SUMA a la anterior.
@@ -1011,7 +1028,7 @@ test(
     ])
 
     await expect(
-      page.getByText("3 archivos seleccionados")
+      ownerPage.getByText("3 archivos seleccionados")
     ).toBeVisible()
 
     // Repetimos una foto: no debe duplicarla.
@@ -1022,29 +1039,29 @@ test(
     })
 
     await expect(
-      page.getByText("3 archivos seleccionados")
+      ownerPage.getByText("3 archivos seleccionados")
     ).toBeVisible()
 
     await expect(
-      page.getByText(OWNER_PHOTO_1)
+      ownerPage.getByText(OWNER_PHOTO_1)
     ).toBeVisible()
 
     await expect(
-      page.getByText(OWNER_PHOTO_2)
+      ownerPage.getByText(OWNER_PHOTO_2)
     ).toBeVisible()
 
     await expect(
-      page.getByText(OWNER_PHOTO_3)
+      ownerPage.getByText(OWNER_PHOTO_3)
     ).toBeVisible()
 
     const ownerIntakePromise =
-      page.waitForResponse(
+      ownerPage.waitForResponse(
         (response) =>
           response.url().includes("/api/lead-intake") &&
           response.request().method() === "POST"
       )
 
-    await page
+    await ownerPage
       .locator('button.submit[type="submit"]')
       .click()
 
@@ -1061,84 +1078,113 @@ test(
 
     console.log("OWNER LEAD:", ownerData.lead_id)
 
-    await page.waitForTimeout(4000)
+    await ownerPage.goto(
+      `/success?role=owner&lead=${ownerData.lead_id}`,
+      {
+        waitUntil:
+          "domcontentloaded",
+      }
+    )
+
+    const ownerPushButton =
+      ownerPage.locator(
+        ".push-wrap button"
+      )
+
+    await expect(
+      ownerPushButton
+    ).toHaveText(
+      "Activar notificaciones"
+    )
+
+    await ownerPushButton.click()
+
+    await expect(
+      ownerPushButton
+    ).toHaveText(
+      "Notificaciones activadas",
+      {
+        timeout:
+          30_000,
+      }
+    )
 
     // =========================================================
     // 2. TENANT — ALEJANDRO
     // =========================================================
 
-    await page.goto("/", {
+    await tenantPage.goto("/", {
       waitUntil: "domcontentloaded",
     })
 
-    await page
+    await tenantPage
       .locator("button.path-card")
       .filter({ hasText: "Busco alquilar" })
       .click()
 
-    await page
+    await tenantPage
       .locator('input[name="full_name"]')
       .fill(TENANT_NAME)
 
-    await page
+    await tenantPage
       .locator('input[name="phone"]')
       .fill("1122222222")
 
-    await page
+    await tenantPage
       .locator('input[name="email"]')
       .fill(TENANT_EMAIL)
 
-    await page
+    await tenantPage
       .locator("button.area-tab")
       .filter({ hasText: "GBA Norte" })
       .click()
 
-    await page
+    await tenantPage
       .locator(
         'input[name="tenant_neighborhoods"][value="Munro"]'
       )
       .check()
 
-    await page
+    await tenantPage
       .locator(
         'select[name="desired_property_type"]'
       )
       .selectOption({ label: "Departamento" })
 
-    await page
+    await tenantPage
       .locator('select[name="desired_rooms"]')
       .selectOption({ label: "2 ambientes" })
 
-    await page
+    await tenantPage
       .locator('select[name="budget_range"]')
       .selectOption("700001-900000")
 
-    await page
+    await tenantPage
       .locator('select[name="move_timing"]')
       .selectOption("En 1 a 3 meses")
 
-    await page
+    await tenantPage
       .locator('select[name="income_proof_type"]')
       .selectOption("salary_receipt")
 
-    await page
+    await tenantPage
       .locator('select[name="income_range"]')
       .selectOption("2000001-3000000")
 
-    await page
+    await tenantPage
       .locator(
         'input[name="guarantee_types"][value="surety_insurance"]'
       )
       .check()
 
     const tenantIntakePromise =
-      page.waitForResponse(
+      tenantPage.waitForResponse(
         (response) =>
           response.url().includes("/api/lead-intake") &&
           response.request().method() === "POST"
       )
 
-    await page
+    await tenantPage
       .locator('button.submit[type="submit"]')
       .click()
 
@@ -1160,6 +1206,37 @@ test(
     ).toBeGreaterThan(0)
 
     console.log("TENANT LEAD:", tenantData.lead_id)
+
+    await tenantPage.goto(
+      `/success?role=tenant&lead=${tenantData.lead_id}`,
+      {
+        waitUntil:
+          "domcontentloaded",
+      }
+    )
+
+    const tenantPushButton =
+      tenantPage.locator(
+        ".push-wrap button"
+      )
+
+    await expect(
+      tenantPushButton
+    ).toHaveText(
+      "Activar notificaciones"
+    )
+
+    await tenantPushButton.click()
+
+    await expect(
+      tenantPushButton
+    ).toHaveText(
+      "Notificaciones activadas",
+      {
+        timeout:
+          30_000,
+      }
+    )
 
     // =========================================================
     // 3. TOKEN DE MATCHES TENANT
@@ -1228,7 +1305,7 @@ test(
     // 5. ALEJANDRO ELIGE ESA PROPIEDAD
     // =========================================================
 
-    await page.goto(
+    await tenantPage.goto(
       tokenData.matches_url,
       {
         waitUntil: "domcontentloaded",
@@ -1236,18 +1313,18 @@ test(
     )
 
     const cards =
-      page.locator("article.card")
+      tenantPage.locator("article.card")
 
     await cards
       .nth(juanMatchIndex)
       .locator("button.select")
       .click()
 
-    await page
+    await tenantPage
       .locator("section.bottom button")
       .click()
 
-    await expect(page).toHaveURL(
+    await expect(tenantPage).toHaveURL(
       new RegExp(
         `/tenant/validacion/${tokenData.token}\\?matches=`
       )
@@ -1258,7 +1335,7 @@ test(
     // =========================================================
 
     const validationForm =
-      page.locator("form.tenant-form")
+      tenantPage.locator("form.tenant-form")
 
     await validationForm
       .getByLabel("DNI / documento")
@@ -1329,7 +1406,7 @@ test(
       .fill("Datos E2E ficticios.")
 
     const verificationPromise =
-      page.waitForResponse(
+      tenantPage.waitForResponse(
         (response) =>
           response.url().includes(
             "/api/tenant-verification"
@@ -1367,6 +1444,21 @@ test(
 
     expect(juanNotification).toBeTruthy()
 
+    expect(
+      juanNotification
+        ?.push
+        ?.sent
+    ).toBe(true)
+
+    expect(
+      Number(
+        juanNotification
+          ?.push
+          ?.devices_sent ||
+        0
+      )
+    ).toBeGreaterThanOrEqual(1)
+
     const candidatesUrl =
       juanNotification.candidates_url
 
@@ -1374,7 +1466,7 @@ test(
     // 7. OWNER VE AL TENANT DE ESTA CORRIDA
     // =========================================================
 
-    await page.goto(
+    await ownerPage.goto(
       candidatesUrl,
       {
         waitUntil: "domcontentloaded",
@@ -1382,7 +1474,7 @@ test(
     )
 
     const tenantCard =
-      page
+      ownerPage
         .locator("article.candidate-card")
         .filter({ hasText: TENANT_NAME })
 
@@ -1395,7 +1487,7 @@ test(
     // =========================================================
 
     const ownerInterestPromise =
-      page.waitForResponse(
+      ownerPage.waitForResponse(
         (response) =>
           response.url().includes(
             "/api/owner-interest"
@@ -1434,8 +1526,34 @@ test(
     ).toBeTruthy()
 
     expect(
-      ownerInterestData?.tenant_push
-    ).not.toBeNull()
+      ownerInterestData
+        ?.tenant_push
+        ?.sent
+    ).toBe(true)
+
+    expect(
+      Number(
+        ownerInterestData
+          ?.tenant_push
+          ?.devices_sent ||
+        0
+      )
+    ).toBeGreaterThanOrEqual(1)
+
+    expect(
+      ownerInterestData
+        ?.owner_push
+        ?.sent
+    ).toBe(true)
+
+    expect(
+      Number(
+        ownerInterestData
+          ?.owner_push
+          ?.devices_sent ||
+        0
+      )
+    ).toBeGreaterThanOrEqual(1)
 
     const tenantClosingUrl =
       ownerInterestData.tenant_closing_url
@@ -1491,8 +1609,11 @@ test(
     ).toBe(false)
 
     expect(
-      tenantPostVisitData?.push?.owner
-    ).not.toBeNull()
+      tenantPostVisitData
+        ?.push
+        ?.owner
+        ?.sent
+    ).toBe(true)
 
     const ownerPostVisitResponse =
       await request.post(
@@ -1531,12 +1652,18 @@ test(
     ).toBe(true)
 
     expect(
-      ownerPostVisitData?.push?.tenant
-    ).not.toBeNull()
+      ownerPostVisitData
+        ?.push
+        ?.tenant
+        ?.sent
+    ).toBe(true)
 
     expect(
-      ownerPostVisitData?.push?.owner
-    ).not.toBeNull()
+      ownerPostVisitData
+        ?.push
+        ?.owner
+        ?.sent
+    ).toBe(true)
 
     // =========================================================
     // 10. DATOS LEGALES TENANT
@@ -1790,12 +1917,18 @@ test(
     ).toBe(true)
 
     expect(
-      generateData?.push?.tenant
-    ).not.toBeNull()
+      generateData
+        ?.push
+        ?.tenant
+        ?.sent
+    ).toBe(true)
 
     expect(
-      generateData?.push?.owner
-    ).not.toBeNull()
+      generateData
+        ?.push
+        ?.owner
+        ?.sent
+    ).toBe(true)
 
     // =========================================================
     // 13. TENANT ACEPTA
@@ -1841,8 +1974,11 @@ test(
     ).toBe(false)
 
     expect(
-      tenantAgreeData?.push?.owner
-    ).not.toBeNull()
+      tenantAgreeData
+        ?.push
+        ?.owner
+        ?.sent
+    ).toBe(true)
 
     // =========================================================
     // 14. OWNER ACEPTA
@@ -1900,12 +2036,18 @@ test(
     ).toBeTruthy()
 
     expect(
-      ownerAgreeData?.push?.tenant
-    ).not.toBeNull()
+      ownerAgreeData
+        ?.push
+        ?.tenant
+        ?.sent
+    ).toBe(true)
 
     expect(
-      ownerAgreeData?.push?.owner
-    ).not.toBeNull()
+      ownerAgreeData
+        ?.push
+        ?.owner
+        ?.sent
+    ).toBe(true)
 
     console.log(
       "RENTAL ACTIVE:",
@@ -1927,5 +2069,8 @@ test(
     console.log(
       "======================================"
     )
+
+    await ownerContext.close()
+    await tenantContext.close()
   }
 )
