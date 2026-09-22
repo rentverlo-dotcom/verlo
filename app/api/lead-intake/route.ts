@@ -3155,74 +3155,15 @@ export async function POST(
       )
 
   // =========================================================
-// REUTILIZAR LEAD EXISTENTE
+// CADA CARGA ES UNA INSTANCIA INMOBILIARIA NUEVA
 //
-// Misma persona + mismo rol + misma intención
-// = actualizamos el registro existente.
+// La persona puede repetir email, rol e intención.
+// - owner_new_listing = una propiedad/publicación nueva
+// - tenant_search = una búsqueda nueva
 //
-// NO mezclamos owner con tenant.
-// NO mezclamos distintas intenciones.
+// NO reutilizamos el lead anterior: el lead_id identifica
+// esta propiedad o esta búsqueda concreta.
 // =========================================================
-
-const {
-  data:
-    existingLead,
-
-  error:
-    existingLeadError,
-} =
-  await supabaseAdmin
-    .from(
-      "lead_intake"
-    )
-    .select(`
-      id,
-      email,
-      role,
-      intent,
-      created_at
-    `)
-    .eq(
-      "email",
-      email
-    )
-    .eq(
-      "role",
-      role
-    )
-    .eq(
-      "intent",
-      intent
-    )
-    .order(
-      "created_at",
-      {
-        ascending:
-          false,
-      }
-    )
-    .limit(1)
-    .maybeSingle()
-
-if (
-  existingLeadError
-) {
-  console.error(
-    "existing lead lookup error:",
-    existingLeadError
-  )
-
-  return NextResponse.json(
-    {
-      ok: false,
-      error:
-        "No pudimos verificar tu registro",
-    },
-    {
-      status: 500,
-    }
-  )
-}
 
 const leadPayload = {
   full_name,
@@ -3281,75 +3222,25 @@ const leadPayload = {
     normalizedMetadata,
 }
 
-let leadRecord:
-  {
-    id: string
-  } | null =
-  null
 
-let leadWriteError:
-  {
-    message: string
-  } | null =
-  null
+const {
+  data:
+    leadRecord,
 
-if (
-  existingLead
-) {
-  const {
-    data:
-      updatedLead,
-
-    error:
-      updateError,
-  } =
-    await supabaseAdmin
-      .from(
-        "lead_intake"
-      )
-      .update(
-        leadPayload
-      )
-      .eq(
-        "id",
-        existingLead.id
-      )
-      .select(
-        "id"
-      )
-      .single()
-
-  leadRecord =
-    updatedLead
-
-  leadWriteError =
-    updateError
-} else {
-  const {
-    data:
-      insertedLead,
-
-    error:
-      insertError,
-  } =
-    await supabaseAdmin
-      .from(
-        "lead_intake"
-      )
-      .insert(
-        leadPayload
-      )
-      .select(
-        "id"
-      )
-      .single()
-
-  leadRecord =
-    insertedLead
-
-  leadWriteError =
-    insertError
-}
+  error:
+    leadWriteError,
+} =
+  await supabaseAdmin
+    .from(
+      "lead_intake"
+    )
+    .insert(
+      leadPayload
+    )
+    .select(
+      "id"
+    )
+    .single()
 
 if (
   leadWriteError ||
