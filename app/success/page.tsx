@@ -264,6 +264,185 @@ const styles = `
       650;
   }
 
+  .verlo-explainer {
+    margin-top:
+      34px;
+
+    padding:
+      26px;
+
+    border-radius:
+      28px;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        0.68
+      );
+
+    border:
+      1px solid
+      rgba(
+        5,
+        0,
+        2,
+        0.08
+      );
+  }
+
+  .verlo-explainer h2 {
+    margin:
+      0;
+
+    font-size:
+      24px;
+
+    font-weight:
+      950;
+
+    letter-spacing:
+      -0.035em;
+  }
+
+  .verlo-flow {
+    display:
+      grid;
+
+    gap:
+      12px;
+
+    margin-top:
+      18px;
+  }
+
+  .verlo-flow-item {
+    display:
+      grid;
+
+    grid-template-columns:
+      34px 1fr;
+
+    gap:
+      12px;
+
+    align-items:
+      start;
+  }
+
+  .verlo-flow-item b {
+    width:
+      34px;
+
+    height:
+      34px;
+
+    display:
+      grid;
+
+    place-items:
+      center;
+
+    border-radius:
+      999px;
+
+    background:
+      var(--black);
+
+    color:
+      white;
+
+    font-size:
+      13px;
+
+    font-weight:
+      950;
+  }
+
+  .verlo-flow-item strong {
+    display:
+      block;
+
+    font-size:
+      15px;
+
+    font-weight:
+      950;
+  }
+
+  .verlo-flow-item p {
+    margin:
+      4px 0 0;
+
+    color:
+      rgba(
+        5,
+        0,
+        2,
+        0.58
+      );
+
+    font-size:
+      14px;
+
+    line-height:
+      1.45;
+
+    font-weight:
+      650;
+  }
+
+  .verlo-alerts {
+    margin-top:
+      18px;
+
+    padding:
+      20px;
+
+    border-radius:
+      22px;
+
+    background:
+      var(--black);
+
+    color:
+      white;
+  }
+
+  .verlo-alerts strong {
+    display:
+      block;
+
+    font-size:
+      18px;
+
+    font-weight:
+      950;
+  }
+
+  .verlo-alerts p {
+    margin:
+      8px 0 0;
+
+    color:
+      rgba(
+        255,
+        255,
+        255,
+        0.78
+      );
+
+    font-size:
+      14px;
+
+    line-height:
+      1.5;
+
+    font-weight:
+      700;
+  }
+
   .steps-title {
     margin:
       38px 0 18px;
@@ -930,6 +1109,94 @@ export default function SuccessPage() {
               <p className="success-copy">
                 {copy}
               </p>
+
+              <section className="verlo-explainer">
+                <h2>
+                  Cómo funciona Verlo
+                </h2>
+
+                <div className="verlo-flow">
+                  <div className="verlo-flow-item">
+                    <b>1</b>
+
+                    <div>
+                      <strong>
+                        Publicás o buscás
+                      </strong>
+
+                      <p>
+                        Cargás tu propiedad o contás qué alquiler estás buscando.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="verlo-flow-item">
+                    <b>2</b>
+
+                    <div>
+                      <strong>
+                        Verlo hace el match
+                      </strong>
+
+                      <p>
+                        Buscamos coincidencias compatibles entre propietarios e inquilinos.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="verlo-flow-item">
+                    <b>3</b>
+
+                    <div>
+                      <strong>
+                        Validamos antes de avanzar
+                      </strong>
+
+                      <p>
+                        El inquilino muestra interés y completa su validación antes de que el propietario tenga que intervenir.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="verlo-flow-item">
+                    <b>4</b>
+
+                    <div>
+                      <strong>
+                        Si ambos quieren seguir, avanzan
+                      </strong>
+
+                      <p>
+                        Se habilita el contacto, coordinan la visita y después ambos confirman si quieren continuar.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="verlo-flow-item">
+                    <b>5</b>
+
+                    <div>
+                      <strong>
+                        Verlo los acompaña hasta el contrato
+                      </strong>
+
+                      <p>
+                        Completan los datos finales, Verlo genera el contrato y ambas partes lo aceptan.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="verlo-alerts">
+                  <strong>
+                    Te avisamos nosotros
+                  </strong>
+
+                  <p>
+                    Cuando haya un nuevo match o cualquier avance importante, Verlo te avisa por notificación y por email. No hace falta que estés entrando todo el tiempo. Revisá también Spam o Promociones si no ves nuestro email.
+                  </p>
+                </div>
+              </section>
 
               {iosNeedsInstall ? (
                 <>
