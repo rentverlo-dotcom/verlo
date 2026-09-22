@@ -2145,8 +2145,48 @@ export default function PageDePrueba() {
       )
 
     setOwnerFiles(
-      selectedFiles
+      (
+        currentFiles
+      ) => {
+        const seen =
+          new Set(
+            currentFiles.map(
+              (file) =>
+                `${file.name}::${file.size}::${file.lastModified}`
+            )
+          )
+
+        const newFiles =
+          selectedFiles.filter(
+            (file) => {
+              const key =
+                `${file.name}::${file.size}::${file.lastModified}`
+
+              if (
+                seen.has(
+                  key
+                )
+              ) {
+                return false
+              }
+
+              seen.add(
+                key
+              )
+
+              return true
+            }
+          )
+
+        return [
+          ...currentFiles,
+          ...newFiles,
+        ]
+      }
     )
+
+    event.target.value =
+      ""
 
     setError("")
     setSuccess("")
@@ -4314,7 +4354,7 @@ if (honeypot) {
                       </strong>
 
                       <span>
-                        Subí todas las fotos o videos que quieras.
+                        Subí al menos 1 foto. Si tenés un match, después vas a poder agregar todas las fotos y videos que quieras.
                       </span>
                     </div>
 
