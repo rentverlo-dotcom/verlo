@@ -381,23 +381,9 @@ export async function POST(
       )
     }
 
-    if (
-      profileForUser &&
-      profileForUser
-        .lead_id !==
-        leadId
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "This user is already linked to another lead",
-        },
-        {
-          status: 409,
-        }
-      )
-    }
+    // Un mismo usuario puede tener muchas propiedades y búsquedas.
+    // user_profiles.lead_id queda como puntero al lead activado más recientemente.
+    // Mi Verlo agrupa el historial por identidad/email.
 
     // =========================================================
     // 8. CREAR / ACTUALIZAR user_profiles
