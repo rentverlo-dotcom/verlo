@@ -593,13 +593,19 @@ export async function GET(
     const leadId =
       profile.lead_id
 
+    const identityEmail =
+      clean(
+        user.email ||
+        profile.email
+      ).toLowerCase()
+
     // =========================================================
-    // 3. LEAD / FORM ORIGINAL
+    // 3. TODAS LAS PROPIEDADES / BÚSQUEDAS DEL USUARIO
     // =========================================================
 
     const {
       data:
-        lead,
+        leadRows,
 
       error:
         leadError,
@@ -634,16 +640,38 @@ export async function GET(
           availability_status,
           match_notifications
         `)
-        .eq(
-          "id",
-          leadId
+        .ilike(
+          "email",
+          identityEmail
         )
-        .single()
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
 
     if (
-      leadError ||
-      !lead
+      leadError
     ) {
+      throw new Error(
+        leadError.message
+      )
+    }
+
+    const leads =
+      leadRows || []
+
+    const lead =
+      leads.find(
+        (item) =>
+          item.id ===
+          leadId
+      ) ||
+      leads[0]
+
+    if (!lead) {
       return NextResponse.json(
         {
           ok: false,
@@ -655,6 +683,22 @@ export async function GET(
         }
       )
     }
+
+    const leadIds =
+      leads.map(
+        (item) =>
+          String(
+            item.id
+          )
+      )
+
+    const leadIdSet =
+      new Set(
+        leadIds
+      )
+
+    const leadFilter =
+      leadIds.join(",")
 
     // =========================================================
     // 4. MATCHES DONDE PARTICIPA ESTE LEAD
@@ -689,7 +733,7 @@ export async function GET(
           owner_post_visit_decided_at
         `)
         .or(
-          `tenant_lead_id.eq.${leadId},owner_lead_id.eq.${leadId}`
+          `tenant_lead_id.in.(${leadFilter}),owner_lead_id.in.(${leadFilter})`
         )
         .neq(
           "status",
@@ -748,7 +792,7 @@ export async function GET(
           updated_at
         `)
         .or(
-          `tenant_lead_id.eq.${leadId},owner_lead_id.eq.${leadId}`
+          `tenant_lead_id.in.(${leadFilter}),owner_lead_id.in.(${leadFilter})`
         )
         .order(
           "created_at",
@@ -799,7 +843,7 @@ export async function GET(
           activated_at
         `)
         .or(
-          `tenant_lead_id.eq.${leadId},owner_lead_id.eq.${leadId}`
+          `tenant_lead_id.in.(${leadFilter}),owner_lead_id.in.(${leadFilter})`
         )
         .order(
           "created_at",
@@ -835,9 +879,10 @@ export async function GET(
               (
                 match
               ) =>
-                match
-                  .tenant_lead_id ===
-                leadId
+                leadIdSet.has(
+                  match
+                    .tenant_lead_id
+                )
                   ? match
                       .owner_lead_id
                   : match
@@ -937,14 +982,15 @@ export async function GET(
             "tenant_matches_access_tokens"
           )
           .select(`
+            tenant_lead_id,
             token,
             expires_at,
             revoked_at,
             created_at
           `)
-          .eq(
+          .in(
             "tenant_lead_id",
-            leadId
+            leadIds
           )
           .is(
             "revoked_at",
@@ -964,14 +1010,15 @@ export async function GET(
             "owner_candidates_access_tokens"
           )
           .select(`
+            owner_lead_id,
             token,
             expires_at,
             revoked_at,
             created_at
           `)
-          .eq(
+          .in(
             "owner_lead_id",
-            leadId
+            leadIds
           )
           .is(
             "revoked_at",
@@ -999,9 +1046,9 @@ export async function GET(
             revoked_at,
             created_at
           `)
-          .eq(
+          .in(
             "lead_id",
-            leadId
+            leadIds
           )
           .is(
             "revoked_at",
@@ -1046,33 +1093,73 @@ export async function GET(
       )
     }
 
-    const tenantToken =
-      (
-        tenantTokenResult
-          .data ||
-        []
-      ).find(
-        (
-          item
-        ) =>
-          !isExpired(
-            item.expires_at
-          )
-      )
+    const tenantTokenByLeadId =
+      new Map<
+        string,
+        {
+          token: string
+        }
+      >()
 
-    const ownerToken =
-      (
-        ownerTokenResult
-          .data ||
-        []
-      ).find(
-        (
-          item
-        ) =>
-          !isExpired(
-            item.expires_at
-          )
+    for (
+      const item of
+      tenantTokenResult
+        .data ||
+      []
+    ) {
+      if (
+        isExpired(
+          item.expires_at
+        ) ||
+        tenantTokenByLeadId.has(
+          item.tenant_lead_id
+        )
+      ) {
+        continue
+      }
+
+      tenantTokenByLeadId.set(
+        item.tenant_lead_id,
+        {
+          token:
+            item.token,
+        }
       )
+    }
+
+    const ownerTokenByLeadId =
+      new Map<
+        string,
+        {
+          token: string
+        }
+      >()
+
+    for (
+      const item of
+      ownerTokenResult
+        .data ||
+      []
+    ) {
+      if (
+        isExpired(
+          item.expires_at
+        ) ||
+        ownerTokenByLeadId.has(
+          item.owner_lead_id
+        )
+      ) {
+        continue
+      }
+
+      ownerTokenByLeadId.set(
+        item.owner_lead_id,
+        {
+          token:
+            item.token,
+        }
+      )
+    }
 
     const contractTokenMap =
       new Map<
@@ -1134,11 +1221,20 @@ export async function GET(
           const role:
             "tenant" |
             "owner" =
-            match
-              .tenant_lead_id ===
-            leadId
+            leadIdSet.has(
+              match
+                .tenant_lead_id
+            )
               ? "tenant"
               : "owner"
+
+          const ownLeadId =
+            role ===
+            "tenant"
+              ? match
+                  .tenant_lead_id
+              : match
+                  .owner_lead_id
 
           const counterpartId =
             role ===
@@ -1207,18 +1303,34 @@ export async function GET(
             }
           } else if (
             role ===
-              "tenant" &&
-            tenantToken
+            "tenant"
           ) {
-            actionUrl =
-              `/matches/${tenantToken.token}`
+            const tenantToken =
+              tenantTokenByLeadId.get(
+                ownLeadId
+              )
+
+            if (
+              tenantToken
+            ) {
+              actionUrl =
+                `/matches/${tenantToken.token}`
+            }
           } else if (
             role ===
-              "owner" &&
-            ownerToken
+            "owner"
           ) {
-            actionUrl =
-              `/candidatos/${ownerToken.token}`
+            const ownerToken =
+              ownerTokenByLeadId.get(
+                ownLeadId
+              )
+
+            if (
+              ownerToken
+            ) {
+              actionUrl =
+                `/candidatos/${ownerToken.token}`
+            }
           }
 
           return {
@@ -1342,7 +1454,13 @@ export async function GET(
 
         role:
           lead.role,
+
+        lead_ids:
+          leadIds,
       },
+
+      intakes:
+        leads,
 
       intake: {
         id:
