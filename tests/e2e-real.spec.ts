@@ -72,6 +72,293 @@ test(
 )
 
 test(
+  "Mismo owner puede publicar dos propiedades y ambas matchean al mismo tenant",
+  async ({ request }) => {
+    const id =
+      Date.now().toString()
+
+    const ownerEmail =
+      `multi-owner-${id}@example.com`
+
+    const tenantEmail =
+      `multi-tenant-${id}@example.com`
+
+    const ownerPayload = {
+      full_name:
+        "Owner Multi E2E",
+
+      email:
+        ownerEmail,
+
+      phone:
+        "1133333333",
+
+      role:
+        "owner",
+
+      intent:
+        "owner_new_listing",
+
+      zone:
+        "Munro",
+
+      area_macro:
+        "owner_landing",
+
+      neighborhood_labels:
+        [
+          "Munro",
+        ],
+
+      neighborhood_slugs:
+        [
+          "munro",
+        ],
+
+      neighborhood_slug:
+        "munro",
+
+      property_type:
+        "Departamento",
+
+      property_rooms:
+        "2 ambientes",
+
+      approx_price:
+        "700001-900000",
+
+      availability_status:
+        "En 1 a 3 meses",
+
+      accepted_income_proof_types:
+        [
+          "salary_receipt",
+        ],
+
+      min_income_ratio:
+        2,
+
+      accepted_guarantee_types:
+        [
+          "surety_insurance",
+        ],
+
+      source:
+        "e2e_multi_property",
+    }
+
+    const firstOwnerResponse =
+      await request.post(
+        "/api/lead-intake",
+        {
+          data:
+            ownerPayload,
+        }
+      )
+
+    expect(
+      firstOwnerResponse.status()
+    ).toBe(200)
+
+    const firstOwner =
+      await firstOwnerResponse.json()
+
+    expect(
+      firstOwner?.ok
+    ).toBe(true)
+
+    expect(
+      firstOwner?.lead_id
+    ).toBeTruthy()
+
+    const tenantResponse =
+      await request.post(
+        "/api/lead-intake",
+        {
+          data: {
+            full_name:
+              "Tenant Multi E2E",
+
+            email:
+              tenantEmail,
+
+            phone:
+              "1144444444",
+
+            role:
+              "tenant",
+
+            intent:
+              "tenant_search",
+
+            zone:
+              "Munro",
+
+            area_macro:
+              "gba_norte",
+
+            neighborhood_labels:
+              [
+                "Munro",
+              ],
+
+            neighborhood_slugs:
+              [
+                "munro",
+              ],
+
+            desired_property_type:
+              "Departamento",
+
+            desired_rooms:
+              "2 ambientes",
+
+            budget_range:
+              "700001-900000",
+
+            move_timing:
+              "En 1 a 3 meses",
+
+            income_proof_type:
+              "salary_receipt",
+
+            income_range:
+              "2000001-3000000",
+
+            guarantee_types:
+              [
+                "surety_insurance",
+              ],
+
+            source:
+              "e2e_multi_property",
+          },
+        }
+      )
+
+    expect(
+      tenantResponse.status()
+    ).toBe(200)
+
+    const tenant =
+      await tenantResponse.json()
+
+    expect(
+      tenant?.ok
+    ).toBe(true)
+
+    expect(
+      Number(
+        tenant?.match_result?.created ||
+        0
+      )
+    ).toBeGreaterThanOrEqual(1)
+
+    const secondOwnerResponse =
+      await request.post(
+        "/api/lead-intake",
+        {
+          data: {
+            ...ownerPayload,
+
+            // Mismo usuario, otra propiedad.
+            // La identidad inmobiliaria debe ser distinta.
+            metadata: {
+              e2e_property:
+                "second",
+            },
+          },
+        }
+      )
+
+    expect(
+      secondOwnerResponse.status()
+    ).toBe(200)
+
+    const secondOwner =
+      await secondOwnerResponse.json()
+
+    expect(
+      secondOwner?.ok
+    ).toBe(true)
+
+    expect(
+      secondOwner?.lead_id
+    ).toBeTruthy()
+
+    expect(
+      secondOwner.lead_id
+    ).not.toBe(
+      firstOwner.lead_id
+    )
+
+    expect(
+      Number(
+        secondOwner?.match_result?.created ||
+        0
+      )
+    ).toBeGreaterThanOrEqual(1)
+
+    const tokenResponse =
+      await request.post(
+        "/api/tenant-matches-token",
+        {
+          data: {
+            tenant_lead_id:
+              tenant.lead_id,
+          },
+        }
+      )
+
+    expect(
+      tokenResponse.status()
+    ).toBe(200)
+
+    const tokenData =
+      await tokenResponse.json()
+
+    const viewResponse =
+      await request.get(
+        `/api/tenant-matches-view?token=${encodeURIComponent(
+          tokenData.token
+        )}`
+      )
+
+    expect(
+      viewResponse.status()
+    ).toBe(200)
+
+    const viewData =
+      await viewResponse.json()
+
+    const ownerLeadIds =
+      new Set(
+        (
+          viewData.matches ||
+          []
+        ).map(
+          (
+            match: any
+          ) =>
+            match.owner_lead_id
+        )
+      )
+
+    expect(
+      ownerLeadIds.has(
+        firstOwner.lead_id
+      )
+    ).toBe(true)
+
+    expect(
+      ownerLeadIds.has(
+        secondOwner.lead_id
+      )
+    ).toBe(true)
+  }
+)
+
+test(
   "E2E REAL Verlo completo hasta alquiler activo",
   async ({ page, context, request }) => {
     test.setTimeout(240_000)
