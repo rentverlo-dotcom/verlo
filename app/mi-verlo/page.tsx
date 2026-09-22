@@ -676,6 +676,185 @@ const styles = `
       );
   }
 
+  .mv-how {
+    margin-top:
+      30px;
+
+    padding:
+      24px;
+
+    border-radius:
+      30px;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        0.76
+      );
+
+    border:
+      1px solid
+      rgba(
+        5,
+        0,
+        2,
+        0.08
+      );
+
+    box-shadow:
+      0 18px 50px
+      rgba(
+        5,
+        0,
+        2,
+        0.05
+      );
+  }
+
+  .mv-how h2 {
+    margin:
+      0;
+
+    font-size:
+      24px;
+
+    letter-spacing:
+      -0.035em;
+  }
+
+  .mv-how p {
+    margin:
+      10px 0 0;
+
+    color:
+      rgba(
+        5,
+        0,
+        2,
+        0.62
+      );
+
+    line-height:
+      1.5;
+
+    font-weight:
+      650;
+  }
+
+  .mv-how-flow {
+    margin-top:
+      18px;
+
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        5,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:
+      10px;
+  }
+
+  .mv-how-step {
+    padding:
+      15px;
+
+    border-radius:
+      19px;
+
+    background:
+      rgba(
+        242,
+        235,
+        236,
+        0.72
+      );
+
+    font-size:
+      13px;
+
+    line-height:
+      1.4;
+
+    font-weight:
+      800;
+  }
+
+  .mv-how-step b {
+    display:
+      block;
+
+    margin-bottom:
+      6px;
+
+    color:
+      var(--pink-dark);
+
+    font-size:
+      11px;
+
+    letter-spacing:
+      0.08em;
+
+    text-transform:
+      uppercase;
+  }
+
+  .mv-how-alert {
+    margin-top:
+      14px;
+
+    padding:
+      17px 18px;
+
+    border-radius:
+      20px;
+
+    background:
+      var(--black);
+
+    color:
+      white;
+  }
+
+  .mv-how-alert strong {
+    display:
+      block;
+
+    font-size:
+      16px;
+  }
+
+  .mv-how-alert span {
+    display:
+      block;
+
+    margin-top:
+      5px;
+
+    color:
+      rgba(
+        255,
+        255,
+        255,
+        0.76
+      );
+
+    font-size:
+      13px;
+
+    line-height:
+      1.45;
+  }
+
   .mv-section {
     margin-top:
       68px;
@@ -1499,6 +1678,11 @@ const styles = `
       grid-template-columns:
         1fr;
     }
+
+    .mv-how-flow {
+      grid-template-columns:
+        1fr;
+    }
   }
 `
 
@@ -2250,6 +2434,53 @@ export default function MiVerloPage() {
                     Alquileres
                   </span>
                 </div>
+              </div>
+            </section>
+
+            <section className="mv-how">
+              <h2>
+                Cómo funciona Verlo
+              </h2>
+
+              <p>
+                Verlo hace el trabajo entre cada paso: buscamos coincidencias, validamos antes de avanzar y acompañamos a las dos partes hasta el contrato.
+              </p>
+
+              <div className="mv-how-flow">
+                <div className="mv-how-step">
+                  <b>1 · Inicio</b>
+                  Publicás o buscás.
+                </div>
+
+                <div className="mv-how-step">
+                  <b>2 · Match</b>
+                  Verlo encuentra coincidencias compatibles.
+                </div>
+
+                <div className="mv-how-step">
+                  <b>3 · Validación</b>
+                  El inquilino muestra interés y completa su validación.
+                </div>
+
+                <div className="mv-how-step">
+                  <b>4 · Ambos avanzan</b>
+                  Se habilita el contacto, la visita y la confirmación.
+                </div>
+
+                <div className="mv-how-step">
+                  <b>5 · Contrato</b>
+                  Completan los datos finales, Verlo genera el contrato y ambas partes lo aceptan.
+                </div>
+              </div>
+
+              <div className="mv-how-alert">
+                <strong>
+                  Te avisamos nosotros
+                </strong>
+
+                <span>
+                  Cuando haya un match o cualquier avance importante, Verlo te avisa por notificación y por email. No hace falta que estés entrando todo el tiempo.
+                </span>
               </div>
             </section>
 
