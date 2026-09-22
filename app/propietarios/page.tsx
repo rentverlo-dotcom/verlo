@@ -366,37 +366,37 @@ async function uploadOwnerFileToR2(
 const DEMAND = [
   {
     neighborhood: "Belgrano",
-    leads: "+100",
+    leads: "+180",
     detail:
       "Búsquedas activas de inquilinos",
   },
   {
     neighborhood: "Palermo",
-    leads: "+100",
+    leads: "+240",
     detail:
       "Búsquedas activas de inquilinos",
   },
   {
     neighborhood: "Flores",
-    leads: "+100",
+    leads: "+120",
     detail:
       "Búsquedas activas de inquilinos",
   },
   {
     neighborhood: "Colegiales",
-    leads: "+100",
+    leads: "+95",
     detail:
       "Búsquedas activas de inquilinos",
   },
   {
     neighborhood: "Almagro",
-    leads: "+100",
+    leads: "+140",
     detail:
       "Búsquedas activas de inquilinos",
   },
   {
     neighborhood: "Caballito",
-    leads: "+100",
+    leads: "+170",
     detail:
       "Búsquedas activas de inquilinos",
   },
