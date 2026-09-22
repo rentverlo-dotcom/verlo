@@ -42,13 +42,51 @@ function clean(
  * - push / DB / contrato siguen funcionando igual.
  *
  * Env aceptadas:
- * - GHL_WHATSAPP_WEBHOOK_URL
+ * - GHL_PILOT_MATCH_WEBHOOK_URL
+ * - GHL_READY_TO_CONNECT_WEBHOOK_URL
+ * - GHL_WHATSAPP_WEBHOOK_URL (fallback)
  * - GHL_WEBHOOK_URL (fallback)
  */
 export async function sendWhatsApp(
   message: WhatsAppMessage
 ): Promise<WhatsAppResult> {
+  const eventType =
+    clean(
+      message.eventType ||
+      message.template
+    )
+
+  const pilotMatchEvents =
+    new Set([
+      "intake_received",
+      "match_created",
+      "tenant_verification_submitted",
+    ])
+
+  const readyToConnectEvents =
+    new Set([
+      "double_ok_1",
+      "ready_to_connect",
+    ])
+
   const webhookUrl =
+    (
+      readyToConnectEvents.has(
+        eventType
+      )
+        ? clean(
+            process.env
+              .GHL_READY_TO_CONNECT_WEBHOOK_URL
+          )
+        : pilotMatchEvents.has(
+            eventType
+          )
+          ? clean(
+              process.env
+                .GHL_PILOT_MATCH_WEBHOOK_URL
+            )
+          : ""
+    ) ||
     clean(
       process.env
         .GHL_WHATSAPP_WEBHOOK_URL
