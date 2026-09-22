@@ -72,6 +72,236 @@ test(
 )
 
 test(
+  "REGRESION: push no se activa solo y magic link usa el lead nuevo",
+  async ({ page, context, request }) => {
+    test.setTimeout(120_000)
+
+    await context.grantPermissions(
+      ["notifications"],
+      {
+        origin:
+          "https://verlo.lat",
+      }
+    )
+
+    const id =
+      Date.now().toString()
+
+    const email =
+      `push-regression-${id}@example.com`
+
+    const ownerPayload = {
+      full_name:
+        "Push Regression E2E",
+
+      email,
+
+      phone:
+        "1155555555",
+
+      role:
+        "owner",
+
+      intent:
+        "owner_new_listing",
+
+      zone:
+        "Munro",
+
+      area_macro:
+        "owner_landing",
+
+      neighborhood_labels:
+        [
+          "Munro",
+        ],
+
+      neighborhood_slugs:
+        [
+          "munro",
+        ],
+
+      neighborhood_slug:
+        "munro",
+
+      property_type:
+        "Departamento",
+
+      property_rooms:
+        "2 ambientes",
+
+      approx_price:
+        "700001-900000",
+
+      availability_status:
+        "En 1 a 3 meses",
+
+      accepted_income_proof_types:
+        [
+          "salary_receipt",
+        ],
+
+      min_income_ratio:
+        2,
+
+      accepted_guarantee_types:
+        [
+          "surety_insurance",
+        ],
+
+      source:
+        "e2e_push_regression",
+    }
+
+    const firstResponse =
+      await request.post(
+        "/api/lead-intake",
+        {
+          data:
+            ownerPayload,
+        }
+      )
+
+    expect(
+      firstResponse.status()
+    ).toBe(200)
+
+    const firstLead =
+      await firstResponse.json()
+
+    expect(
+      firstLead?.lead_id
+    ).toBeTruthy()
+
+    await page.goto(
+      `/success?role=owner&lead=${firstLead.lead_id}`,
+      {
+        waitUntil:
+          "domcontentloaded",
+      }
+    )
+
+    const pushButton =
+      page.locator(
+        ".push-wrap button"
+      )
+
+    // Tener permiso del navegador NO alcanza:
+    // sin click del usuario este lead no debe figurar activo.
+    await expect(
+      pushButton
+    ).toHaveText(
+      "Activar notificaciones"
+    )
+
+    await pushButton.click()
+
+    await expect(
+      pushButton
+    ).toHaveText(
+      "Notificaciones activadas",
+      {
+        timeout:
+          30_000,
+      }
+    )
+
+    const secondResponse =
+      await request.post(
+        "/api/lead-intake",
+        {
+          data: {
+            ...ownerPayload,
+
+            metadata: {
+              property:
+                "second",
+            },
+          },
+        }
+      )
+
+    expect(
+      secondResponse.status()
+    ).toBe(200)
+
+    const secondLead =
+      await secondResponse.json()
+
+    expect(
+      secondLead?.lead_id
+    ).toBeTruthy()
+
+    expect(
+      secondLead.lead_id
+    ).not.toBe(
+      firstLead.lead_id
+    )
+
+    await page.goto(
+      `/success?role=owner&lead=${secondLead.lead_id}`,
+      {
+        waitUntil:
+          "domcontentloaded",
+      }
+    )
+
+    const secondPushButton =
+      page.locator(
+        ".push-wrap button"
+      )
+
+    // Una subscription anterior tampoco debe auto-vincular
+    // este nuevo lead.
+    await expect(
+      secondPushButton
+    ).toHaveText(
+      "Activar notificaciones"
+    )
+
+    const magicResponse =
+      await request.post(
+        "/api/auth/activate-lead",
+        {
+          data: {
+            lead_id:
+              secondLead.lead_id,
+          },
+        }
+      )
+
+    const magicData =
+      await magicResponse.json()
+
+    expect(
+      magicResponse.status()
+    ).toBe(200)
+
+    expect(
+      magicData?.ok
+    ).toBe(true)
+
+    expect(
+      magicData?.lead_id
+    ).toBe(
+      secondLead.lead_id
+    )
+
+    await secondPushButton.click()
+
+    await expect(
+      secondPushButton
+    ).toHaveText(
+      "Notificaciones activadas",
+      {
+        timeout:
+          30_000,
+      }
+    )
+  }
+)
+
+test(
   "Mismo owner puede publicar dos propiedades y ambas matchean al mismo tenant",
   async ({ request }) => {
     const id =
