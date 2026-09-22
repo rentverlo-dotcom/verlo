@@ -1130,12 +1130,12 @@ export default function SuccessPage() {
 
                       <div className="step-content">
                         <h2>
-                          Instalá Verlo en tu celular
+                          Instalá Verlo en este dispositivo.
                         </h2>
 
                         <p>
-                          Consejo: no ocupa prácticamente lugar
-                          en tu celular y vas a tener el ícono de
+                          Consejo: no ocupa prácticamente espacio
+                          en tu memoria y vas a tener el ícono de
                           Verlo en tu pantalla para entrar y operar
                           más rápido.
                         </p>
