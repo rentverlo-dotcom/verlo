@@ -29,12 +29,6 @@ type BeforeInstallPromptEvent =
     }>
   }
 
-const PUSH_LEAD_STORAGE_KEY =
-  "verlo_push_lead_id"
-
-const PUSH_ROLE_STORAGE_KEY =
-  "verlo_push_role"
-
 const PWA_RESUME_URL_STORAGE_KEY =
   "verlo_pwa_resume_url"
 
@@ -704,27 +698,14 @@ export default function SuccessPage() {
 
       try {
         if (
-          leadId
+          leadId &&
+          appleMobile &&
+          !isStandalone
         ) {
           window.localStorage.setItem(
-            PUSH_LEAD_STORAGE_KEY,
-            leadId
+            PWA_RESUME_URL_STORAGE_KEY,
+            `${window.location.pathname}${window.location.search}`
           )
-
-          window.localStorage.setItem(
-            PUSH_ROLE_STORAGE_KEY,
-            role
-          )
-
-          if (
-            appleMobile &&
-            !isStandalone
-          ) {
-            window.localStorage.setItem(
-              PWA_RESUME_URL_STORAGE_KEY,
-              `${window.location.pathname}${window.location.search}`
-            )
-          }
         }
       } catch (
         error
