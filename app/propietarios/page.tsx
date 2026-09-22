@@ -1409,11 +1409,11 @@ export default function PropietariosPage() {
             </p>
 
             <h2>
-              El propietario deja los datos principales. Verlo hace el resto.
+              Así funciona Verlo, de la publicación al contrato.
             </h2>
 
             <p>
-              No publicás tu dirección exacta y no pagás nada. Cargás los datos principales para que podamos revisar compatibilidad con búsquedas activas.
+              Cargás los datos principales de tu propiedad y Verlo se ocupa de buscar coincidencias, validar a los interesados y acompañar el proceso hasta el contrato. No publicamos tu dirección exacta y el propietario no paga nada.
             </p>
           </div>
 
@@ -1424,11 +1424,11 @@ export default function PropietariosPage() {
               </b>
 
               <h3>
-                Cargás la propiedad
+                Publicás
               </h3>
 
               <p>
-                Barrio, tipo, ambientes, precio estimado, disponibilidad y fotos o videos.
+                Cargás barrio, tipo, ambientes, precio estimado, disponibilidad y fotos o videos.
               </p>
             </article>
 
@@ -1438,11 +1438,11 @@ export default function PropietariosPage() {
               </b>
 
               <h3>
-                Revisamos compatibilidad
+                Verlo hace el match
               </h3>
 
               <p>
-                Cruzamos tu propiedad con búsquedas activas de inquilinos que quieren alquilar directo.
+                Buscamos coincidencias compatibles entre tu propiedad y personas que están buscando alquilar.
               </p>
             </article>
 
@@ -1452,11 +1452,11 @@ export default function PropietariosPage() {
               </b>
 
               <h3>
-                Seguimos si hay compatibilidad
+                Validamos antes de molestarte
               </h3>
 
               <p>
-                Si hay match, te avisamos y podés volver a agregar más fotos, videos e información de la propiedad.
+                El inquilino muestra interés y completa su validación antes de que tengas que intervenir.
               </p>
             </article>
 
@@ -1466,13 +1466,37 @@ export default function PropietariosPage() {
               </b>
 
               <h3>
-                Verlo coordina hasta contrato
+                Si ambos quieren seguir, avanzan
               </h3>
 
               <p>
-                Si aparece interés real, completamos lo necesario y avanzamos con validación, coordinación, contrato y firma.
+                Se habilita el contacto, coordinan la visita y después ambos confirman si quieren continuar.
               </p>
             </article>
+
+            <article>
+              <b>
+                5
+              </b>
+
+              <h3>
+                Verlo genera el contrato
+              </h3>
+
+              <p>
+                Completan los datos finales, Verlo genera el contrato y ambas partes lo aceptan.
+              </p>
+            </article>
+          </div>
+
+          <div className="process-alert">
+            <strong>
+              Te avisamos nosotros
+            </strong>
+
+            <span>
+              Cuando haya un nuevo match o cualquier avance importante, Verlo te avisa por notificación y por email. No hace falta que estés entrando todo el tiempo. Si no ves nuestro email, revisá también Spam o Promociones.
+            </span>
           </div>
         </div>
       </section>
@@ -2240,7 +2264,7 @@ const styles = `
 
   .steps-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 14px;
   }
 
@@ -2268,6 +2292,28 @@ const styles = `
     margin: 14px 0 0;
     color: rgba(5,0,2,.62);
     line-height: 1.45;
+  }
+
+  .process-alert {
+    margin-top: 16px;
+    padding: 22px 24px;
+    border-radius: 26px;
+    background: var(--black);
+    color: white;
+    display: grid;
+    gap: 7px;
+  }
+
+  .process-alert strong {
+    font-size: 20px;
+    font-weight: 950;
+    letter-spacing: -.03em;
+  }
+
+  .process-alert span {
+    color: rgba(255,255,255,.78);
+    line-height: 1.45;
+    font-weight: 700;
   }
 
   .form-section {
