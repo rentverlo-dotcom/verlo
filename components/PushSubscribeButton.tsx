@@ -374,11 +374,6 @@ export default function PushSubscribeButton({
 
       async function checkPush() {
         try {
-          savePushIdentity(
-            leadId,
-            role
-          )
-
           if (
             typeof window ===
               'undefined'
@@ -412,14 +407,11 @@ export default function PushSubscribeButton({
             iosLike &&
             !standalone
           ) {
-            if (
-              !cancelled
-            ) {
+            if (!cancelled) {
               setStatus(
                 'install_required'
               )
             }
-
             return
           }
 
@@ -437,37 +429,34 @@ export default function PushSubscribeButton({
               in window
             )
           ) {
-            if (
-              !cancelled
-            ) {
+            if (!cancelled) {
               setStatus(
                 'unsupported'
               )
             }
-
             return
           }
 
+          // IMPORTANTE:
+          // permiso del navegador != suscripción Verlo para este lead.
+          // Nunca registramos ni re-vinculamos automáticamente.
           if (
             Notification
               .permission !==
             'granted'
           ) {
-            if (
-              !cancelled
-            ) {
+            if (!cancelled) {
               setStatus(
                 'idle'
               )
             }
-
             return
           }
 
           const registration =
             await getRegistration()
 
-          let subscription =
+          const subscription =
             await registration
               .pushManager
               .getSubscription()
@@ -475,23 +464,11 @@ export default function PushSubscribeButton({
           if (
             !subscription
           ) {
-            subscription =
-              await createSubscription(
-                registration
-              )
-
-            await registerSubscription(
-              subscription
-            )
-
-            if (
-              !cancelled
-            ) {
+            if (!cancelled) {
               setStatus(
-                'success'
+                'idle'
               )
             }
-
             return
           }
 
@@ -500,48 +477,24 @@ export default function PushSubscribeButton({
               subscription
             )
 
-          if (
-            cancelled
-          ) {
-            return
-          }
-
-          if (
-            !active
-          ) {
-            await subscription
-              .unsubscribe()
-
-            subscription =
-              await createSubscription(
-                registration
-              )
-
-            await registerSubscription(
-              subscription
-            )
-          }
-
-          if (
-            !cancelled
-          ) {
+          if (!cancelled) {
             setStatus(
-              'success'
+              active
+                ? 'success'
+                : 'idle'
             )
           }
         } catch (
           error
         ) {
           console.error(
-            'push health check error:',
+            'push status check error:',
             error
           )
 
-          if (
-            !cancelled
-          ) {
+          if (!cancelled) {
             setStatus(
-              'error'
+              'idle'
             )
           }
         }
