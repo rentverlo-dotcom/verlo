@@ -7,6 +7,10 @@ import {
   useState,
 } from "react"
 import VerloBrand from "@/components/VerloBrand"
+import {
+  identifyPostHog,
+  trackPostHog,
+} from "@/lib/posthog-client"
 
 const CONTACT_HREF =
   "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
@@ -2809,6 +2813,44 @@ if (honeypot) {
           }
         ).catch(
           () => null
+        )
+      }
+
+      if (
+        payload.role ===
+          "tenant" ||
+        payload.role ===
+          "owner"
+      ) {
+        identifyPostHog(
+          leadId,
+          {
+            role:
+              payload.role,
+
+            intent:
+              payload.intent,
+          }
+        )
+
+        trackPostHog(
+          payload.role ===
+            "tenant"
+            ? "tenant_form_submitted"
+            : "owner_form_submitted",
+          {
+            lead_id:
+              leadId,
+
+            role:
+              payload.role,
+
+            intent:
+              payload.intent,
+
+            source:
+              "verlo_home",
+          }
         )
       }
 
