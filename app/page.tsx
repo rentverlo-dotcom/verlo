@@ -2852,6 +2852,19 @@ if (honeypot) {
               "verlo_home",
           }
         )
+
+        if (
+          payload.role ===
+            "owner"
+        ) {
+          await new Promise(
+            (resolve) =>
+              window.setTimeout(
+                resolve,
+                250
+              )
+          )
+        }
       }
 
       trackMetaLead(
