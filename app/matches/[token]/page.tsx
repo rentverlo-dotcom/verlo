@@ -11,6 +11,7 @@ import {
 } from "next/navigation"
 
 import VerloBrand from "@/components/VerloBrand"
+import { trackPostHog } from "@/lib/posthog-client"
 
 type MediaItem = {
   id: string
@@ -382,9 +383,34 @@ export default function MatchesPage() {
 
   useEffect(() => {
     async function initialLoad() {
-      await loadMatches(
-        true
-      )
+      const loadedData =
+        await loadMatches(
+          true
+        )
+
+      if (
+        loadedData
+      ) {
+        loadedData.matches.forEach(
+          (
+            match
+          ) => {
+            trackPostHog(
+              "match_viewed",
+              {
+                match_id:
+                  match.id,
+
+                tenant_lead_id:
+                  loadedData.tenant.id,
+
+                score:
+                  match.score,
+              }
+            )
+          }
+        )
+      }
     }
 
     if (token) {
@@ -496,6 +522,18 @@ export default function MatchesPage() {
               "No pudimos registrar tu interés."
           )
         }
+
+        trackPostHog(
+          "tenant_interest_sent",
+          {
+            match_id:
+              matchId,
+
+            tenant_lead_id:
+              data?.tenant.id ||
+              null,
+          }
+        )
 
         results.push(
           json
