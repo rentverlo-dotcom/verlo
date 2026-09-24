@@ -617,6 +617,74 @@ export async function notifyLeadOnce(
       )
     }
 
+
+        const leadRole =
+      lead?.role ===
+        "owner" ||
+      lead?.role ===
+        "tenant"
+        ? lead.role
+        : undefined
+
+    let verloMatchCount =
+      0
+
+    if (
+      leadRole
+    ) {
+      const matchColumn =
+        leadRole ===
+          "owner"
+          ? "owner_lead_id"
+          : "tenant_lead_id"
+
+      const {
+        count:
+          matchCount,
+        error:
+          matchCountError,
+      } =
+        await supabaseAdmin
+          .from(
+            "lead_matches"
+          )
+          .select(
+            "id",
+            {
+              count:
+                "exact",
+              head:
+                true,
+            }
+          )
+          .eq(
+            matchColumn,
+            leadId
+          )
+
+      if (
+        matchCountError
+      ) {
+        console.error(
+          "whatsapp match count error:",
+          {
+            eventKey,
+            leadId,
+            role:
+              leadRole,
+            error:
+              matchCountError,
+          }
+        )
+      } else {
+        verloMatchCount =
+          Number(
+            matchCount ||
+            0
+          )
+      }
+    }
+
     const whatsappPromise =
       sendWhatsApp({
         to:
@@ -626,13 +694,14 @@ export async function notifyLeadOnce(
           ) ||
           undefined,
 
-        role:
-          lead?.role ===
-            "owner" ||
-          lead?.role ===
-            "tenant"
-            ? lead.role
-            : undefined,
+              role:
+          leadRole,
+
+        matchCount:
+          verloMatchCount,
+
+        matchesUrl:
+          url,
 
         template:
           eventType,
