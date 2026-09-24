@@ -3399,9 +3399,281 @@ const createdMatchIds =
         )
     : []
 
+// =========================================================
+// MATCH CREATED — UNA NOTIFICACIÓN POR PERSONA Y POR CORRIDA
+//
+// Un tenant puede tener:
+// - varios matches creados en la misma corrida;
+// - varias búsquedas históricas con el mismo teléfono/email.
+//
+// No enviamos un email/push/WhatsApp por cada fila de match.
+// Elegimos un match representativo por identidad del tenant y
+// notificamos una sola vez. El enlace sigue siendo privado y
+// apunta al listado de matches de la búsqueda elegida.
+// =========================================================
+
+let notificationMatchIds =
+  createdMatchIds
+
+if (
+  createdMatchIds.length >
+  0
+) {
+  try {
+    const {
+      data:
+        createdMatches,
+      error:
+        createdMatchesError,
+    } =
+      await supabaseAdmin
+        .from(
+          "lead_matches"
+        )
+        .select(
+          "id, tenant_lead_id"
+        )
+        .in(
+          "id",
+          createdMatchIds
+        )
+
+    if (
+      createdMatchesError
+    ) {
+      throw createdMatchesError
+    }
+
+    const tenantLeadIds =
+      Array.from(
+        new Set(
+          (
+            createdMatches ||
+            []
+          )
+            .map(
+              (
+                match: any
+              ) =>
+                clean(
+                  match
+                    .tenant_lead_id
+                )
+            )
+            .filter(
+              Boolean
+            )
+        )
+      )
+
+    const {
+      data:
+        tenantIdentityRows,
+      error:
+        tenantIdentityError,
+    } =
+      tenantLeadIds.length >
+      0
+        ? await supabaseAdmin
+            .from(
+              "lead_intake"
+            )
+            .select(
+              "id, email, phone_normalized, created_at"
+            )
+            .in(
+              "id",
+              tenantLeadIds
+            )
+        : {
+            data: [],
+            error: null,
+          }
+
+    if (
+      tenantIdentityError
+    ) {
+      throw tenantIdentityError
+    }
+
+    const tenantIdentityById =
+      new Map<
+        string,
+        {
+          identity: string
+          createdAt: number
+        }
+      >()
+
+    for (
+      const tenantRow
+      of tenantIdentityRows ||
+      []
+    ) {
+      const tenantId =
+        clean(
+          tenantRow.id
+        )
+
+      const phoneKey =
+        clean(
+          tenantRow
+            .phone_normalized
+        )
+
+      const emailKey =
+        clean(
+          tenantRow.email
+        )
+          .toLowerCase()
+
+      const identity =
+        phoneKey
+          ? `phone:${phoneKey}`
+          : emailKey
+            ? `email:${emailKey}`
+            : `lead:${tenantId}`
+
+      const createdAt =
+        new Date(
+          tenantRow
+            .created_at ||
+          0
+        ).getTime()
+
+      tenantIdentityById.set(
+        tenantId,
+        {
+          identity,
+          createdAt:
+            Number.isFinite(
+              createdAt
+            )
+              ? createdAt
+              : 0,
+        }
+      )
+    }
+
+    const orderedMatches =
+      [
+        ...(
+          createdMatches ||
+          []
+        ),
+      ].sort(
+        (
+          a: any,
+          b: any
+        ) => {
+          const aTenantId =
+            clean(
+              a
+                .tenant_lead_id
+            )
+
+          const bTenantId =
+            clean(
+              b
+                .tenant_lead_id
+            )
+
+          return (
+            (
+              tenantIdentityById
+                .get(
+                  bTenantId
+                )
+                ?.createdAt ||
+              0
+            ) -
+            (
+              tenantIdentityById
+                .get(
+                  aTenantId
+                )
+                ?.createdAt ||
+              0
+            )
+          )
+        }
+      )
+
+    const seenTenantIdentities =
+      new Set<string>()
+
+    notificationMatchIds =
+      orderedMatches
+        .filter(
+          (
+            match: any
+          ) => {
+            const tenantId =
+              clean(
+                match
+                  .tenant_lead_id
+              )
+
+            const identity =
+              tenantIdentityById
+                .get(
+                  tenantId
+                )
+                ?.identity ||
+              `lead:${tenantId}`
+
+            if (
+              seenTenantIdentities
+                .has(
+                  identity
+                )
+            ) {
+              return false
+            }
+
+            seenTenantIdentities
+              .add(
+                identity
+              )
+
+            return true
+          }
+        )
+        .map(
+          (
+            match: any
+          ) =>
+            clean(
+              match.id
+            )
+        )
+        .filter(
+          Boolean
+        )
+
+    console.log(
+      "match-created notification aggregation:",
+      {
+        matches_created:
+          createdMatchIds.length,
+
+        notifications_to_send:
+          notificationMatchIds.length,
+      }
+    )
+  } catch (
+    aggregationError
+  ) {
+    console.error(
+      "match-created notification aggregation error:",
+      aggregationError
+    )
+  }
+}
+
 for (
   const matchId
-  of createdMatchIds
+  of notificationMatchIds
 ) {
   try {
     const result =
