@@ -10,6 +10,8 @@ type WhatsAppMessage = {
   title?: string
   body?: string
   url?: string
+  matchCount?: number
+  matchesUrl?: string
 }
 
 type WhatsAppResult = {
@@ -141,6 +143,18 @@ export async function sendWhatsApp(
 
               source:
                 "verlo",
+                            verlo_match_count:
+                Number(
+                  message.matchCount ||
+                  0
+                ),
+
+              verlo_matches_url:
+                clean(
+                  message.matchesUrl ||
+                  message.url
+                ) ||
+                null,
 
               to:
                 clean(
