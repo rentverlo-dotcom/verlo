@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    async function sendRecipient(recipient: string, role: Role, leadId: string) {
+    const sendRecipient = async (recipient: string, role: Role, leadId: string) => {
       try {
         const column = role === 'tenant' ? 'tenant_lead_id' : 'owner_lead_id'
         const { count, error } = await supabaseAdmin
