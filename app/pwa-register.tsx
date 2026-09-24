@@ -130,8 +130,12 @@ export default function PwaRegister() {
                   ?.trim() ||
                 ''
 
+              // Only restore the saved page when the app starts at its
+              // home screen. A push deep link must keep its own target.
               if (
-                resumeUrl
+                resumeUrl &&
+                window.location.pathname === '/' &&
+                !window.location.search
               ) {
                 const currentUrl =
                   `${window.location.pathname}${window.location.search}`
@@ -153,6 +157,11 @@ export default function PwaRegister() {
                   return
                 }
 
+                window.localStorage
+                  .removeItem(
+                    PWA_RESUME_URL_STORAGE_KEY
+                  )
+              } else if (resumeUrl) {
                 window.localStorage
                   .removeItem(
                     PWA_RESUME_URL_STORAGE_KEY

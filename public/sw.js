@@ -106,11 +106,6 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(
     (async () => {
-      await sendPushAck(
-        deliveryId,
-        "delivered"
-      )
-
       await self.registration
         .showNotification(
           title,
@@ -128,8 +123,6 @@ self.addEventListener("push", (event) => {
 self.addEventListener(
   "notificationclick",
   (event) => {
-    event.notification.close()
-
     event.waitUntil(
       (async () => {
         const deliveryId =
@@ -151,6 +144,22 @@ self.addEventListener(
             throw new Error("Invalid push destination")
           }
 
+          // Let the browser open the push destination directly (including
+          // an installed PWA). Reuse a tab only if that is unavailable.
+          try {
+            const opened =
+              await clients.openWindow(destination.href)
+
+            if (opened) {
+              await opened.focus()
+              event.notification.close()
+              await sendPushAck(deliveryId, "clicked")
+              return
+            }
+          } catch (error) {
+            console.error("Push window opening failed", error)
+          }
+
           const clientList =
             await clients.matchAll({
               type: "window",
@@ -158,10 +167,7 @@ self.addEventListener(
             })
 
           for (const client of clientList) {
-            if (
-              new URL(client.url).origin !==
-              destination.origin
-            ) {
+            if (new URL(client.url).origin !== destination.origin) {
               continue
             }
 
@@ -171,32 +177,21 @@ self.addEventListener(
 
               if (navigated) {
                 await navigated.focus()
+                event.notification.close()
+                await sendPushAck(deliveryId, "clicked")
                 return
               }
             } catch (error) {
-              console.error(
-                "Push client navigation failed",
-                error
-              )
+              console.error("Push client navigation failed", error)
             }
           }
 
-          const opened =
-            await clients.openWindow(destination.href)
-
-          if (!opened) {
-            throw new Error("Could not open push destination")
-          }
-
-          await opened.focus()
+          throw new Error("Could not open push destination")
         } catch (error) {
           console.error(
             "Push notification click failed",
             error
           )
-        } finally {
-          // Recording a click must never delay opening its destination.
-          await sendPushAck(deliveryId, "clicked")
         }
       })()
     )

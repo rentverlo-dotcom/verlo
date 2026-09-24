@@ -9,7 +9,7 @@ const script = fs.readFileSync(
   'utf8'
 )
 
-async function clickNotification({ windows, ack }) {
+async function clickNotification({ windows, ack, openWindow }) {
   const handlers = new Map()
   const calls = []
   const context = {
@@ -23,6 +23,7 @@ async function clickNotification({ windows, ack }) {
       async matchAll() { return windows },
       async openWindow(url) {
         calls.push(['open', url])
+        if (openWindow) return openWindow(calls)
         return { async focus() { calls.push(['focus opened']) } }
       },
     },
@@ -47,19 +48,33 @@ async function clickNotification({ windows, ack }) {
 test('push click opens its private link before sending the ACK', async () => {
   const calls = await clickNotification({ windows: [], ack: {} })
   assert.deepEqual(calls.map(([name]) => name), [
-    'close', 'open', 'focus opened', 'ack',
+    'open', 'focus opened', 'close', 'ack',
   ])
-  assert.equal(calls[1][1], 'https://verlo.lat/matches/private-token')
+  assert.equal(calls[0][1], 'https://verlo.lat/matches/private-token')
 })
 
-test('push click falls back when an existing tab cannot navigate', async () => {
+test('push click falls back to an existing tab when opening fails', async () => {
+  let navigatedTo
   const calls = await clickNotification({
     windows: [{
       url: 'https://verlo.lat/',
-      async navigate() { return null },
+      async navigate(url) {
+        navigatedTo = url
+        return { async focus() {} }
+      },
     }],
     ack: {},
+    openWindow: () => null,
   })
-  assert.equal(calls.find(([name]) => name === 'open')[1],
-    'https://verlo.lat/matches/private-token')
+  assert.equal(navigatedTo, 'https://verlo.lat/matches/private-token')
+  assert.deepEqual(calls.map(([name]) => name), ['open', 'close', 'ack'])
+})
+
+test('failed navigation keeps the notification visible and does not claim a click', async () => {
+  const calls = await clickNotification({
+    windows: [],
+    ack: {},
+    openWindow: () => null,
+  })
+  assert.deepEqual(calls.map(([name]) => name), ['open'])
 })
