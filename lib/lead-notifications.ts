@@ -1399,10 +1399,12 @@ export async function notifyLeadOnce(
           ?.verlo_match_summary ??
         null,
 
-      verlo_match_role:
-        matchSummary
-          ?.verlo_match_role ??
-        leadRole ||
+          verlo_match_role:
+        (
+          matchSummary
+            ?.verlo_match_role ??
+          leadRole
+        ) ||
         null,
 
       verlo_match_updated_at:
