@@ -59,6 +59,10 @@ type NotificationEventRow = {
   updated_at: string
 }
 
+type LeadRole =
+  | "tenant"
+  | "owner"
+
 const EVENT_SELECT = `
   id,
   event_key,
@@ -84,6 +88,573 @@ function clean(
   return String(
     value || ""
   ).trim()
+}
+
+// ============================================================
+// GHL — TOKEN ACTIVO DE INQUILINO
+// ============================================================
+
+async function getTenantMatchesToken(
+  leadId: string
+) {
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabaseAdmin
+        .from(
+          "tenant_matches_access_tokens"
+        )
+        .select(
+          "token, expires_at, revoked_at, created_at"
+        )
+        .eq(
+          "tenant_lead_id",
+          leadId
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
+        .limit(1)
+        .maybeSingle()
+
+    if (
+      error
+    ) {
+      console.error(
+        "ghl tenant token lookup error:",
+        {
+          leadId,
+          error,
+        }
+      )
+
+      return null
+    }
+
+    if (
+      !data
+    ) {
+      return null
+    }
+
+    if (
+      data.expires_at &&
+      new Date(
+        data.expires_at
+      ).getTime() <=
+        Date.now()
+    ) {
+      return null
+    }
+
+    return clean(
+      data.token
+    ) ||
+    null
+  } catch (
+    error
+  ) {
+    console.error(
+      "ghl tenant token unexpected error:",
+      {
+        leadId,
+        error,
+      }
+    )
+
+    return null
+  }
+}
+
+// ============================================================
+// GHL — TOKEN ACTIVO DE PROPIETARIO
+// ============================================================
+
+async function getOwnerPropertyToken(
+  leadId: string
+) {
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabaseAdmin
+        .from(
+          "owner_property_access_tokens"
+        )
+        .select(
+          "token, expires_at, revoked_at, created_at"
+        )
+        .eq(
+          "owner_lead_id",
+          leadId
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
+        .limit(1)
+        .maybeSingle()
+
+    if (
+      error
+    ) {
+      console.error(
+        "ghl owner token lookup error:",
+        {
+          leadId,
+          error,
+        }
+      )
+
+      return null
+    }
+
+    if (
+      !data
+    ) {
+      return null
+    }
+
+    if (
+      data.expires_at &&
+      new Date(
+        data.expires_at
+      ).getTime() <=
+        Date.now()
+    ) {
+      return null
+    }
+
+    return clean(
+      data.token
+    ) ||
+    null
+  } catch (
+    error
+  ) {
+    console.error(
+      "ghl owner token unexpected error:",
+      {
+        leadId,
+        error,
+      }
+    )
+
+    return null
+  }
+}
+
+// ============================================================
+// GHL — RESUMEN DE MATCHES
+//
+// Mantiene los mismos nombres de campos que utilizaba
+// el workflow viejo de GoHighLevel.
+// ============================================================
+
+async function getGhlMatchSummary(
+  leadId: string,
+  role: LeadRole
+) {
+  const matchColumn =
+    role ===
+      "owner"
+      ? "owner_lead_id"
+      : "tenant_lead_id"
+
+  const {
+    data,
+    error,
+  } =
+    await supabaseAdmin
+      .from(
+        "lead_matches"
+      )
+      .select(`
+        id,
+        score,
+        income_proof_ok,
+        income_amount_ok,
+        guarantee_ok,
+        prequalified,
+        reasons,
+        tenant_lead_id,
+        owner_lead_id
+      `)
+      .eq(
+        matchColumn,
+        leadId
+      )
+      .order(
+        "score",
+        {
+          ascending:
+            false,
+        }
+      )
+
+  if (
+    error
+  ) {
+    console.error(
+      "ghl match summary error:",
+      {
+        leadId,
+        role,
+        error,
+      }
+    )
+
+    return {
+      verlo_match_count:
+        0,
+
+      verlo_match_100_count:
+        0,
+
+      verlo_match_80_count:
+        0,
+
+      verlo_best_match_score:
+        null,
+
+      verlo_best_zone:
+        null,
+
+      verlo_best_timing:
+        null,
+
+      verlo_best_property_type:
+        null,
+
+      verlo_best_rooms:
+        null,
+
+      verlo_best_price:
+        null,
+
+      verlo_best_matches_on:
+        null,
+
+      verlo_match_summary:
+        null,
+
+      verlo_match_role:
+        role,
+
+      verlo_match_updated_at:
+        new Date()
+          .toISOString(),
+    }
+  }
+
+  const matches =
+    data ||
+    []
+
+  const match100Count =
+    matches.filter(
+      (
+        match:
+          any
+      ) =>
+        Number(
+          match.score
+        ) ===
+        100
+    ).length
+
+  const match80Count =
+    matches.filter(
+      (
+        match:
+          any
+      ) =>
+        Number(
+          match.score
+        ) ===
+        80
+    ).length
+
+  const bestMatch =
+    matches[0] ||
+    null
+
+  const reasons =
+    bestMatch?.reasons &&
+    typeof bestMatch.reasons ===
+      "object"
+      ? bestMatch.reasons
+      : {}
+
+  const bestZone =
+    role ===
+      "owner"
+      ? reasons
+          ?.matched_tenant_neighborhood ||
+        reasons
+          ?.owner_neighborhood_slug ||
+        null
+      : reasons
+          ?.owner_neighborhood_slug ||
+        reasons
+          ?.matched_tenant_neighborhood ||
+        null
+
+  const bestTiming =
+    role ===
+      "owner"
+      ? reasons
+          ?.tenant_move_timing ||
+        null
+      : reasons
+          ?.owner_availability_status ||
+        null
+
+  const bestPropertyType =
+    role ===
+      "owner"
+      ? reasons
+          ?.tenant_type ||
+        null
+      : reasons
+          ?.owner_type ||
+        null
+
+  const bestRooms =
+    role ===
+      "owner"
+      ? reasons
+          ?.tenant_rooms ||
+        null
+      : reasons
+          ?.owner_rooms ||
+        null
+
+  const bestPrice =
+    role ===
+      "owner"
+      ? reasons
+          ?.tenant_budget_max ||
+        null
+      : reasons
+          ?.owner_price ||
+        null
+
+  const matchesOn:
+    string[] =
+    []
+
+  if (
+    reasons
+      ?.neighborhood_ok
+  ) {
+    matchesOn.push(
+      "zona"
+    )
+  }
+
+  if (
+    reasons
+      ?.type_ok
+  ) {
+    matchesOn.push(
+      "tipo de propiedad"
+    )
+  }
+
+  if (
+    reasons
+      ?.rooms_ok
+  ) {
+    matchesOn.push(
+      "ambientes"
+    )
+  }
+
+  if (
+    reasons
+      ?.price_ok
+  ) {
+    matchesOn.push(
+      "presupuesto"
+    )
+  }
+
+  if (
+    reasons
+      ?.time_ok
+  ) {
+    matchesOn.push(
+      "momento de mudanza"
+    )
+  }
+
+  if (
+    reasons
+      ?.income_proof_ok
+  ) {
+    matchesOn.push(
+      "demostración de ingresos"
+    )
+  }
+
+  if (
+    reasons
+      ?.income_amount_ok
+  ) {
+    matchesOn.push(
+      "nivel de ingresos"
+    )
+  }
+
+  if (
+    reasons
+      ?.guarantee_ok
+  ) {
+    matchesOn.push(
+      "garantía"
+    )
+  }
+
+  const summary =
+    matches.length >
+    0
+      ? `${matches.length} matches: ${match100Count} al 100% y ${match80Count} al 80%`
+      : "Todavía no encontramos matches activos"
+
+  return {
+    verlo_match_count:
+      matches.length,
+
+    verlo_match_100_count:
+      match100Count,
+
+    verlo_match_80_count:
+      match80Count,
+
+    verlo_best_match_score:
+      bestMatch
+        ? Number(
+            bestMatch.score
+          )
+        : null,
+
+    verlo_best_zone:
+      bestZone,
+
+    verlo_best_timing:
+      bestTiming,
+
+    verlo_best_property_type:
+      bestPropertyType,
+
+    verlo_best_rooms:
+      bestRooms,
+
+    verlo_best_price:
+      bestPrice,
+
+    verlo_best_matches_on:
+      matchesOn.length >
+      0
+        ? matchesOn.join(
+            ", "
+          )
+        : null,
+
+    verlo_match_summary:
+      summary,
+
+    verlo_match_role:
+      role,
+
+    verlo_match_updated_at:
+      new Date()
+        .toISOString(),
+  }
+}
+
+// ============================================================
+// GHL — TAGS LEGACY
+// ============================================================
+
+function getGhlTags(
+  role: LeadRole,
+  intent: string
+) {
+  const tags =
+    new Set<string>()
+
+  tags.add(
+    "verlo_lead"
+  )
+
+  if (
+    role ===
+    "tenant"
+  ) {
+    tags.add(
+      "verlo_tenant"
+    )
+  }
+
+  if (
+    role ===
+    "owner"
+  ) {
+    tags.add(
+      "verlo_owner"
+    )
+  }
+
+  if (
+    intent ===
+    "tenant_search"
+  ) {
+    tags.add(
+      "verlo_tenant_search"
+    )
+  }
+
+  if (
+    intent ===
+    "owner_new_listing"
+  ) {
+    tags.add(
+      "verlo_owner_new_listing"
+    )
+  }
+
+  if (
+    intent ===
+    "contract_renewal"
+  ) {
+    tags.add(
+      "verlo_contract_renewal"
+    )
+  }
+
+  return Array.from(
+    tags
+  )
 }
 
 // ============================================================
@@ -594,9 +1165,14 @@ export async function notifyLeadOnce(
         .from(
           "lead_intake"
         )
-        .select(
-          "phone_normalized, role"
-        )
+        .select(`
+          full_name,
+          email,
+          phone,
+          phone_normalized,
+          role,
+          intent
+        `)
         .eq(
           "id",
           leadId
@@ -617,91 +1193,257 @@ export async function notifyLeadOnce(
       )
     }
 
-
-        const leadRole =
+    const leadRole =
       lead?.role ===
         "owner" ||
       lead?.role ===
         "tenant"
-        ? lead.role
+        ? (
+            lead.role as
+              LeadRole
+          )
         : undefined
 
-    let verloMatchCount =
-      0
+    const leadIntent =
+      clean(
+        lead?.intent
+      )
+
+    let matchSummary:
+      Awaited<
+        ReturnType<
+          typeof getGhlMatchSummary
+        >
+      > |
+      null =
+      null
 
     if (
       leadRole
     ) {
-      const matchColumn =
-        leadRole ===
-          "owner"
-          ? "owner_lead_id"
-          : "tenant_lead_id"
-
-      const {
-        count:
-          matchCount,
-        error:
-          matchCountError,
-      } =
-        await supabaseAdmin
-          .from(
-            "lead_matches"
-          )
-          .select(
-            "id",
-            {
-              count:
-                "exact",
-              head:
-                true,
-            }
-          )
-          .eq(
-            matchColumn,
-            leadId
-          )
-
-      if (
-        matchCountError
-      ) {
-        console.error(
-          "whatsapp match count error:",
-          {
-            eventKey,
-            leadId,
-            role:
-              leadRole,
-            error:
-              matchCountError,
-          }
+      matchSummary =
+        await getGhlMatchSummary(
+          leadId,
+          leadRole
         )
-      } else {
-        verloMatchCount =
-          Number(
-            matchCount ||
-            0
+    }
+
+    let tenantMatchesToken:
+      string |
+      null =
+      null
+
+    let ownerPropertyToken:
+      string |
+      null =
+      null
+
+    if (
+      leadRole ===
+      "tenant"
+    ) {
+      tenantMatchesToken =
+        await getTenantMatchesToken(
+          leadId
+        )
+    }
+
+    if (
+      leadRole ===
+      "owner"
+    ) {
+      ownerPropertyToken =
+        await getOwnerPropertyToken(
+          leadId
+        )
+    }
+
+    const fullName =
+      clean(
+        lead?.full_name
+      )
+
+    const firstName =
+      fullName
+        .split(
+          /\s+/
+        )[0] ||
+      ""
+
+    const phone =
+      clean(
+        lead
+          ?.phone_normalized ||
+        lead
+          ?.phone
+      )
+
+    const matchesUrl =
+      tenantMatchesToken
+        ? `/matches/${tenantMatchesToken}`
+        : (
+            leadRole ===
+              "tenant" &&
+            url.startsWith(
+              "/matches/"
+            )
+              ? url
+              : null
           )
-      }
+
+    const propertyUrl =
+      ownerPropertyToken
+        ? `/propiedad/${ownerPropertyToken}`
+        : (
+            leadRole ===
+              "owner" &&
+            url.startsWith(
+              "/propiedad/"
+            )
+              ? url
+              : null
+          )
+
+    const tags =
+      leadRole
+        ? getGhlTags(
+            leadRole,
+            leadIntent
+          )
+        : []
+
+    const legacyGhlPayload = {
+      full_name:
+        fullName ||
+        null,
+
+      first_name:
+        firstName ||
+        null,
+
+      email:
+        clean(
+          lead?.email
+        ) ||
+        null,
+
+      phone:
+        phone ||
+        null,
+
+      role:
+        leadRole ||
+        null,
+
+      intent:
+        leadIntent ||
+        null,
+
+      tags,
+
+      source:
+        "verlo",
+
+      verlo_match_count:
+        matchSummary
+          ?.verlo_match_count ??
+        0,
+
+      verlo_match_100_count:
+        matchSummary
+          ?.verlo_match_100_count ??
+        0,
+
+      verlo_match_80_count:
+        matchSummary
+          ?.verlo_match_80_count ??
+        0,
+
+      verlo_best_match_score:
+        matchSummary
+          ?.verlo_best_match_score ??
+        null,
+
+      verlo_best_zone:
+        matchSummary
+          ?.verlo_best_zone ??
+        null,
+
+      verlo_best_timing:
+        matchSummary
+          ?.verlo_best_timing ??
+        null,
+
+      verlo_best_property_type:
+        matchSummary
+          ?.verlo_best_property_type ??
+        null,
+
+      verlo_best_rooms:
+        matchSummary
+          ?.verlo_best_rooms ??
+        null,
+
+      verlo_best_price:
+        matchSummary
+          ?.verlo_best_price ??
+        null,
+
+      verlo_best_matches_on:
+        matchSummary
+          ?.verlo_best_matches_on ??
+        null,
+
+      verlo_match_summary:
+        matchSummary
+          ?.verlo_match_summary ??
+        null,
+
+      verlo_match_role:
+        matchSummary
+          ?.verlo_match_role ??
+        leadRole ||
+        null,
+
+      verlo_match_updated_at:
+        matchSummary
+          ?.verlo_match_updated_at ??
+        new Date()
+          .toISOString(),
+
+      verlo_matches_token:
+        tenantMatchesToken,
+
+      verlo_matches_url:
+        matchesUrl,
+
+      verlo_property_token:
+        ownerPropertyToken,
+
+      verlo_property_url:
+        propertyUrl,
     }
 
     const whatsappPromise =
       sendWhatsApp({
         to:
-          clean(
-            lead
-              ?.phone_normalized
-          ) ||
+          phone ||
           undefined,
 
-              role:
+        role:
           leadRole,
 
         matchCount:
-          verloMatchCount,
+          matchSummary
+            ?.verlo_match_count ??
+          0,
 
         matchesUrl:
+          matchesUrl ||
           url,
+
+        legacyPayload:
+          legacyGhlPayload,
 
         template:
           eventType,
@@ -1024,7 +1766,8 @@ export async function retryFailedLeadNotifications(
 
   for (
     const row
-    of events || []
+    of events ||
+    []
   ) {
     const event =
       row as
