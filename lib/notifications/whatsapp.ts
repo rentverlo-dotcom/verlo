@@ -12,6 +12,7 @@ type WhatsAppMessage = {
   url?: string
   matchCount?: number
   matchesUrl?: string
+  legacyPayload?: Record<string, any>
 }
 
 type WhatsAppResult = {
@@ -143,7 +144,8 @@ export async function sendWhatsApp(
 
               source:
                 "verlo",
-                            verlo_match_count:
+
+              verlo_match_count:
                 Number(
                   message.matchCount ||
                   0
@@ -155,6 +157,11 @@ export async function sendWhatsApp(
                   message.url
                 ) ||
                 null,
+
+              ...(
+                message.legacyPayload ||
+                {}
+              ),
 
               to:
                 clean(
