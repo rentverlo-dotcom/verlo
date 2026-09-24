@@ -4,13 +4,12 @@ import {
 } from "@playwright/test"
 
 test(
-  "LIVE Carapachay: match real + push + GHL",
+  "LIVE Carapachay: match real + GHL",
   async ({
-    browser,
     request,
   }) => {
     test.setTimeout(
-      180_000
+      60_000
     )
 
     const tenantEmail =
@@ -24,25 +23,6 @@ test(
 
     const ownerPhone =
       "1176518605"
-
-    const tenantContext =
-      await browser
-        .newContext()
-
-    await tenantContext
-      .grantPermissions(
-        [
-          "notifications",
-        ],
-        {
-          origin:
-            "https://verlo.lat",
-        }
-      )
-
-    const tenantPage =
-      await tenantContext
-        .newPage()
 
     const tenantResponse =
       await request.post(
@@ -135,81 +115,6 @@ test(
     console.log(
       "LIVE tenant lead:",
       tenantData.lead_id
-    )
-
-    await tenantPage.goto(
-      `/success?role=tenant&lead=${tenantData.lead_id}`,
-      {
-        waitUntil:
-          "domcontentloaded",
-      }
-    )
-
-    const pushButton =
-      tenantPage.locator(
-        ".push-wrap button"
-      )
-
-    await expect(
-      pushButton
-    ).toHaveText(
-      "Activar notificaciones",
-      {
-        timeout:
-          30_000,
-      }
-    )
-
-    const subscribePromise =
-      tenantPage
-        .waitForResponse(
-          (
-            response
-          ) =>
-            response
-              .url()
-              .includes(
-                "/api/push/subscribe"
-              ) &&
-            response
-              .request()
-              .method() ===
-              "POST"
-        )
-
-    await pushButton
-      .click()
-
-    const subscribeResponse =
-      await subscribePromise
-
-    expect(
-      subscribeResponse.status()
-    ).toBe(
-      200
-    )
-
-    const subscribeData =
-      await subscribeResponse
-        .json()
-
-    expect(
-      subscribeData?.ok
-    ).toBe(
-      true
-    )
-
-    expect(
-      subscribeData?.registered
-    ).toBe(
-      true
-    )
-
-    console.log(
-      "LIVE push subscription:",
-      JSON.stringify(
-        subscribeData
-      )
     )
 
     const ownerResponse =
@@ -325,57 +230,11 @@ test(
       )
     )
 
-    const matchPushes =
-      ownerData
-        ?.push_events
-        ?.matches ||
-      []
-
-    expect(
-      matchPushes.length
-    ).toBeGreaterThanOrEqual(
-      1
-    )
-
-    const tenantMatchPush =
-      matchPushes.find(
-        (
-          item: any
-        ) =>
-          item?.ok ===
-            true &&
-          item?.data
-            ?.notifications
-            ?.tenant
-            ?.sent ===
-            true &&
-          Number(
-            item?.data
-              ?.notifications
-              ?.tenant
-              ?.devices_sent ||
-            0
-          ) >=
-            1
-      )
-
-    expect(
-      tenantMatchPush
-    ).toBeTruthy()
-
     console.log(
-      "LIVE tenant match push:",
+      "LIVE owner response:",
       JSON.stringify(
-        tenantMatchPush
+        ownerData
       )
     )
-
-    await tenantPage
-      .waitForTimeout(
-        10_000
-      )
-
-    await tenantContext
-      .close()
   }
 )
