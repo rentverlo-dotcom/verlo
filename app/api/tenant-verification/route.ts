@@ -521,6 +521,7 @@ export async function POST(
           owner_lead_id,
           score,
           status,
+          tenant_interest_at,
           ready_to_connect_at
         `)
         .in(
@@ -563,6 +564,23 @@ export async function POST(
         {
           status: 403,
         }
+      )
+    }
+
+    // The UI records interest before opening verification. Enforce the
+    // same order for direct API requests.
+    if (
+      tokenSource === "matches" &&
+      selectedMatches.some(
+        match => !match.tenant_interest_at
+      )
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Select each property with ME INTERESA before verification",
+        },
+        { status: 409 }
       )
     }
 
