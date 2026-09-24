@@ -77,6 +77,29 @@ export default function TenantValidationPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
+  if (matchIds.length === 0) {
+    return (
+      <main className="tenant-root">
+        <style>{styles}</style>
+        <section className="tenant-hero">
+          <div className="container">
+            <VerloBrand width={34} />
+            <h1>Elegí primero una propiedad</h1>
+            <p className="hero-copy">
+              Marcá ME INTERESA en tus matches para continuar con la validación.
+            </p>
+            <a
+              className="primary-btn"
+              href={`/matches/${encodeURIComponent(token)}`}
+            >
+              Ver mis matches
+            </a>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
   async function uploadDocument(
     docType: DocType,
     file: File
@@ -257,9 +280,10 @@ export default function TenantValidationPage() {
             </h1>
 
             <p className="hero-copy">
-              Esta información no se publica. La usamos para
-              presentarte mejor ante propietarios y ordenar el
-              proceso antes de una visita o contrato.
+              Ya marcaste ME INTERESA en {matchIds.length}{" "}
+              {matchIds.length === 1 ? "propiedad" : "propiedades"}.
+              Completá tu perfil para presentarte ante sus propietarios.
+              Tu documentación no se publica.
             </p>
 
             <div className="hero-actions">

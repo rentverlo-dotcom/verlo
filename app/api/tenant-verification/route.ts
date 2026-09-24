@@ -567,8 +567,9 @@ export async function POST(
       )
     }
 
-    // The UI records interest before opening verification. Enforce the
-    // same order for direct API requests.
+    // The normal UI records interest before opening verification.
+    // Enforce the same order for direct API requests so an owner is
+    // never told a tenant is interested merely because documents exist.
     if (
       tokenSource === "matches" &&
       selectedMatches.some(
@@ -578,7 +579,7 @@ export async function POST(
       return NextResponse.json(
         {
           ok: false,
-          error: "Select each property with ME INTERESA before verification",
+          error: "Primero marcá ME INTERESA en cada propiedad seleccionada.",
         },
         { status: 409 }
       )

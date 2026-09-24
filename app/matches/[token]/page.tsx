@@ -32,6 +32,7 @@ type MatchItem = {
   >
 
   tenant_interested: boolean
+  tenant_verified: boolean
   owner_interested: boolean
   ready_to_connect: boolean
 
@@ -569,20 +570,28 @@ export default function MatchesPage() {
 
       const verificationResult =
         results.find(
-          (
-            result
-          ) =>
-            result
-              ?.verification_url
+          (result) => result?.verification_url
         )
 
       if (
         verificationResult
           ?.verification_url
       ) {
+        const verificationUrl = new URL(
+          verificationResult.verification_url,
+          window.location.origin
+        )
+
+        verificationUrl.searchParams.set(
+          "matches",
+          results
+            .filter((result) => result?.verification_url)
+            .map((result) => result.match_id)
+            .join(",")
+        )
+
         router.push(
-          verificationResult
-            .verification_url
+          `${verificationUrl.pathname}${verificationUrl.search}`
         )
 
         return
@@ -763,6 +772,11 @@ export default function MatchesPage() {
                         )
                       }
                     }}
+                    onContinueValidation={() =>
+                      router.push(
+                        `/tenant/validacion/${encodeURIComponent(token)}?matches=${encodeURIComponent(match.id)}`
+                      )
+                    }
                   />
                 )
               )}
@@ -823,6 +837,7 @@ function PropertyCard({
   selected,
   onToggle,
   onOpenOperation,
+  onContinueValidation,
 }: {
   match:
     MatchItem
@@ -834,6 +849,9 @@ function PropertyCard({
     () => void
 
   onOpenOperation:
+    () => void
+
+  onContinueValidation:
     () => void
 }) {
   const [
@@ -1061,16 +1079,26 @@ function PropertyCard({
             .tenant_interested ? (
           <div className="operation-status">
             <strong>
-              Expresaste interés
+              {match.tenant_verified
+                ? "Perfil presentado"
+                : "Expresaste interés"}
             </strong>
 
             <span>
-              Estamos esperando
-              la decisión del
-              propietario. Ya le
-              avisamos para que
-              entre a Verlo.
+              {match.tenant_verified
+                ? "Tu documentación está cargada. El propietario puede revisar tu perfil."
+                : "Completá la validación para presentar tu perfil al propietario."}
             </span>
+
+            {!match.tenant_verified && (
+              <button
+                type="button"
+                className="operation-button"
+                onClick={onContinueValidation}
+              >
+                COMPLETAR VALIDACIÓN
+              </button>
+            )}
           </div>
         ) : (
           <>

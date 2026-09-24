@@ -212,6 +212,7 @@ export async function GET(req: NextRequest) {
         reasons,
         owner_completed_at,
         tenant_interest_at,
+        tenant_verified_at,
         owner_interest_at,
         ready_to_connect_at,
         tenant_post_visit_decision,
@@ -694,6 +695,11 @@ export async function GET(req: NextRequest) {
               tenant_interested:
                 Boolean(
                   match.tenant_interest_at
+                ),
+
+              tenant_verified:
+                Boolean(
+                  match.tenant_verified_at
                 ),
 
               owner_interested:
