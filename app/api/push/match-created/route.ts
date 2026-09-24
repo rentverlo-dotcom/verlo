@@ -5,10 +5,7 @@ import {
 import {
   supabaseAdmin,
 } from '@/lib/supabase/admin'
-
-import {
-  notifyLeadOnce,
-} from '@/lib/lead-notifications'
+import { notifyLeadOnce } from '@/lib/lead-notifications'
 
 export const runtime =
   'nodejs'
@@ -26,59 +23,6 @@ function clean(
   return String(
     value || ''
   ).trim()
-}
-
-async function postInternal(
-  request: Request,
-  path: string,
-  body: Record<
-    string,
-    unknown
-  >
-) {
-  const response =
-    await fetch(
-      new URL(
-        path,
-        request.url
-      ),
-      {
-        method:
-          'POST',
-
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-
-        body:
-          JSON.stringify(
-            body
-          ),
-
-        cache:
-          'no-store',
-      }
-    )
-
-  const data =
-    await response
-      .json()
-      .catch(
-        () => null
-      )
-
-  return {
-    ok:
-      response.ok &&
-      data?.ok !==
-        false,
-
-    status:
-      response.status,
-
-    data,
-  }
 }
 
 export async function POST(
@@ -209,86 +153,35 @@ export async function POST(
       )
     }
 
-    // =====================================================
-    // TENANT DESTINATION
-    // =====================================================
-
-    const tenantToken =
-      await postInternal(
-        request,
-        '/api/tenant-matches-token',
+    // Until the protected cron is configured in Vercel, keep today's
+    // existing immediate notification flow so no match goes silent.
+    if (!process.env.CRON_SECRET) {
+      const response = await fetch(
+        new URL('/api/tenant-matches-token', request.url),
         {
-          tenant_lead_id:
-            tenantLeadId,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenant_lead_id: tenantLeadId }),
+          cache: 'no-store',
         }
       )
-
-    const tenantUrl =
-      tenantToken.ok &&
-      tenantToken.data
-        ?.matches_url
-        ? clean(
-            tenantToken.data
-              .matches_url
-          )
-        : ''
-
-    // =====================================================
-    // OWNER NO SE NOTIFICA EN MATCH PASIVO
-    //
-    // Flujo de producto:
-    // match -> tenant muestra interés -> tenant valida ->
-    // recién entonces owner recibe candidato validado.
-    // =====================================================
-
-    if (
-      !tenantUrl
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-
-          error:
-            'Could not resolve tenant match destination',
-
-          match_id:
-            matchId,
-
-          tenant_url:
-            null,
-        },
-        {
-          status: 500,
-        }
-      )
-    }
-
-    const tenantNotification =
-      await notifyLeadOnce({
-        eventKey:
-          `match_created:tenant:${matchId}`,
-
-        eventType:
-          'match_created',
-
-        leadId:
-          tenantLeadId,
-
-        entityType:
-          'match',
-
-        entityId:
-          matchId,
-
-        title:
-          'Verlo · Tenés un match',
-
-        body:
-          'Encontramos una propiedad compatible con tu búsqueda.',
-
-        url:
-          tenantUrl,
+      const token = await response.json().catch(() => null)
+      if (!response.ok || !token?.matches_url) {
+        throw new Error('Could not resolve tenant match destination')
+      }
+      const notification = await notifyLeadOnce({
+        eventKey: `match_created:tenant:${matchId}`,
+        eventType: 'match_created',
+        leadId: tenantLeadId,
+        entityType: 'match',
+        entityId: matchId,
+        title: 'Verlo · Tenés un match',
+        body: 'Encontramos una propiedad compatible con tu búsqueda.',
+        url: token.matches_url,
       })
+      return NextResponse.json({ ok: true, match_id: matchId,
+        notifications: { tenant: notification }, daily_digest_active: false })
+    }
 
     return NextResponse.json({
       ok: true,
@@ -302,13 +195,7 @@ export async function POST(
       owner_lead_id:
         ownerLeadId,
 
-      tenant_url:
-        tenantUrl,
-
-      notifications: {
-        tenant:
-          tenantNotification,
-      },
+      queued_for_daily_digest: true,
     })
   } catch (
     error

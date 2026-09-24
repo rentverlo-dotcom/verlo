@@ -26,6 +26,7 @@ type NotifyLeadOnceInput = {
   title: string
   body: string
   url: string
+  skipWhatsApp?: boolean
 }
 
 type NotificationEventStatus =
@@ -1427,7 +1428,9 @@ export async function notifyLeadOnce(
     }
 
     const whatsappPromise =
-      sendWhatsApp({
+      input.skipWhatsApp
+        ? Promise.resolve(null)
+        : sendWhatsApp({
         to:
           phone ||
           undefined,
