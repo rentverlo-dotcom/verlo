@@ -7,10 +7,6 @@ import {
 } from "@/lib/push"
 
 import {
-  sendEmailToLeadOnce,
-} from "@/lib/email"
-
-import {
   sendWhatsApp,
 } from "@/lib/notifications/whatsapp"
 
@@ -1048,49 +1044,6 @@ export async function notifyLeadOnce(
   ) {
     throw new Error(
       "Invalid notification event"
-    )
-  }
-
-  try {
-    const emailResult =
-      await sendEmailToLeadOnce({
-        eventKey,
-        leadId,
-        title,
-        body,
-        url,
-      })
-
-    const emailSkipped =
-      "skipped" in emailResult &&
-      emailResult.skipped ===
-        true
-
-    if (
-      !emailResult?.ok &&
-      !emailSkipped
-    ) {
-      console.error(
-        "email notification delivery error:",
-        {
-          eventKey,
-          leadId,
-          result:
-            emailResult,
-        }
-      )
-    }
-  } catch (
-    emailError
-  ) {
-    console.error(
-      "email notification unexpected error:",
-      {
-        eventKey,
-        leadId,
-        error:
-          emailError,
-      }
     )
   }
 
