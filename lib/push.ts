@@ -45,13 +45,18 @@ export async function sendPushToLead(
   } =
     await supabaseAdmin
       .from('lead_intake')
-      .select('id, email')
+      .select('id, email, phone_normalized, role')
       .eq('id', leadId)
       .maybeSingle()
 
   if (targetLeadError) {
     throw targetLeadError
   }
+
+  const identityPhone =
+    String(
+      targetLead?.phone_normalized || ''
+    ).trim()
 
   const identityEmail =
     String(
@@ -60,23 +65,39 @@ export async function sendPushToLead(
       .trim()
       .toLowerCase()
 
+  const targetRole =
+    targetLead?.role === 'tenant' ||
+    targetLead?.role === 'owner'
+      ? targetLead.role
+      : null
+
   let relatedLeadIds =
     [leadId]
 
-  if (identityEmail) {
+  if (identityPhone || identityEmail) {
+    let relatedQuery =
+      supabaseAdmin
+        .from('lead_intake')
+        .select('id, role')
+
+    relatedQuery =
+      identityPhone
+        ? relatedQuery.eq(
+            'phone_normalized',
+            identityPhone
+          )
+        : relatedQuery.ilike(
+            'email',
+            identityEmail
+          )
+
     const {
       data:
         relatedLeads,
       error:
         relatedLeadsError,
     } =
-      await supabaseAdmin
-        .from('lead_intake')
-        .select('id')
-        .ilike(
-          'email',
-          identityEmail
-        )
+      await relatedQuery
 
     if (relatedLeadsError) {
       throw relatedLeadsError
@@ -89,12 +110,19 @@ export async function sendPushToLead(
           ...(
             relatedLeads ||
             []
-          ).map(
-            (row) =>
-              String(
-                row.id
-              )
-          ),
+          )
+            .filter(
+              (row) =>
+                !targetRole ||
+                row.role === targetRole ||
+                row.role === 'both'
+            )
+            .map(
+              (row) =>
+                String(
+                  row.id
+                )
+            ),
         ])
       )
   }
@@ -107,7 +135,7 @@ export async function sendPushToLead(
     await supabaseAdmin
       .from('push_subscriptions')
       .select(
-        'id, endpoint, p256dh, auth'
+        'id, role, endpoint, p256dh, auth'
       )
       .in(
         'lead_id',
@@ -118,13 +146,18 @@ export async function sendPushToLead(
         null
       )
 
+  const filteredSubscriptionRows =
+    targetRole
+      ? (subscriptionRows || []).filter(
+          (subscription) =>
+            subscription.role === targetRole
+        )
+      : (subscriptionRows || [])
+
   const subscriptions =
     Array.from(
       new Map(
-        (
-          subscriptionRows ||
-          []
-        ).map(
+        filteredSubscriptionRows.map(
           (subscription) => [
             subscription.endpoint,
             subscription,
