@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
         const key = createHash('sha256').update(recipient).digest('hex')
         const result = await notifyLeadOnce({
           eventKey: `match_digest:${today}:${key}`,
-          eventType: role === 'tenant' ? 'match_created' : 'owner_match_digest',
+          eventType: role === 'tenant' ? 'match_digest_tenant' : 'owner_match_digest',
           leadId,
           entityType: 'lead',
           entityId: leadId,
