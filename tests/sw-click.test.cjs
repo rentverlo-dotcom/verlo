@@ -24,7 +24,7 @@ async function clickNotification({ windows, ack, openWindow }) {
       async openWindow(url) {
         calls.push(['open', url])
         if (openWindow) return openWindow(calls)
-        return { async focus() { calls.push(['focus opened']) } }
+        return { url, async focus() { calls.push(['focus opened']) } }
       },
     },
     fetch: async () => { calls.push(['ack']); return ack },
@@ -53,7 +53,7 @@ test('push click opens its private link before sending the ACK', async () => {
   assert.equal(calls[0][1], 'https://verlo.lat/matches/private-token')
 })
 
-test('push click falls back to an existing tab when opening fails', async () => {
+test('push click navigates an existing tab before claiming the click', async () => {
   let navigatedTo
   const calls = await clickNotification({
     windows: [{
@@ -64,10 +64,27 @@ test('push click falls back to an existing tab when opening fails', async () => 
       },
     }],
     ack: {},
-    openWindow: () => null,
   })
   assert.equal(navigatedTo, 'https://verlo.lat/matches/private-token')
-  assert.deepEqual(calls.map(([name]) => name), ['open', 'close', 'ack'])
+  assert.deepEqual(calls.map(([name]) => name), ['close', 'ack'])
+})
+
+test('reused installed-app window navigates to the push destination', async () => {
+  const calls = await clickNotification({
+    windows: [],
+    ack: {},
+    openWindow: (record) => ({
+      url: 'https://verlo.lat/',
+      async navigate(url) {
+        record.push(['navigate opened', url])
+        return { async focus() { record.push(['focus opened']) } }
+      },
+    }),
+  })
+  assert.deepEqual(calls.map(([name]) => name), [
+    'open', 'navigate opened', 'focus opened', 'close', 'ack',
+  ])
+  assert.equal(calls[1][1], 'https://verlo.lat/matches/private-token')
 })
 
 test('failed navigation keeps the notification visible and does not claim a click', async () => {

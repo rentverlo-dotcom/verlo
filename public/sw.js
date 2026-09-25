@@ -144,22 +144,6 @@ self.addEventListener(
             throw new Error("Invalid push destination")
           }
 
-          // Let the browser open the push destination directly (including
-          // an installed PWA). Reuse a tab only if that is unavailable.
-          try {
-            const opened =
-              await clients.openWindow(destination.href)
-
-            if (opened) {
-              await opened.focus()
-              event.notification.close()
-              await sendPushAck(deliveryId, "clicked")
-              return
-            }
-          } catch (error) {
-            console.error("Push window opening failed", error)
-          }
-
           const clientList =
             await clients.matchAll({
               type: "window",
@@ -167,13 +151,15 @@ self.addEventListener(
             })
 
           for (const client of clientList) {
-            if (new URL(client.url).origin !== destination.origin) {
+            if (!client.url || new URL(client.url).origin !== destination.origin) {
               continue
             }
 
             try {
               const navigated =
-                await client.navigate(destination.href)
+                client.url === destination.href
+                  ? client
+                  : await client.navigate(destination.href)
 
               if (navigated) {
                 await navigated.focus()
@@ -183,6 +169,26 @@ self.addEventListener(
               }
             } catch (error) {
               console.error("Push client navigation failed", error)
+            }
+          }
+
+          // Chrome on Android can return an existing installed-app window
+          // from openWindow. Its presence alone does not mean it loaded the
+          // requested URL; explicitly navigate it when needed.
+          const opened =
+            await clients.openWindow(destination.href)
+
+          if (opened) {
+            const navigated =
+              opened.url === destination.href
+                ? opened
+                : await opened.navigate(destination.href)
+
+            if (navigated) {
+              await navigated.focus()
+              event.notification.close()
+              await sendPushAck(deliveryId, "clicked")
+              return
             }
           }
 
