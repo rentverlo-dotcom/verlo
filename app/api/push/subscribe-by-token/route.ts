@@ -46,16 +46,37 @@ export async function POST(request: Request) {
     let revokedAt: string | null = null
 
     if (role === 'owner') {
-      const { data, error } =
+      const candidateToken =
         await supabaseAdmin
-          .from('owner_property_access_tokens')
+          .from('owner_candidates_access_tokens')
           .select(
             'owner_lead_id, expires_at, revoked_at'
           )
           .eq('token', token)
-          .single()
+          .maybeSingle()
 
-      if (error || !data) {
+      const propertyToken =
+        candidateToken.data
+          ? null
+          : await supabaseAdmin
+              .from('owner_property_access_tokens')
+              .select(
+                'owner_lead_id, expires_at, revoked_at'
+              )
+              .eq('token', token)
+              .maybeSingle()
+
+      const data =
+        candidateToken.data ||
+        propertyToken?.data ||
+        null
+
+      const lookupError =
+        candidateToken.error ||
+        propertyToken?.error ||
+        null
+
+      if (lookupError || !data) {
         return NextResponse.json(
           { ok: false, error: 'Invalid owner token' },
           { status: 404 }
