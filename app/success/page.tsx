@@ -40,23 +40,27 @@ const styles = `
     --soft: #f2ebec;
     --blue: #74bedc;
     --yellow: #e7c776;
+    --green: #5bbf9a;
+    --green-dark: #15745c;
+    --white: #ffffff;
 
     min-height: 100vh;
 
     background:
       radial-gradient(
-        circle at 18% 15%,
-        rgba(242, 168, 169, 0.42),
-        transparent 32%
+        circle at 14% 12%,
+        rgba(242, 168, 169, 0.34),
+        transparent 30%
       ),
       radial-gradient(
-        circle at 82% 82%,
-        rgba(116, 190, 220, 0.28),
+        circle at 86% 82%,
+        rgba(116, 190, 220, 0.22),
         transparent 30%
       ),
       var(--soft);
 
-    color: var(--black);
+    color:
+      var(--black);
 
     font-family:
       Inter,
@@ -68,40 +72,13 @@ const styles = `
   }
 
   .success-root * {
-    box-sizing: border-box;
+    box-sizing:
+      border-box;
   }
 
   .success-nav {
-    height: 76px;
-
-    display: flex;
-    align-items: center;
-
-    border-bottom:
-      1px solid
-      rgba(5, 0, 2, 0.08);
-
-    background:
-      rgba(242, 235, 236, 0.72);
-
-    backdrop-filter:
-      blur(18px);
-  }
-
-  .success-container {
-    width:
-      min(
-        920px,
-        calc(100% - 40px)
-      );
-
-    margin:
-      0 auto;
-  }
-
-  .success-main {
     min-height:
-      calc(100vh - 76px);
+      72px;
 
     display:
       flex;
@@ -109,32 +86,68 @@ const styles = `
     align-items:
       center;
 
-    justify-content:
-      center;
+    border-bottom:
+      1px solid
+      rgba(
+        5,
+        0,
+        2,
+        0.07
+      );
 
+    background:
+      rgba(
+        242,
+        235,
+        236,
+        0.76
+      );
+
+    backdrop-filter:
+      blur(18px);
+
+    position:
+      sticky;
+
+    top:
+      0;
+
+    z-index:
+      20;
+  }
+
+  .success-container {
+    width:
+      min(
+        760px,
+        calc(100% - 32px)
+      );
+
+    margin:
+      0 auto;
+  }
+
+  .success-main {
     padding:
-      54px 0 80px;
+      34px 0 56px;
   }
 
   .success-card {
     width:
       100%;
 
-    max-width:
-      760px;
-
     padding:
-      52px;
+      36px;
 
     border-radius:
-      42px;
+      36px;
 
     background:
       rgba(
         255,
         255,
         255,
-        0.78
+        0.82
       );
 
     border:
@@ -143,20 +156,80 @@ const styles = `
         5,
         0,
         2,
-        0.08
+        0.07
       );
 
     box-shadow:
-      0 28px 90px
+      0 24px 70px
       rgba(
         5,
         0,
         2,
-        0.10
+        0.08
       );
 
     backdrop-filter:
       blur(18px);
+  }
+
+  .success-top {
+    text-align:
+      center;
+  }
+
+  .success-icon {
+    width:
+      92px;
+
+    height:
+      92px;
+
+    margin:
+      0 auto;
+
+    display:
+      grid;
+
+    place-items:
+      center;
+
+    border-radius:
+      999px;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(
+          91,
+          191,
+          154,
+          0.14
+        ),
+        rgba(
+          116,
+          190,
+          220,
+          0.20
+        )
+      );
+
+    border:
+      1px solid
+      rgba(
+        21,
+        116,
+        92,
+        0.10
+      );
+
+    font-size:
+      44px;
+
+    font-weight:
+      950;
+
+    color:
+      var(--green-dark);
   }
 
   .success-badge {
@@ -172,8 +245,11 @@ const styles = `
     justify-content:
       center;
 
+    margin:
+      22px auto 0;
+
     padding:
-      9px 14px;
+      8px 13px;
 
     border-radius:
       999px;
@@ -183,14 +259,14 @@ const styles = `
         242,
         168,
         169,
-        0.24
+        0.20
       );
 
     color:
       var(--pink-dark);
 
     font-size:
-      12px;
+      11px;
 
     font-weight:
       950;
@@ -200,27 +276,24 @@ const styles = `
 
     text-transform:
       uppercase;
-
-    margin-bottom:
-      22px;
   }
 
   .success-title {
     margin:
-      0;
+      14px 0 0;
 
     font-size:
       clamp(
-        42px,
-        7vw,
-        70px
+        46px,
+        8vw,
+        72px
       );
 
     line-height:
-      0.95;
+      0.94;
 
     letter-spacing:
-      -0.07em;
+      -0.065em;
 
     font-weight:
       950;
@@ -241,223 +314,72 @@ const styles = `
 
   .success-copy {
     max-width:
-      580px;
+      520px;
 
     margin:
-      20px 0 0;
+      16px auto 0;
 
     color:
       rgba(
         5,
         0,
         2,
-        0.64
+        0.60
       );
 
     font-size:
       17px;
 
     line-height:
-      1.5;
-
-    font-weight:
-      650;
-  }
-
-  .verlo-explainer {
-    margin-top:
-      34px;
-
-    padding:
-      26px;
-
-    border-radius:
-      28px;
-
-    background:
-      rgba(
-        255,
-        255,
-        255,
-        0.68
-      );
-
-    border:
-      1px solid
-      rgba(
-        5,
-        0,
-        2,
-        0.08
-      );
-  }
-
-  .verlo-explainer h2 {
-    margin:
-      0;
-
-    font-size:
-      24px;
-
-    font-weight:
-      950;
-
-    letter-spacing:
-      -0.035em;
-  }
-
-  .verlo-flow {
-    display:
-      grid;
-
-    gap:
-      12px;
-
-    margin-top:
-      18px;
-  }
-
-  .verlo-flow-item {
-    display:
-      grid;
-
-    grid-template-columns:
-      34px 1fr;
-
-    gap:
-      12px;
-
-    align-items:
-      start;
-  }
-
-  .verlo-flow-item b {
-    width:
-      34px;
-
-    height:
-      34px;
-
-    display:
-      grid;
-
-    place-items:
-      center;
-
-    border-radius:
-      999px;
-
-    background:
-      var(--black);
-
-    color:
-      white;
-
-    font-size:
-      13px;
-
-    font-weight:
-      950;
-  }
-
-  .verlo-flow-item strong {
-    display:
-      block;
-
-    font-size:
-      15px;
-
-    font-weight:
-      950;
-  }
-
-  .verlo-flow-item p {
-    margin:
-      4px 0 0;
-
-    color:
-      rgba(
-        5,
-        0,
-        2,
-        0.58
-      );
-
-    font-size:
-      14px;
-
-    line-height:
       1.45;
-
-    font-weight:
-      650;
-  }
-
-  .verlo-alerts {
-    margin-top:
-      18px;
-
-    padding:
-      20px;
-
-    border-radius:
-      22px;
-
-    background:
-      var(--black);
-
-    color:
-      white;
-  }
-
-  .verlo-alerts strong {
-    display:
-      block;
-
-    font-size:
-      18px;
-
-    font-weight:
-      950;
-  }
-
-  .verlo-alerts p {
-    margin:
-      8px 0 0;
-
-    color:
-      rgba(
-        255,
-        255,
-        255,
-        0.78
-      );
-
-    font-size:
-      14px;
-
-    line-height:
-      1.5;
 
     font-weight:
       700;
   }
 
-  .steps-title {
+  .success-role-note {
+    max-width:
+      520px;
+
     margin:
-      38px 0 18px;
+      10px auto 0;
+
+    color:
+      rgba(
+        5,
+        0,
+        2,
+        0.48
+      );
 
     font-size:
-      22px;
+      13px;
+
+    line-height:
+      1.4;
+
+    font-weight:
+      700;
+  }
+
+  .actions-title {
+    margin:
+      34px 0 14px;
+
+    text-align:
+      center;
+
+    font-size:
+      18px;
 
     font-weight:
       950;
 
     letter-spacing:
-      -0.03em;
+      -0.02em;
   }
 
-  .steps {
+  .actions {
     display:
       grid;
 
@@ -465,29 +387,30 @@ const styles = `
       14px;
   }
 
-  .step {
+  .action-card {
+    position:
+      relative;
+
+    overflow:
+      hidden;
+
     display:
       grid;
 
     grid-template-columns:
-      42px 1fr;
+      58px 1fr;
 
     gap:
-      14px;
+      16px;
+
+    align-items:
+      center;
 
     padding:
-      20px;
+      18px;
 
     border-radius:
       26px;
-
-    background:
-      rgba(
-        255,
-        255,
-        255,
-        0.72
-      );
 
     border:
       1px solid
@@ -495,19 +418,73 @@ const styles = `
         5,
         0,
         2,
-        0.08
+        0.06
       );
   }
 
-  .step-number {
+  .action-card.notifications {
+    background:
+      linear-gradient(
+        135deg,
+        rgba(
+          242,
+          168,
+          169,
+          0.17
+        ),
+        rgba(
+          255,
+          255,
+          255,
+          0.80
+        )
+      );
+  }
+
+  .action-card.install {
+    background:
+      linear-gradient(
+        135deg,
+        rgba(
+          116,
+          190,
+          220,
+          0.16
+        ),
+        rgba(
+          255,
+          255,
+          255,
+          0.80
+        )
+      );
+  }
+
+  .action-card.access {
+    background:
+      linear-gradient(
+        135deg,
+        rgba(
+          91,
+          191,
+          154,
+          0.16
+        ),
+        rgba(
+          255,
+          255,
+          255,
+          0.80
+        )
+      );
+  }
+
+  .action-icon {
     width:
-      42px;
+      58px;
 
     height:
-      42px;
-
-    border-radius:
-      999px;
+      58px;
 
     display:
       grid;
@@ -515,25 +492,64 @@ const styles = `
     place-items:
       center;
 
-    background:
-      var(--black);
-
-    color:
-      white;
+    border-radius:
+      18px;
 
     font-size:
-      15px;
+      27px;
 
     font-weight:
       950;
   }
 
-  .step-content h2 {
+  .notifications .action-icon {
+    background:
+      rgba(
+        242,
+        168,
+        169,
+        0.25
+      );
+
+    color:
+      #bc4352;
+  }
+
+  .install .action-icon {
+    background:
+      rgba(
+        116,
+        190,
+        220,
+        0.23
+      );
+
+    color:
+      #2f7193;
+  }
+
+  .access .action-icon {
+    background:
+      rgba(
+        91,
+        191,
+        154,
+        0.20
+      );
+
+    color:
+      var(--green-dark);
+  }
+
+  .action-content h2 {
     margin:
-      2px 0 0;
+      0;
 
     font-size:
       18px;
+
+    line-height:
+      1.05;
 
     font-weight:
       950;
@@ -542,31 +558,50 @@ const styles = `
       -0.025em;
   }
 
-  .step-content p {
+  .notifications .action-content h2 {
+    color:
+      #b23a49;
+  }
+
+  .install .action-content h2 {
+    color:
+      #225f82;
+  }
+
+  .access .action-content h2 {
+    color:
+      var(--green-dark);
+  }
+
+  .action-content p {
     margin:
-      7px 0 0;
+      6px 0 0;
 
     color:
       rgba(
         5,
         0,
         2,
-        0.58
+        0.56
       );
 
     font-size:
-      14px;
+      13px;
 
     line-height:
-      1.5;
+      1.4;
 
     font-weight:
-      650;
+      700;
   }
 
-  .step-action {
+  .action-control {
+    grid-column:
+      1 /
+      -1;
+
     margin-top:
-      16px;
+      4px;
   }
 
   .push-wrap button,
@@ -575,10 +610,10 @@ const styles = `
       100%;
 
     min-height:
-      56px;
+      54px;
 
     padding:
-      0 22px;
+      0 20px;
 
     border-radius:
       999px;
@@ -587,7 +622,7 @@ const styles = `
       inherit;
 
     font-size:
-      15px;
+      14px;
 
     font-weight:
       950;
@@ -597,43 +632,59 @@ const styles = `
 
     transition:
       transform 160ms ease,
-      opacity 160ms ease;
+      opacity 160ms ease,
+      box-shadow 160ms ease;
   }
 
-  .push-wrap button,
-  .primary-button {
+  .push-wrap button {
     border:
       1px solid
-      var(--black);
+      #b23a49;
 
     background:
-      var(--black);
+      #b23a49;
 
     color:
       white;
   }
 
-  .secondary-button {
+  .install-button {
     border:
       1px solid
-      rgba(
-        5,
-        0,
-        2,
-        0.14
-      );
+      #225f82;
 
     background:
-      white;
+      #225f82;
 
     color:
-      var(--black);
+      white;
+  }
+
+  .access-button {
+    border:
+      1px solid
+      var(--green-dark);
+
+    background:
+      var(--green-dark);
+
+    color:
+      white;
   }
 
   .push-wrap button:not(:disabled):hover,
   .action-button:not(:disabled):hover {
     transform:
       translateY(-2px);
+
+    box-shadow:
+      0 10px 28px
+      rgba(
+        5,
+        0,
+        2,
+        0.10
+      );
   }
 
   .push-wrap button:disabled,
@@ -647,19 +698,19 @@ const styles = `
 
   .message {
     margin:
-      12px 0 0;
+      10px 0 0;
 
     padding:
-      12px 14px;
+      11px 13px;
 
     border-radius:
-      16px;
+      14px;
 
     font-size:
-      13px;
+      12px;
 
     line-height:
-      1.45;
+      1.4;
 
     font-weight:
       800;
@@ -668,14 +719,14 @@ const styles = `
   .message.ok {
     background:
       rgba(
-        116,
-        190,
-        220,
-        0.16
+        91,
+        191,
+        154,
+        0.14
       );
 
     color:
-      #255a6d;
+      var(--green-dark);
   }
 
   .message.error {
@@ -691,59 +742,191 @@ const styles = `
       #7f2435;
   }
 
+  .important-note {
+    display:
+      flex;
+
+    gap:
+      10px;
+
+    align-items:
+      flex-start;
+
+    margin:
+      18px 0 0;
+
+    padding:
+      14px 16px;
+
+    border-radius:
+      18px;
+
+    background:
+      rgba(
+        5,
+        0,
+        2,
+        0.045
+      );
+
+    color:
+      rgba(
+        5,
+        0,
+        2,
+        0.56
+      );
+
+    font-size:
+      12px;
+
+    line-height:
+      1.45;
+
+    font-weight:
+      750;
+  }
+
+  .important-note-icon {
+    flex:
+      0 0 auto;
+
+    width:
+      22px;
+
+    height:
+      22px;
+
+    display:
+      grid;
+
+    place-items:
+      center;
+
+    border-radius:
+      999px;
+
+    background:
+      rgba(
+        5,
+        0,
+        2,
+        0.08
+      );
+
+    color:
+      var(--black);
+
+    font-size:
+      12px;
+
+    font-weight:
+      950;
+  }
+
   @media (
     max-width: 620px
   ) {
     .success-nav {
-      height:
-        66px;
+      min-height:
+        64px;
     }
 
     .success-container {
       width:
-        min(
-          100% - 28px,
-          920px
+        calc(
+          100% - 24px
         );
     }
 
     .success-main {
-      min-height:
-        calc(
-          100vh - 66px
-        );
-
       padding:
-        34px 0 54px;
+        22px 0 36px;
     }
 
     .success-card {
       padding:
-        34px 20px;
+        26px 16px;
 
       border-radius:
-        32px;
+        28px;
+    }
+
+    .success-icon {
+      width:
+        78px;
+
+      height:
+        78px;
+
+      font-size:
+        38px;
+    }
+
+    .success-title {
+      font-size:
+        clamp(
+          42px,
+          14vw,
+          60px
+        );
     }
 
     .success-copy {
       font-size:
-        16px;
+        15px;
     }
 
-    .step {
+    .actions-title {
+      margin-top:
+        28px;
+    }
+
+    .action-card {
       grid-template-columns:
-        36px 1fr;
+        50px 1fr;
+
+      gap:
+        13px;
 
       padding:
+        15px;
+
+      border-radius:
+        22px;
+    }
+
+    .action-icon {
+      width:
+        50px;
+
+      height:
+        50px;
+
+      border-radius:
+        16px;
+
+      font-size:
+        23px;
+    }
+
+    .action-content h2 {
+      font-size:
         17px;
     }
 
-    .step-number {
-      width:
-        36px;
+    .action-content p {
+      font-size:
+        12px;
+    }
 
-      height:
-        36px;
+    .push-wrap button,
+    .action-button {
+      min-height:
+        52px;
+
+      font-size:
+        13px;
     }
   }
 `
@@ -780,25 +963,33 @@ export default function SuccessPage() {
     installed,
     setInstalled,
   ] =
-    useState(false)
+    useState(
+      false
+    )
 
   const [
     isIos,
     setIsIos,
   ] =
-    useState(false)
+    useState(
+      false
+    )
 
   const [
     deviceChecked,
     setDeviceChecked,
   ] =
-    useState(false)
+    useState(
+      false
+    )
 
   const [
     magicLoading,
     setMagicLoading,
   ] =
-    useState(false)
+    useState(
+      false
+    )
 
   const [
     magicMessage,
@@ -850,11 +1041,13 @@ export default function SuccessPage() {
 
       const platform =
         window.navigator
-          .platform || ""
+          .platform ||
+        ""
 
       const maxTouchPoints =
         window.navigator
-          .maxTouchPoints || 0
+          .maxTouchPoints ||
+        0
 
       const appleMobile =
         /iphone|ipad|ipod/.test(
@@ -1067,11 +1260,11 @@ export default function SuccessPage() {
     )
   }
 
-  const copy =
+  const roleCopy =
     role ===
     "owner"
-      ? "Recibimos los datos de tu propiedad. Ahora dejá preparado tu acceso para poder seguir todo desde Verlo."
-      : "Guardamos tu búsqueda. Ahora dejá preparado tu acceso para poder seguir todo desde Verlo."
+      ? "Tu propiedad ya quedó cargada."
+      : "Tu búsqueda ya quedó guardada."
 
   const iosNeedsInstall =
     deviceChecked &&
@@ -1095,340 +1288,177 @@ export default function SuccessPage() {
           <div className="success-container">
             <section className="success-card">
 
-              <div className="success-badge">
-                Todo listo
+              <div className="success-top">
+                <div className="success-icon">
+                  ✓
+                </div>
+
+                <div className="success-badge">
+                  Todo listo
+                </div>
+
+                <h1 className="success-title">
+                  ¡Listo!
+                </h1>
+
+                <p className="success-copy">
+                  Ahora hacé estos 3 pasos para no perderte tus coincidencias.
+                </p>
+
+                <p className="success-role-note">
+                  {roleCopy}
+                </p>
               </div>
 
-              <h1 className="success-title">
-                Ya estás en{" "}
-                <em>
-                  Verlo
-                </em>
-              </h1>
+              <h2 className="actions-title">
+                Dejá tu Verlo listo ahora
+              </h2>
 
-              <p className="success-copy">
-                {copy}
-              </p>
+              <div className="actions">
 
-              <section className="verlo-explainer">
-                <h2>
-                  Cómo funciona Verlo
-                </h2>
-
-                <div className="verlo-flow">
-                  <div className="verlo-flow-item">
-                    <b>1</b>
-
-                    <div>
-                      <strong>
-                        Publicás o buscás
-                      </strong>
-
-                      <p>
-                        Cargás tu propiedad o contás qué alquiler estás buscando.
-                      </p>
-                    </div>
+                <article className="action-card notifications">
+                  <div className="action-icon">
+                    🔔
                   </div>
 
-                  <div className="verlo-flow-item">
-                    <b>2</b>
+                  <div className="action-content">
+                    <h2>
+                      ACTIVÁ LAS NOTIFICACIONES
+                    </h2>
 
-                    <div>
-                      <strong>
-                        Verlo hace el match
-                      </strong>
-
-                      <p>
-                        Buscamos coincidencias compatibles entre propietarios e inquilinos.
-                      </p>
-                    </div>
+                    <p>
+                      Te avisamos cuando aparezcan nuevos matches o tengas algo pendiente.
+                    </p>
                   </div>
 
-                  <div className="verlo-flow-item">
-                    <b>3</b>
+                  <div className="action-control">
+                    {iosNeedsInstall ? (
+                      <>
+                        <button
+                          type="button"
+                          className="action-button install-button"
+                          onClick={
+                            installApp
+                          }
+                        >
+                          PRIMERO INSTALÁ VERLO EN IPHONE
+                        </button>
 
-                    <div>
-                      <strong>
-                        Validamos antes de avanzar
-                      </strong>
-
-                      <p>
-                        El inquilino muestra interés y completa su validación antes de que el propietario tenga que intervenir.
+                        <p className="message error">
+                          En iPhone primero agregá Verlo a Inicio y después abrilo desde el ícono para activar notificaciones.
+                        </p>
+                      </>
+                    ) : leadId ? (
+                      <div className="push-wrap">
+                        <PushSubscribeButton
+                          leadId={
+                            leadId
+                          }
+                          role={
+                            role
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <p className="message error">
+                        No encontramos tu registro para activar las notificaciones.
                       </p>
-                    </div>
+                    )}
+                  </div>
+                </article>
+
+                <article className="action-card install">
+                  <div className="action-icon">
+                    ↓
                   </div>
 
-                  <div className="verlo-flow-item">
-                    <b>4</b>
+                  <div className="action-content">
+                    <h2>
+                      DESCARGÁ ACCESO DIRECTO
+                    </h2>
 
-                    <div>
-                      <strong>
-                        Si ambos quieren seguir, avanzan
-                      </strong>
-
-                      <p>
-                        Se habilita el contacto, coordinan la visita y después ambos confirman si quieren continuar.
-                      </p>
-                    </div>
+                    <p>
+                      Tené Verlo siempre a mano desde el ícono de tu dispositivo.
+                    </p>
                   </div>
 
-                  <div className="verlo-flow-item">
-                    <b>5</b>
-
-                    <div>
-                      <strong>
-                        Verlo los acompaña hasta el contrato
-                      </strong>
-
-                      <p>
-                        Completan los datos finales, Verlo genera el contrato y ambas partes lo aceptan.
-                      </p>
-                    </div>
+                  <div className="action-control">
+                    <button
+                      type="button"
+                      className="action-button install-button"
+                      onClick={
+                        installApp
+                      }
+                      disabled={
+                        installed
+                      }
+                    >
+                      {installed
+                        ? "VERLO YA ESTÁ INSTALADO"
+                        : isIos
+                          ? "AGREGAR VERLO A INICIO"
+                          : "INSTALAR VERLO"}
+                    </button>
                   </div>
+                </article>
+
+                <article className="action-card access">
+                  <div className="action-icon">
+                   ⌂
+                  </div>
+
+                  <div className="action-content">
+                    <h2>
+                      ENTRÁ YA A MI VERLO
+                    </h2>
+
+                    <p>
+                      Pedí tu acceso seguro y entrá a tu espacio personal.
+                    </p>
+                  </div>
+
+                  <div className="action-control">
+                    <button
+                      type="button"
+                      className="action-button access-button"
+                      onClick={
+                        sendMagicLink
+                      }
+                      disabled={
+                        !leadId ||
+                        magicLoading
+                      }
+                    >
+                      {magicLoading
+                        ? "ENVIANDO ACCESO..."
+                        : "ENTRAR A MI VERLO"}
+                    </button>
+
+                    {magicMessage && (
+                      <p className="message ok">
+                        {magicMessage}
+                      </p>
+                    )}
+
+                    {magicError && (
+                      <p className="message error">
+                        {magicError}
+                      </p>
+                    )}
+                  </div>
+                </article>
+
+              </div>
+
+              <div className="important-note">
+                <div className="important-note-icon">
+                  i
                 </div>
 
-                <div className="verlo-alerts">
-                  <strong>
-                    Te avisamos nosotros
-                  </strong>
-
-                  <p>
-                    Cuando haya un nuevo match o cualquier avance importante, Verlo te avisa por notificación y por email. No hace falta que estés entrando todo el tiempo. Revisá también Spam o Promociones si no ves nuestro email.
-                  </p>
+                <div>
+                  Si no activás las notificaciones, podés perderte nuevos matches o acciones importantes.
                 </div>
-              </section>
-
-              {iosNeedsInstall ? (
-                <>
-                  <h2 className="steps-title">
-                    Seguí estos pasos en orden:
-                  </h2>
-
-                  <div className="steps">
-
-                    <article className="step">
-                      <div className="step-number">
-                        1
-                      </div>
-
-                      <div className="step-content">
-                        <h2>
-                          Instalá Verlo
-                        </h2>
-
-                        <p>
-                          En iPhone o iPad, abrí esta página en Safari.
-                          Desde Safari agregá Verlo a Inicio como app web.
-                          Recién después vas a poder activar notificaciones.
-                        </p>
-
-                        <div className="step-action">
-                          <button
-                            type="button"
-                            className="action-button primary-button"
-                            onClick={
-                              installApp
-                            }
-                          >
-                            CÓMO INSTALAR VERLO EN IPHONE
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-
-                    <article className="step">
-                      <div className="step-number">
-                        2
-                      </div>
-
-                      <div className="step-content">
-                        <h2>
-                          Abrí Verlo desde el ícono
-                        </h2>
-
-                        <p>
-                          Después de agregar Verlo a la
-                          pantalla de inicio, cerrá esta
-                          pestaña y abrí Verlo tocando el
-                          nuevo ícono. Vamos a traerte de
-                          vuelta a este paso automáticamente.
-                        </p>
-                      </div>
-                    </article>
-
-                    <article className="step">
-                      <div className="step-number">
-                        3
-                      </div>
-
-                      <div className="step-content">
-                        <h2>
-                          Activá las notificaciones
-                        </h2>
-
-                        <p>
-                          Una vez que abras Verlo desde el
-                          ícono, vas a poder habilitar las
-                          notificaciones para recibir matches
-                          y acciones pendientes.
-                        </p>
-                      </div>
-                    </article>
-
-                    <article className="step">
-                      <div className="step-number">
-                        4
-                      </div>
-
-                      <div className="step-content">
-                        <h2>
-                          Entrá a Mi Verlo
-                        </h2>
-
-                        <p>
-                          Después vas a poder pedir tu enlace
-                          seguro de acceso a Mi Verlo.
-                        </p>
-                      </div>
-                    </article>
-
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h2 className="steps-title">
-                    Seguí estos 3 pasos en orden:
-                  </h2>
-
-                  <div className="steps">
-
-                    <article className="step">
-                      <div className="step-number">
-                        1
-                      </div>
-
-                      <div className="step-content">
-                        <h2>
-                          Activá las notificaciones
-                        </h2>
-
-                        <p>
-                          Te vamos a avisar cuando tengas
-                          nuevos matches, cuando alguien quiera
-                          avanzar con vos y cuando tengas una
-                          acción pendiente.
-                        </p>
-
-                        <div className="step-action">
-                          {leadId ? (
-                            <div className="push-wrap">
-                              <PushSubscribeButton
-                                leadId={
-                                  leadId
-                                }
-                                role={
-                                  role
-                                }
-                              />
-                            </div>
-                          ) : (
-                            <p className="message error">
-                              No encontramos tu registro para
-                              activar las notificaciones.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </article>
-
-                    <article className="step">
-                      <div className="step-number">
-                        2
-                      </div>
-
-                      <div className="step-content">
-                        <h2>
-                          Entrá a Mi Verlo
-                        </h2>
-
-                        <p>
-                          Tocá el botón y revisá tu email.
-                          Te va a llegar un enlace seguro para
-                          entrar a tu espacio personal.
-                          Revisá también Spam o Correo no deseado.
-                        </p>
-
-                        <div className="step-action">
-                          <button
-                            type="button"
-                            className="action-button primary-button"
-                            onClick={
-                              sendMagicLink
-                            }
-                            disabled={
-                              !leadId ||
-                              magicLoading
-                            }
-                          >
-                            {magicLoading
-                              ? "Enviando acceso..."
-                              : "ENTRAR A MI VERLO"}
-                          </button>
-
-                          {magicMessage && (
-                            <p className="message ok">
-                              {magicMessage}
-                            </p>
-                          )}
-
-                          {magicError && (
-                            <p className="message error">
-                              {magicError}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </article>
-
-                    <article className="step">
-                      <div className="step-number">
-                        3
-                      </div>
-
-                      <div className="step-content">
-                        <h2>
-                          Instalá Verlo en este dispositivo.
-                        </h2>
-
-                        <p>
-                          Consejo: no ocupa prácticamente espacio
-                          en tu memoria y vas a tener el ícono de
-                          Verlo en tu pantalla para entrar y operar
-                          más rápido.
-                        </p>
-
-                        <div className="step-action">
-                          <button
-                            type="button"
-                            className="action-button secondary-button"
-                            onClick={
-                              installApp
-                            }
-                            disabled={
-                              installed
-                            }
-                          >
-                            {installed
-                              ? "VERLO YA ESTÁ INSTALADO"
-                              : "INSTALAR VERLO"}
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-
-                  </div>
-                </>
-              )}
+              </div>
 
             </section>
           </div>
