@@ -886,9 +886,8 @@ export async function GET(
               // OWNER GHL SE ARREGLA DESPUES DEL DIAGNOSTICO.
               // =================================================
 
-              skipWhatsApp:
-                role ===
-                'owner',
+             skipWhatsApp:
+             false,
             })
 
           console.log(
