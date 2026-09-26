@@ -181,24 +181,35 @@ async function getOwnerPropertyToken(
   leadId: string
 ) {
   try {
+    const nowIso =
+      new Date()
+        .toISOString()
+
+    // ========================================================
+    // 1. BUSCAR COMPLETION EXISTENTE
+    // ========================================================
+
+    let completionId:
+      string |
+      null =
+      null
+
     const {
-      data,
-      error,
+      data:
+        existingCompletion,
+      error:
+        completionLookupError,
     } =
       await supabaseAdmin
         .from(
-          "owner_property_access_tokens"
+          "owner_property_completions"
         )
         .select(
-          "token, expires_at, revoked_at, created_at"
+          "id"
         )
         .eq(
-          "owner_lead_id",
+          "lead_id",
           leadId
-        )
-        .is(
-          "revoked_at",
-          null
         )
         .order(
           "created_at",
@@ -207,17 +218,20 @@ async function getOwnerPropertyToken(
               false,
           }
         )
-        .limit(1)
+        .limit(
+          1
+        )
         .maybeSingle()
 
     if (
-      error
+      completionLookupError
     ) {
       console.error(
-        "ghl owner token lookup error:",
+        "ghl owner completion lookup error:",
         {
           leadId,
-          error,
+          error:
+            completionLookupError,
         }
       )
 
@@ -225,23 +239,287 @@ async function getOwnerPropertyToken(
     }
 
     if (
-      !data
+      existingCompletion
     ) {
+      completionId =
+        existingCompletion.id
+    } else {
+      const {
+        data:
+          newCompletion,
+        error:
+          completionInsertError,
+      } =
+        await supabaseAdmin
+          .from(
+            "owner_property_completions"
+          )
+          .insert({
+            lead_id:
+              leadId,
+
+            match_id:
+              null,
+
+            status:
+              "draft",
+          })
+          .select(
+            "id"
+          )
+          .single()
+
+      if (
+        completionInsertError ||
+        !newCompletion
+      ) {
+        const {
+          data:
+            racedCompletion,
+          error:
+            racedCompletionError,
+        } =
+          await supabaseAdmin
+            .from(
+              "owner_property_completions"
+            )
+            .select(
+              "id"
+            )
+            .eq(
+              "lead_id",
+              leadId
+            )
+            .order(
+              "created_at",
+              {
+                ascending:
+                  false,
+              }
+            )
+            .limit(
+              1
+            )
+            .maybeSingle()
+
+        if (
+          racedCompletionError ||
+          !racedCompletion
+        ) {
+          console.error(
+            "ghl owner completion create error:",
+            {
+              leadId,
+              error:
+                completionInsertError ||
+                racedCompletionError,
+            }
+          )
+
+          return null
+        }
+
+        completionId =
+          racedCompletion.id
+      } else {
+        completionId =
+          newCompletion.id
+      }
+    }
+
+    if (
+      !completionId
+    ) {
+      return null
+    }
+
+    // ========================================================
+    // 2. BUSCAR TOKEN ACTIVO
+    // ========================================================
+
+    const {
+      data:
+        existingToken,
+      error:
+        tokenLookupError,
+    } =
+      await supabaseAdmin
+        .from(
+          "owner_property_access_tokens"
+        )
+        .select(`
+          token,
+          expires_at
+        `)
+        .eq(
+          "owner_lead_id",
+          leadId
+        )
+        .eq(
+          "completion_id",
+          completionId
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+        .or(
+          `expires_at.is.null,expires_at.gt.${nowIso}`
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
+        .limit(
+          1
+        )
+        .maybeSingle()
+
+    if (
+      tokenLookupError
+    ) {
+      console.error(
+        "ghl owner token lookup error:",
+        {
+          leadId,
+          error:
+            tokenLookupError,
+        }
+      )
+
       return null
     }
 
     if (
-      data.expires_at &&
-      new Date(
-        data.expires_at
-      ).getTime() <=
-        Date.now()
+      existingToken
     ) {
+      return clean(
+        existingToken.token
+      ) ||
+      null
+    }
+
+    // ========================================================
+    // 3. CREAR TOKEN
+    // ========================================================
+
+    const {
+      randomBytes,
+    } =
+      await import(
+        "node:crypto"
+      )
+
+    const token =
+      randomBytes(
+        32
+      ).toString(
+        "hex"
+      )
+
+    const expiresAt =
+      new Date(
+        Date.now() +
+        30 *
+        24 *
+        60 *
+        60 *
+        1000
+      ).toISOString()
+
+    const {
+      error:
+        tokenInsertError,
+    } =
+      await supabaseAdmin
+        .from(
+          "owner_property_access_tokens"
+        )
+        .insert({
+          owner_lead_id:
+            leadId,
+
+          completion_id:
+            completionId,
+
+          token,
+
+          expires_at:
+            expiresAt,
+        })
+
+    if (
+      !tokenInsertError
+    ) {
+      return token
+    }
+
+    // ========================================================
+    // 4. RACE CONDITION: RECONSULTAR
+    // ========================================================
+
+    const {
+      data:
+        racedToken,
+      error:
+        racedTokenError,
+    } =
+      await supabaseAdmin
+        .from(
+          "owner_property_access_tokens"
+        )
+        .select(
+          "token"
+        )
+        .eq(
+          "owner_lead_id",
+          leadId
+        )
+        .eq(
+          "completion_id",
+          completionId
+        )
+        .is(
+          "revoked_at",
+          null
+        )
+        .or(
+          `expires_at.is.null,expires_at.gt.${nowIso}`
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
+        .limit(
+          1
+        )
+        .maybeSingle()
+
+    if (
+      racedTokenError ||
+      !racedToken
+    ) {
+      console.error(
+        "ghl owner token create error:",
+        {
+          leadId,
+          error:
+            tokenInsertError ||
+            racedTokenError,
+        }
+      )
+
       return null
     }
 
     return clean(
-      data.token
+      racedToken.token
     ) ||
     null
   } catch (
