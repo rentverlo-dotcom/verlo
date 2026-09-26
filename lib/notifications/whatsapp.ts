@@ -27,12 +27,51 @@ type WhatsAppResult = {
 const GHL_TIMEOUT_MS =
   4000
 
+const SITE_URL =
+  (
+    process.env
+      .SITE_URL ||
+    "https://verlo.lat"
+  ).replace(
+    /\/$/,
+    ""
+  )
+
 function clean(
   value: unknown
 ) {
   return String(
     value || ""
   ).trim()
+}
+
+function absoluteUrl(
+  value: unknown
+) {
+  const raw =
+    clean(
+      value
+    )
+
+  if (
+    !raw
+  ) {
+    return ""
+  }
+
+  if (
+    /^https?:\/\//i.test(
+      raw
+    )
+  ) {
+    return raw
+  }
+
+  return `${SITE_URL}${
+    raw.startsWith("/")
+      ? raw
+      : `/${raw}`
+  }`
 }
 
 /**
@@ -77,10 +116,6 @@ export async function sendWhatsApp(
   let webhookUrl =
     ""
 
-  // =========================================================
-  // DIGEST TENANT
-  // =========================================================
-
   if (
     eventType ===
     "match_digest_tenant"
@@ -92,10 +127,6 @@ export async function sendWhatsApp(
       )
   }
 
-  // =========================================================
-  // DIGEST OWNER
-  // =========================================================
-
   else if (
     eventType ===
     "owner_match_digest"
@@ -106,10 +137,6 @@ export async function sendWhatsApp(
           .GHL_OWNER_DIGEST_WEBHOOK_URL
       )
   }
-
-  // =========================================================
-  // READY TO CONNECT
-  // =========================================================
 
   else if (
     readyToConnectEvents.has(
@@ -123,10 +150,6 @@ export async function sendWhatsApp(
       )
   }
 
-  // =========================================================
-  // PILOT / MATCH EVENTS
-  // =========================================================
-
   else if (
     pilotMatchEvents.has(
       eventType
@@ -138,10 +161,6 @@ export async function sendWhatsApp(
           .GHL_PILOT_MATCH_WEBHOOK_URL
       )
   }
-
-  // =========================================================
-  // FALLBACKS LEGACY
-  // =========================================================
 
   if (
     !webhookUrl
@@ -156,10 +175,6 @@ export async function sendWhatsApp(
           .GHL_WEBHOOK_URL
       )
   }
-
-  // =========================================================
-  // SIN WEBHOOK
-  // =========================================================
 
   if (
     !webhookUrl
@@ -177,6 +192,49 @@ export async function sendWhatsApp(
       error:
         "GHL webhook not configured",
     }
+  }
+
+  const absoluteMessageUrl =
+    absoluteUrl(
+      message.url
+    )
+
+  const absoluteMatchesUrl =
+    absoluteUrl(
+      message.matchesUrl ||
+      message.url
+    )
+
+  const legacyPayload =
+    {
+      ...(
+        message.legacyPayload ||
+        {}
+      ),
+    }
+
+  if (
+    legacyPayload
+      .verlo_matches_url
+  ) {
+    legacyPayload
+      .verlo_matches_url =
+      absoluteUrl(
+        legacyPayload
+          .verlo_matches_url
+      )
+  }
+
+  if (
+    legacyPayload
+      .verlo_property_url
+  ) {
+    legacyPayload
+      .verlo_property_url =
+      absoluteUrl(
+        legacyPayload
+          .verlo_property_url
+      )
   }
 
   const controller =
@@ -217,16 +275,10 @@ export async function sendWhatsApp(
                 ),
 
               verlo_matches_url:
-                clean(
-                  message.matchesUrl ||
-                  message.url
-                ) ||
+                absoluteMatchesUrl ||
                 null,
 
-              ...(
-                message.legacyPayload ||
-                {}
-              ),
+              ...legacyPayload,
 
               to:
                 clean(
@@ -278,9 +330,7 @@ export async function sendWhatsApp(
                 null,
 
               url:
-                clean(
-                  message.url
-                ) ||
+                absoluteMessageUrl ||
                 null,
 
               context:
