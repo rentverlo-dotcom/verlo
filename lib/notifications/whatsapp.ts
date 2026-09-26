@@ -36,7 +36,7 @@ function clean(
 }
 
 /**
- * Canal WhatsApp best-effort vía webhook de GoHighLevel.
+ * Canal WhatsApp / GHL best-effort vía webhook.
  *
  * REGLA:
  * - nunca debe romper el flujo principal de Verlo;
@@ -45,6 +45,8 @@ function clean(
  * - push / DB / contrato siguen funcionando igual.
  *
  * Env aceptadas:
+ * - GHL_TENANT_DIGEST_WEBHOOK_URL
+ * - GHL_OWNER_DIGEST_WEBHOOK_URL
  * - GHL_PILOT_MATCH_WEBHOOK_URL
  * - GHL_READY_TO_CONNECT_WEBHOOK_URL
  * - GHL_WHATSAPP_WEBHOOK_URL (fallback)
@@ -72,32 +74,92 @@ export async function sendWhatsApp(
       "ready_to_connect",
     ])
 
-  const webhookUrl =
-    (
-      readyToConnectEvents.has(
-        eventType
+  let webhookUrl =
+    ""
+
+  // =========================================================
+  // DIGEST TENANT
+  // =========================================================
+
+  if (
+    eventType ===
+    "match_digest_tenant"
+  ) {
+    webhookUrl =
+      clean(
+        process.env
+          .GHL_TENANT_DIGEST_WEBHOOK_URL
       )
-        ? clean(
-            process.env
-              .GHL_READY_TO_CONNECT_WEBHOOK_URL
-          )
-        : pilotMatchEvents.has(
-            eventType
-          )
-          ? clean(
-              process.env
-                .GHL_PILOT_MATCH_WEBHOOK_URL
-            )
-          : ""
-    ) ||
-    clean(
-      process.env
-        .GHL_WHATSAPP_WEBHOOK_URL
-    ) ||
-    clean(
-      process.env
-        .GHL_WEBHOOK_URL
+  }
+
+  // =========================================================
+  // DIGEST OWNER
+  // =========================================================
+
+  else if (
+    eventType ===
+    "owner_match_digest"
+  ) {
+    webhookUrl =
+      clean(
+        process.env
+          .GHL_OWNER_DIGEST_WEBHOOK_URL
+      )
+  }
+
+  // =========================================================
+  // READY TO CONNECT
+  // =========================================================
+
+  else if (
+    readyToConnectEvents.has(
+      eventType
     )
+  ) {
+    webhookUrl =
+      clean(
+        process.env
+          .GHL_READY_TO_CONNECT_WEBHOOK_URL
+      )
+  }
+
+  // =========================================================
+  // PILOT / MATCH EVENTS
+  // =========================================================
+
+  else if (
+    pilotMatchEvents.has(
+      eventType
+    )
+  ) {
+    webhookUrl =
+      clean(
+        process.env
+          .GHL_PILOT_MATCH_WEBHOOK_URL
+      )
+  }
+
+  // =========================================================
+  // FALLBACKS LEGACY
+  // =========================================================
+
+  if (
+    !webhookUrl
+  ) {
+    webhookUrl =
+      clean(
+        process.env
+          .GHL_WHATSAPP_WEBHOOK_URL
+      ) ||
+      clean(
+        process.env
+          .GHL_WEBHOOK_URL
+      )
+  }
+
+  // =========================================================
+  // SIN WEBHOOK
+  // =========================================================
 
   if (
     !webhookUrl
@@ -105,10 +167,13 @@ export async function sendWhatsApp(
     return {
       provider:
         "ghl",
+
       success:
         false,
+
       skipped:
         true,
+
       error:
         "GHL webhook not configured",
     }
@@ -244,10 +309,13 @@ export async function sendWhatsApp(
       return {
         provider:
           "ghl",
+
         success:
           false,
+
         status:
           response.status,
+
         error:
           data?.error ||
           `GHL HTTP ${response.status}`,
@@ -257,10 +325,13 @@ export async function sendWhatsApp(
     return {
       provider:
         "ghl",
+
       success:
         true,
+
       status:
         response.status,
+
       message_id:
         clean(
           data?.message_id ||
@@ -274,8 +345,10 @@ export async function sendWhatsApp(
     return {
       provider:
         "ghl",
+
       success:
         false,
+
       error:
         error instanceof
           Error
