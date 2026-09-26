@@ -40,21 +40,19 @@ const styles = `
     --soft: #f2ebec;
     --blue: #74bedc;
     --yellow: #e7c776;
-    --green: #5bbf9a;
-    --green-dark: #15745c;
     --white: #ffffff;
 
     min-height: 100vh;
 
     background:
       radial-gradient(
-        circle at 14% 12%,
-        rgba(242, 168, 169, 0.34),
-        transparent 30%
+        circle at 16% 14%,
+        rgba(242, 168, 169, 0.42),
+        transparent 32%
       ),
       radial-gradient(
-        circle at 86% 82%,
-        rgba(116, 190, 220, 0.22),
+        circle at 84% 84%,
+        rgba(116, 190, 220, 0.28),
         transparent 30%
       ),
       var(--soft);
@@ -72,48 +70,29 @@ const styles = `
   }
 
   .success-root * {
-    box-sizing:
-      border-box;
+    box-sizing: border-box;
   }
 
   .success-nav {
-    min-height:
-      72px;
+    min-height: 72px;
 
-    display:
-      flex;
-
-    align-items:
-      center;
+    display: flex;
+    align-items: center;
 
     border-bottom:
       1px solid
-      rgba(
-        5,
-        0,
-        2,
-        0.07
-      );
+      rgba(5, 0, 2, 0.08);
 
     background:
-      rgba(
-        242,
-        235,
-        236,
-        0.76
-      );
+      rgba(242, 235, 236, 0.80);
 
     backdrop-filter:
       blur(18px);
 
-    position:
-      sticky;
+    position: sticky;
+    top: 0;
 
-    top:
-      0;
-
-    z-index:
-      20;
+    z-index: 20;
   }
 
   .success-container {
@@ -137,30 +116,21 @@ const styles = `
       100%;
 
     padding:
-      36px;
+      42px;
 
     border-radius:
-      36px;
+      38px;
 
     background:
       rgba(
         255,
         255,
         255,
-        0.82
+        0.80
       );
 
     border:
       1px solid
-      rgba(
-        5,
-        0,
-        2,
-        0.07
-      );
-
-    box-shadow:
-      0 24px 70px
       rgba(
         5,
         0,
@@ -168,68 +138,22 @@ const styles = `
         0.08
       );
 
+    box-shadow:
+      0 28px 90px
+      rgba(
+        5,
+        0,
+        2,
+        0.10
+      );
+
     backdrop-filter:
       blur(18px);
   }
 
-  .success-top {
+  .hero {
     text-align:
       center;
-  }
-
-  .success-icon {
-    width:
-      92px;
-
-    height:
-      92px;
-
-    margin:
-      0 auto;
-
-    display:
-      grid;
-
-    place-items:
-      center;
-
-    border-radius:
-      999px;
-
-    background:
-      linear-gradient(
-        145deg,
-        rgba(
-          91,
-          191,
-          154,
-          0.14
-        ),
-        rgba(
-          116,
-          190,
-          220,
-          0.20
-        )
-      );
-
-    border:
-      1px solid
-      rgba(
-        21,
-        116,
-        92,
-        0.10
-      );
-
-    font-size:
-      44px;
-
-    font-weight:
-      950;
-
-    color:
-      var(--green-dark);
   }
 
   .success-badge {
@@ -245,11 +169,8 @@ const styles = `
     justify-content:
       center;
 
-    margin:
-      22px auto 0;
-
     padding:
-      8px 13px;
+      9px 14px;
 
     border-radius:
       999px;
@@ -259,7 +180,7 @@ const styles = `
         242,
         168,
         169,
-        0.20
+        0.24
       );
 
     color:
@@ -280,20 +201,20 @@ const styles = `
 
   .success-title {
     margin:
-      14px 0 0;
+      18px 0 0;
 
     font-size:
       clamp(
-        46px,
+        42px,
         8vw,
-        72px
+        70px
       );
 
     line-height:
-      0.94;
+      0.95;
 
     letter-spacing:
-      -0.065em;
+      -0.07em;
 
     font-weight:
       950;
@@ -314,42 +235,42 @@ const styles = `
 
   .success-copy {
     max-width:
-      520px;
+      560px;
 
     margin:
-      16px auto 0;
+      18px auto 0;
 
     color:
       rgba(
         5,
         0,
         2,
-        0.60
+        0.62
       );
 
     font-size:
       17px;
 
     line-height:
-      1.45;
+      1.48;
 
     font-weight:
-      700;
+      650;
   }
 
-  .success-role-note {
+  .success-status {
     max-width:
-      520px;
+      560px;
 
     margin:
-      10px auto 0;
+      8px auto 0;
 
     color:
       rgba(
         5,
         0,
         2,
-        0.48
+        0.46
       );
 
     font-size:
@@ -359,12 +280,12 @@ const styles = `
       1.4;
 
     font-weight:
-      700;
+      750;
   }
 
-  .actions-title {
+  .actions-heading {
     margin:
-      34px 0 14px;
+      34px 0 16px;
 
     text-align:
       center;
@@ -376,7 +297,7 @@ const styles = `
       950;
 
     letter-spacing:
-      -0.02em;
+      -0.03em;
   }
 
   .actions {
@@ -388,29 +309,11 @@ const styles = `
   }
 
   .action-card {
-    position:
-      relative;
-
-    overflow:
-      hidden;
-
-    display:
-      grid;
-
-    grid-template-columns:
-      58px 1fr;
-
-    gap:
-      16px;
-
-    align-items:
-      center;
-
     padding:
-      18px;
+      20px;
 
     border-radius:
-      26px;
+      28px;
 
     border:
       1px solid
@@ -418,7 +321,7 @@ const styles = `
         5,
         0,
         2,
-        0.06
+        0.07
       );
   }
 
@@ -430,13 +333,13 @@ const styles = `
           242,
           168,
           169,
-          0.17
+          0.22
         ),
         rgba(
           255,
           255,
           255,
-          0.80
+          0.86
         )
       );
   }
@@ -449,13 +352,13 @@ const styles = `
           116,
           190,
           220,
-          0.16
+          0.20
         ),
         rgba(
           255,
           255,
           255,
-          0.80
+          0.86
         )
       );
   }
@@ -465,26 +368,40 @@ const styles = `
       linear-gradient(
         135deg,
         rgba(
-          91,
-          191,
-          154,
-          0.16
+          231,
+          199,
+          118,
+          0.20
         ),
         rgba(
           255,
           255,
           255,
-          0.80
+          0.86
         )
       );
   }
 
+  .action-top {
+    display:
+      grid;
+
+    grid-template-columns:
+      54px 1fr;
+
+    gap:
+      14px;
+
+    align-items:
+      center;
+  }
+
   .action-icon {
     width:
-      58px;
+      54px;
 
     height:
-      58px;
+      54px;
 
     display:
       grid;
@@ -495,50 +412,48 @@ const styles = `
     border-radius:
       18px;
 
-    font-size:
-      27px;
+    border:
+      1px solid
+      rgba(
+        5,
+        0,
+        2,
+        0.08
+      );
 
-    font-weight:
-      950;
-  }
-
-  .notifications .action-icon {
     background:
       rgba(
-        242,
-        168,
-        169,
-        0.25
+        255,
+        255,
+        255,
+        0.72
       );
 
     color:
-      #bc4352;
+      var(--black);
   }
 
-  .install .action-icon {
-    background:
-      rgba(
-        116,
-        190,
-        220,
-        0.23
-      );
+  .action-icon svg {
+    width:
+      25px;
 
-    color:
-      #2f7193;
-  }
+    height:
+      25px;
 
-  .access .action-icon {
-    background:
-      rgba(
-        91,
-        191,
-        154,
-        0.20
-      );
+    stroke:
+      currentColor;
 
-    color:
-      var(--green-dark);
+    stroke-width:
+      2;
+
+    fill:
+      none;
+
+    stroke-linecap:
+      round;
+
+    stroke-linejoin:
+      round;
   }
 
   .action-content h2 {
@@ -549,28 +464,16 @@ const styles = `
       18px;
 
     line-height:
-      1.05;
+      1.08;
 
     font-weight:
       950;
 
     letter-spacing:
       -0.025em;
-  }
 
-  .notifications .action-content h2 {
     color:
-      #b23a49;
-  }
-
-  .install .action-content h2 {
-    color:
-      #225f82;
-  }
-
-  .access .action-content h2 {
-    color:
-      var(--green-dark);
+      var(--black);
   }
 
   .action-content p {
@@ -592,16 +495,12 @@ const styles = `
       1.4;
 
     font-weight:
-      700;
+      650;
   }
 
   .action-control {
-    grid-column:
-      1 /
-      -1;
-
     margin-top:
-      4px;
+      16px;
   }
 
   .push-wrap button,
@@ -613,10 +512,20 @@ const styles = `
       54px;
 
     padding:
-      0 20px;
+      0 22px;
 
     border-radius:
       999px;
+
+    border:
+      1px solid
+      var(--black);
+
+    background:
+      var(--black);
+
+    color:
+      white;
 
     font-family:
       inherit;
@@ -627,6 +536,9 @@ const styles = `
     font-weight:
       950;
 
+    letter-spacing:
+      -0.01em;
+
     cursor:
       pointer;
 
@@ -634,42 +546,6 @@ const styles = `
       transform 160ms ease,
       opacity 160ms ease,
       box-shadow 160ms ease;
-  }
-
-  .push-wrap button {
-    border:
-      1px solid
-      #b23a49;
-
-    background:
-      #b23a49;
-
-    color:
-      white;
-  }
-
-  .install-button {
-    border:
-      1px solid
-      #225f82;
-
-    background:
-      #225f82;
-
-    color:
-      white;
-  }
-
-  .access-button {
-    border:
-      1px solid
-      var(--green-dark);
-
-    background:
-      var(--green-dark);
-
-    color:
-      white;
   }
 
   .push-wrap button:not(:disabled):hover,
@@ -683,34 +559,42 @@ const styles = `
         5,
         0,
         2,
-        0.10
+        0.14
       );
   }
 
   .push-wrap button:disabled,
   .action-button:disabled {
     opacity:
-      0.55;
+      0.48;
 
     cursor:
       default;
   }
 
+  .secondary-button {
+    background:
+      white;
+
+    color:
+      var(--black);
+  }
+
   .message {
     margin:
-      10px 0 0;
+      11px 0 0;
 
     padding:
-      11px 13px;
+      12px 14px;
 
     border-radius:
-      14px;
+      16px;
 
     font-size:
       12px;
 
     line-height:
-      1.4;
+      1.45;
 
     font-weight:
       800;
@@ -719,14 +603,14 @@ const styles = `
   .message.ok {
     background:
       rgba(
-        91,
-        191,
-        154,
-        0.14
+        116,
+        190,
+        220,
+        0.16
       );
 
     color:
-      var(--green-dark);
+      #255a6d;
   }
 
   .message.error {
@@ -743,15 +627,6 @@ const styles = `
   }
 
   .important-note {
-    display:
-      flex;
-
-    gap:
-      10px;
-
-    align-items:
-      flex-start;
-
     margin:
       18px 0 0;
 
@@ -785,43 +660,9 @@ const styles = `
 
     font-weight:
       750;
-  }
 
-  .important-note-icon {
-    flex:
-      0 0 auto;
-
-    width:
-      22px;
-
-    height:
-      22px;
-
-    display:
-      grid;
-
-    place-items:
+    text-align:
       center;
-
-    border-radius:
-      999px;
-
-    background:
-      rgba(
-        5,
-        0,
-        2,
-        0.08
-      );
-
-    color:
-      var(--black);
-
-    font-size:
-      12px;
-
-    font-weight:
-      950;
   }
 
   @media (
@@ -841,34 +682,23 @@ const styles = `
 
     .success-main {
       padding:
-        22px 0 36px;
+        20px 0 34px;
     }
 
     .success-card {
       padding:
-        26px 16px;
+        28px 16px;
 
       border-radius:
-        28px;
-    }
-
-    .success-icon {
-      width:
-        78px;
-
-      height:
-        78px;
-
-      font-size:
-        38px;
+        30px;
     }
 
     .success-title {
       font-size:
         clamp(
           42px,
-          14vw,
-          60px
+          13vw,
+          58px
         );
     }
 
@@ -877,42 +707,49 @@ const styles = `
         15px;
     }
 
-    .actions-title {
+    .actions-heading {
       margin-top:
         28px;
     }
 
     .action-card {
-      grid-template-columns:
-        50px 1fr;
-
-      gap:
-        13px;
-
       padding:
-        15px;
+        16px;
 
       border-radius:
-        22px;
+        24px;
+    }
+
+    .action-top {
+      grid-template-columns:
+        48px 1fr;
+
+      gap:
+        12px;
     }
 
     .action-icon {
       width:
-        50px;
+        48px;
 
       height:
-        50px;
+        48px;
 
       border-radius:
-        16px;
+        15px;
+    }
 
-      font-size:
-        23px;
+    .action-icon svg {
+      width:
+        22px;
+
+      height:
+        22px;
     }
 
     .action-content h2 {
       font-size:
-        17px;
+        16px;
     }
 
     .action-content p {
@@ -930,6 +767,44 @@ const styles = `
     }
   }
 `
+
+function BellIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+      <path d="M10 21h4" />
+    </svg>
+  )
+}
+
+function DownloadIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
+    </svg>
+  )
+}
+
+function HomeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path d="m3 11 9-8 9 8" />
+      <path d="M5 10v10h14V10" />
+      <path d="M9 20v-6h6v6" />
+    </svg>
+  )
+}
 
 export default function SuccessPage() {
   const searchParams =
@@ -1260,7 +1135,7 @@ export default function SuccessPage() {
     )
   }
 
-  const roleCopy =
+  const statusCopy =
     role ===
     "owner"
       ? "Tu propiedad ya quedó cargada."
@@ -1278,6 +1153,7 @@ export default function SuccessPage() {
       </style>
 
       <div className="success-root">
+
         <header className="success-nav">
           <div className="success-container">
             <VerloBrand />
@@ -1286,66 +1162,74 @@ export default function SuccessPage() {
 
         <main className="success-main">
           <div className="success-container">
+
             <section className="success-card">
 
-              <div className="success-top">
-                <div className="success-icon">
-                  ✓
-                </div>
+              <div className="hero">
 
                 <div className="success-badge">
                   Todo listo
                 </div>
 
                 <h1 className="success-title">
-                  ¡Listo!
+                  Ya estás en{" "}
+                  <em>
+                    Verlo
+                  </em>
                 </h1>
 
                 <p className="success-copy">
-                  Ahora hacé estos 3 pasos para no perderte tus coincidencias.
+                  Hacé estos 3 pasos para no perderte ningún match.
                 </p>
 
-                <p className="success-role-note">
-                  {roleCopy}
+                <p className="success-status">
+                  {statusCopy}
                 </p>
+
               </div>
 
-              <h2 className="actions-title">
-                Dejá tu Verlo listo ahora
+              <h2 className="actions-heading">
+                Dejá tu acceso listo ahora
               </h2>
 
               <div className="actions">
 
                 <article className="action-card notifications">
-                  <div className="action-icon">
-                    🔔
-                  </div>
 
-                  <div className="action-content">
-                    <h2>
-                      ACTIVÁ LAS NOTIFICACIONES
-                    </h2>
+                  <div className="action-top">
 
-                    <p>
-                      Te avisamos cuando aparezcan nuevos matches o tengas algo pendiente.
-                    </p>
+                    <div className="action-icon">
+                      <BellIcon />
+                    </div>
+
+                    <div className="action-content">
+                      <h2>
+                        ACTIVÁ LAS NOTIFICACIONES
+                      </h2>
+
+                      <p>
+                        Te avisamos cuando aparezcan nuevos matches o tengas algo pendiente.
+                      </p>
+                    </div>
+
                   </div>
 
                   <div className="action-control">
+
                     {iosNeedsInstall ? (
                       <>
                         <button
                           type="button"
-                          className="action-button install-button"
+                          className="action-button"
                           onClick={
                             installApp
                           }
                         >
-                          PRIMERO INSTALÁ VERLO EN IPHONE
+                          PRIMERO INSTALÁ VERLO
                         </button>
 
                         <p className="message error">
-                          En iPhone primero agregá Verlo a Inicio y después abrilo desde el ícono para activar notificaciones.
+                          En iPhone primero agregá Verlo a Inicio. Después abrilo desde el ícono y activá las notificaciones.
                         </p>
                       </>
                     ) : leadId ? (
@@ -1364,28 +1248,36 @@ export default function SuccessPage() {
                         No encontramos tu registro para activar las notificaciones.
                       </p>
                     )}
+
                   </div>
+
                 </article>
 
                 <article className="action-card install">
-                  <div className="action-icon">
-                    ↓
-                  </div>
 
-                  <div className="action-content">
-                    <h2>
-                      DESCARGÁ ACCESO DIRECTO
-                    </h2>
+                  <div className="action-top">
 
-                    <p>
-                      Tené Verlo siempre a mano desde el ícono de tu dispositivo.
-                    </p>
+                    <div className="action-icon">
+                      <DownloadIcon />
+                    </div>
+
+                    <div className="action-content">
+                      <h2>
+                        DESCARGÁ ACCESO DIRECTO
+                      </h2>
+
+                      <p>
+                        Tené Verlo siempre a mano desde el ícono de tu dispositivo.
+                      </p>
+                    </div>
+
                   </div>
 
                   <div className="action-control">
+
                     <button
                       type="button"
-                      className="action-button install-button"
+                      className="action-button secondary-button"
                       onClick={
                         installApp
                       }
@@ -1399,28 +1291,36 @@ export default function SuccessPage() {
                           ? "AGREGAR VERLO A INICIO"
                           : "INSTALAR VERLO"}
                     </button>
+
                   </div>
+
                 </article>
 
                 <article className="action-card access">
-                  <div className="action-icon">
-                   ⌂
-                  </div>
 
-                  <div className="action-content">
-                    <h2>
-                      ENTRÁ YA A MI VERLO
-                    </h2>
+                  <div className="action-top">
 
-                    <p>
-                      Pedí tu acceso seguro y entrá a tu espacio personal.
-                    </p>
+                    <div className="action-icon">
+                      <HomeIcon />
+                    </div>
+
+                    <div className="action-content">
+                      <h2>
+                        ENTRÁ YA A MI VERLO
+                      </h2>
+
+                      <p>
+                        Pedí tu enlace seguro y entrá a tu espacio personal.
+                      </p>
+                    </div>
+
                   </div>
 
                   <div className="action-control">
+
                     <button
                       type="button"
-                      className="action-button access-button"
+                      className="action-button"
                       onClick={
                         sendMagicLink
                       }
@@ -1445,24 +1345,22 @@ export default function SuccessPage() {
                         {magicError}
                       </p>
                     )}
+
                   </div>
+
                 </article>
 
               </div>
 
               <div className="important-note">
-                <div className="important-note-icon">
-                  i
-                </div>
-
-                <div>
-                  Si no activás las notificaciones, podés perderte nuevos matches o acciones importantes.
-                </div>
+                Activá las notificaciones para que Verlo pueda avisarte cuando aparezca una nueva coincidencia.
               </div>
 
             </section>
+
           </div>
         </main>
+
       </div>
     </>
   )
