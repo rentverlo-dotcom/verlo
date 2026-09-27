@@ -3,6 +3,7 @@
 import {
   ChangeEvent,
   FormEvent,
+  useEffect,
   useState,
 } from "react"
 import VerloBrand from "@/components/VerloBrand"
@@ -715,6 +716,96 @@ const AVAILABILITY_OPTIONS = [
   "En 1 a 3 meses",
   "En 6 meses o más",
 ]
+
+
+type OwnerMediaPreviewProps = {
+  file: File
+  onRemove: () => void
+}
+
+function OwnerMediaPreview({
+  file,
+  onRemove,
+}: OwnerMediaPreviewProps) {
+  const [
+    previewUrl,
+    setPreviewUrl,
+  ] =
+    useState("")
+
+  useEffect(
+    () => {
+      const url =
+        URL.createObjectURL(
+          file
+        )
+
+      setPreviewUrl(
+        url
+      )
+
+      return () => {
+        URL.revokeObjectURL(
+          url
+        )
+      }
+    },
+    [
+      file,
+    ]
+  )
+
+  const isVideo =
+    file.type.startsWith(
+      "video/"
+    )
+
+  return (
+    <div className="owner-media-preview">
+      <div className="owner-media-preview-frame">
+        {previewUrl ? (
+          isVideo ? (
+            <video
+              src={
+                previewUrl
+              }
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <img
+              src={
+                previewUrl
+              }
+              alt={
+                file.name
+              }
+            />
+          )
+        ) : null}
+
+        <button
+          type="button"
+          className="owner-media-remove"
+          onClick={
+            onRemove
+          }
+          aria-label={`Eliminar ${file.name}`}
+          title="Eliminar"
+        >
+          ×
+        </button>
+
+        {isVideo ? (
+          <span className="owner-media-video-badge">
+            VIDEO
+          </span>
+        ) : null}
+      </div>
+    </div>
+  )
+}
 
 export default function PropietariosPage() {
   const [
@@ -1886,48 +1977,17 @@ export default function PropietariosPage() {
                         file,
                         index
                       ) => (
-                        <div
-                          key={`${file.name}-${file.size}-${index}`}
-                          className="owner-media-file"
-                        >
-                          <span className="owner-media-kind">
-                            {file.type.startsWith(
-                              "video/"
+                        <OwnerMediaPreview
+                          key={`${file.name}-${file.size}-${file.lastModified}`}
+                          file={
+                            file
+                          }
+                          onRemove={() =>
+                            removeOwnerFile(
+                              index
                             )
-                              ? "VIDEO"
-                              : "FOTO"}
-                          </span>
-
-                          <span className="owner-media-name">
-                            {
-                              file.name
-                            }
-                          </span>
-
-                          <small>
-                            {(
-                              file.size /
-                              1024 /
-                              1024
-                            ).toFixed(
-                              1
-                            )}{" "}
-                            MB
-                          </small>
-
-                          <button
-                            type="button"
-                            className="owner-media-remove"
-                            aria-label={`Eliminar ${file.name}`}
-                            onClick={() =>
-                              removeOwnerFile(
-                                index
-                              )
-                            }
-                          >
-                            ×
-                          </button>
-                        </div>
+                          }
+                        />
                       )
                     )}
                   </div>
@@ -2546,45 +2606,71 @@ const styles = `
 
   .owner-media-list {
     display: grid;
-    gap: 7px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
   }
 
-  .owner-media-file {
+  .owner-media-preview {
     min-width: 0;
-    display: grid;
-    grid-template-columns: auto minmax(0,1fr) auto;
-    align-items: center;
-    gap: 9px;
-    padding: 10px 11px;
-    border-radius: 14px;
-    background: rgba(242,235,236,.8);
   }
 
-  .owner-media-kind {
-    padding: 5px 7px;
+  .owner-media-preview-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 16px;
+    background: rgba(242,235,236,.9);
+    border: 1px solid rgba(5,0,2,.08);
+  }
+
+  .owner-media-preview-frame img,
+  .owner-media-preview-frame video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .owner-media-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    min-height: 30px !important;
+    margin: 0 !important;
+    padding: 0;
+    border: 0;
     border-radius: 999px;
-    background: var(--black);
+    background: rgba(5,0,2,.88) !important;
+    color: white;
+    box-shadow: none !important;
+    font-size: 19px;
+    font-weight: 950;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    z-index: 2;
+  }
+
+  .owner-media-remove:hover {
+    background: var(--black) !important;
+    color: white;
+  }
+
+  .owner-media-video-badge {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: rgba(5,0,2,.88);
     color: white;
     font-size: 9px;
     font-weight: 950;
-    letter-spacing: .05em;
-  }
-
-  .owner-media-name {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--black);
-    font-size: 12px;
-    font-weight: 850;
-  }
-
-  .owner-media-file small {
-    color: rgba(5,0,2,.5);
-    font-size: 11px;
-    white-space: nowrap;
-    font-weight: 800;
+    letter-spacing: .06em;
   }
 
   .owner-media-progress {
@@ -2750,52 +2836,8 @@ const styles = `
       width: 100%;
     }
 
-  .owner-media-file {
-  grid-template-columns: auto minmax(0,1fr) auto;
-}
-
-.owner-media-file small {
-  grid-column: 2;
-}
-
-.owner-media-remove {
-  grid-column: 3;
-  grid-row: 1 / span 2;
-}
-
-    .owner-media-file {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 11px;
-  border-radius: 14px;
-  background: rgba(242, 235, 236, .8);
-}
-
-.owner-media-remove {
-  margin: 0;
-  padding: 0;
-  width: 28px;
-  height: 28px;
-  min-height: 28px !important;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(5, 0, 2, .08);
-  color: var(--black);
-  box-shadow: none !important;
-  font-size: 18px;
-  font-weight: 900;
-  line-height: 1;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-}
-
-.owner-media-remove:hover {
-  background: var(--black);
-  color: white;
-}
+    .owner-media-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 `
