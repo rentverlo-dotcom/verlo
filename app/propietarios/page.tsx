@@ -2750,12 +2750,52 @@ const styles = `
       width: 100%;
     }
 
-    .owner-media-file {
-      grid-template-columns: auto minmax(0,1fr);
-    }
+  .owner-media-file {
+  grid-template-columns: auto minmax(0,1fr) auto;
+}
 
-    .owner-media-file small {
-      grid-column: 2;
-    }
+.owner-media-file small {
+  grid-column: 2;
+}
+
+.owner-media-remove {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+    .owner-media-file {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  background: rgba(242, 235, 236, .8);
+}
+
+.owner-media-remove {
+  margin: 0;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  min-height: 28px !important;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(5, 0, 2, .08);
+  color: var(--black);
+  box-shadow: none !important;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.owner-media-remove:hover {
+  background: var(--black);
+  color: white;
+}
   }
 `
