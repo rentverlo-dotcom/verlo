@@ -3,6 +3,7 @@
 import {
   ChangeEvent,
   FormEvent,
+  useEffect,
   useMemo,
   useState,
 } from "react"
@@ -671,6 +672,96 @@ const pathConfig = {
     button: "Quiero renovar",
   },
 } as const
+
+
+type OwnerMediaPreviewProps = {
+  file: File
+  onRemove: () => void
+}
+
+function OwnerMediaPreview({
+  file,
+  onRemove,
+}: OwnerMediaPreviewProps) {
+  const [
+    previewUrl,
+    setPreviewUrl,
+  ] =
+    useState("")
+
+  useEffect(
+    () => {
+      const url =
+        URL.createObjectURL(
+          file
+        )
+
+      setPreviewUrl(
+        url
+      )
+
+      return () => {
+        URL.revokeObjectURL(
+          url
+        )
+      }
+    },
+    [
+      file,
+    ]
+  )
+
+  const isVideo =
+    file.type.startsWith(
+      "video/"
+    )
+
+  return (
+    <div className="owner-media-preview">
+      <div className="owner-media-preview-frame">
+        {previewUrl ? (
+          isVideo ? (
+            <video
+              src={
+                previewUrl
+              }
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <img
+              src={
+                previewUrl
+              }
+              alt={
+                file.name
+              }
+            />
+          )
+        ) : null}
+
+        <button
+          type="button"
+          className="owner-media-remove"
+          onClick={
+            onRemove
+          }
+          aria-label={`Eliminar ${file.name}`}
+          title="Eliminar"
+        >
+          ×
+        </button>
+
+        {isVideo ? (
+          <span className="owner-media-video-badge">
+            VIDEO
+          </span>
+        ) : null}
+      </div>
+    </div>
+  )
+}
 
 const styles = `
   .test-root {
@@ -2191,6 +2282,28 @@ export default function PageDePrueba() {
 
     event.target.value =
       ""
+
+    setError("")
+    setSuccess("")
+    setOwnerUploadProgress("")
+  }
+
+  function removeOwnerFile(
+    indexToRemove: number
+  ) {
+    setOwnerFiles(
+      (
+        currentFiles
+      ) =>
+        currentFiles.filter(
+          (
+            _,
+            index
+          ) =>
+            index !==
+            indexToRemove
+        )
+    )
 
     setError("")
     setSuccess("")
@@ -4455,35 +4568,17 @@ if (honeypot) {
                               file,
                               index
                             ) => (
-                              <div
-                                key={`${file.name}-${file.size}-${index}`}
-                                className="owner-media-file"
-                              >
-                                <span>
-                                  {file.type.startsWith(
-                                    "video/"
+                              <OwnerMediaPreview
+                                key={`${file.name}-${file.size}-${file.lastModified}`}
+                                file={
+                                  file
+                                }
+                                onRemove={() =>
+                                  removeOwnerFile(
+                                    index
                                   )
-                                    ? "VIDEO"
-                                    : "FOTO"}
-                                </span>
-
-                                <span>
-                                  {
-                                    file.name
-                                  }
-                                </span>
-
-                                <small>
-                                  {(
-                                    file.size /
-                                    1024 /
-                                    1024
-                                  ).toFixed(
-                                    1
-                                  )}{" "}
-                                  MB
-                                </small>
-                              </div>
+                                }
+                              />
                             )
                           )}
                         </div>
