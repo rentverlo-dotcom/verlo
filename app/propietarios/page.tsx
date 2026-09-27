@@ -823,6 +823,36 @@ export default function PropietariosPage() {
     )
   }
 
+  function removeOwnerFile(
+    indexToRemove: number
+  ) {
+    setOwnerFiles(
+      (
+        currentFiles
+      ) =>
+        currentFiles.filter(
+          (
+            _,
+            index
+          ) =>
+            index !==
+            indexToRemove
+        )
+    )
+
+    setStatus(
+      "idle"
+    )
+
+    setMessage(
+      ""
+    )
+
+    setUploadProgress(
+      ""
+    )
+  }
+
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
   ) {
@@ -1183,10 +1213,10 @@ export default function PropietariosPage() {
         () => null
       )
 
-  window.location.href =
-  `/success?role=owner&lead=${encodeURIComponent(
-    ownerLeadId
-  )}&intent=owner_new_listing`
+      window.location.href =
+        `/success?role=owner&lead=${encodeURIComponent(
+          ownerLeadId
+        )}&intent=owner_new_listing`
     } catch (
       error
     ) {
@@ -1884,6 +1914,19 @@ export default function PropietariosPage() {
                             )}{" "}
                             MB
                           </small>
+
+                          <button
+                            type="button"
+                            className="owner-media-remove"
+                            aria-label={`Eliminar ${file.name}`}
+                            onClick={() =>
+                              removeOwnerFile(
+                                index
+                              )
+                            }
+                          >
+                            ×
+                          </button>
                         </div>
                       )
                     )}
