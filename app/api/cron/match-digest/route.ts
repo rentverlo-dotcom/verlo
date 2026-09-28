@@ -236,16 +236,17 @@ async function destination(
 // SOLO MATCHES ENTRE LOS 5 USUARIOS REALES
 // ============================================================
 
-async function recentMatches(
-  since: string
-): Promise<Match[]> {
-  const matches:
-    Match[] =
-    []
+async function activeE2EMatches(): Promise<Match[]> {
+  const matches: Match[] = []
+
+  const allowedLeadIds =
+    Array.from(
+      E2E_LEAD_IDS
+    )
 
   for (
     let start = 0;
-    start < 5000;
+    ;
     start += 500
   ) {
     const {
@@ -263,16 +264,20 @@ async function recentMatches(
           created_at
         `)
         .gte(
-          'created_at',
-          since
-        )
-        .gte(
           'score',
           80
         )
         .in(
           'status',
           ACTIVE_STATUSES
+        )
+        .in(
+          'tenant_lead_id',
+          allowedLeadIds
+        )
+        .in(
+          'owner_lead_id',
+          allowedLeadIds
         )
         .order(
           'created_at',
@@ -315,22 +320,7 @@ async function recentMatches(
     }
   }
 
-  const filtered =
-    matches.filter(
-      (
-        match
-      ) =>
-        DIAGNOSTIC_LEAD_IDS.has(
-          match
-            .tenant_lead_id
-        ) &&
-        DIAGNOSTIC_LEAD_IDS.has(
-          match
-            .owner_lead_id
-        )
-    )
-
-  return filtered
+  return matches
 }
 
 // ============================================================
