@@ -747,20 +747,25 @@ export default function CandidatesPage() {
           .length === 0 ? (
           <section className="empty">
             <span className="eyebrow">
-              TODAVÍA NO
+              EN PROCESO
             </span>
 
             <h2>
-              Todavía no tenés
-              matches.
+              Tu propiedad
+              ya está buscando
+              candidatos.
             </h2>
 
             <p>
-              Cuando aparezca una
-              persona compatible
-              con tu propiedad,
-              la vas a ver acá y
-              te vamos a avisar.
+              Estamos cruzando
+              tu publicación con
+              personas compatibles.
+              Algunos inquilinos
+              todavía están completando
+              su información y validación.
+              Te vamos a avisar apenas
+              haya perfiles listos
+              para revisar.
             </p>
           </section>
         ) : (
