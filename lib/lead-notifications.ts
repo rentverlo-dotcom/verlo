@@ -544,6 +544,21 @@ async function getOwnerPropertyToken(
 // el workflow viejo de GoHighLevel.
 // ============================================================
 
+const ACTIVE_MATCH_STATUSES = [
+  "new",
+  "reviewed",
+  "contacted",
+  "converted",
+]
+
+const E2E_LEAD_IDS = new Set([
+  'd6b217aa-e5e2-4db6-8265-de265024a0d7',
+  '5bbc374d-5d38-4f70-9402-fce25a969aa2',
+  'bd8b3c5b-bf40-48a3-85f0-aeb8ba38f81e',
+  '70f35b83-e09d-48cd-ba0d-5647eac1c3cd',
+  'f505fefe-40d2-40fd-a3a4-dfbd85f6c5dc',
+])
+
 async function getGhlMatchSummary(
   leadId: string,
   role: LeadRole
@@ -553,6 +568,12 @@ async function getGhlMatchSummary(
       "owner"
       ? "owner_lead_id"
       : "tenant_lead_id"
+
+  const counterpartColumn =
+    role ===
+      "owner"
+      ? "tenant_lead_id"
+      : "owner_lead_id"
 
   const {
     data,
@@ -576,6 +597,20 @@ async function getGhlMatchSummary(
       .eq(
         matchColumn,
         leadId
+      )
+      .gte(
+        "score",
+        80
+      )
+      .in(
+        "status",
+        ACTIVE_MATCH_STATUSES
+      )
+      .in(
+        counterpartColumn,
+        Array.from(
+          E2E_LEAD_IDS
+        )
       )
       .order(
         "score",
@@ -1631,7 +1666,7 @@ export async function notifyLeadOnce(
           ?.verlo_match_summary ??
         null,
 
-          verlo_match_role:
+      verlo_match_role:
         (
           matchSummary
             ?.verlo_match_role ??
