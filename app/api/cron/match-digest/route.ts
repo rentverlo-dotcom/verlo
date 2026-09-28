@@ -232,12 +232,15 @@ async function destination(
 }
 
 // ============================================================
-// RECENT MATCHES
-// SOLO MATCHES ENTRE LOS 5 USUARIOS REALES
+// ACTIVE E2E MATCHES
+// SOLO MATCHES ACTIVOS ENTRE LOS USUARIOS DEL UNIVERSO E2E
 // ============================================================
 
-async function activeE2EMatches(): Promise<Match[]> {
-  const matches: Match[] = []
+async function activeE2EMatches():
+Promise<Match[]> {
+  const matches:
+    Match[] =
+    []
 
   const allowedLeadIds =
     Array.from(
@@ -360,11 +363,8 @@ export async function GET(
           `Bearer ${secret}`
         ),
 
-      diagnosticSince:
-        DIAGNOSTIC_SINCE,
-
       allowedLeads:
-        DIAGNOSTIC_LEAD_IDS
+        E2E_LEAD_IDS
           .size,
     }
   )
@@ -445,17 +445,12 @@ export async function GET(
           10
         )
 
-    const since =
-      DIAGNOSTIC_SINCE
-
     // ========================================================
     // MATCHES
     // ========================================================
 
     const matches =
-      await recentMatches(
-        since
-      )
+      await activeE2EMatches()
 
     console.log(
       'MATCH DIGEST MATCHES',
@@ -710,6 +705,12 @@ export async function GET(
               ? 'tenant_lead_id'
               : 'owner_lead_id'
 
+          const counterpartColumn =
+            role ===
+            'tenant'
+              ? 'owner_lead_id'
+              : 'tenant_lead_id'
+
           // ==================================================
           // COUNT ACTIVE MATCHES
           // ==================================================
@@ -743,6 +744,12 @@ export async function GET(
               .in(
                 'status',
                 ACTIVE_STATUSES
+              )
+              .in(
+                counterpartColumn,
+                Array.from(
+                  E2E_LEAD_IDS
+                )
               )
 
           if (
@@ -873,8 +880,8 @@ export async function GET(
               // OWNER GHL SE ARREGLA DESPUES DEL DIAGNOSTICO.
               // =================================================
 
-             skipWhatsApp:
-             false,
+              skipWhatsApp:
+                false,
             })
 
           console.log(
@@ -1028,8 +1035,6 @@ export async function GET(
 
         date:
           today,
-
-        since,
 
         matches:
           matches.length,
