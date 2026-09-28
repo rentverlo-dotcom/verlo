@@ -723,18 +723,20 @@ export default function MatchesPage() {
         0 ? (
           <section className="empty">
             <h2>
-              Todavía no
-              hay propiedades
-              listas para
-              mostrarte.
+              Tu búsqueda
+              ya está en marcha.
             </h2>
 
             <p>
-              Te avisamos
-              cuando alguna
-              propiedad
-              compatible esté
-              completa.
+              Estamos cruzando
+              tu búsqueda con
+              propiedades compatibles.
+              Algunos propietarios
+              todavía están completando
+              la información de sus
+              publicaciones. Te vamos
+              a avisar apenas haya una
+              lista para mostrarte.
             </p>
           </section>
         ) : (
