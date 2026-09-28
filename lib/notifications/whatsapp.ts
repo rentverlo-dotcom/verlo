@@ -104,7 +104,6 @@ export async function sendWhatsApp(
     new Set([
       "intake_received",
       "match_created",
-      "tenant_verification_submitted",
     ])
 
   const readyToConnectEvents =
@@ -129,7 +128,9 @@ export async function sendWhatsApp(
 
   else if (
     eventType ===
-    "owner_match_digest"
+      "owner_match_digest" ||
+    eventType ===
+      "tenant_verification_submitted"
   ) {
     webhookUrl =
       clean(
@@ -234,6 +235,18 @@ export async function sendWhatsApp(
       absoluteUrl(
         legacyPayload
           .verlo_property_url
+      )
+  }
+
+  if (
+    legacyPayload
+      .verlo_candidates_url
+  ) {
+    legacyPayload
+      .verlo_candidates_url =
+      absoluteUrl(
+        legacyPayload
+          .verlo_candidates_url
       )
   }
 
