@@ -1571,6 +1571,25 @@ export async function notifyLeadOnce(
               : null
           )
 
+    const candidatesToken =
+      leadRole ===
+        "owner" &&
+      url.startsWith(
+        "/candidatos/"
+      )
+        ? clean(
+            url.slice(
+              "/candidatos/".length
+            )
+          ) ||
+          null
+        : null
+
+    const candidatesUrl =
+      candidatesToken
+        ? `/candidatos/${candidatesToken}`
+        : null
+
     const tags =
       leadRole
         ? getGhlTags(
@@ -1691,6 +1710,12 @@ export async function notifyLeadOnce(
 
       verlo_property_url:
         propertyUrl,
+
+      verlo_candidates_token:
+        candidatesToken,
+
+      verlo_candidates_url:
+        candidatesUrl,
     }
 
     const whatsappPromise =
