@@ -258,6 +258,12 @@ export default function MatchesPage() {
     useState("")
 
   const [
+    notice,
+    setNotice,
+  ] =
+    useState("")
+
+  const [
     selected,
     setSelected,
   ] =
@@ -476,6 +482,7 @@ export default function MatchesPage() {
 
     setSubmitting(true)
     setError("")
+    setNotice("")
 
     try {
       const results:
@@ -595,6 +602,22 @@ export default function MatchesPage() {
         )
 
         return
+      }
+
+      const reusedVerification =
+        results.some(
+          (result) =>
+            result
+              ?.verification_reused ===
+            true
+        )
+
+      if (
+        reusedVerification
+      ) {
+        setNotice(
+          "Interés enviado. Tu validación ya está lista y el propietario fue avisado."
+        )
       }
     } catch (err) {
       setError(
@@ -819,6 +842,12 @@ export default function MatchesPage() {
                   : "ME INTERESA"}
               </button>
             </section>
+
+            {notice && (
+              <div className="notice">
+                {notice}
+              </div>
+            )}
 
             {error && (
               <div className="error">
@@ -1561,6 +1590,19 @@ function Styles() {
           0.4;
         cursor:
           default;
+      }
+
+      .notice {
+        margin-top:
+          16px;
+        padding:
+          14px;
+        background:
+          #eef6ec;
+        border-radius:
+          12px;
+        line-height:
+          1.45;
       }
 
       .error {
