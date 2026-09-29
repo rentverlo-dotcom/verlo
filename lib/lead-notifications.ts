@@ -1590,6 +1590,23 @@ export async function notifyLeadOnce(
         ? `/candidatos/${candidatesToken}`
         : null
 
+    const closingToken =
+      url.startsWith(
+        "/cierre/"
+      )
+        ? clean(
+            url.slice(
+              "/cierre/".length
+            )
+          ) ||
+          null
+        : null
+
+    const closingUrl =
+      closingToken
+        ? `/cierre/${closingToken}`
+        : null
+
     const tags =
       leadRole
         ? getGhlTags(
@@ -1716,6 +1733,12 @@ export async function notifyLeadOnce(
 
       verlo_candidates_url:
         candidatesUrl,
+
+      verlo_closing_token:
+        closingToken,
+
+      verlo_closing_url:
+        closingUrl,
     }
 
     const whatsappPromise =
