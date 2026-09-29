@@ -250,6 +250,18 @@ export async function sendWhatsApp(
       )
   }
 
+  if (
+    legacyPayload
+      .verlo_closing_url
+  ) {
+    legacyPayload
+      .verlo_closing_url =
+      absoluteUrl(
+        legacyPayload
+          .verlo_closing_url
+      )
+  }
+
   const controller =
     new AbortController()
 
@@ -429,3 +441,4 @@ export async function sendWhatsApp(
     )
   }
 }
+
