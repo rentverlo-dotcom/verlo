@@ -2838,6 +2838,22 @@ if (
                 <p>
                   Ahora tienen acceso a la información necesaria para revisar el acuerdo antes de aceptar el contrato.
                 </p>
+
+                {isOwner &&
+                  secondDoubleOk &&
+                  !contractGenerated && (
+                    <button
+                      type="button"
+                      className="primary-button closing-main-cta"
+                      onClick={
+                        myLegalComplete
+                          ? openContractForm
+                          : openLegalForm
+                      }
+                    >
+                      COMPLETAR CONTRATO
+                    </button>
+                  )}
               </article>
             )}
 
@@ -6288,6 +6304,11 @@ function Styles() {
         border: 0;
         background: #c37986;
         color: #ffffff;
+      }
+
+      .closing-main-cta {
+        width: 100%;
+        margin-top: 20px;
       }
 
       .secondary-button {
