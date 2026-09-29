@@ -319,6 +319,7 @@ export async function POST(
           score,
           status,
           tenant_interest_at,
+          tenant_verified_at,
           owner_interest_at,
           ready_to_connect_at
         `)
@@ -426,6 +427,7 @@ export async function POST(
           tenant_lead_id,
           owner_lead_id,
           tenant_interest_at,
+          tenant_verified_at,
           owner_interest_at,
           ready_to_connect_at
         `)
@@ -453,11 +455,212 @@ export async function POST(
       )
 
     // =========================================================
-    // 5. SI OWNER TODAVÍA NO DIO OK
-    // AVISARLE PARA QUE ENTRE A /candidatos
+    // 5. SI EL PROPIETARIO TODAVÍA NO DIO OK
+    //
+    // Si el inquilino ya tiene una validación reutilizable,
+    // la aplicamos a este match y avisamos al propietario.
+    // Si todavía no está validado, recién ahí lo mandamos
+    // al flujo de validación.
     // =========================================================
 
     if (!ready) {
+      const {
+        data:
+          reusableVerification,
+        error:
+          reusableVerificationError,
+      } =
+        await supabase
+          .from(
+            "tenant_verifications"
+          )
+          .select(`
+            id,
+            status
+          `)
+          .eq(
+            "lead_id",
+            tenantLeadId
+          )
+          .is(
+            "match_id",
+            null
+          )
+          .in(
+            "status",
+            [
+              "submitted",
+              "approved",
+            ]
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false,
+            }
+          )
+          .limit(1)
+          .maybeSingle()
+
+      if (
+        reusableVerificationError
+      ) {
+        throw new Error(
+          reusableVerificationError
+            .message
+        )
+      }
+
+      const canReuseVerification =
+        Boolean(
+          currentMatch
+            .tenant_verified_at ||
+          reusableVerification
+            ?.id
+        )
+
+      if (
+        canReuseVerification
+      ) {
+        if (
+          !currentMatch
+            .tenant_verified_at
+        ) {
+          const {
+            error:
+              verifiedMatchError,
+          } =
+            await supabase
+              .from(
+                "lead_matches"
+              )
+              .update({
+                tenant_verified_at:
+                  now,
+              })
+              .eq(
+                "id",
+                currentMatch.id
+              )
+              .eq(
+                "tenant_lead_id",
+                tenantLeadId
+              )
+
+          if (
+            verifiedMatchError
+          ) {
+            throw new Error(
+              verifiedMatchError
+                .message
+            )
+          }
+        }
+
+        let ownerNotification:
+          unknown =
+          null
+
+        if (
+          reusableVerification
+            ?.id
+        ) {
+          const tokenResult =
+            await postInternal(
+              request,
+              "/api/owner-candidates-token",
+              {
+                owner_lead_id:
+                  currentMatch
+                    .owner_lead_id,
+              }
+            )
+
+          const candidatesUrl =
+            tokenResult.ok &&
+            tokenResult
+              .data
+              ?.candidates_url
+              ? clean(
+                  tokenResult
+                    .data
+                    .candidates_url
+                )
+              : ""
+
+          if (
+            candidatesUrl
+          ) {
+            try {
+              ownerNotification =
+                await notifyLeadOnce({
+                  eventKey:
+                    `tenant_verification_submitted:owner:${currentMatch.owner_lead_id}:${reusableVerification.id}:${currentMatch.id}`,
+
+                  eventType:
+                    "tenant_verification_submitted",
+
+                  leadId:
+                    currentMatch
+                      .owner_lead_id,
+
+                  entityType:
+                    "verification",
+
+                  entityId:
+                    reusableVerification
+                      .id,
+
+                  title:
+                    "Verlo · Candidato validado",
+
+                  body:
+                    "Una persona interesada ya tiene su validación lista. Podés revisar el perfil.",
+
+                  url:
+                    candidatesUrl,
+                })
+            } catch (
+              notificationError
+            ) {
+              console.error(
+                "reused tenant verification owner notification error:",
+                notificationError
+              )
+            }
+          }
+        }
+
+        return NextResponse.json({
+          ok: true,
+
+          match_id:
+            currentMatch.id,
+
+          tenant_interest:
+            true,
+
+          tenant_verified:
+            true,
+
+          verification_reused:
+            true,
+
+          owner_interest:
+            false,
+
+          ready_to_connect:
+            false,
+
+          waiting_for:
+            "owner",
+
+          owner_notification:
+            ownerNotification,
+        })
+      }
+
       const verificationUrl =
         `/tenant/validacion/${encodeURIComponent(
           token
@@ -473,6 +676,12 @@ export async function POST(
 
         tenant_interest:
           true,
+
+        tenant_verified:
+          false,
+
+        verification_reused:
+          false,
 
         owner_interest:
           false,
