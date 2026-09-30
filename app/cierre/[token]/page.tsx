@@ -2863,7 +2863,7 @@ if (
               </span>
 
               <h2>
-                Mantenete atento a las notificaciones.
+                Mantenete atento a las notificaciones. 
               </h2>
 
               <p>
