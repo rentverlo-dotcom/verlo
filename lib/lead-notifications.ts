@@ -1545,6 +1545,117 @@ export async function notifyLeadOnce(
           ?.phone
       )
 
+    let tenantFirstName:
+      string |
+      null =
+      leadRole ===
+        "tenant"
+        ? (
+            firstName ||
+            null
+          )
+        : null
+
+    if (
+      entityType ===
+        "match" &&
+      entityId &&
+      (
+        eventType ===
+          "double_ok_1" ||
+        eventType ===
+          "ready_to_connect"
+      )
+    ) {
+      const {
+        data:
+          matchForGhl,
+        error:
+          matchForGhlError,
+      } =
+        await supabaseAdmin
+          .from(
+            "lead_matches"
+          )
+          .select(
+            "tenant_lead_id"
+          )
+          .eq(
+            "id",
+            entityId
+          )
+          .maybeSingle()
+
+      if (
+        matchForGhlError
+      ) {
+        console.error(
+          "ghl ready-to-connect match lookup error:",
+          {
+            eventKey,
+            entityId,
+            error:
+              matchForGhlError,
+          }
+        )
+      }
+
+      if (
+        matchForGhl
+          ?.tenant_lead_id
+      ) {
+        const {
+          data:
+            tenantLead,
+          error:
+            tenantLeadError,
+        } =
+          await supabaseAdmin
+            .from(
+              "lead_intake"
+            )
+            .select(
+              "full_name"
+            )
+            .eq(
+              "id",
+              matchForGhl
+                .tenant_lead_id
+            )
+            .maybeSingle()
+
+        if (
+          tenantLeadError
+        ) {
+          console.error(
+            "ghl ready-to-connect tenant lookup error:",
+            {
+              eventKey,
+              entityId,
+              tenantLeadId:
+                matchForGhl
+                  .tenant_lead_id,
+              error:
+                tenantLeadError,
+            }
+          )
+        }
+
+        const tenantFullName =
+          clean(
+            tenantLead
+              ?.full_name
+          )
+
+        tenantFirstName =
+          tenantFullName
+            .split(
+              /\s+/
+            )[0] ||
+          null
+      }
+    }
+
     const matchesUrl =
       tenantMatchesToken
         ? `/matches/${tenantMatchesToken}`
@@ -1709,6 +1820,9 @@ export async function notifyLeadOnce(
           leadRole
         ) ||
         null,
+
+      verlo_tenant_first_name:
+        tenantFirstName,
 
       verlo_match_updated_at:
         matchSummary
