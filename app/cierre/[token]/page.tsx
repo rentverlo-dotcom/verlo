@@ -2859,6 +2859,20 @@ if (
 
             <article className="verlo-card no-print">
               <span className="card-kicker">
+                SEGUÍ EL CIERRE DESDE VERLO
+              </span>
+
+              <h2>
+                Mantenete atento a las notificaciones.
+              </h2>
+
+              <p>
+                A partir de ahora, las novedades de esta operación te van a llegar por notificaciones de Verlo. Mantenelas activadas para no perderte ningún paso.
+              </p>
+            </article>
+
+            <article className="verlo-card no-print">
+              <span className="card-kicker">
                 LA OTRA PARTE
               </span>
 
