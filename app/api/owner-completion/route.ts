@@ -900,7 +900,10 @@ export async function POST(
 
             url:
               tenantUrl,
-          })
+          
+
+              skipWhatsApp:
+                true,})
 
         tenantNotifications
           .push({
