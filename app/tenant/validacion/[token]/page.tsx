@@ -230,6 +230,18 @@ export default function TenantValidationPage() {
         )
       }
 
+      if (
+        data
+          ?.tenant_closing_url
+      ) {
+        router.push(
+          data
+            .tenant_closing_url
+        )
+
+        return
+      }
+
       router.push(
         `/tenant/validacion/${token}/success`
       )
