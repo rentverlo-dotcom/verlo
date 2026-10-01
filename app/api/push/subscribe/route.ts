@@ -7,6 +7,7 @@ import {
 } from "@/lib/supabase/admin"
 
 import {
+  notifyLeadOnce,
   retryFailedLeadNotifications,
 } from "@/lib/lead-notifications"
 
@@ -270,7 +271,57 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. REINTENTAR SOLO EVENTOS FAILED YA EXISTENTES
+    // 3. BIENVENIDA PUSH
+    //
+    // Activar notificaciones debe confirmar inmediatamente que
+    // el canal quedó funcionando. Este evento es SOLO Push:
+    // nunca dispara GHL / Mail / WhatsApp.
+    // =========================================================
+
+    let welcomeResult:
+      unknown =
+      null
+
+    try {
+      welcomeResult =
+        await notifyLeadOnce({
+          eventKey:
+            `push_welcome:${role}:${savedSubscription.id}`,
+
+          eventType:
+            "push_welcome",
+
+          leadId,
+
+          entityType:
+            "push_subscription",
+
+          entityId:
+            savedSubscription.id,
+
+          title:
+            "Verlo · Notificaciones activadas",
+
+          body:
+            "Listo. Te vamos a avisar por acá cuando haya novedades importantes.",
+
+          url:
+            "/mi-verlo",
+
+          skipWhatsApp:
+            true,
+        })
+    } catch (
+      welcomeError
+    ) {
+      console.error(
+        "push welcome error:",
+        welcomeError
+      )
+    }
+
+    // =========================================================
+    // 4. REINTENTAR SOLO EVENTOS FAILED YA EXISTENTES
     //
     // IMPORTANTE:
     // Suscribirse NO crea:
@@ -303,7 +354,7 @@ export async function POST(
     }
 
     // =========================================================
-    // 4. RESPONSE
+    // 5. RESPONSE
     // =========================================================
 
     return NextResponse.json({
@@ -319,6 +370,9 @@ export async function POST(
 
       subscription_id:
         savedSubscription.id,
+
+      welcome:
+        welcomeResult,
 
       retries:
         retryResult,
