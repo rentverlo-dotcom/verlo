@@ -7,6 +7,10 @@ import {
   createClient,
 } from "@supabase/supabase-js"
 
+import {
+  randomBytes,
+} from "crypto"
+
 export const runtime =
   "nodejs"
 
@@ -968,7 +972,131 @@ export async function GET(
     }
 
     // =========================================================
-    // 8. TOKENS DE ACCESO DIRECTO
+    // 8. MULTIMEDIA DE LAS PROPIEDADES MATCH
+    // =========================================================
+
+    const ownerLeadIds =
+      Array.from(
+        new Set(
+          matches
+            .map(
+              (match) =>
+                match.owner_lead_id
+            )
+            .filter(Boolean)
+        )
+      )
+
+    const mediaByOwnerId =
+      new Map<
+        string,
+        Array<{
+          id: string
+          media_type: string
+          public_url: string | null
+          r2_key: string | null
+          content_type: string | null
+          original_filename: string | null
+          position: number | null
+        }>
+      >()
+
+    if (
+      ownerLeadIds.length >
+      0
+    ) {
+      const {
+        data:
+          mediaRows,
+        error:
+          mediaError,
+      } =
+        await supabaseAdmin
+          .from(
+            "owner_property_media"
+          )
+          .select(`
+            id,
+            lead_id,
+            media_type,
+            public_url,
+            r2_key,
+            content_type,
+            original_filename,
+            position
+          `)
+          .in(
+            "lead_id",
+            ownerLeadIds
+          )
+          .order(
+            "position",
+            {
+              ascending:
+                true,
+            }
+          )
+
+      if (
+        mediaError
+      ) {
+        throw new Error(
+          mediaError.message
+        )
+      }
+
+      for (
+        const item of
+          mediaRows || []
+      ) {
+        const ownerLeadId =
+          clean(
+            item.lead_id
+          )
+
+        if (
+          !ownerLeadId
+        ) {
+          continue
+        }
+
+        const list =
+          mediaByOwnerId.get(
+            ownerLeadId
+          ) || []
+
+        list.push({
+          id:
+            item.id,
+
+          media_type:
+            item.media_type,
+
+          public_url:
+            item.public_url,
+
+          r2_key:
+            item.r2_key,
+
+          content_type:
+            item.content_type,
+
+          original_filename:
+            item.original_filename,
+
+          position:
+            item.position,
+        })
+
+        mediaByOwnerId.set(
+          ownerLeadId,
+          list
+        )
+      }
+    }
+
+    // =========================================================
+    // 9. TOKENS DE ACCESO DIRECTO
     // =========================================================
 
     const [
@@ -1161,6 +1289,136 @@ export async function GET(
       )
     }
 
+    // Si Mi Verlo se abrió antes del digest, crear los tokens
+    // necesarios para que cada tarjeta tenga navegación.
+    for (
+      const leadRow of
+      leads
+    ) {
+      const currentLeadId =
+        String(
+          leadRow.id
+        )
+
+      if (
+        leadRow.role ===
+          "tenant" &&
+        !tenantTokenByLeadId.has(
+          currentLeadId
+        ) &&
+        matches.some(
+          (match) =>
+            match.tenant_lead_id ===
+            currentLeadId
+        )
+      ) {
+        const token =
+          randomBytes(
+            32
+          ).toString(
+            "hex"
+          )
+
+        const expiresAt =
+          new Date(
+            Date.now() +
+              30 *
+                24 *
+                60 *
+                60 *
+                1000
+          ).toISOString()
+
+        const {
+          error:
+            tokenError,
+        } =
+          await supabaseAdmin
+            .from(
+              "tenant_matches_access_tokens"
+            )
+            .insert({
+              tenant_lead_id:
+                currentLeadId,
+
+              token,
+
+              expires_at:
+                expiresAt,
+            })
+
+        if (
+          !tokenError
+        ) {
+          tenantTokenByLeadId.set(
+            currentLeadId,
+            {
+              token,
+            }
+          )
+        }
+      }
+
+      if (
+        leadRow.role ===
+          "owner" &&
+        !ownerTokenByLeadId.has(
+          currentLeadId
+        ) &&
+        matches.some(
+          (match) =>
+            match.owner_lead_id ===
+            currentLeadId
+        )
+      ) {
+        const token =
+          randomBytes(
+            32
+          ).toString(
+            "hex"
+          )
+
+        const expiresAt =
+          new Date(
+            Date.now() +
+              30 *
+                24 *
+                60 *
+                60 *
+                1000
+          ).toISOString()
+
+        const {
+          error:
+            tokenError,
+        } =
+          await supabaseAdmin
+            .from(
+              "owner_candidates_access_tokens"
+            )
+            .insert({
+              owner_lead_id:
+                currentLeadId,
+
+              token,
+
+              expires_at:
+                expiresAt,
+            })
+
+        if (
+          !tokenError
+        ) {
+          ownerTokenByLeadId.set(
+            currentLeadId,
+            {
+              token,
+            }
+          )
+        }
+      }
+    }
+
     const contractTokenMap =
       new Map<
         string,
@@ -1314,7 +1572,7 @@ export async function GET(
               tenantToken
             ) {
               actionUrl =
-                `/matches/${tenantToken.token}`
+                `/matches/${tenantToken.token}?match=${encodeURIComponent(match.id)}`
             }
           } else if (
             role ===
@@ -1329,7 +1587,7 @@ export async function GET(
               ownerToken
             ) {
               actionUrl =
-                `/candidatos/${ownerToken.token}`
+                `/candidatos/${ownerToken.token}?match=${encodeURIComponent(match.id)}`
             }
           }
 
@@ -1352,6 +1610,36 @@ export async function GET(
               match.reasons,
 
             counterpart,
+
+            media:
+              role ===
+                "tenant"
+                ? (
+                    mediaByOwnerId.get(
+                      match.owner_lead_id
+                    ) || []
+                  ).map(
+                    (item) => ({
+                      id:
+                        item.id,
+
+                      type:
+                        item.media_type,
+
+                      url:
+                        item.public_url,
+
+                      key:
+                        item.r2_key,
+
+                      content_type:
+                        item.content_type,
+
+                      filename:
+                        item.original_filename,
+                    })
+                  )
+                : [],
 
             interest: {
               tenant:
