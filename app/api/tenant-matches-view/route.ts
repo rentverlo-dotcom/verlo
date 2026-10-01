@@ -16,6 +16,16 @@ function clean(value: unknown) {
   return String(value || "").trim()
 }
 
+const E2E_EMAILS = new Set([
+  "juanoddone29@gmail.com",
+  "juanmanueloddone74@gmail.com",
+  "lalito030217@gmail.com",
+  "aedevincenzi@gmail.com",
+  "licpuentegarat@gmail.com",
+  "memo.oddone@gmail.com",
+  "hugo_gaston@hotmail.com",
+])
+
 export async function GET(req: NextRequest) {
   try {
     const supabaseUrl =
@@ -174,6 +184,7 @@ export async function GET(req: NextRequest) {
       .select(`
         id,
         full_name,
+        email,
         desired_property_type,
         desired_rooms,
         budget_max,
@@ -296,6 +307,7 @@ export async function GET(req: NextRequest) {
       .from("lead_intake")
       .select(`
         id,
+        email,
         neighborhood_slug,
         property_type,
         property_rooms,
@@ -644,6 +656,13 @@ export async function GET(req: NextRequest) {
     // 9. ARMAR MATCHES VISIBLES
     // =========================================================
 
+    const tenantIsE2E =
+      E2E_EMAILS.has(
+        clean(
+          tenant.email
+        ).toLowerCase()
+      )
+
     const visibleMatches =
       matches.flatMap(
         (match) => {
@@ -653,6 +672,21 @@ export async function GET(req: NextRequest) {
             )
 
           if (!owner) {
+            return []
+          }
+
+          const ownerIsE2E =
+            E2E_EMAILS.has(
+              clean(
+                owner.email
+              ).toLowerCase()
+            )
+
+          if (
+            tenantIsE2E
+              ? !ownerIsE2E
+              : ownerIsE2E
+          ) {
             return []
           }
 
