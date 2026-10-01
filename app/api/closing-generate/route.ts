@@ -2747,6 +2747,9 @@ El presente documento fue generado en Verlo a partir de los datos y condiciones 
 
             url:
               tenantUrl,
+
+            skipWhatsApp:
+              true,
           })
       } catch (
         pushError
@@ -2792,6 +2795,9 @@ El presente documento fue generado en Verlo a partir de los datos y condiciones 
 
             url:
               ownerUrl,
+
+            skipWhatsApp:
+              true,
           })
       } catch (
         pushError
