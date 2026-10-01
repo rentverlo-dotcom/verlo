@@ -298,7 +298,7 @@ export default function TenantValidationPage() {
             <div className="trust-row">
               <span>Documentación privada</span>
               <span>Validación manual</span>
-              <span>Mejor presentación ante owner</span>
+              <span>Mejor presentación ante el propietario</span>
               <span>Proceso trazable</span>
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function TenantValidationPage() {
               </div>
 
               <div className="mini-demand-item">
-                <span>Owner</span>
+                <span>Propietario</span>
                 <strong>Filtrado</strong>
               </div>
             </div>
