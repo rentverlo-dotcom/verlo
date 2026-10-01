@@ -71,6 +71,15 @@ type Counterpart = {
     string | null
 }
 
+type MatchMedia = {
+  id: string
+  type: "photo" | "video"
+  url: string | null
+  key: string | null
+  content_type: string | null
+  filename: string | null
+}
+
 type MatchItem = {
   id: string
   role: Role
@@ -80,6 +89,9 @@ type MatchItem = {
 
   counterpart:
     Counterpart | null
+
+  media:
+    MatchMedia[]
 
   interest: {
     tenant: boolean
@@ -1223,6 +1235,143 @@ const styles = `
       );
   }
 
+  .mv-media {
+    width:
+      100%;
+
+    aspect-ratio:
+      4 / 3;
+
+    border-radius:
+      22px;
+
+    overflow:
+      hidden;
+
+    background:
+      rgba(
+        5,
+        0,
+        2,
+        0.06
+      );
+
+    margin-bottom:
+      12px;
+  }
+
+  .mv-media img,
+  .mv-media video {
+    width:
+      100%;
+
+    height:
+      100%;
+
+    object-fit:
+      cover;
+
+    display:
+      block;
+  }
+
+  .mv-media-empty {
+    width:
+      100%;
+
+    height:
+      100%;
+
+    display:
+      grid;
+
+    place-items:
+      center;
+
+    font-size:
+      13px;
+
+    font-weight:
+      850;
+
+    color:
+      rgba(
+        5,
+        0,
+        2,
+        0.42
+      );
+  }
+
+  .mv-thumbs {
+    display:
+      flex;
+
+    gap:
+      8px;
+
+    overflow-x:
+      auto;
+
+    margin:
+      0 0 18px;
+  }
+
+  .mv-thumb {
+    width:
+      64px;
+
+    height:
+      48px;
+
+    flex:
+      0 0 auto;
+
+    padding:
+      0;
+
+    border:
+      2px solid
+      transparent;
+
+    border-radius:
+      10px;
+
+    overflow:
+      hidden;
+
+    background:
+      rgba(
+        5,
+        0,
+        2,
+        0.06
+      );
+
+    cursor:
+      pointer;
+  }
+
+  .mv-thumb.active {
+    border-color:
+      var(--black);
+  }
+
+  .mv-thumb img,
+  .mv-thumb video {
+    width:
+      100%;
+
+    height:
+      100%;
+
+    object-fit:
+      cover;
+
+    display:
+      block;
+  }
+
   .mv-match-top {
     display:
       flex;
@@ -1882,8 +2031,20 @@ function MatchCard({
 }: {
   item: MatchItem
 }) {
+  const [
+    mediaIndex,
+    setMediaIndex,
+  ] =
+    useState(0)
+
   const counterpart =
     item.counterpart
+
+  const media =
+    item.media?.[
+      mediaIndex
+    ] ||
+    null
 
   const isTenant =
     item.role ===
@@ -1924,6 +2085,87 @@ function MatchCard({
 
   return (
     <article className="mv-match-card">
+      {isTenant && (
+        <>
+          <div className="mv-media">
+            {media?.url ? (
+              media.type ===
+              "video" ? (
+                <video
+                  src={
+                    media.url
+                  }
+                  controls
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={
+                    media.url
+                  }
+                  alt="Propiedad"
+                />
+              )
+            ) : (
+              <div className="mv-media-empty">
+                Sin fotos cargadas
+              </div>
+            )}
+          </div>
+
+          {item.media &&
+            item.media.length >
+              1 && (
+              <div className="mv-thumbs">
+                {item.media.map(
+                  (
+                    itemMedia,
+                    index
+                  ) => (
+                    <button
+                      key={
+                        itemMedia.id
+                      }
+                      type="button"
+                      className={
+                        index ===
+                        mediaIndex
+                          ? "mv-thumb active"
+                          : "mv-thumb"
+                      }
+                      onClick={() =>
+                        setMediaIndex(
+                          index
+                        )
+                      }
+                    >
+                      {itemMedia.url ? (
+                        itemMedia.type ===
+                          "video" ? (
+                          <video
+                            src={
+                              itemMedia.url
+                            }
+                            muted
+                            playsInline
+                          />
+                        ) : (
+                          <img
+                            src={
+                              itemMedia.url
+                            }
+                            alt=""
+                          />
+                        )
+                      ) : null}
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+        </>
+      )}
+
       <div className="mv-match-top">
         <div className="mv-score">
           {Math.round(
