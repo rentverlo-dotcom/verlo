@@ -623,6 +623,9 @@ export async function POST(
 
               url:
                 ownerUrl,
+
+              skipWhatsApp:
+                true,
             })
         } catch (
           pushError
@@ -666,6 +669,9 @@ export async function POST(
 
               url:
                 tenantUrl,
+
+              skipWhatsApp:
+                true,
             })
         } catch (
           pushError
@@ -719,6 +725,9 @@ export async function POST(
 
               url:
                 tenantUrl,
+
+              skipWhatsApp:
+                true,
             })
         } catch (
           pushError
@@ -760,6 +769,9 @@ export async function POST(
 
               url:
                 ownerUrl,
+
+              skipWhatsApp:
+                true,
             })
         } catch (
           pushError
