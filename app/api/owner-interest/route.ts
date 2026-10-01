@@ -1098,8 +1098,7 @@ export async function POST(
       )
 
     if (
-      becameReady &&
-      isE2EMatch
+      becameReady
     ) {
       try {
         tenantPush =
