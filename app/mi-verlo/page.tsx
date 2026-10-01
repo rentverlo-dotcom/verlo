@@ -588,8 +588,14 @@ const styles = `
     grid-template-columns:
       repeat(
         3,
-        1fr
+        minmax(
+          0,
+          1fr
+        )
       );
+
+    min-width:
+      0;
 
     gap:
       10px;
@@ -628,6 +634,9 @@ const styles = `
   }
 
   .mv-stat {
+    min-width:
+      0;
+
     min-height:
       124px;
 
@@ -667,8 +676,14 @@ const styles = `
   }
 
   .mv-stat span {
+    max-width:
+      100%;
+
+    overflow-wrap:
+      anywhere;
+
     font-size:
-      12px;
+      11px;
 
     font-weight:
       900;
@@ -2968,7 +2983,9 @@ export default function MiVerloPage() {
 
                 <p>
                   Todo lo que ya pasó del match
-                  y requiere seguimiento queda acá.
+                  y requiere seguimiento queda
+                  <br />
+                  acá.
                 </p>
               </div>
 
