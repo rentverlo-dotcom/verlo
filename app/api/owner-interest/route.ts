@@ -510,6 +510,9 @@ export async function POST(
 
               url:
                 matchesUrl,
+
+              skipWhatsApp:
+                true,
             })
         } catch (
           pushError
@@ -1086,16 +1089,6 @@ export async function POST(
     let ownerPush:
       unknown =
       null
-
-    const isE2EMatch =
-      E2E_LEAD_IDS.has(
-        currentMatch
-          .tenant_lead_id
-      ) &&
-      E2E_LEAD_IDS.has(
-        currentMatch
-          .owner_lead_id
-      )
 
     if (
       becameReady
