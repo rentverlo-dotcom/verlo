@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { retryFailedLeadNotifications } from '@/lib/lead-notifications'
+import {
+  notifyLeadOnce,
+  retryFailedLeadNotifications,
+} from '@/lib/lead-notifications'
 
 export const runtime = 'nodejs'
 
@@ -134,7 +137,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const { error } =
+    const {
+      data: savedSubscription,
+      error,
+    } =
       await supabaseAdmin
         .from('push_subscriptions')
         .upsert(
@@ -154,9 +160,49 @@ export async function POST(request: Request) {
             onConflict: 'endpoint',
           }
         )
+        .select('id')
+        .single()
 
-    if (error) {
-      throw error
+    if (
+      error ||
+      !savedSubscription
+    ) {
+      throw (
+        error ||
+        new Error(
+          'Could not save push subscription'
+        )
+      )
+    }
+
+    let welcomeResult: unknown = null
+
+    try {
+      welcomeResult =
+        await notifyLeadOnce({
+          eventKey:
+            `push_welcome:${role}:${savedSubscription.id}`,
+          eventType:
+            'push_welcome',
+          leadId,
+          entityType:
+            'push_subscription',
+          entityId:
+            savedSubscription.id,
+          title:
+            'Verlo · Notificaciones activadas',
+          body:
+            'Listo. Te vamos a avisar por acá cuando haya novedades importantes.',
+          url:
+            '/mi-verlo',
+          skipWhatsApp:
+            true,
+        })
+    } catch (welcomeError) {
+      console.error(
+        'push welcome by token error',
+        welcomeError
+      )
     }
 
     let retryResult: unknown = null
@@ -176,6 +222,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       lead_id: leadId,
+      welcome: welcomeResult,
       retries: retryResult,
     })
   } catch (error) {
