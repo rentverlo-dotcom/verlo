@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic"
 
 type OwnerLeadRow = {
   id: string
+  email: string | null
   phone_normalized: string | null
   neighborhood_slug: string | null
   property_type: string | null
@@ -21,6 +22,7 @@ type OwnerLeadRow = {
 
 type TenantLeadRow = {
   id: string
+  email: string | null
   phone_normalized: string | null
   neighborhood_slugs: string[] | null
   desired_property_type: string | null
@@ -52,6 +54,7 @@ type SupabaseAdminClient = {
 
 type MatchableLead = {
   id: string
+  email: string
   role: string
   intent: string
   phone_normalized: string
@@ -80,6 +83,16 @@ type MatchableLead = {
   min_income_ratio: number | null
   accepted_guarantee_types: string[]
 }
+
+const E2E_EMAILS = new Set([
+  "juanoddone29@gmail.com",
+  "juanmanueloddone74@gmail.com",
+  "lalito030217@gmail.com",
+  "aedevincenzi@gmail.com",
+  "licpuentegarat@gmail.com",
+  "memo.oddone@gmail.com",
+  "hugo_gaston@hotmail.com",
+])
 
 function clean(value: unknown) {
   return String(value || "").trim()
@@ -1629,6 +1642,7 @@ async function createLeadMatches({
         )
         .select(`
           id,
+          email,
           phone_normalized,
           neighborhood_slug,
           property_type,
@@ -1694,13 +1708,36 @@ async function createLeadMatches({
           []
         ) as unknown as OwnerLeadRow[]
       ).filter(
-        (ownerLead) =>
-          ownerLead
-            .lead_quality !==
-            "duplicate" &&
-          ownerLead
-            .lead_quality !==
-            "needs_reclassification"
+        (ownerLead) => {
+          const ownerEmail =
+            clean(
+              ownerLead.email
+            ).toLowerCase()
+
+          const leadIsE2E =
+            E2E_EMAILS.has(
+              lead.email
+            )
+
+          const ownerIsE2E =
+            E2E_EMAILS.has(
+              ownerEmail
+            )
+
+          return (
+            ownerLead
+              .lead_quality !==
+              "duplicate" &&
+            ownerLead
+              .lead_quality !==
+              "needs_reclassification" &&
+            (
+              leadIsE2E
+                ? ownerIsE2E
+                : !ownerIsE2E
+            )
+          )
+        }
       )
 
     const ownerNeighborhoodMap =
@@ -1999,6 +2036,7 @@ async function createLeadMatches({
         )
         .select(`
           id,
+          email,
           phone_normalized,
           neighborhood_slugs,
           desired_property_type,
@@ -2067,13 +2105,36 @@ async function createLeadMatches({
       ).filter(
         (
           tenantLead
-        ) =>
-          tenantLead
-            .lead_quality !==
-            "duplicate" &&
-          tenantLead
-            .lead_quality !==
-            "needs_reclassification"
+        ) => {
+          const tenantEmail =
+            clean(
+              tenantLead.email
+            ).toLowerCase()
+
+          const leadIsE2E =
+            E2E_EMAILS.has(
+              lead.email
+            )
+
+          const tenantIsE2E =
+            E2E_EMAILS.has(
+              tenantEmail
+            )
+
+          return (
+            tenantLead
+              .lead_quality !==
+              "duplicate" &&
+            tenantLead
+              .lead_quality !==
+              "needs_reclassification" &&
+            (
+              leadIsE2E
+                ? tenantIsE2E
+                : !tenantIsE2E
+            )
+          )
+        }
       )
 
     const tenantNeighborhoodMap =
@@ -3301,6 +3362,8 @@ if (
         lead: {
           id:
             leadRecord.id,
+
+          email,
 
           role,
           intent,
