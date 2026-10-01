@@ -1259,6 +1259,74 @@ export async function POST(
     }
 
     // =========================================================
+    // 10A. SI EL PROPIETARIO YA DIO OK,
+    // CONTINUAR EL FLUJO EXISTENTE Y OBTENER EL CIERRE DEL INQUILINO.
+    // =========================================================
+
+    let tenantClosingUrl:
+      string |
+      null =
+      null
+
+    if (
+      tokenSource ===
+        "matches"
+    ) {
+      for (
+        const matchId
+        of matchIds
+      ) {
+        const matchInterestResponse =
+          await fetch(
+            new URL(
+              "/api/match-interest",
+              request.url
+            ),
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  token,
+                  match_id:
+                    matchId,
+                }),
+            }
+          )
+
+        const matchInterestData =
+          await matchInterestResponse
+            .json()
+            .catch(
+              () => null
+            )
+
+        if (
+          matchInterestResponse.ok &&
+          matchInterestData?.ok &&
+          matchInterestData
+            ?.ready_to_connect &&
+          matchInterestData
+            ?.tenant_closing_url
+        ) {
+          tenantClosingUrl =
+            clean(
+              matchInterestData
+                .tenant_closing_url
+            )
+
+          break
+        }
+      }
+    }
+
+    // =========================================================
     // 10. PUSH AL OWNER
     //
     // SOLO corresponde cuando la documentación se completa
@@ -1420,6 +1488,9 @@ export async function POST(
 
       token_source:
         tokenSource,
+
+      tenant_closing_url:
+        tenantClosingUrl,
 
       owner_notifications:
         ownerNotifications,
