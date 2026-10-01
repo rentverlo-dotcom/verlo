@@ -21,13 +21,6 @@ export const runtime =
 export const dynamic =
   "force-dynamic"
 
-const E2E_LEAD_IDS = new Set([
-  "d6b217aa-e5e2-4db6-8265-de265024a0d7",
-  "5bbc374d-5d38-4f70-9402-fce25a969aa2",
-  "bd8b3c5b-bf40-48a3-85f0-aeb8ba38f81e",
-  "70f35b83-e09d-48cd-ba0d-5647eac1c3cd",
-  "f505fefe-40d2-40fd-a3a4-dfbd85f6c5dc",
-])
 
 function clean(
   value: unknown
