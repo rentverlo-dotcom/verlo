@@ -307,7 +307,46 @@ export async function POST(
     }
 
     // =========================================================
-    // 3. MULTIMEDIA YA GUARDADA
+    // 3. ADOPTAR MULTIMEDIA INICIAL
+    //
+    // owner-initial-media guarda los archivos con completion_id = NULL.
+    // Al completar la propiedad, esos archivos pasan a pertenecer a esta
+    // completion. La operación es idempotente y solo adopta media todavía
+    // no asociada a ninguna completion.
+    // =========================================================
+
+    const {
+      error:
+        mediaAdoptionError,
+    } =
+      await supabase
+        .from(
+          "owner_property_media"
+        )
+        .update({
+          completion_id:
+            completionId,
+        })
+        .eq(
+          "lead_id",
+          ownerLeadId
+        )
+        .is(
+          "completion_id",
+          null
+        )
+
+    if (
+      mediaAdoptionError
+    ) {
+      throw new Error(
+        mediaAdoptionError
+          .message
+      )
+    }
+
+    // =========================================================
+    // 4. MULTIMEDIA YA GUARDADA EN ESTA PROPIEDAD
     // =========================================================
 
     const {
@@ -327,8 +366,8 @@ export async function POST(
           media_type
         `)
         .eq(
-          "lead_id",
-          ownerLeadId
+          "completion_id",
+          completionId
         )
 
     if (
@@ -513,8 +552,8 @@ export async function POST(
           "id"
         )
         .eq(
-          "lead_id",
-          ownerLeadId
+          "completion_id",
+          completionId
         )
         .eq(
           "media_type",
@@ -938,8 +977,8 @@ export async function POST(
           media_type
         `)
         .eq(
-          "lead_id",
-          ownerLeadId
+          "completion_id",
+          completionId
         )
 
     if (
