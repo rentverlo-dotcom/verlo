@@ -1055,6 +1055,9 @@ export async function POST(
 
               url:
                 ownerClosingUrl,
+
+              skipWhatsApp:
+                true,
             })
         } catch (
           pushError
@@ -1098,6 +1101,9 @@ export async function POST(
 
               url:
                 tenantClosingUrl,
+
+              skipWhatsApp:
+                true,
             })
         } catch (
           pushError
@@ -1150,6 +1156,9 @@ export async function POST(
 
               url:
                 tenantFinalUrl,
+
+              skipWhatsApp:
+                true,
             })
         } catch (
           pushError
@@ -1192,6 +1201,9 @@ export async function POST(
 
               url:
                 ownerFinalUrl,
+
+              skipWhatsApp:
+                true,
             })
         } catch (
           pushError
