@@ -33,6 +33,8 @@ const E2E_EMAILS = new Set([
   "licpuentegarat@gmail.com",
   "memo.oddone@gmail.com",
   "hugo_gaston@hotmail.com",
+  "walter@wnavarrete.com",
+"johi.pirrello@gmail.com",
 ])
 
 function isExpired(
