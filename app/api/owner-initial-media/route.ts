@@ -455,105 +455,6 @@ export async function POST(
     }
 
     // =========================================================
-    // 7. REEJECUTAR PILOT PARA TENANTS
-    //
-    // Desde acá sabemos que el owner ya tiene al menos
-    // una foto O un video.
-    // =========================================================
-
-    let pilotMatch:
-      Record<
-        string,
-        unknown
-      > = {
-        triggered:
-          false,
-      }
-
-    if (
-      dispatchMatches
-    ) {
-      try {
-        const pilotUrl =
-        new URL(
-          "/api/pilot-matches",
-          request.url
-        )
-
-      const response =
-        await fetch(
-          pilotUrl,
-          {
-            method:
-              "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body:
-              JSON.stringify({
-                send:
-                  true,
-
-                lead_ids: [
-                  ownerLeadId,
-                ],
-
-                notify_roles: [
-                  "tenant",
-                ],
-
-                limit:
-                  200,
-              }),
-          }
-        )
-
-      const data =
-        await response
-          .json()
-          .catch(
-            () =>
-              null
-          )
-
-      pilotMatch = {
-        triggered:
-          true,
-
-        ok:
-          response.ok &&
-          data?.ok !==
-            false,
-
-        status:
-          response.status,
-
-        response:
-          data,
-      }
-      } catch (
-        error
-      ) {
-        pilotMatch = {
-          triggered:
-            true,
-
-          ok:
-            false,
-
-          error:
-            error instanceof
-            Error
-              ? error.message
-              : "Pilot dispatch failed",
-        }
-      }
-    }
-
-    // =========================================================
     // 8. CONTAR MEDIA
     // =========================================================
 
@@ -644,9 +545,6 @@ export async function POST(
       has_video:
         totalVideos >
         0,
-
-      pilot_match:
-        pilotMatch,
     })
   } catch (
     error
