@@ -11,6 +11,10 @@ import {
 } from "next/navigation"
 
 import VerloBrand from "@/components/VerloBrand"
+import {
+  identifyPostHog,
+  trackPostHog,
+} from "@/lib/posthog-client"
 
 type FinalData = {
   ok: boolean
@@ -172,6 +176,40 @@ export default function FinalPage() {
 
           setData(
             json
+          )
+
+          identifyPostHog(
+            json.viewer.lead_id,
+            {
+              role:
+                json.viewer.role,
+            }
+          )
+
+          trackPostHog(
+            "rental_confirmed",
+            {
+              lead_id:
+                json.viewer.lead_id,
+
+              role:
+                json.viewer.role,
+
+              contract_status:
+                json.contract
+                  ?.status ||
+                null,
+
+              start_date:
+                json.contract
+                  ?.start_date ||
+                null,
+
+              end_date:
+                json.contract
+                  ?.end_date ||
+                null,
+            }
           )
         } catch (
           loadError
