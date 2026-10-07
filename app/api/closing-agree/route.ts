@@ -697,6 +697,104 @@ export async function POST(
           createdRental.id
       }
 
+      if (
+        rentalId
+      ) {
+        const {
+          data:
+            availablePayment,
+
+          error:
+            availablePaymentError,
+        } =
+          await supabase
+            .from(
+              "lead_payments"
+            )
+            .select(
+              "id"
+            )
+            .eq(
+              "tenant_lead_id",
+              contract
+                .tenant_lead_id
+            )
+            .eq(
+              "status",
+              "approved"
+            )
+            .is(
+              "consumed_at",
+              null
+            )
+            .order(
+              "approved_at",
+              {
+                ascending:
+                  true,
+                nullsFirst:
+                  false,
+              }
+            )
+            .limit(
+              1
+            )
+            .maybeSingle()
+
+        if (
+          availablePaymentError
+        ) {
+          throw new Error(
+            availablePaymentError
+              .message
+          )
+        }
+
+        if (
+          !availablePayment
+        ) {
+          throw new Error(
+            "Approved Verlo payment not found for rental"
+          )
+        }
+
+        const {
+          error:
+            consumePaymentError,
+        } =
+          await supabase
+            .from(
+              "lead_payments"
+            )
+            .update({
+              consumed_at:
+                now,
+
+              consumed_rental_id:
+                rentalId,
+
+              updated_at:
+                now,
+            })
+            .eq(
+              "id",
+              availablePayment.id
+            )
+            .is(
+              "consumed_at",
+              null
+            )
+
+        if (
+          consumePaymentError
+        ) {
+          throw new Error(
+            consumePaymentError
+              .message
+          )
+        }
+      }
+
       // =======================================================
       // 7A. MATCH ELEGIDO = CONVERTED
       // =======================================================
