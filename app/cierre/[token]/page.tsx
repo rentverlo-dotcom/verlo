@@ -153,6 +153,9 @@ type ClosingData = {
 
     owner_post_visit_decided_at:
       string | null
+
+    tenant_paid_at:
+      string | null
   }
 
   tenant: {
@@ -969,6 +972,14 @@ export default function ClosingPage() {
   const [
     accepting,
     setAccepting,
+  ] =
+    useState(
+      false
+    )
+
+  const [
+    paying,
+    setPaying,
   ] =
     useState(
       false
@@ -2261,6 +2272,102 @@ export default function ClosingPage() {
     }
   }
 
+  async function startPayment() {
+    if (
+      !data ||
+      isOwner ||
+      data
+        .match
+        .tenant_paid_at ||
+      paying
+    ) {
+      return
+    }
+
+    try {
+      setPaying(
+        true
+      )
+
+      setError(
+        ""
+      )
+
+      const response =
+        await fetch(
+          "/api/payments/create",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                token,
+              }),
+          }
+        )
+
+      const json =
+        await response
+          .json()
+          .catch(
+            () => null
+          )
+
+      if (
+        !response.ok ||
+        !json?.ok
+      ) {
+        throw new Error(
+          json?.error ||
+            "No pudimos iniciar el pago."
+        )
+      }
+
+      if (
+        json
+          .already_paid
+      ) {
+        await load(
+          false
+        )
+
+        return
+      }
+
+      if (
+        !json
+          .init_point
+      ) {
+        throw new Error(
+          "Mercado Pago no devolvió el checkout."
+        )
+      }
+
+      window.location.href =
+        json
+          .init_point
+    } catch (
+      err
+    ) {
+      setError(
+        err instanceof
+          Error
+          ? err.message
+          : "No pudimos iniciar el pago."
+      )
+
+      setPaying(
+        false
+      )
+    }
+  }
+
   async function agreeContract() {
     if (!data) {
       return
@@ -2295,6 +2402,22 @@ export default function ClosingPage() {
         isOwner
           ? "No podés aceptar todavía. Primero debe estar disponible para revisar la documentación cargada por el inquilino."
           : "No podés aceptar todavía. Primero debe estar disponible para revisar la multimedia de la propiedad."
+      )
+
+      return
+    }
+
+    if (
+      data
+        .viewer
+        .role ===
+        "tenant" &&
+      !data
+        .match
+        .tenant_paid_at
+    ) {
+      setError(
+        "Antes de aceptar el contrato tenés que realizar el pago único de Verlo."
       )
 
       return
@@ -4877,6 +5000,53 @@ if (
                       </article>
                     </div>
 
+                    {!isOwner &&
+                    contractGenerated &&
+                    secondDoubleOk && (
+                      <div className="agreement-panel no-print">
+                        <div className="agreement-copy">
+                          <span className="card-kicker">
+                            PAGO ÚNICO VERLO
+                          </span>
+
+                          <h3>
+                            {data
+                              .match
+                              .tenant_paid_at
+                              ? "Pago acreditado"
+                              : "$89.000 ARS"}
+                          </h3>
+
+                          <p>
+                            {data
+                              .match
+                              .tenant_paid_at
+                              ? "Tu pago ya está acreditado. Podés avanzar con la aceptación del contrato."
+                              : "Este pago lo realiza únicamente el inquilino y habilita la aceptación final del contrato."}
+                          </p>
+                        </div>
+
+                        {!data
+                          .match
+                          .tenant_paid_at && (
+                          <button
+                            type="button"
+                            className="agree-button"
+                            disabled={
+                              paying
+                            }
+                            onClick={
+                              startPayment
+                            }
+                          >
+                            {paying
+                              ? "ABRIENDO MERCADO PAGO..."
+                              : "PAGAR $89.000 CON MERCADO PAGO"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     <div className="agreement-panel no-print">
                       {bothAgreed ? (
                         <div className="agreement-complete">
@@ -4937,7 +5107,13 @@ if (
                               !secondDoubleOk ||
                               !data
                                 .review_assets
-                                .ready
+                                .ready ||
+                              (
+                                !isOwner &&
+                                !data
+                                  .match
+                                  .tenant_paid_at
+                              )
                             }
                             onClick={
                               agreeContract
