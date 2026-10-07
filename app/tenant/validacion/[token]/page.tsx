@@ -7,6 +7,7 @@ import {
   useSearchParams,
 } from "next/navigation"
 import VerloBrand from "@/components/VerloBrand"
+import { trackPostHog } from "@/lib/posthog-client"
 
 const CONTACT_HREF =
   "https://mail.zoho.com/zm/#compose?to=hola@verlo.lat&subject=Consulta%20Verlo"
@@ -99,6 +100,17 @@ export default function TenantValidationPage() {
       </main>
     )
   }
+
+  trackPostHog(
+    "tenant_verification_started",
+    {
+      match_count:
+        matchIds.length,
+
+      match_ids:
+        matchIds,
+    }
+  )
 
   async function uploadDocument(
     docType: DocType,
@@ -229,6 +241,42 @@ export default function TenantValidationPage() {
             "No se pudo guardar la validación"
         )
       }
+
+      trackPostHog(
+        "tenant_verification_completed",
+        {
+          match_count:
+            matchIds.length,
+
+          match_ids:
+            matchIds,
+
+          has_dni_front:
+            Boolean(
+              documents.dni_front
+            ),
+
+          has_dni_back:
+            Boolean(
+              documents.dni_back
+            ),
+
+          has_selfie:
+            Boolean(
+              documents.selfie
+            ),
+
+          has_income_proof:
+            Boolean(
+              documents.income_proof
+            ),
+
+          has_guarantee_proof:
+            Boolean(
+              documents.guarantee_proof
+            ),
+        }
+      )
 
       if (
         data
