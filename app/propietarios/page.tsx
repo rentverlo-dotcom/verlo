@@ -7,6 +7,7 @@ import {
   useState,
 } from "react"
 import VerloBrand from "@/components/VerloBrand"
+import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 
 type UploadedOwnerMedia = {
   key: string
@@ -400,237 +401,6 @@ const DEMAND = [
     leads: "+170",
     detail:
       "Búsquedas activas de inquilinos",
-  },
-]
-
-const NEIGHBORHOOD_OPTIONS = [
-  {
-    label: "Agronomía",
-    slug: "agronomia",
-  },
-  {
-    label: "Almagro",
-    slug: "almagro",
-  },
-  {
-    label: "Balvanera",
-    slug: "balvanera",
-  },
-  {
-    label: "Barracas",
-    slug: "barracas",
-  },
-  {
-    label: "Belgrano",
-    slug: "belgrano",
-  },
-  {
-    label: "Boedo",
-    slug: "boedo",
-  },
-  {
-    label: "Caballito",
-    slug: "caballito",
-  },
-  {
-    label: "Chacarita",
-    slug: "chacarita",
-  },
-  {
-    label: "Coghlan",
-    slug: "coghlan",
-  },
-  {
-    label: "Colegiales",
-    slug: "colegiales",
-  },
-  {
-    label: "Flores",
-    slug: "flores",
-  },
-  {
-    label: "Floresta",
-    slug: "floresta",
-  },
-  {
-    label: "Liniers",
-    slug: "liniers",
-  },
-  {
-    label: "Mataderos",
-    slug: "mataderos",
-  },
-  {
-    label: "Monserrat",
-    slug: "monserrat",
-  },
-  {
-    label: "Monte Castro",
-    slug: "monte-castro",
-  },
-  {
-    label: "Núñez",
-    slug: "nunez",
-  },
-  {
-    label: "Palermo",
-    slug: "palermo",
-  },
-  {
-    label:
-      "Parque Avellaneda",
-    slug:
-      "parque-avellaneda",
-  },
-  {
-    label:
-      "Parque Chacabuco",
-    slug:
-      "parque-chacabuco",
-  },
-  {
-    label: "Parque Chas",
-    slug: "parque-chas",
-  },
-  {
-    label:
-      "Parque Patricios",
-    slug:
-      "parque-patricios",
-  },
-  {
-    label: "Paternal",
-    slug: "paternal",
-  },
-  {
-    label: "Recoleta",
-    slug: "recoleta",
-  },
-  {
-    label: "Saavedra",
-    slug: "saavedra",
-  },
-  {
-    label:
-      "San Cristóbal",
-    slug:
-      "san-cristobal",
-  },
-  {
-    label: "San Nicolás",
-    slug: "san-nicolas",
-  },
-  {
-    label: "San Telmo",
-    slug: "san-telmo",
-  },
-  {
-    label:
-      "Vélez Sarsfield",
-    slug:
-      "velez-sarsfield",
-  },
-  {
-    label: "Versalles",
-    slug: "versalles",
-  },
-  {
-    label: "Villa Crespo",
-    slug: "villa-crespo",
-  },
-  {
-    label: "Villa Devoto",
-    slug: "villa-devoto",
-  },
-  {
-    label:
-      "Villa General Mitre",
-    slug:
-      "villa-general-mitre",
-  },
-  {
-    label: "Villa Luro",
-    slug: "villa-luro",
-  },
-  {
-    label:
-      "Villa Ortúzar",
-    slug:
-      "villa-ortuzar",
-  },
-  {
-    label:
-      "Villa Pueyrredón",
-    slug:
-      "villa-pueyrredon",
-  },
-  {
-    label: "Villa Real",
-    slug: "villa-real",
-  },
-  {
-    label:
-      "Villa Santa Rita",
-    slug:
-      "villa-santa-rita",
-  },
-  {
-    label: "Villa Urquiza",
-    slug: "villa-urquiza",
-  },
-  {
-    label:
-      "Vicente López",
-    slug:
-      "vicente-lopez",
-  },
-  {
-    label: "Olivos",
-    slug: "olivos",
-  },
-  {
-    label: "Florida",
-    slug: "florida",
-  },
-  {
-    label: "La Lucila",
-    slug: "la-lucila",
-  },
-  {
-    label: "Munro",
-    slug: "munro",
-  },
-  {
-    label:
-      "Villa Martelli",
-    slug:
-      "villa-martelli",
-  },
-  {
-    label: "San Isidro",
-    slug: "san-isidro",
-  },
-  {
-    label: "Martínez",
-    slug: "martinez",
-  },
-  {
-    label: "Acassuso",
-    slug: "acassuso",
-  },
-  {
-    label: "Beccar",
-    slug: "beccar",
-  },
-  {
-    label:
-      "San Fernando",
-    slug:
-      "san-fernando",
-  },
-  {
-    label: "Tigre",
-    slug: "tigre",
   },
 ]
 
@@ -1039,17 +809,12 @@ export default function PropietariosPage() {
         ) || ""
       ).trim()
 
-    const selectedNeighborhood =
-      NEIGHBORHOOD_OPTIONS.find(
-        (item) =>
-          item.slug ===
-          neighborhoodSlug
-      )
-
     const zone =
-      selectedNeighborhood
-        ?.label ||
-      ""
+      String(
+        formData.get(
+          "neighborhood_label"
+        ) || ""
+      ).trim()
 
     const propertyType =
       String(
@@ -1133,6 +898,14 @@ export default function PropietariosPage() {
       source:
         "verlo_propietarios",
 
+      neighborhood_labels:
+        zone
+          ? [zone]
+          : [],
+
+      neighborhood_slug:
+        neighborhoodSlug,
+
       metadata: {
         page:
           "propietarios",
@@ -1148,6 +921,13 @@ export default function PropietariosPage() {
 
         neighborhood_label:
           zone,
+
+        georef:
+          String(
+            formData.get(
+              "owner_georef"
+            ) || ""
+          ),
       },
     }
 
@@ -1733,39 +1513,14 @@ export default function PropietariosPage() {
             </label>
 
             <label>
-              Barrio de la propiedad
+              Ubicación de la propiedad
 
-              <select
-                name="neighborhood_slug"
-                required
-                defaultValue=""
-              >
-                <option
-                  value=""
-                  disabled
-                >
-                  Elegí el barrio
-                </option>
-
-                {NEIGHBORHOOD_OPTIONS.map(
-                  (
-                    item
-                  ) => (
-                    <option
-                      key={
-                        item.slug
-                      }
-                      value={
-                        item.slug
-                      }
-                    >
-                      {
-                        item.label
-                      }
-                    </option>
-                  )
-                )}
-              </select>
+              <ArgentinaLocationSelector
+                mode="single"
+                labelName="neighborhood_label"
+                keyName="neighborhood_slug"
+                dataName="owner_georef"
+              />
             </label>
 
             <div className="form-row">
