@@ -10,6 +10,10 @@ import {
 } from "next/navigation"
 
 import VerloBrand from "@/components/VerloBrand"
+import {
+  identifyPostHog,
+  trackPostHog,
+} from "@/lib/posthog-client"
 
 type MatchStage =
   | "new"
@@ -482,6 +486,41 @@ export default function CandidatesPage() {
       }
 
       setData(json)
+
+      if (
+        json?.owner?.id
+      ) {
+        identifyPostHog(
+          String(
+            json.owner.id
+          ),
+          {
+            role:
+              "owner",
+          }
+        )
+      }
+
+      trackPostHog(
+        "owner_candidates_opened",
+        {
+          owner_lead_id:
+            json?.owner?.id ||
+            null,
+
+          candidate_count:
+            Array.isArray(
+              json?.candidates
+            )
+              ? json.candidates.length
+              : 0,
+
+          counts:
+            json?.counts ||
+            null,
+        }
+      )
+
       setError("")
     } catch (err) {
       setError(
@@ -542,6 +581,24 @@ export default function CandidatesPage() {
             "No pudimos registrar tu decisión."
         )
       }
+
+      trackPostHog(
+        "owner_interest_sent",
+        {
+          match_id:
+            matchId,
+
+          owner_lead_id:
+            data?.owner?.id ||
+            null,
+
+          ready_to_connect:
+            Boolean(
+              json
+                ?.ready_to_connect
+            ),
+        }
+      )
 
       await loadCandidates(
         true
