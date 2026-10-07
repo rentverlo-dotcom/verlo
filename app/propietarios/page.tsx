@@ -871,14 +871,14 @@ export default function PropietariosPage() {
         "owner_landing",
 
       neighborhood_labels:
-        [
-          zone,
-        ],
+        zone
+          ? [zone]
+          : [],
 
       neighborhood_slugs:
-        [
-          neighborhoodSlug,
-        ],
+        neighborhoodSlug
+          ? [neighborhoodSlug]
+          : [],
 
       neighborhood_slug:
         neighborhoodSlug,
@@ -897,14 +897,6 @@ export default function PropietariosPage() {
 
       source:
         "verlo_propietarios",
-
-      neighborhood_labels:
-        zone
-          ? [zone]
-          : [],
-
-      neighborhood_slug:
-        neighborhoodSlug,
 
       metadata: {
         page:
