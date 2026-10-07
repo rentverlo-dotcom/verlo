@@ -2853,40 +2853,6 @@ if (honeypot) {
 
         setOwnerUploadProgress("")
 
-        void fetch(
-          "/api/pilot-matches",
-          {
-            method:
-              "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body:
-              JSON.stringify({
-                send:
-                  true,
-
-                lead_ids: [
-                  ownerLeadId,
-                ],
-
-                notify_roles: [
-                  "tenant",
-                ],
-
-                limit:
-                  200,
-              }),
-
-            keepalive:
-              true,
-          }
-        ).catch(
-          () => null
-        )
       }
 
       if (
