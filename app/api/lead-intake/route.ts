@@ -52,6 +52,20 @@ type SupabaseAdminClient = {
   from: (table: string) => any
 }
 
+type NeighborhoodLocation = {
+  neighborhood_label: string
+  neighborhood_slug: string
+  province_id: string | null
+  province_name: string | null
+  municipality_id: string | null
+  municipality_name: string | null
+  locality_id: string | null
+  locality_name: string | null
+  latitude: number | null
+  longitude: number | null
+  geo_key: string | null
+}
+
 type MatchableLead = {
   id: string
   email: string
@@ -387,6 +401,98 @@ function incomeRangeToMax(
     default:
       return null
   }
+}
+
+function parseLocationItems(
+  value: unknown
+) {
+  const raw =
+    typeof value === "string"
+      ? (() => {
+          try {
+            return JSON.parse(
+              value
+            )
+          } catch {
+            return []
+          }
+        })()
+      : value
+
+  if (
+    !Array.isArray(
+      raw
+    )
+  ) {
+    return []
+  }
+
+  return raw
+    .map(
+      (
+        item: any
+      ) => ({
+        provinceId:
+          clean(
+            item?.provinceId
+          ),
+        provinceName:
+          clean(
+            item?.provinceName
+          ),
+        municipalityId:
+          clean(
+            item?.municipalityId
+          ),
+        municipalityName:
+          clean(
+            item?.municipalityName
+          ),
+        localityId:
+          clean(
+            item?.localityId
+          ),
+        localityName:
+          clean(
+            item?.localityName
+          ),
+        latitude:
+          Number.isFinite(
+            Number(
+              item?.latitude
+            )
+          )
+            ? Number(
+                item.latitude
+              )
+            : null,
+        longitude:
+          Number.isFinite(
+            Number(
+              item?.longitude
+            )
+          )
+            ? Number(
+                item.longitude
+              )
+            : null,
+        key:
+          clean(
+            item?.key
+          ),
+        label:
+          clean(
+            item?.label
+          ),
+      })
+    )
+    .filter(
+      (
+        item
+      ) =>
+        item.key &&
+        item.label
+    )
 }
 
 function toStringArray(
@@ -883,6 +989,7 @@ async function insertLeadNeighborhoods({
   neighborhoodSlugs,
   neighborhoodSlug,
   zone,
+  locationItems,
 }: {
   supabaseAdmin:
     SupabaseAdminClient
@@ -898,7 +1005,99 @@ async function insertLeadNeighborhoods({
     string | null
   zone:
     string | null
+  locationItems:
+    ReturnType<
+      typeof parseLocationItems
+    >
 }) {
+  const locationByKey =
+    new Map(
+      locationItems.map(
+        (
+          item
+        ) => [
+          item.key,
+          item,
+        ]
+      )
+    )
+
+  function buildRow(
+    slug: string,
+    label: string,
+    context:
+      | "tenant_search"
+      | "owner_property",
+    position: number
+  ) {
+    const location =
+      locationByKey.get(
+        slug
+      ) ||
+      null
+
+    return {
+      lead_id:
+        leadId,
+
+      context,
+
+      neighborhood_label:
+        label ||
+        slug,
+
+      neighborhood_slug:
+        slug,
+
+      position,
+
+      province_id:
+        location
+          ?.provinceId ||
+        null,
+
+      province_name:
+        location
+          ?.provinceName ||
+        null,
+
+      municipality_id:
+        location
+          ?.municipalityId ||
+        null,
+
+      municipality_name:
+        location
+          ?.municipalityName ||
+        null,
+
+      locality_id:
+        location
+          ?.localityId ||
+        null,
+
+      locality_name:
+        location
+          ?.localityName ||
+        null,
+
+      latitude:
+        location
+          ?.latitude ??
+        null,
+
+      longitude:
+        location
+          ?.longitude ??
+        null,
+
+      geo_key:
+        location
+          ?.key ||
+        null,
+    }
+  }
+
   const rows =
     intent ===
     "tenant_search"
@@ -906,50 +1105,31 @@ async function insertLeadNeighborhoods({
           (
             slug,
             index
-          ) => ({
-            lead_id:
-              leadId,
-
-            context:
-              "tenant_search",
-
-            neighborhood_label:
+          ) =>
+            buildRow(
+              slug,
               neighborhoodLabels[
                 index
               ] ||
-              slug,
-
-            neighborhood_slug:
-              slug,
-
-            position:
-              index,
-          })
+                slug,
+              "tenant_search",
+              index
+            )
         )
       : intent ===
           "owner_new_listing" &&
         neighborhoodSlug
         ? [
-            {
-              lead_id:
-                leadId,
-
-              context:
-                "owner_property",
-
-              neighborhood_label:
-                neighborhoodLabels[
-                  0
-                ] ||
+            buildRow(
+              neighborhoodSlug,
+              neighborhoodLabels[
+                0
+              ] ||
                 zone ||
                 neighborhoodSlug,
-
-              neighborhood_slug:
-                neighborhoodSlug,
-
-              position:
-                0,
-            },
+              "owner_property",
+              0
+            ),
           ]
         : []
 
@@ -1002,7 +1182,7 @@ async function insertLeadNeighborhoods({
   }
 }
 
-async function getLeadNeighborhoodSlugs({
+async function getLeadNeighborhoodLocations({
   supabaseAdmin,
   leadIds,
   context,
@@ -1021,7 +1201,7 @@ async function getLeadNeighborhoodSlugs({
   ) {
     return new Map<
       string,
-      string[]
+      NeighborhoodLocation[]
     >()
   }
 
@@ -1034,7 +1214,7 @@ async function getLeadNeighborhoodSlugs({
         "lead_neighborhoods"
       )
       .select(
-        "lead_id, neighborhood_slug"
+        "lead_id, neighborhood_label, neighborhood_slug, province_id, province_name, municipality_id, municipality_name, locality_id, locality_name, latitude, longitude, geo_key"
       )
       .in(
         "lead_id",
@@ -1045,37 +1225,112 @@ async function getLeadNeighborhoodSlugs({
         context
       )
 
-  if (error) {
+  if (
+    error
+  ) {
     console.error(
-      "lead neighborhoods fetch error:",
+      "lead neighborhood location fetch error:",
       error
     )
 
     return new Map<
       string,
-      string[]
+      NeighborhoodLocation[]
     >()
   }
 
   const map =
     new Map<
       string,
-      string[]
+      NeighborhoodLocation[]
     >()
 
   for (
     const row
-    of data || []
+    of data ||
+    []
   ) {
     const leadId =
-      String(
+      clean(
         row.lead_id
       )
 
-    const slug =
-      String(
-        row.neighborhood_slug
-      )
+    if (
+      !leadId
+    ) {
+      continue
+    }
+
+    const location:
+      NeighborhoodLocation = {
+        neighborhood_label:
+          clean(
+            row.neighborhood_label
+          ),
+
+        neighborhood_slug:
+          clean(
+            row.neighborhood_slug
+          ),
+
+        province_id:
+          clean(
+            row.province_id
+          ) ||
+          null,
+
+        province_name:
+          clean(
+            row.province_name
+          ) ||
+          null,
+
+        municipality_id:
+          clean(
+            row.municipality_id
+          ) ||
+          null,
+
+        municipality_name:
+          clean(
+            row.municipality_name
+          ) ||
+          null,
+
+        locality_id:
+          clean(
+            row.locality_id
+          ) ||
+          null,
+
+        locality_name:
+          clean(
+            row.locality_name
+          ) ||
+          null,
+
+        latitude:
+          row.latitude ==
+          null
+            ? null
+            : Number(
+                row.latitude
+              ),
+
+        longitude:
+          row.longitude ==
+          null
+            ? null
+            : Number(
+                row.longitude
+              ),
+
+        geo_key:
+          clean(
+            row.geo_key
+          ) ||
+          null,
+      }
 
     if (
       !map.has(
@@ -1093,11 +1348,136 @@ async function getLeadNeighborhoodSlugs({
         leadId
       )
       ?.push(
-        slug
+        location
       )
   }
 
   return map
+}
+
+function fallbackLocation(
+  slug: string | null
+): NeighborhoodLocation | null {
+  if (
+    !slug
+  ) {
+    return null
+  }
+
+  return {
+    neighborhood_label:
+      slug,
+
+    neighborhood_slug:
+      slug,
+
+    province_id:
+      null,
+
+    province_name:
+      null,
+
+    municipality_id:
+      null,
+
+    municipality_name:
+      null,
+
+    locality_id:
+      null,
+
+    locality_name:
+      null,
+
+    latitude:
+      null,
+
+    longitude:
+      null,
+
+    geo_key:
+      null,
+  }
+}
+
+function haversineKm(
+  a: NeighborhoodLocation,
+  b: NeighborhoodLocation
+) {
+  if (
+    a.latitude ==
+      null ||
+    a.longitude ==
+      null ||
+    b.latitude ==
+      null ||
+    b.longitude ==
+      null
+  ) {
+    return null
+  }
+
+  const toRad = (
+    value: number
+  ) =>
+    value *
+    Math.PI /
+    180
+
+  const earthRadiusKm =
+    6371
+
+  const dLat =
+    toRad(
+      b.latitude -
+        a.latitude
+    )
+
+  const dLon =
+    toRad(
+      b.longitude -
+        a.longitude
+    )
+
+  const lat1 =
+    toRad(
+      a.latitude
+    )
+
+  const lat2 =
+    toRad(
+      b.latitude
+    )
+
+  const h =
+    Math.sin(
+      dLat /
+        2
+    ) ** 2 +
+    Math.cos(
+      lat1
+    ) *
+      Math.cos(
+        lat2
+      ) *
+      Math.sin(
+        dLon /
+          2
+      ) ** 2
+
+  return (
+    earthRadiusKm *
+    2 *
+    Math.atan2(
+      Math.sqrt(
+        h
+      ),
+      Math.sqrt(
+        1 -
+          h
+      )
+    )
+  )
 }
 
 async function getNeighborhoodCompatibilityMap({
@@ -1193,14 +1573,14 @@ async function getNeighborhoodCompatibilityMap({
 }
 
 function getNeighborhoodCompatibility({
-  tenantNeighborhoodSlugs,
-  ownerNeighborhoodSlug,
+  tenantLocations,
+  ownerLocation,
   compatibilityMap,
 }: {
-  tenantNeighborhoodSlugs:
-    string[]
-  ownerNeighborhoodSlug:
-    string | null
+  tenantLocations:
+    NeighborhoodLocation[]
+  ownerLocation:
+    NeighborhoodLocation | null
   compatibilityMap:
     Map<
       string,
@@ -1211,63 +1591,170 @@ function getNeighborhoodCompatibility({
     >
 }) {
   if (
-    !ownerNeighborhoodSlug
+    !ownerLocation
   ) {
     return {
       ok: false,
-      type: null,
+      type:
+        null as
+          | string
+          | null,
       matchedTenantNeighborhood:
-        null,
+        null as
+          | string
+          | null,
+      distanceKm:
+        null as
+          | number
+          | null,
     }
   }
 
   for (
-    const tenantNeighborhood
-    of tenantNeighborhoodSlugs
+    const tenantLocation
+    of tenantLocations
   ) {
     if (
-      tenantNeighborhood ===
-      ownerNeighborhoodSlug
+      tenantLocation
+        .geo_key &&
+      ownerLocation
+        .geo_key &&
+      tenantLocation
+        .geo_key ===
+        ownerLocation
+          .geo_key
     ) {
       return {
-        ok: true,
-        type: "exact",
+        ok:
+          true,
+        type:
+          "exact",
         matchedTenantNeighborhood:
-          tenantNeighborhood,
+          tenantLocation
+            .neighborhood_slug,
+        distanceKm:
+          0,
+      }
+    }
+
+    if (
+      tenantLocation
+        .neighborhood_slug ===
+      ownerLocation
+        .neighborhood_slug
+    ) {
+      return {
+        ok:
+          true,
+        type:
+          "exact",
+        matchedTenantNeighborhood:
+          tenantLocation
+            .neighborhood_slug,
+        distanceKm:
+          0,
       }
     }
   }
 
+  let nearest:
+    {
+      location:
+        NeighborhoodLocation
+      distanceKm:
+        number
+    } |
+    null =
+    null
+
   for (
-    const tenantNeighborhood
-    of tenantNeighborhoodSlugs
+    const tenantLocation
+    of tenantLocations
+  ) {
+    const distanceKm =
+      haversineKm(
+        tenantLocation,
+        ownerLocation
+      )
+
+    if (
+      distanceKm !=
+        null &&
+      distanceKm <=
+        8 &&
+      (
+        !nearest ||
+        distanceKm <
+          nearest
+            .distanceKm
+      )
+    ) {
+      nearest = {
+        location:
+          tenantLocation,
+        distanceKm,
+      }
+    }
+  }
+
+  if (
+    nearest
+  ) {
+    return {
+      ok:
+        true,
+      type:
+        "nearby",
+      matchedTenantNeighborhood:
+        nearest
+          .location
+          .neighborhood_slug,
+      distanceKm:
+        nearest
+          .distanceKm,
+    }
+  }
+
+  for (
+    const tenantLocation
+    of tenantLocations
   ) {
     const relationship =
       compatibilityMap
         .get(
-          tenantNeighborhood
+          tenantLocation
+            .neighborhood_slug
         )
         ?.get(
-          ownerNeighborhoodSlug
+          ownerLocation
+            .neighborhood_slug
         )
 
     if (
       relationship
     ) {
       return {
-        ok: true,
+        ok:
+          true,
         type:
           relationship,
         matchedTenantNeighborhood:
-          tenantNeighborhood,
+          tenantLocation
+            .neighborhood_slug,
+        distanceKm:
+          null,
       }
     }
   }
 
   return {
-    ok: false,
-    type: null,
+    ok:
+      false,
+    type:
+      null,
     matchedTenantNeighborhood:
+      null,
+    distanceKm:
       null,
   }
 }
@@ -1743,16 +2230,19 @@ async function createLeadMatches({
       )
 
     const ownerNeighborhoodMap =
-      await getLeadNeighborhoodSlugs({
+      await getLeadNeighborhoodLocations({
         supabaseAdmin,
 
         leadIds:
-          ownerLeads.map(
-            (
-              ownerLead
-            ) =>
-              ownerLead.id
-          ),
+          [
+            lead.id,
+            ...ownerLeads.map(
+              (
+                ownerLead
+              ) =>
+                ownerLead.id
+            ),
+          ],
 
         context:
           "owner_property",
@@ -1765,13 +2255,41 @@ async function createLeadMatches({
           (
             ownerLead
           ) => {
-            const ownerNeighborhoodSlug =
+            const ownerLocation =
               ownerNeighborhoodMap
                 .get(
                   ownerLead.id
                 )?.[0] ||
-              ownerLead
-                .neighborhood_slug
+              fallbackLocation(
+                ownerLead
+                  .neighborhood_slug
+              )
+
+            const tenantLocations =
+              ownerNeighborhoodMap
+                .get(
+                  lead.id
+                ) ||
+              lead
+                .neighborhood_slugs
+                .map(
+                  (
+                    slug
+                  ) =>
+                    fallbackLocation(
+                      slug
+                    )
+                )
+                .filter(
+                  (
+                    location
+                  ):
+                    location is
+                      NeighborhoodLocation =>
+                    Boolean(
+                      location
+                    )
+                )
 
             const timeOk =
               isTimingCompatible(
@@ -1788,10 +2306,9 @@ async function createLeadMatches({
 
             const neighborhoodMatch =
               getNeighborhoodCompatibility({
-                tenantNeighborhoodSlugs:
-                  lead.neighborhood_slugs,
+                tenantLocations,
 
-                ownerNeighborhoodSlug,
+                ownerLocation,
 
                 compatibilityMap:
                   neighborhoodCompatibilityMap,
@@ -1928,7 +2445,13 @@ async function createLeadMatches({
                   lead.neighborhood_slugs,
 
                 owner_neighborhood_slug:
-                  ownerNeighborhoodSlug,
+                  ownerLocation
+                    ?.neighborhood_slug ||
+                  null,
+
+                neighborhood_distance_km:
+                  neighborhoodMatch
+                    .distanceKm,
 
                 tenant_type:
                   lead.desired_property_type,
@@ -2140,7 +2663,7 @@ async function createLeadMatches({
       )
 
     const tenantNeighborhoodMap =
-      await getLeadNeighborhoodSlugs({
+      await getLeadNeighborhoodLocations({
         supabaseAdmin,
 
         leadIds:
@@ -2155,8 +2678,28 @@ async function createLeadMatches({
           "tenant_search",
       })
 
-    const ownerNeighborhoodSlug =
-      lead.neighborhood_slug
+    const currentOwnerNeighborhoodMap =
+      await getLeadNeighborhoodLocations({
+        supabaseAdmin,
+
+        leadIds:
+          [
+            lead.id,
+          ],
+
+        context:
+          "owner_property",
+      })
+
+    const ownerLocation =
+      currentOwnerNeighborhoodMap
+        .get(
+          lead.id
+        )?.[0] ||
+      fallbackLocation(
+        lead
+          .neighborhood_slug
+      )
 
     const matches:
       MatchRow[] =
@@ -2165,14 +2708,33 @@ async function createLeadMatches({
           (
             tenantLead
           ) => {
-            const tenantNeighborhoodSlugs =
+            const tenantLocations =
               tenantNeighborhoodMap
                 .get(
                   tenantLead.id
                 ) ||
               toStringArray(
-                tenantLead.neighborhood_slugs
+                tenantLead
+                  .neighborhood_slugs
               )
+                .map(
+                  (
+                    slug
+                  ) =>
+                    fallbackLocation(
+                      slug
+                    )
+                )
+                .filter(
+                  (
+                    location
+                  ):
+                    location is
+                      NeighborhoodLocation =>
+                    Boolean(
+                      location
+                    )
+                )
 
             const timeOk =
               isTimingCompatible(
@@ -2188,9 +2750,9 @@ async function createLeadMatches({
 
             const neighborhoodMatch =
               getNeighborhoodCompatibility({
-                tenantNeighborhoodSlugs,
+                tenantLocations,
 
-                ownerNeighborhoodSlug,
+                ownerLocation,
 
                 compatibilityMap:
                   neighborhoodCompatibilityMap,
@@ -2324,10 +2886,22 @@ async function createLeadMatches({
                   lead.availability_status,
 
                 tenant_neighborhood_slugs:
-                  tenantNeighborhoodSlugs,
+                  tenantLocations.map(
+                    (
+                      location
+                    ) =>
+                      location
+                        .neighborhood_slug
+                  ),
 
                 owner_neighborhood_slug:
-                  ownerNeighborhoodSlug,
+                  ownerLocation
+                    ?.neighborhood_slug ||
+                  null,
+
+                neighborhood_distance_km:
+                  neighborhoodMatch
+                    .distanceKm,
 
                 tenant_type:
                   tenantLead.desired_property_type,
@@ -2745,6 +3319,11 @@ export async function POST(
           metadata.area_macro
       ) ||
       null
+
+    const location_items =
+      parseLocationItems(
+        metadata.georef
+      )
 
     const neighborhood_labels =
       toStringArray(
@@ -3346,6 +3925,9 @@ if (
           neighborhood_slug,
 
         zone,
+
+        locationItems:
+          location_items,
       })
 
     if (
