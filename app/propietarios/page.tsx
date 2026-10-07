@@ -1041,40 +1041,6 @@ export default function PropietariosPage() {
         )
       }
 
-      void fetch(
-        "/api/pilot-matches",
-        {
-          method:
-            "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body:
-            JSON.stringify({
-              send:
-                true,
-
-              lead_ids: [
-                ownerLeadId,
-              ],
-
-              notify_roles: [
-                "tenant",
-              ],
-
-              limit:
-                200,
-            }),
-
-          keepalive:
-            true,
-        }
-      ).catch(
-        () => null
-      )
 
       window.location.href =
         `/success?role=owner&lead=${encodeURIComponent(
