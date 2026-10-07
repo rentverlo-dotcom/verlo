@@ -337,6 +337,130 @@ export async function POST(
       )
     }
 
+    // =========================================================
+    // SALDO A FAVOR
+    //
+    // Un pago aprobado y todavía no consumido pertenece al
+    // inquilino, no al intento de contrato. Si existe, lo
+    // aplicamos a este match y NO volvemos a cobrar.
+    // =========================================================
+
+    const {
+      data:
+        availableCredit,
+
+      error:
+        availableCreditError,
+    } =
+      await supabaseAdmin
+        .from(
+          "lead_payments"
+        )
+        .select(`
+          id,
+          approved_at,
+          amount,
+          currency
+        `)
+        .eq(
+          "tenant_lead_id",
+          contract
+            .tenant_lead_id
+        )
+        .eq(
+          "status",
+          "approved"
+        )
+        .is(
+          "consumed_at",
+          null
+        )
+        .order(
+          "approved_at",
+          {
+            ascending:
+              true,
+            nullsFirst:
+              false,
+          }
+        )
+        .limit(
+          1
+        )
+        .maybeSingle()
+
+    if (
+      availableCreditError
+    ) {
+      throw availableCreditError
+    }
+
+    if (
+      availableCredit
+    ) {
+      const creditAmount =
+        Number(
+          availableCredit
+            .amount
+        )
+
+      if (
+        creditAmount ===
+          VERLO_FEE_ARS &&
+        availableCredit
+          .currency ===
+          "ARS"
+      ) {
+        const paidAt =
+          availableCredit
+            .approved_at ||
+          new Date()
+            .toISOString()
+
+        const {
+          error:
+            applyCreditError,
+        } =
+          await supabaseAdmin
+            .from(
+              "lead_matches"
+            )
+            .update({
+              tenant_paid_at:
+                paidAt,
+            })
+            .eq(
+              "id",
+              match.id
+            )
+            .eq(
+              "tenant_lead_id",
+              contract
+                .tenant_lead_id
+            )
+
+        if (
+          applyCreditError
+        ) {
+          throw applyCreditError
+        }
+
+        return NextResponse.json({
+          ok: true,
+          already_paid:
+            true,
+          credit_applied:
+            true,
+          credit_payment_id:
+            availableCredit.id,
+          amount:
+            VERLO_FEE_ARS,
+          currency:
+            "ARS",
+        })
+      }
+    }
+
     const {
       data:
         tenant,
