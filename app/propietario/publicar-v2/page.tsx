@@ -369,7 +369,7 @@ export default function PublicarPropiedad() {
         neighborhoods.find((n) => n.id === draft.neighborhood_id)?.name ?? null
 
       const provinceName =
-        provinces.find((p) => p.id === draft.province_id)?.name ?? null
+        ARG_PROVINCES.find((p) => p.id === draft.province_id)?.name ?? null
 
       const city =
         municipalityName && provinceName
