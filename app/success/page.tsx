@@ -11,6 +11,10 @@ import {
 
 import VerloBrand from "@/components/VerloBrand"
 import PushSubscribeButton from "@/components/PushSubscribeButton"
+import {
+  identifyPostHog,
+  trackPostHog,
+} from "@/lib/posthog-client"
 
 type Role =
   | "tenant"
@@ -881,6 +885,38 @@ export default function SuccessPage() {
     useState<string | null>(
       null
     )
+
+  useEffect(
+    () => {
+      if (
+        leadId
+      ) {
+        identifyPostHog(
+          leadId,
+          {
+            role,
+          }
+        )
+      }
+
+      trackPostHog(
+        "success_page_viewed",
+        {
+          lead_id:
+            leadId ||
+            null,
+
+          role:
+            role ||
+            null,
+        }
+      )
+    },
+    [
+      leadId,
+      role,
+    ]
+  )
 
   useEffect(
     () => {
