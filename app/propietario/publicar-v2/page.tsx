@@ -264,7 +264,7 @@ export default function PublicarPropiedad() {
     if (!province?.name) return
 
     fetch(
-      `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(
+      `/api/georef/municipios?provincia=${encodeURIComponent(
         province.name
       )}&max=1000`
     )
@@ -290,7 +290,7 @@ export default function PublicarPropiedad() {
     if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
     fetch(
-      `https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(
+      `/api/georef/localidades?municipio=${encodeURIComponent(
         draft.municipality_id
       )}&max=1000`
     )
@@ -310,8 +310,13 @@ export default function PublicarPropiedad() {
     setErrorMessage(null)
 
     if (step === 1) {
-      if (!draft.province_id || !draft.municipality_id || !draft.price) {
-        setErrorMessage("Completá ubicación y precio para continuar.")
+      if (
+        !draft.province_id ||
+        !draft.municipality_id ||
+        !draft.neighborhood_id ||
+        !draft.price
+      ) {
+        setErrorMessage("Completá provincia, municipio, localidad y precio para continuar.")
         return false
       }
     }
@@ -363,6 +368,14 @@ export default function PublicarPropiedad() {
       const neighborhoodName =
         neighborhoods.find((n) => n.id === draft.neighborhood_id)?.name ?? null
 
+      const provinceName =
+        provinces.find((p) => p.id === draft.province_id)?.name ?? null
+
+      const city =
+        municipalityName && provinceName
+          ? `${municipalityName}, ${provinceName}`
+          : municipalityName
+
       const propertyTypeMap = {
         apartment: "apartment",
         house: "house",
@@ -385,7 +398,7 @@ export default function PublicarPropiedad() {
         .from("properties")
         .insert({
           owner_id: auth.user.id,
-          city: municipalityName,
+          city,
           zone: neighborhoodName,
           price: draft.price ?? null,
           property_type: safePropertyType,
