@@ -2,28 +2,13 @@
 
 export default function WhatsAppSupportBubble() {
   const whatsappBase =
-    process.env
-      .NEXT_PUBLIC_VERLO_WHATSAPP_URL ||
-    ""
-
-  if (
-    !whatsappBase
-  ) {
-    return null
-  }
-
-  const separator =
-    whatsappBase.includes(
-      "?"
-    )
-      ? "&"
-      : "?"
+    "https://wa.me/5491176518603"
 
   const message =
     "Hola Verlo 👋 Necesito ayuda con la plataforma."
 
   const href =
-    `${whatsappBase}${separator}text=${encodeURIComponent(
+    `${whatsappBase}?text=${encodeURIComponent(
       message
     )}`
 
