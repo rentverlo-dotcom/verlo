@@ -86,10 +86,7 @@ function absoluteUrl(
  * Env aceptadas:
  * - GHL_TENANT_DIGEST_WEBHOOK_URL
  * - GHL_OWNER_DIGEST_WEBHOOK_URL
- * - GHL_PILOT_MATCH_WEBHOOK_URL
  * - GHL_READY_TO_CONNECT_WEBHOOK_URL
- * - GHL_WHATSAPP_WEBHOOK_URL (fallback)
- * - GHL_WEBHOOK_URL (fallback)
  */
 export async function sendWhatsApp(
   message: WhatsAppMessage
@@ -99,12 +96,6 @@ export async function sendWhatsApp(
       message.eventType ||
       message.template
     )
-
-  const pilotMatchEvents =
-    new Set([
-      "intake_received",
-      "match_created",
-    ])
 
   const readyToConnectEvents =
     new Set([
@@ -148,32 +139,6 @@ export async function sendWhatsApp(
       clean(
         process.env
           .GHL_READY_TO_CONNECT_WEBHOOK_URL
-      )
-  }
-
-  else if (
-    pilotMatchEvents.has(
-      eventType
-    )
-  ) {
-    webhookUrl =
-      clean(
-        process.env
-          .GHL_PILOT_MATCH_WEBHOOK_URL
-      )
-  }
-
-  if (
-    !webhookUrl
-  ) {
-    webhookUrl =
-      clean(
-        process.env
-          .GHL_WHATSAPP_WEBHOOK_URL
-      ) ||
-      clean(
-        process.env
-          .GHL_WEBHOOK_URL
       )
   }
 
