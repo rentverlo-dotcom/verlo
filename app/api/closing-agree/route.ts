@@ -351,6 +351,7 @@ export async function POST(
           tenant_post_visit_decided_at,
           owner_post_visit_decision,
           owner_post_visit_decided_at,
+          tenant_paid_at,
           status
         `)
         .eq(
@@ -453,6 +454,30 @@ export async function POST(
         },
         {
           status: 409,
+        }
+      )
+    }
+
+    // =========================================================
+    // 5B. PAGO DEL INQUILINO OBLIGATORIO
+    // =========================================================
+
+    if (
+      accessToken.role ===
+        "tenant" &&
+      !match
+        .tenant_paid_at
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "El inquilino debe abonar Verlo antes de aceptar el contrato.",
+          payment_required:
+            true,
+        },
+        {
+          status: 402,
         }
       )
     }
