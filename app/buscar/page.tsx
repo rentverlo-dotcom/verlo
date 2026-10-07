@@ -206,7 +206,7 @@ export default function Buscar() {
     if (!province?.name) return
 
     fetch(
-      `https://apis.datos.gob.ar/georef/api/municipios?provincia=${encodeURIComponent(
+      `/api/georef/municipios?provincia=${encodeURIComponent(
         province.name
       )}&max=1000`
     )
@@ -232,7 +232,7 @@ export default function Buscar() {
     if (draft.municipality_id === CABA_MUNICIPALITY.id) return
 
     fetch(
-      `https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(
+      `/api/georef/localidades?municipio=${encodeURIComponent(
         draft.municipality_id
       )}&max=1000`
     )
@@ -277,8 +277,14 @@ function validateStep() {
   setErrorMessage(null)
 
   if (step === 1) {
-    if (!municipalityName || draft.min_price == null || draft.max_price == null) {
-      setErrorMessage("Completá ciudad y presupuesto para continuar.")
+    if (
+      !draft.province_id ||
+      !municipalityName ||
+      !neighborhoodName ||
+      draft.min_price == null ||
+      draft.max_price == null
+    ) {
+      setErrorMessage("Completá provincia, municipio, localidad y presupuesto para continuar.")
       return false
     }
 
@@ -331,10 +337,16 @@ function back() {
         return
       }
 
-      const city = municipalityName
+      const provinceName =
+        ARG_PROVINCES.find((p) => p.id === draft.province_id)?.name ?? null
 
-      if (!city) {
-        setErrorMessage("Falta la ciudad.")
+      const city =
+        municipalityName && provinceName
+          ? `${municipalityName}, ${provinceName}`
+          : municipalityName
+
+      if (!city || !neighborhoodName) {
+        setErrorMessage("Falta completar la ubicación.")
         setLoading(false)
         return
       }
@@ -998,7 +1010,7 @@ function back() {
                       </div>
 
                       <div className="field">
-                        <label>Zona / barrio</label>
+                        <label>Localidad / barrio</label>
                         <select
                           className="select"
                           value={draft.neighborhood_id || ""}
@@ -1010,7 +1022,7 @@ function back() {
                             }))
                           }
                         >
-                          <option value="">Opcional</option>
+                          <option value="">Elegí una localidad o barrio</option>
                           {neighborhoods.map((n) => (
                             <option key={n.id} value={n.id}>
                               {n.name}
