@@ -10,6 +10,10 @@ import {
   sendWhatsApp,
 } from "@/lib/notifications/whatsapp"
 
+import {
+  sendGhlEmail,
+} from "@/lib/notifications/email"
+
 type NotifyLeadOnceInput = {
   eventKey: string
   eventType: string
@@ -1855,6 +1859,60 @@ export async function notifyLeadOnce(
         closingUrl,
     }
 
+    const emailPromise =
+      sendGhlEmail({
+        role:
+          leadRole,
+
+        eventKey,
+        eventType,
+        leadId,
+        title,
+        body,
+        url,
+
+        legacyPayload:
+          legacyGhlPayload,
+      })
+        .then(
+          (
+            result
+          ) => {
+            if (
+              !result.success &&
+              !result.skipped
+            ) {
+              console.error(
+                "email notification delivery error:",
+                {
+                  eventKey,
+                  leadId,
+                  result,
+                }
+              )
+            }
+
+            return result
+          }
+        )
+        .catch(
+          (
+            emailError
+          ) => {
+            console.error(
+              "email notification unexpected error:",
+              {
+                eventKey,
+                leadId,
+                error:
+                  emailError,
+              }
+            )
+
+            return null
+          }
+        )
+
     const whatsappPromise =
       input.skipWhatsApp
         ? Promise.resolve(null)
@@ -1935,9 +1993,10 @@ export async function notifyLeadOnce(
           }
         )
 
-    // Push y WhatsApp salen en paralelo.
-    // El resultado comercial de GHL nunca modifica el resultado
-    // del evento principal ni puede romper el flujo de Verlo.
+    // Push, Email y WhatsApp salen en paralelo.
+    // Email NO depende de skipWhatsApp.
+    // Los canales comerciales nunca modifican el resultado
+    // del evento principal ni pueden romper el flujo de Verlo.
     const [
       pushResult,
     ] =
@@ -1946,6 +2005,8 @@ export async function notifyLeadOnce(
           insertedEvent as
             NotificationEventRow
         ),
+
+        emailPromise,
 
         whatsappPromise,
       ])
