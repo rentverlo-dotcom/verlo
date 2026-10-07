@@ -1777,6 +1777,11 @@ const reviewAssetsReady =
         owner_post_visit_decided_at:
           match
             .owner_post_visit_decided_at,
+
+        tenant_paid_at:
+          match
+            .tenant_paid_at ||
+          null,
       },
 
       tenant: {
