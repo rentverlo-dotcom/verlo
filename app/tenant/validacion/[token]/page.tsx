@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useState, type ReactNode } from "react"
+import { FormEvent, useEffect, useState, type ReactNode } from "react"
 import {
   useParams,
   useRouter,
@@ -101,15 +101,22 @@ export default function TenantValidationPage() {
     )
   }
 
-  trackPostHog(
-    "tenant_verification_started",
-    {
-      match_count:
-        matchIds.length,
+  useEffect(
+    () => {
+      trackPostHog(
+        "tenant_verification_started",
+        {
+          match_count:
+            matchIds.length,
 
-      match_ids:
-        matchIds,
-    }
+          match_ids:
+            matchIds,
+        }
+      )
+    },
+    [
+      token,
+    ]
   )
 
   async function uploadDocument(
