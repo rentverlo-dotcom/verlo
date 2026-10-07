@@ -8,6 +8,7 @@ import {
   useState,
 } from "react"
 import VerloBrand from "@/components/VerloBrand"
+import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import {
   identifyPostHog,
   trackPostHog,
@@ -381,123 +382,6 @@ async function uploadOwnerFileToR2(
   }
 }
 
-const AREA_GROUPS = {
-  caba: {
-    label: "CABA",
-    neighborhoods: [
-      "Agronomía",
-      "Almagro",
-      "Balvanera",
-      "Barracas",
-      "Belgrano",
-      "Boedo",
-      "Caballito",
-      "Chacarita",
-      "Coghlan",
-      "Colegiales",
-      "Constitución",
-      "Flores",
-      "Floresta",
-      "La Boca",
-      "Liniers",
-      "Mataderos",
-      "Monserrat",
-      "Monte Castro",
-      "Nueva Pompeya",
-      "Núñez",
-      "Palermo",
-      "Parque Avellaneda",
-      "Parque Chacabuco",
-      "Parque Chas",
-      "Parque Patricios",
-      "Paternal",
-      "Puerto Madero",
-      "Recoleta",
-      "Retiro",
-      "Saavedra",
-      "San Cristóbal",
-      "San Nicolás",
-      "San Telmo",
-      "Vélez Sarsfield",
-      "Versalles",
-      "Villa Crespo",
-      "Villa Devoto",
-      "Villa General Mitre",
-      "Villa Lugano",
-      "Villa Luro",
-      "Villa Ortúzar",
-      "Villa Pueyrredón",
-      "Villa Real",
-      "Villa Riachuelo",
-      "Villa Santa Rita",
-      "Villa Soldati",
-      "Villa Urquiza",
-    ],
-  },
-  gba_norte: {
-    label: "GBA Norte",
-    neighborhoods: [
-      "Vicente López",
-      "Olivos",
-      "Florida",
-      "La Lucila",
-      "Munro",
-      "Villa Martelli",
-      "Carapachay",
-      "San Isidro",
-      "Martínez",
-      "Acassuso",
-      "Beccar",
-      "Boulogne",
-      "Victoria",
-      "San Fernando",
-      "Tigre",
-      "Don Torcuato",
-      "Pacheco",
-      "Benavídez",
-      "Pilar",
-      "Escobar",
-    ],
-  },
-  gba_oeste: {
-    label: "GBA Oeste",
-    neighborhoods: [
-      "Ramos Mejía",
-      "Haedo",
-      "Morón",
-      "Castelar",
-      "Ituzaingó",
-      "Hurlingham",
-      "Villa Tesei",
-      "Ciudadela",
-      "Liniers Oeste",
-      "San Justo",
-      "Lomas del Mirador",
-      "Merlo",
-      "Moreno",
-    ],
-  },
-  gba_sur: {
-    label: "GBA Sur",
-    neighborhoods: [
-      "Avellaneda",
-      "Wilde",
-      "Quilmes",
-      "Bernal",
-      "Lanús",
-      "Lomas de Zamora",
-      "Banfield",
-      "Temperley",
-      "Adrogué",
-      "Burzaco",
-      "Florencio Varela",
-      "Berazategui",
-      "Ezeiza",
-      "Monte Grande",
-    ],
-  },
-} as const
-
 const OWNER_PRICE_RANGES = [
   {
     label: "Hasta $500.000",
@@ -607,11 +491,6 @@ const INCOME_RANGES = [
   },
 ] as const
 
-const ALL_NEIGHBORHOODS =
-  Object.values(AREA_GROUPS).flatMap(
-    (group) => group.neighborhoods
-  )
-
 const PROPERTY_TYPES = [
   "Departamento",
   "Casa",
@@ -621,9 +500,6 @@ const PROPERTY_TYPES = [
   "Habitación",
   "Otro",
 ] as const
-
-type AreaKey =
-  keyof typeof AREA_GROUPS
 
 function normalizeText(
   value: string
@@ -2201,13 +2077,6 @@ export default function PageDePrueba() {
       "tenant"
     )
 
-  const [
-    selectedArea,
-    setSelectedArea,
-  ] =
-    useState<AreaKey>(
-      "caba"
-    )
 
   const [
     loading,
@@ -2481,29 +2350,25 @@ if (honeypot) {
         )
         .map(String)
 
-    const tenantOtherNeighborhood =
-      String(
-        formData.get(
-          "tenant_other_neighborhood"
-        ) || ""
-      ).trim()
-
-    const normalizedTenantNeighborhoods =
-      normalizeNeighborhoods(
-        tenantNeighborhoods,
-        tenantOtherNeighborhood
-      )
+    const tenantNeighborhoodSlugs =
+      formData
+        .getAll(
+          "tenant_neighborhood_slugs"
+        )
+        .map(String)
 
     if (
       path ===
         "tenant" &&
-      normalizedTenantNeighborhoods
-        .labels
-        .length ===
-        0
+      (
+        tenantNeighborhoods.length ===
+          0 ||
+        tenantNeighborhoodSlugs.length ===
+          0
+      )
     ) {
       setError(
-        "Elegí al menos un barrio o escribí otra zona donde buscarías alquilar."
+        "Elegí al menos una localidad o barrio donde buscarías alquilar."
       )
 
       setLoading(false)
@@ -2590,6 +2455,13 @@ if (honeypot) {
         ) || ""
       ).trim()
 
+    const ownerNeighborhoodSlug =
+      String(
+        formData.get(
+          "owner_neighborhood_slug"
+        ) || ""
+      ).trim()
+
     const renewalNeighborhood =
       String(
         formData.get(
@@ -2597,9 +2469,16 @@ if (honeypot) {
         ) || ""
       ).trim()
 
+    const renewalNeighborhoodSlug =
+      String(
+        formData.get(
+          "renewal_neighborhood_slug"
+        ) || ""
+      ).trim()
+
     const zone =
       path === "tenant"
-        ? normalizedTenantNeighborhoods.text
+        ? tenantNeighborhoods.join(", ")
         : path ===
             "owner"
           ? ownerNeighborhood
@@ -2783,36 +2662,67 @@ if (honeypot) {
       source:
         "verlo_home",
 
+      neighborhood_labels:
+        path === "tenant"
+          ? tenantNeighborhoods
+          : zone
+            ? [zone]
+            : [],
+
+      neighborhood_slugs:
+        path === "tenant"
+          ? tenantNeighborhoodSlugs
+          : [],
+
+      neighborhood_slug:
+        path === "owner"
+          ? ownerNeighborhoodSlug
+          : path === "renewal"
+            ? renewalNeighborhoodSlug
+            : null,
+
       metadata: {
         path,
 
         page:
           "verlo_home",
 
-        tenant_area:
-          selectedArea,
-
-        tenant_area_label:
-          AREA_GROUPS[
-            selectedArea
-          ].label,
-
         tenant_neighborhoods:
-          normalizedTenantNeighborhoods.labels,
+          tenantNeighborhoods,
 
         tenant_neighborhood_slugs:
-          normalizedTenantNeighborhoods.slugs,
+          tenantNeighborhoodSlugs,
 
-        tenant_other_neighborhood:
-          tenantOtherNeighborhood,
+        georef:
+          path === "tenant"
+            ? String(
+                formData.get(
+                  "tenant_georef"
+                ) || ""
+              )
+            : path === "owner"
+              ? String(
+                  formData.get(
+                    "owner_georef"
+                  ) || ""
+                )
+              : String(
+                  formData.get(
+                    "renewal_georef"
+                  ) || ""
+                ),
 
         neighborhood:
           zone,
 
         neighborhood_slug:
-          normalizeText(
-            zone
-          ),
+          path === "owner"
+            ? ownerNeighborhoodSlug
+            : path === "renewal"
+              ? renewalNeighborhoodSlug
+              : tenantNeighborhoodSlugs[
+                  0
+                ] || null,
       },
     }
 
@@ -3921,75 +3831,11 @@ if (honeypot) {
                       ¿Dónde buscarías alquilar?
                     </strong>
 
-                    <div className="area-tabs">
-                      {(
-                        Object.keys(
-                          AREA_GROUPS
-                        ) as AreaKey[]
-                      ).map(
-                        (
-                          areaKey
-                        ) => (
-                          <button
-                            key={
-                              areaKey
-                            }
-                            type="button"
-                            className={`area-tab ${
-                              selectedArea ===
-                              areaKey
-                                ? "active"
-                                : ""
-                            }`}
-                            onClick={() =>
-                              setSelectedArea(
-                                areaKey
-                              )
-                            }
-                          >
-                            {
-                              AREA_GROUPS[
-                                areaKey
-                              ].label
-                            }
-                          </button>
-                        )
-                      )}
-                    </div>
-
-                    <div className="neighborhood-grid">
-                      {AREA_GROUPS[
-                        selectedArea
-                      ].neighborhoods.map(
-                        (
-                          neighborhood
-                        ) => (
-                          <label
-                            className="check-pill"
-                            key={
-                              neighborhood
-                            }
-                          >
-                            <input
-                              type="checkbox"
-                              name="tenant_neighborhoods"
-                              value={
-                                neighborhood
-                              }
-                            />
-
-                            {
-                              neighborhood
-                            }
-                          </label>
-                        )
-                      )}
-                    </div>
-
-                    <input
-                      className="input other-neighborhood"
-                      name="tenant_other_neighborhood"
-                      placeholder="Otro barrio o localidad"
+                    <ArgentinaLocationSelector
+                      mode="multi"
+                      labelName="tenant_neighborhoods"
+                      keyName="tenant_neighborhood_slugs"
+                      dataName="tenant_georef"
                     />
                   </div>
 
@@ -4255,41 +4101,14 @@ if (honeypot) {
               {path ===
                 "owner" && (
                 <>
+                  <ArgentinaLocationSelector
+                    mode="single"
+                    labelName="owner_neighborhood"
+                    keyName="owner_neighborhood_slug"
+                    dataName="owner_georef"
+                  />
+
                   <div className="row">
-                    <select
-                      className="select"
-                      name="owner_neighborhood"
-                      required
-                      defaultValue=""
-                    >
-                      <option
-                        value=""
-                        disabled
-                      >
-                        Barrio donde está la propiedad
-                      </option>
-
-                      {ALL_NEIGHBORHOODS.map(
-                        (
-                          neighborhood
-                        ) => (
-                          <option
-                            key={
-                              neighborhood
-                            }
-                          >
-                            {
-                              neighborhood
-                            }
-                          </option>
-                        )
-                      )}
-
-                      <option>
-                        Otro
-                      </option>
-                    </select>
-
                     <select
                       className="select"
                       name="property_type"
@@ -4672,40 +4491,14 @@ if (honeypot) {
                       </option>
                     </select>
 
-                    <select
-                      className="select"
-                      name="renewal_neighborhood"
-                      required
-                      defaultValue=""
-                    >
-                      <option
-                        value=""
-                        disabled
-                      >
-                        Barrio de la propiedad
-                      </option>
-
-                      {ALL_NEIGHBORHOODS.map(
-                        (
-                          neighborhood
-                        ) => (
-                          <option
-                            key={
-                              neighborhood
-                            }
-                          >
-                            {
-                              neighborhood
-                            }
-                          </option>
-                        )
-                      )}
-
-                      <option>
-                        Otro
-                      </option>
-                    </select>
                   </div>
+
+                  <ArgentinaLocationSelector
+                    mode="single"
+                    labelName="renewal_neighborhood"
+                    keyName="renewal_neighborhood_slug"
+                    dataName="renewal_georef"
+                  />
 
                   <div className="row">
                     <input
