@@ -544,7 +544,8 @@ export async function GET(
           tenant_post_visit_decision,
           tenant_post_visit_decided_at,
           owner_post_visit_decision,
-          owner_post_visit_decided_at
+          owner_post_visit_decided_at,
+          tenant_paid_at
         `)
         .eq(
           "id",
