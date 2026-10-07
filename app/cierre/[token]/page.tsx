@@ -5014,7 +5014,7 @@ if (
                               .match
                               .tenant_paid_at
                               ? "Pago acreditado"
-                              : "$89.000 ARS"}
+                              : "Ya pueden avanzar con el contrato"}
                           </h3>
 
                           <p>
@@ -5022,27 +5022,68 @@ if (
                               .match
                               .tenant_paid_at
                               ? "Tu pago ya está acreditado. Podés avanzar con la aceptación del contrato."
-                              : "Este pago lo realiza únicamente el inquilino y habilita la aceptación final del contrato."}
+                              : "La otra parte está esperando tu confirmación. Realizá el pago único de $89.000 para continuar con el cierre del contrato."}
                           </p>
+
+                          {!data
+                            .match
+                            .tenant_paid_at && (
+                            <>
+                              <p>
+                                <strong>
+                                  Pagás una sola vez por contrato.
+                                </strong>{" "}
+                                Podés elegir entre los medios de pago disponibles al continuar.
+                              </p>
+
+                              <p>
+                                Si finalmente no firmás este contrato, el importe queda a tu favor para usarlo en el próximo hasta que cierres un alquiler en Verlo.
+                              </p>
+                            </>
+                          )}
                         </div>
 
                         {!data
                           .match
                           .tenant_paid_at && (
-                          <button
-                            type="button"
-                            className="agree-button"
-                            disabled={
-                              paying
-                            }
-                            onClick={
-                              startPayment
-                            }
-                          >
-                            {paying
-                              ? "ABRIENDO MERCADO PAGO..."
-                              : "PAGAR $89.000 CON MERCADO PAGO"}
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              className="agree-button"
+                              disabled={
+                                paying
+                              }
+                              onClick={
+                                startPayment
+                              }
+                            >
+                              {paying
+                                ? "ABRIENDO EL PAGO..."
+                                : "CONTINUAR AL PAGO"}
+                            </button>
+
+                            <p
+                              style={{
+                                marginTop:
+                                  12,
+                                textAlign:
+                                  "center",
+                                fontSize:
+                                  12,
+                                lineHeight:
+                                  1.5,
+                              }}
+                            >
+                              Pago procesado de forma segura.{" "}
+                              <a
+                                href="https://wa.me/5491176518603?text=Hola%20Verlo%20%F0%9F%91%8B%20Tengo%20un%20problema%20con%20el%20pago%20de%20mi%20contrato."
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Si necesitás ayuda, escribinos por WhatsApp.
+                              </a>
+                            </p>
+                          </>
                         )}
                       </div>
                     )}
