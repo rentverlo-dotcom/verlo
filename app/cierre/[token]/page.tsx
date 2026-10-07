@@ -14,6 +14,10 @@ import {
 
 import VerloBrand from "@/components/VerloBrand"
 import TenantVerificationCard from "@/components/closing/TenantVerificationCard"
+import {
+  identifyPostHog,
+  trackPostHog,
+} from "@/lib/posthog-client"
 
 const ARGENTINA_PROVINCES = [
   "Ciudad Autónoma de Buenos Aires",
@@ -889,6 +893,16 @@ export default function ClosingPage() {
         ""
     )
 
+  const analyticsOpenedRef =
+    useRef(
+      false
+    )
+
+  const analyticsPaidRef =
+    useRef(
+      false
+    )
+
   const contractFormRef =
     useRef<
       HTMLFormElement | null
@@ -1239,6 +1253,105 @@ export default function ClosingPage() {
       setData(
         json
       )
+
+      identifyPostHog(
+        json.viewer.lead_id,
+        {
+          role:
+            json.viewer.role,
+        }
+      )
+
+      if (
+        !analyticsOpenedRef
+          .current
+      ) {
+        analyticsOpenedRef
+          .current =
+          true
+
+        const paymentReturn =
+          new URLSearchParams(
+            window.location.search
+          ).get(
+            "payment"
+          )
+
+        trackPostHog(
+          "closing_opened",
+          {
+            lead_id:
+              json.viewer.lead_id,
+
+            role:
+              json.viewer.role,
+
+            match_id:
+              json.match.id,
+
+            contract_id:
+              json.contract.id,
+
+            contract_status:
+              json.contract.status,
+
+            payment_return:
+              paymentReturn,
+          }
+        )
+
+        if (
+          paymentReturn
+        ) {
+          trackPostHog(
+            "payment_returned",
+            {
+              lead_id:
+                json.viewer.lead_id,
+
+              role:
+                json.viewer.role,
+
+              match_id:
+                json.match.id,
+
+              contract_id:
+                json.contract.id,
+
+              payment_status:
+                paymentReturn,
+            }
+          )
+        }
+      }
+
+      if (
+        json.match
+          .tenant_paid_at &&
+        !analyticsPaidRef
+          .current
+      ) {
+        analyticsPaidRef
+          .current =
+          true
+
+        trackPostHog(
+          "payment_approved",
+          {
+            lead_id:
+              json.viewer.lead_id,
+
+            role:
+              json.viewer.role,
+
+            match_id:
+              json.match.id,
+
+            contract_id:
+              json.contract.id,
+          }
+        )
+      }
 
       setMediaIndex(
         0
@@ -1956,6 +2069,23 @@ export default function ClosingPage() {
         )
       }
 
+      trackPostHog(
+        "legal_data_saved",
+        {
+          lead_id:
+            data.viewer.lead_id,
+
+          role:
+            data.viewer.role,
+
+          match_id:
+            data.match.id,
+
+          contract_id:
+            data.contract.id,
+        }
+      )
+
       setShowLegalForm(
         false
       )
@@ -2144,6 +2274,28 @@ export default function ClosingPage() {
         )
       }
 
+      trackPostHog(
+        "contract_generated",
+        {
+          lead_id:
+            data.viewer.lead_id,
+
+          role:
+            data.viewer.role,
+
+          match_id:
+            data.match.id,
+
+          contract_id:
+            data.contract.id,
+
+          monthly_price:
+            monthlyPrice,
+
+          deposit,
+        }
+      )
+
       setShowContractForm(
         false
       )
@@ -2243,7 +2395,32 @@ export default function ClosingPage() {
         )
       }
 
-      await load(
+      trackPostHog(
+        "post_visit_decision_sent",
+        {
+          lead_id:
+            data.viewer.lead_id,
+
+          role:
+            data.viewer.role,
+
+          match_id:
+            data.match.id,
+
+          contract_id:
+            data.contract.id,
+
+          decision,
+
+          second_double_ok:
+            Boolean(
+              json
+                ?.second_double_ok
+            ),
+        }
+      )
+
+    await load(
         false
       )
 
@@ -2293,6 +2470,29 @@ export default function ClosingPage() {
         ""
       )
 
+      trackPostHog(
+        "payment_started",
+        {
+          lead_id:
+            data.viewer.lead_id,
+
+          role:
+            data.viewer.role,
+
+          match_id:
+            data.match.id,
+
+          contract_id:
+            data.contract.id,
+
+          amount:
+            89000,
+
+          currency:
+            "ARS",
+        }
+      )
+
       const response =
         await fetch(
           "/api/payments/create",
@@ -2333,6 +2533,29 @@ export default function ClosingPage() {
         json
           .already_paid
       ) {
+        trackPostHog(
+          json
+            .credit_applied
+            ? "credit_reused"
+            : "payment_already_available",
+          {
+            lead_id:
+              data.viewer.lead_id,
+
+            match_id:
+              data.match.id,
+
+            contract_id:
+              data.contract.id,
+
+            amount:
+              89000,
+
+            currency:
+              "ARS",
+          }
+        )
+
         await load(
           false
         )
@@ -2348,6 +2571,26 @@ export default function ClosingPage() {
           "Mercado Pago no devolvió el checkout."
         )
       }
+
+      trackPostHog(
+        "payment_redirected",
+        {
+          lead_id:
+            data.viewer.lead_id,
+
+          match_id:
+            data.match.id,
+
+          contract_id:
+            data.contract.id,
+
+          amount:
+            89000,
+
+          currency:
+            "ARS",
+        }
+      )
 
       window.location.href =
         json
@@ -2496,6 +2739,29 @@ export default function ClosingPage() {
             "No pudimos registrar tu aceptación."
         )
       }
+
+      trackPostHog(
+        "contract_accepted",
+        {
+          lead_id:
+            data.viewer.lead_id,
+
+          role:
+            data.viewer.role,
+
+          match_id:
+            data.match.id,
+
+          contract_id:
+            data.contract.id,
+
+          both_agreed:
+            Boolean(
+              json
+                ?.both_agreed
+            ),
+        }
+      )
 
       await load(
         false
