@@ -495,6 +495,115 @@ function parseLocationItems(
     )
 }
 
+async function enrichLocationItems(
+  items:
+    ReturnType<
+      typeof parseLocationItems
+    >
+) {
+  return Promise.all(
+    items.map(
+      async (
+        item
+      ) => {
+        if (
+          item.latitude !=
+            null &&
+          item.longitude !=
+            null
+        ) {
+          return item
+        }
+
+        if (
+          !item.localityId ||
+          item.provinceId ===
+            "02"
+        ) {
+          return item
+        }
+
+        try {
+          const response =
+            await fetch(
+              `https://apis.datos.gob.ar/georef/api/localidades?id=${encodeURIComponent(
+                item.localityId
+              )}&campos=id,nombre,centroide&max=1`,
+              {
+                cache:
+                  "no-store",
+              }
+            )
+
+          if (
+            !response.ok
+          ) {
+            return item
+          }
+
+          const data =
+            await response
+              .json()
+              .catch(
+                () => null
+              )
+
+          const locality =
+            data
+              ?.localidades
+              ?.[0]
+
+          const latitude =
+            Number(
+              locality
+                ?.centroide
+                ?.lat
+            )
+
+          const longitude =
+            Number(
+              locality
+                ?.centroide
+                ?.lon
+            )
+
+          if (
+            !Number.isFinite(
+              latitude
+            ) ||
+            !Number.isFinite(
+              longitude
+            )
+          ) {
+            return item
+          }
+
+          return {
+            ...item,
+
+            latitude,
+
+            longitude,
+          }
+        } catch (
+          error
+        ) {
+          console.error(
+            "georef locality enrichment error:",
+            {
+              localityId:
+                item.localityId,
+              error,
+            }
+          )
+
+          return item
+        }
+      }
+    )
+  )
+}
+
 function toStringArray(
   value: unknown
 ) {
@@ -3321,8 +3430,10 @@ export async function POST(
       null
 
     const location_items =
-      parseLocationItems(
-        metadata.georef
+      await enrichLocationItems(
+        parseLocationItems(
+          metadata.georef
+        )
       )
 
     const neighborhood_labels =
