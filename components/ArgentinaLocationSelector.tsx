@@ -11,6 +11,8 @@ type LocationItem = {
   municipalityName: string
   localityId: string
   localityName: string
+  latitude: number | null
+  longitude: number | null
   key: string
   label: string
 }
@@ -159,6 +161,14 @@ export default function ArgentinaLocationSelector({
           (data.localidades || []).map((item: any) => ({
             id: String(item.id),
             name: item.nombre,
+            latitude:
+              typeof item?.centroide?.lat === "number"
+                ? item.centroide.lat
+                : null,
+            longitude:
+              typeof item?.centroide?.lon === "number"
+                ? item.centroide.lon
+                : null,
           }))
         )
       })
@@ -181,6 +191,14 @@ export default function ArgentinaLocationSelector({
       municipalityName: municipality.name,
       localityId: String(locality.id),
       localityName: locality.name,
+      latitude:
+        typeof locality.latitude === "number"
+          ? locality.latitude
+          : null,
+      longitude:
+        typeof locality.longitude === "number"
+          ? locality.longitude
+          : null,
       key,
       label:
         provinceId === "02"
