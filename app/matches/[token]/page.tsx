@@ -1117,8 +1117,8 @@ function PropertyCard({
 
             <span>
               {match.tenant_verified
-                ? "Tu documentación está cargada. El propietario puede revisar tu perfil."
-                : "Completá la validación para presentar tu perfil al propietario."}
+                ? "Le avisamos al propietario. Tu documentación está cargada y ya puede revisar tu perfil."
+                : "Le avisamos al propietario que te interesa. Completá la validación para presentar tu perfil."}
             </span>
 
             {!match.tenant_verified && (
