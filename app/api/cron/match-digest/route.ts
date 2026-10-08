@@ -845,7 +845,7 @@ export async function GET(
           const result =
             await notifyLeadOnce({
               eventKey:
-                `match_digest:v2:${today}:${key}`,
+                `match_digest:v3:${today}:${key}`,
 
               eventType,
 
