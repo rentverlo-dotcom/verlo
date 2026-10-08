@@ -45,6 +45,32 @@ function clean(
   ).trim()
 }
 
+
+function ghlPhone(
+  value: unknown
+) {
+  const raw =
+    clean(
+      value
+    )
+
+  if (
+    !raw
+  ) {
+    return ""
+  }
+
+  const digits =
+    raw.replace(
+      /\D/g,
+      ""
+    )
+
+  return digits
+    ? `+${digits}`
+    : ""
+}
+
 function absoluteUrl(
   value: unknown
 ) {
@@ -258,36 +284,205 @@ export async function sendWhatsApp(
               source:
                 "verlo",
 
-              verlo_match_count:
-                Number(
-                  message.matchCount ||
-                  0
-                ),
-
-              verlo_matches_url:
-                absoluteMatchesUrl ||
+              full_name:
+                clean(
+                  legacyPayload
+                    .full_name
+                ) ||
                 null,
 
-              ...legacyPayload,
+              first_name:
+                clean(
+                  legacyPayload
+                    .first_name
+                ) ||
+                null,
+
+              email:
+                clean(
+                  legacyPayload
+                    .email
+                ) ||
+                null,
+
+              phone:
+                ghlPhone(
+                  legacyPayload
+                    .phone ||
+                  message.to
+                ) ||
+                null,
 
               to:
-                clean(
-                  message.to
+                ghlPhone(
+                  message.to ||
+                  legacyPayload
+                    .phone
                 ) ||
                 null,
 
               role:
                 message.role ||
+                clean(
+                  legacyPayload
+                    .role
+                ) ||
+                null,
+
+              intent:
+                clean(
+                  legacyPayload
+                    .intent
+                ) ||
+                null,
+
+              verlo_match_count:
+                Number(
+                  legacyPayload
+                    .verlo_match_count ??
+                  message.matchCount ??
+                  0
+                ),
+
+              verlo_match_100_count:
+                Number(
+                  legacyPayload
+                    .verlo_match_100_count ??
+                  0
+                ),
+
+              verlo_match_80_count:
+                Number(
+                  legacyPayload
+                    .verlo_match_80_count ??
+                  0
+                ),
+
+              verlo_best_match_score:
+                legacyPayload
+                  .verlo_best_match_score ??
+                null,
+
+              verlo_best_zone:
+                clean(
+                  legacyPayload
+                    .verlo_best_zone
+                ) ||
+                null,
+
+              verlo_best_timing:
+                clean(
+                  legacyPayload
+                    .verlo_best_timing
+                ) ||
+                null,
+
+              verlo_best_property_type:
+                clean(
+                  legacyPayload
+                    .verlo_best_property_type
+                ) ||
+                null,
+
+              verlo_best_rooms:
+                clean(
+                  legacyPayload
+                    .verlo_best_rooms
+                ) ||
+                null,
+
+              verlo_best_price:
+                clean(
+                  legacyPayload
+                    .verlo_best_price
+                ) ||
+                null,
+
+              verlo_best_matches_on:
+                clean(
+                  legacyPayload
+                    .verlo_best_matches_on
+                ) ||
+                null,
+
+              verlo_match_summary:
+                clean(
+                  legacyPayload
+                    .verlo_match_summary
+                ) ||
+                null,
+
+              verlo_match_role:
+                clean(
+                  legacyPayload
+                    .verlo_match_role
+                ) ||
+                null,
+
+              verlo_match_updated_at:
+                clean(
+                  legacyPayload
+                    .verlo_match_updated_at
+                ) ||
+                null,
+
+              verlo_matches_token:
+                clean(
+                  legacyPayload
+                    .verlo_matches_token
+                ) ||
+                null,
+
+              verlo_matches_url:
+                absoluteMatchesUrl ||
+                null,
+
+              verlo_property_token:
+                clean(
+                  legacyPayload
+                    .verlo_property_token
+                ) ||
+                null,
+
+              verlo_property_url:
+                clean(
+                  legacyPayload
+                    .verlo_property_url
+                ) ||
+                null,
+
+              verlo_candidates_token:
+                clean(
+                  legacyPayload
+                    .verlo_candidates_token
+                ) ||
+                null,
+
+              verlo_candidates_url:
+                clean(
+                  legacyPayload
+                    .verlo_candidates_url
+                ) ||
+                null,
+
+              verlo_closing_token:
+                clean(
+                  legacyPayload
+                    .verlo_closing_token
+                ) ||
+                null,
+
+              verlo_closing_url:
+                clean(
+                  legacyPayload
+                    .verlo_closing_url
+                ) ||
                 null,
 
               template:
                 clean(
                   message.template
                 ),
-
-              variables:
-                message.variables ||
-                {},
 
               event_key:
                 clean(
@@ -323,9 +518,19 @@ export async function sendWhatsApp(
                 absoluteMessageUrl ||
                 null,
 
-              context:
-                message.context ||
-                {},
+              entity_type:
+                clean(
+                  message.context
+                    ?.entity_type
+                ) ||
+                null,
+
+              entity_id:
+                clean(
+                  message.context
+                    ?.entity_id
+                ) ||
+                null,
             }),
 
           signal:
@@ -336,16 +541,40 @@ export async function sendWhatsApp(
         }
       )
 
-    const data =
+    const rawResponse =
       await response
-        .json()
+        .text()
         .catch(
-          () => null
+          () => ""
         )
+
+    let data:
+      any =
+      null
+
+    try {
+      data =
+        rawResponse
+          ? JSON.parse(
+              rawResponse
+            )
+          : null
+    } catch {
+      data =
+        null
+    }
 
     if (
       !response.ok
     ) {
+      const providerDetail =
+        clean(
+          data?.error ||
+          data?.message ||
+          data?.detail ||
+          rawResponse
+        )
+
       return {
         provider:
           "ghl",
@@ -357,8 +586,9 @@ export async function sendWhatsApp(
           response.status,
 
         error:
-          data?.error ||
-          `GHL HTTP ${response.status}`,
+          providerDetail
+            ? `GHL HTTP ${response.status}: ${providerDetail}`
+            : `GHL HTTP ${response.status}`,
       }
     }
 
