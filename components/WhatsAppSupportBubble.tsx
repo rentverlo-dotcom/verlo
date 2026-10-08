@@ -95,20 +95,20 @@ export default function WhatsAppSupportBubble() {
 
         @media (max-width: 640px) {
           .verlo-whatsapp-support {
-            right: 14px;
-            bottom: 14px;
+            right: 12px;
+            bottom: 12px;
 
-            width: 54px;
-            min-width: 54px;
-            height: 54px;
+            min-height: 52px;
+            max-width: calc(100vw - 24px);
+            padding: 0 14px;
 
-            padding: 0;
-
+            gap: 8px;
             justify-content: center;
           }
 
           .verlo-whatsapp-support span {
-            display: none;
+            display: inline;
+            white-space: nowrap;
           }
         }
       `}</style>
