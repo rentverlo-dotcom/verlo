@@ -20,10 +20,8 @@ const ACTIVE_STATUSES = [
 // ============================================================
 
 const E2E_LEAD_IDS = new Set([
-  'd6b217aa-e5e2-4db6-8265-de265024a0d7', // Juan Manuel Oddone
-  'bd8b3c5b-bf40-48a3-85f0-aeb8ba38f81e', // Alejandro Devincenzi
-  '70f35b83-e09d-48cd-ba0d-5647eac1c3cd', // Rosario
-  'f505fefe-40d2-40fd-a3a4-dfbd85f6c5dc', // Guillermo
+  'd3ec5dd1-68a8-4f14-a646-543338cd0213', // Juan Manuel Oddone
+  '00e1264d-c69a-4354-811d-d75ede69cd43', // Guillermo Oddone
 ])
 
 type Role =
