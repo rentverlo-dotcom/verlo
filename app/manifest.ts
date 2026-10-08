@@ -13,13 +13,13 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: 'portrait',
     icons: [
       {
-        src: '/logo-verlo.png',
+        src: '/logo-verlo.png?v=20261008',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/logo-verlo.png',
+        src: '/logo-verlo.png?v=20261008',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',
