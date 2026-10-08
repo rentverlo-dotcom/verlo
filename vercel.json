@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/match-digest",
-      "schedule": "35 14 * * *"
+      "schedule": "0 16 * * *"
     }
   ]
 }
