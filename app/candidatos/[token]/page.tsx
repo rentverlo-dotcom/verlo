@@ -7,6 +7,7 @@ import {
 
 import {
   useParams,
+  useRouter,
 } from "next/navigation"
 
 import VerloBrand from "@/components/VerloBrand"
@@ -413,6 +414,9 @@ export default function CandidatesPage() {
         ""
     )
 
+  const router =
+    useRouter()
+
   const [
     data,
     setData,
@@ -474,6 +478,17 @@ export default function CandidatesPage() {
 
       const json =
         await response.json()
+
+      if (
+        response.status === 403 ||
+        response.status === 404
+      ) {
+        router.replace(
+          "/mi-verlo"
+        )
+
+        return
+      }
 
       if (
         !response.ok ||
