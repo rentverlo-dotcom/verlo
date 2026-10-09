@@ -27,7 +27,7 @@ const PRODUCTION_DIGEST_CUTOFF =
   '2026-10-09T13:45:00.000Z'
 
 // Limites provisionales solo para el digest GHL.
-const MAX_DIGEST_PER_RUN = 10
+const MAX_DIGEST_PER_RUN = 50
 const MAX_DIGEST_PER_DAY = 50
 
 type Role =
