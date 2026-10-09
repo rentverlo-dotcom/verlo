@@ -15,14 +15,15 @@ const ACTIVE_STATUSES = [
 ]
 
 // ============================================================
-// E2E CLOSED UNIVERSE
-// SOLO ESTOS USUARIOS PUEDEN PARTICIPAR DEL DIGEST
+// PRODUCTION DIGEST SAFETY
+//
+// El digest productivo solo toma matches creados desde el
+// lanzamiento. El histórico anterior queda fuera y se tratará
+// con un backfill separado y controlado.
 // ============================================================
 
-const E2E_LEAD_IDS = new Set([
-  'd3ec5dd1-68a8-4f14-a646-543338cd0213', // Juan Manuel Oddone
-  '00e1264d-c69a-4354-811d-d75ede69cd43', // Guillermo Oddone
-])
+const PRODUCTION_DIGEST_CUTOFF =
+  '2026-10-09T13:45:00.000Z'
 
 type Role =
   | 'tenant'
@@ -229,20 +230,15 @@ async function destination(
 }
 
 // ============================================================
-// ACTIVE E2E MATCHES
-// SOLO MATCHES ACTIVOS ENTRE LOS USUARIOS DEL UNIVERSO E2E
+// ACTIVE PRODUCTION MATCHES
+// SOLO MATCHES CREADOS DESDE EL LANZAMIENTO PRODUCTIVO
 // ============================================================
 
-async function activeE2EMatches():
+async function activeProductionMatches():
 Promise<Match[]> {
   const matches:
     Match[] =
     []
-
-  const allowedLeadIds =
-    Array.from(
-      E2E_LEAD_IDS
-    )
 
   for (
     let start = 0;
@@ -271,13 +267,9 @@ Promise<Match[]> {
           'status',
           ACTIVE_STATUSES
         )
-        .in(
-          'tenant_lead_id',
-          allowedLeadIds
-        )
-        .in(
-          'owner_lead_id',
-          allowedLeadIds
+        .gte(
+          'created_at',
+          PRODUCTION_DIGEST_CUTOFF
         )
         .order(
           'created_at',
@@ -360,9 +352,8 @@ export async function GET(
           `Bearer ${secret}`
         ),
 
-      allowedLeads:
-        E2E_LEAD_IDS
-          .size,
+      productionDigestCutoff:
+        PRODUCTION_DIGEST_CUTOFF,
     }
   )
 
@@ -447,7 +438,7 @@ export async function GET(
     // ========================================================
 
     const matches =
-      await activeE2EMatches()
+      await activeProductionMatches()
 
     console.log(
       'MATCH DIGEST MATCHES',
@@ -574,6 +565,54 @@ export async function GET(
       }
     )
 
+    const safeMatches =
+      matches.filter(
+        (
+          match
+        ) => {
+          const tenantLead =
+            leads.get(
+              match
+                .tenant_lead_id
+            )
+
+          const ownerLead =
+            leads.get(
+              match
+                .owner_lead_id
+            )
+
+          const tenantIsAutomatedTest =
+            (
+              tenantLead
+                ?.email ||
+              ''
+            )
+              .trim()
+              .toLowerCase()
+              .endsWith(
+                '@example.com'
+              )
+
+          const ownerIsAutomatedTest =
+            (
+              ownerLead
+                ?.email ||
+              ''
+            )
+              .trim()
+              .toLowerCase()
+              .endsWith(
+                '@example.com'
+              )
+
+          return (
+            !tenantIsAutomatedTest &&
+            !ownerIsAutomatedTest
+          )
+        }
+      )
+
     // ========================================================
     // RECIPIENTS
     // ========================================================
@@ -589,7 +628,7 @@ export async function GET(
 
     for (
       const match
-      of matches
+      of safeMatches
     ) {
       for (
         const role
@@ -696,64 +735,20 @@ export async function GET(
             }
           )
 
-          const column =
-            role ===
-            'tenant'
-              ? 'tenant_lead_id'
-              : 'owner_lead_id'
-
-          const counterpartColumn =
-            role ===
-            'tenant'
-              ? 'owner_lead_id'
-              : 'tenant_lead_id'
-
-          // ==================================================
-          // COUNT ACTIVE MATCHES
-          // ==================================================
-
-          const {
-            count,
-            error,
-          } =
-            await supabaseAdmin
-              .from(
-                'lead_matches'
-              )
-              .select(
-                'id',
-                {
-                  count:
-                    'exact',
-
-                  head:
-                    true,
-                }
-              )
-              .eq(
-                column,
-                leadId
-              )
-              .gte(
-                'score',
-                80
-              )
-              .in(
-                'status',
-                ACTIVE_STATUSES
-              )
-              .in(
-                counterpartColumn,
-                Array.from(
-                  E2E_LEAD_IDS
-                )
-              )
-
-          if (
-            error
-          ) {
-            throw error
-          }
+          const count =
+            safeMatches.filter(
+              (
+                match
+              ) =>
+                role ===
+                'tenant'
+                  ? match
+                      .tenant_lead_id ===
+                    leadId
+                  : match
+                      .owner_lead_id ===
+                    leadId
+            ).length
 
           console.log(
             'MATCH DIGEST ACTIVE COUNT',
@@ -1008,6 +1003,9 @@ export async function GET(
           today,
 
         matches:
+          safeMatches.length,
+
+        rawMatchesSinceCutoff:
           matches.length,
 
         recipients:
@@ -1034,6 +1032,9 @@ export async function GET(
           today,
 
         matches:
+          safeMatches.length,
+
+        rawMatchesSinceCutoff:
           matches.length,
 
         recipients:
