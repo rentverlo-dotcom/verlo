@@ -3122,28 +3122,7 @@ export default function PageDePrueba() {
                   <span
                     style={{
                       fontSize:
-                        "22px",
-
-                      fontWeight:
-                        700,
-
-                      textDecoration:
-                        "line-through",
-
-                      textDecorationThickness:
-                        "3px",
-
-                      opacity:
-                        0.5,
-                    }}
-                  >
-                    $70.000
-                  </span>
-
-                  <span
-                    style={{
-                      fontSize:
-                        "42px",
+                        "32px",
 
                       lineHeight:
                         1,
@@ -3155,7 +3134,7 @@ export default function PageDePrueba() {
                         "-0.055em",
                     }}
                   >
-                    GRATIS
+                    MATCHING GRATIS
                   </span>
                 </div>
 
