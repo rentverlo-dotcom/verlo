@@ -6,7 +6,7 @@ import { notifyLeadOnce } from '@/lib/lead-notifications'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 240
 
 const ACTIVE_STATUSES = [
   'new',
