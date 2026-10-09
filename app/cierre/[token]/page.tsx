@@ -5280,7 +5280,7 @@ if (
                               .match
                               .tenant_paid_at
                               ? "Pago acreditado"
-                              : "Ya pueden avanzar con el contrato"}
+                              : "Todo el cierre y la gestión de tu alquiler, en un solo lugar"}
                           </h3>
 
                           <p>
@@ -5288,22 +5288,61 @@ if (
                               .match
                               .tenant_paid_at
                               ? "Tu pago ya está acreditado. Podés avanzar con la aceptación del contrato."
-                              : "La otra parte está esperando tu confirmación. Realizá el pago único de $89.000 para continuar con el cierre del contrato."}
+                              : "Con un único pago de $89.000 accedés a todo lo que necesitás para cerrar y gestionar tu alquiler con Verlo."}
                           </p>
 
                           {!data
                             .match
                             .tenant_paid_at && (
                             <>
+                              <ul
+                                style={{
+                                  margin:
+                                    "18px 0",
+                                  paddingLeft:
+                                    20,
+                                  display:
+                                    "grid",
+                                  gap:
+                                    10,
+                                  lineHeight:
+                                    1.55,
+                                }}
+                              >
+                                <li>
+                                  Contrato digital con respaldo y registro del acuerdo entre ambas partes.
+                                </li>
+
+                                <li>
+                                  Validación, trazabilidad y seguimiento del proceso de cierre.
+                                </li>
+
+                                <li>
+                                  Datos e información de ambas partes centralizados.
+                                </li>
+
+                                <li>
+                                  Tablero Mi Verlo para gestionar tu alquiler y consultar tu contrato.
+                                </li>
+
+                                <li>
+                                  Avisos de renovación cuando se acerque el vencimiento.
+                                </li>
+
+                                <li>
+                                  Soporte de Verlo durante el cierre y la gestión del alquiler.
+                                </li>
+                              </ul>
+
                               <p>
                                 <strong>
-                                  Pagás una sola vez por contrato.
+                                  Pagás una sola vez por alquiler cerrado.
                                 </strong>{" "}
-                                Podés elegir entre los medios de pago disponibles al continuar.
+                                Al continuar, podés elegir entre todos los medios de pago disponibles.
                               </p>
 
                               <p>
-                                Si finalmente no firmás este contrato, el importe queda a tu favor para usarlo en el próximo hasta que cierres un alquiler en Verlo.
+                                Si esta operación finalmente no se concreta, el importe queda como saldo a favor para tu próximo cierre en Verlo.
                               </p>
                             </>
                           )}
@@ -5325,7 +5364,7 @@ if (
                             >
                               {paying
                                 ? "ABRIENDO EL PAGO..."
-                                : "CONTINUAR AL PAGO"}
+                                : "PAGAR CON TODOS LOS MEDIOS DE PAGO"}
                             </button>
 
                             <p
