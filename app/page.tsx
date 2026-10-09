@@ -2247,18 +2247,12 @@ export default function PageDePrueba() {
         form
       )
 
-   const honeypot =
-  String(
-    formData.get(
-      "verlo_honeypot"
-    ) || ""
-  ).trim()
+    const honeypot = String(formData.get("website") || "").trim()
 
-if (honeypot) {
-  console.warn(
-    "Honeypot completado. Ignorando valor para evitar falsos positivos de autofill."
-  )
-}
+    if (honeypot) {
+      // No procesar ni enviar solicitudes automatizadas.
+      return
+    }
 
     const eventId =
       `lead_${Date.now()}_${Math.random()
@@ -3756,7 +3750,7 @@ if (honeypot) {
 >
              <input
   type="text"
-  name="verlo_honeypot"
+  name="website"
   tabIndex={-1}
   autoComplete="new-password"
   className="honeypot"
