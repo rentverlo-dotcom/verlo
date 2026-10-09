@@ -25,6 +25,10 @@ const ACTIVE_STATUSES = [
 const PRODUCTION_DIGEST_CUTOFF =
   '2026-10-09T13:45:00.000Z'
 
+// Limites provisionales solo para el digest GHL.
+const MAX_DIGEST_PER_RUN = 10
+const MAX_DIGEST_PER_DAY = 30
+
 type Role =
   | 'tenant'
   | 'owner'
@@ -945,51 +949,32 @@ export async function GET(
     let failed =
       0
 
-    const entries =
-      Array.from(
-        recipients
-      )
+    const entries = Array.from(recipients)
 
-    for (
-      let i = 0;
-      i <
-      entries.length;
-      i += 8
-    ) {
-      const outcomes =
-        await Promise.all(
-          entries
-            .slice(
-              i,
-              i + 8
-            )
-            .map(
-              (
-                [
-                  key,
-                  value,
-                ]
-              ) =>
-                sendRecipient(
-                  key,
-                  value.role,
-                  value.leadId
-                )
-            )
-        )
+    // Contar reservas del dia antes de disparar a GHL.
+    // Si la consulta falla, no enviar (fail closed).
+    const { count: reservedToday, error: quotaError } =
+      await supabaseAdmin
+        .from('lead_notification_events')
+        .select('id', { count: 'exact', head: true })
+        .like('event_key', `match_digest:v3:${today}:%`)
 
-      sent +=
-        outcomes.filter(
-          Boolean
-        ).length
+    if (quotaError || reservedToday === null) {
+      throw new Error('No se pudo verificar el cupo diario GHL')
+    }
 
-      failed +=
-        outcomes.filter(
-          (
-            ok
-          ) =>
-            !ok
-        ).length
+    const available = Math.max(0, MAX_DIGEST_PER_DAY - reservedToday)
+    const selected = entries.slice(
+      0,
+      Math.min(MAX_DIGEST_PER_RUN, available)
+    )
+    const deferred = entries.length - selected.length
+
+    // Sin rafagas de ocho webhooks simultaneos.
+    for (const [key, value] of selected) {
+      const result = await sendRecipient(key, value.role, value.leadId)
+      if (result) sent += 1
+      else failed += 1
     }
 
     // ========================================================
@@ -1011,6 +996,10 @@ export async function GET(
         recipients:
           recipients.size,
 
+        deferred,
+        reservedToday,
+        maxPerRun: MAX_DIGEST_PER_RUN,
+        maxPerDay: MAX_DIGEST_PER_DAY,
         sent,
 
         failed,
