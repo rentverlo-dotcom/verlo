@@ -3104,39 +3104,67 @@ export default function PageDePrueba() {
                   LANZAMIENTO VERLO
                 </div>
 
-                <div
-                  style={{
-                    display:
-                      "flex",
+          
+<div
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    textAlign: "center",
+  }}
+>
+  <span
+    style={{
+      fontSize: "30px",
+      lineHeight: 1.1,
+      fontWeight: 900,
+      letterSpacing: "-0.055em",
+    }}
+  >
+    INQUILINO $89.000
+  </span>
 
-                    alignItems:
-                      "center",
+  <span
+    style={{
+      fontSize: "21px",
+      fontWeight: 900,
+    }}
+  >
+    PROPIETARIO GRATIS
+  </span>
 
-                    justifyContent:
-                      "center",
+  <div
+    style={{
+      fontSize: "13px",
+      lineHeight: 1.5,
+      maxWidth: "340px",
+    }}
+  >
+    <strong>Inquilinos:</strong> encontrá propiedades compatibles,
+    coordiná visitas y pagá una sola vez al desbloquear
+    la firma del contrato.
+  </div>
 
-                    gap:
-                      "16px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize:
-                        "32px",
+  <div
+    style={{
+      fontSize: "13px",
+      lineHeight: 1.5,
+      maxWidth: "340px",
+    }}
+  >
+    <strong>Propietarios:</strong> publicá gratis, recibí
+    candidatos compatibles y avanzá al contrato sin pagarle
+    a Verlo.
+  </div>
 
-                      lineHeight:
-                        1,
+  <strong style={{ fontSize: "12px" }}>
+    Sin comisión inmobiliaria.
+    Solo paga el inquilino al firmar.
+  </strong>
+</div>
 
-                      fontWeight:
-                        900,
-
-                      letterSpacing:
-                        "-0.055em",
-                    }}
-                  >
-                    MATCHING GRATIS
-                  </span>
-                </div>
 
                 <div
                   style={{
