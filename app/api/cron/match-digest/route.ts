@@ -27,7 +27,7 @@ const PRODUCTION_DIGEST_CUTOFF =
 
 // Limites provisionales solo para el digest GHL.
 const MAX_DIGEST_PER_RUN = 10
-const MAX_DIGEST_PER_DAY = 30
+const MAX_DIGEST_PER_DAY = 50
 
 type Role =
   | 'tenant'
