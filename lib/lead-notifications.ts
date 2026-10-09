@@ -555,11 +555,6 @@ const ACTIVE_MATCH_STATUSES = [
   "converted",
 ]
 
-const E2E_LEAD_IDS = new Set([
-  'd3ec5dd1-68a8-4f14-a646-543338cd0213',
-  '00e1264d-c69a-4354-811d-d75ede69cd43',
-])
-
 async function getGhlMatchSummary(
   leadId: string,
   role: LeadRole
@@ -569,12 +564,6 @@ async function getGhlMatchSummary(
       "owner"
       ? "owner_lead_id"
       : "tenant_lead_id"
-
-  const counterpartColumn =
-    role ===
-      "owner"
-      ? "tenant_lead_id"
-      : "owner_lead_id"
 
   const {
     data,
@@ -606,12 +595,6 @@ async function getGhlMatchSummary(
       .in(
         "status",
         ACTIVE_MATCH_STATUSES
-      )
-      .in(
-        counterpartColumn,
-        Array.from(
-          E2E_LEAD_IDS
-        )
       )
       .order(
         "score",
@@ -676,9 +659,117 @@ async function getGhlMatchSummary(
     }
   }
 
-  const matches =
+  const rawMatches =
     data ||
     []
+
+  const counterpartIds =
+    Array.from(
+      new Set(
+        rawMatches
+          .map(
+            (match: any) =>
+              role ===
+              "owner"
+                ? clean(
+                    match
+                      .tenant_lead_id
+                  )
+                : clean(
+                    match
+                      .owner_lead_id
+                  )
+          )
+          .filter(
+            Boolean
+          )
+      )
+    )
+
+  const automatedTestLeadIds =
+    new Set<string>()
+
+  if (
+    counterpartIds.length >
+    0
+  ) {
+    const {
+      data:
+        counterpartLeads,
+      error:
+        counterpartLeadsError,
+    } =
+      await supabaseAdmin
+        .from(
+          "lead_intake"
+        )
+        .select(
+          "id,email"
+        )
+        .in(
+          "id",
+          counterpartIds
+        )
+
+    if (
+      counterpartLeadsError
+    ) {
+      console.error(
+        "ghl match summary counterpart lookup error:",
+        {
+          leadId,
+          role,
+          error:
+            counterpartLeadsError,
+        }
+      )
+    } else {
+      for (
+        const counterpart
+        of counterpartLeads ||
+        []
+      ) {
+        if (
+          clean(
+            counterpart.email
+          )
+            .toLowerCase()
+            .endsWith(
+              "@example.com"
+            )
+        ) {
+          automatedTestLeadIds
+            .add(
+              clean(
+                counterpart.id
+              )
+            )
+        }
+      }
+    }
+  }
+
+  const matches =
+    rawMatches.filter(
+      (match: any) => {
+        const counterpartId =
+          role ===
+          "owner"
+            ? clean(
+                match
+                  .tenant_lead_id
+              )
+            : clean(
+                match
+                  .owner_lead_id
+              )
+
+        return !automatedTestLeadIds
+          .has(
+            counterpartId
+          )
+      }
+    )
 
   const match100Count =
     matches.filter(
