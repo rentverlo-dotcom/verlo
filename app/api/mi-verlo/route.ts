@@ -25,17 +25,17 @@ function clean(
   ).trim()
 }
 
-const E2E_EMAILS = new Set([
-  "juanoddone29@gmail.com",
-  "juanmanueloddone74@gmail.com",
-  "lalito030217@gmail.com",
-  "aedevincenzi@gmail.com",
-  "licpuentegarat@gmail.com",
-  "memo.oddone@gmail.com",
-  "hugo_gaston@hotmail.com",
-  "walter@wnavarrete.com",
-"johi.pirrello@gmail.com",
-])
+function isAutomatedTestEmail(
+  value: unknown
+) {
+  return clean(
+    value
+  )
+    .toLowerCase()
+    .endsWith(
+      "@example.com"
+    )
+}
 
 function isExpired(
   value: string | null | undefined
@@ -1484,61 +1484,26 @@ export async function GET(
     // 9. NORMALIZAR MATCHES PARA MI VERLO
     // =========================================================
 
-    const currentUserIsE2E =
-      E2E_EMAILS.has(
-        identityEmail
-      )
-
     const visibleMatches =
-      currentUserIsE2E
-        ? matches.filter(
-            (match) => {
-              const counterpartId =
-                leadIdSet.has(
-                  match.tenant_lead_id
-                )
-                  ? match.owner_lead_id
-                  : match.tenant_lead_id
+      matches.filter(
+        (match) => {
+          const counterpartId =
+            leadIdSet.has(
+              match.tenant_lead_id
+            )
+              ? match.owner_lead_id
+              : match.tenant_lead_id
 
-              const counterpart =
-                counterpartMap.get(
-                  counterpartId
-                )
+          const counterpart =
+            counterpartMap.get(
+              counterpartId
+            )
 
-              const counterpartEmail =
-                clean(
-                  counterpart?.email
-                ).toLowerCase()
-
-              return E2E_EMAILS.has(
-                counterpartEmail
-              )
-            }
+          return !isAutomatedTestEmail(
+            counterpart?.email
           )
-        : matches.filter(
-            (match) => {
-              const counterpartId =
-                leadIdSet.has(
-                  match.tenant_lead_id
-                )
-                  ? match.owner_lead_id
-                  : match.tenant_lead_id
-
-              const counterpart =
-                counterpartMap.get(
-                  counterpartId
-                )
-
-              const counterpartEmail =
-                clean(
-                  counterpart?.email
-                ).toLowerCase()
-
-              return !E2E_EMAILS.has(
-                counterpartEmail
-              )
-            }
-          )
+        }
+      )
 
     const dashboardMatches =
       visibleMatches.map(
