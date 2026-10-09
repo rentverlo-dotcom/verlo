@@ -16,17 +16,13 @@ function clean(value: unknown) {
   return String(value || "").trim()
 }
 
-const E2E_EMAILS = new Set([
-  "juanoddone29@gmail.com",
-  "juanmanueloddone74@gmail.com",
-  "lalito030217@gmail.com",
-  "aedevincenzi@gmail.com",
-  "licpuentegarat@gmail.com",
-  "memo.oddone@gmail.com",
-  "hugo_gaston@hotmail.com",
-  "walter@wnavarrete.com",
-"johi.pirrello@gmail.com",
-])
+function isAutomatedTestEmail(
+  value: unknown
+) {
+  return clean(value)
+    .toLowerCase()
+    .endsWith("@example.com")
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -658,13 +654,6 @@ export async function GET(req: NextRequest) {
     // 9. ARMAR MATCHES VISIBLES
     // =========================================================
 
-    const tenantIsE2E =
-      E2E_EMAILS.has(
-        clean(
-          tenant.email
-        ).toLowerCase()
-      )
-
     const visibleMatches =
       matches.flatMap(
         (match) => {
@@ -677,17 +666,10 @@ export async function GET(req: NextRequest) {
             return []
           }
 
-          const ownerIsE2E =
-            E2E_EMAILS.has(
-              clean(
-                owner.email
-              ).toLowerCase()
-            )
-
           if (
-            tenantIsE2E
-              ? !ownerIsE2E
-              : ownerIsE2E
+            isAutomatedTestEmail(
+              owner.email
+            )
           ) {
             return []
           }
