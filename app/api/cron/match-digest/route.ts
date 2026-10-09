@@ -1,3 +1,4 @@
+
 import { createHash, randomBytes } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -951,31 +952,86 @@ export async function GET(
 
     const entries = Array.from(recipients)
 
-    // Contar reservas del dia antes de disparar a GHL.
-    // Si la consulta falla, no enviar (fail closed).
-    const { count: reservedToday, error: quotaError } =
-      await supabaseAdmin
+    // Reservas y eventos ya generados hoy. Sin cupo no hay envio.
+    const [
+      { data: reservations, error: reservationError },
+      { data: events, error: eventsError },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from('ghl_digest_daily_reservations')
+        .select('recipient_key')
+        .eq('day', today)
+        .limit(100),
+      supabaseAdmin
         .from('lead_notification_events')
-        .select('id', { count: 'exact', head: true })
+        .select('event_key')
         .like('event_key', `match_digest:v3:${today}:%`)
+        .limit(100),
+    ])
 
-    if (quotaError || reservedToday === null) {
-      throw new Error('No se pudo verificar el cupo diario GHL')
+    if (reservationError || eventsError || !reservations || !events) {
+      throw new Error('No se pudo consultar el cupo diario GHL')
     }
 
-    const available = Math.max(0, MAX_DIGEST_PER_DAY - reservedToday)
-    const selected = entries.slice(
-      0,
-      Math.min(MAX_DIGEST_PER_RUN, available)
-    )
-    const deferred = entries.length - selected.length
+    const prefix = `match_digest:v3:${today}:`
+    const used = new Set([
+      ...reservations.map((row) => row.recipient_key),
+      ...events.map((row) => row.event_key.slice(prefix.length)),
+    ])
 
-    // Sin rafagas de ocho webhooks simultaneos.
-    for (const [key, value] of selected) {
-      const result = await sendRecipient(key, value.role, value.leadId)
+    // Filtrar antes de tomar la tanda: cada cron avanza con pendientes.
+    const pending = entries.filter(([recipient]) => {
+      const hash = createHash('sha256').update(recipient).digest('hex')
+      return !used.has(hash)
+    })
+
+    let reservedThisRun = 0
+    let quotaBlocked = false
+
+    for (const [recipient, value] of pending) {
+      if (reservedThisRun >= MAX_DIGEST_PER_RUN) break
+
+      const recipientKey = createHash('sha256')
+        .update(recipient)
+        .digest('hex')
+
+      // Reserva atomica en Supabase: tambien controla concurrencia.
+      const { data: granted, error: reserveError } =
+        await supabaseAdmin.rpc('reserve_ghl_digest_slot', {
+          p_day: today,
+          p_recipient_key: recipientKey,
+        })
+
+      if (reserveError) {
+        throw new Error(`Reserva atomica GHL fallida: ${reserveError.message}`)
+      }
+
+      if (granted !== true) {
+        // Otra ejecucion pudo reservar esta persona, o el cupo se agoto.
+        const { count, error: countError } = await supabaseAdmin
+          .from('ghl_digest_daily_reservations')
+          .select('recipient_key', { count: 'exact', head: true })
+          .eq('day', today)
+
+        if (countError || count === null) {
+          throw new Error('No se pudo verificar el cupo GHL')
+        }
+
+        if (count >= MAX_DIGEST_PER_DAY) {
+          quotaBlocked = true
+          break
+        }
+        continue
+      }
+
+      reservedThisRun += 1
+      const result = await sendRecipient(recipient, value.role, value.leadId)
       if (result) sent += 1
       else failed += 1
     }
+
+    const deferred = Math.max(0, pending.length - reservedThisRun)
+    const reservedToday = reservations.length + reservedThisRun
 
     // ========================================================
     // FINISH
@@ -997,6 +1053,7 @@ export async function GET(
           recipients.size,
 
         deferred,
+        quotaBlocked,
         reservedToday,
         maxPerRun: MAX_DIGEST_PER_RUN,
         maxPerDay: MAX_DIGEST_PER_DAY,
@@ -1076,3 +1133,4 @@ export async function GET(
     )
   }
 }
+
