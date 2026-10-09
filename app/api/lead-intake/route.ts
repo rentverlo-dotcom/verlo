@@ -98,20 +98,16 @@ type MatchableLead = {
   accepted_guarantee_types: string[]
 }
 
-const E2E_EMAILS = new Set([
-  "juanoddone29@gmail.com",
-  "juanmanueloddone74@gmail.com",
-  "lalito030217@gmail.com",
-  "aedevincenzi@gmail.com",
-  "licpuentegarat@gmail.com",
-  "memo.oddone@gmail.com",
-  "hugo_gaston@hotmail.com",
-  "walter@wnavarrete.com",
-"johi.pirrello@gmail.com",
-])
-
 function clean(value: unknown) {
   return String(value || "").trim()
+}
+
+function isAutomatedTestEmail(
+  value: unknown
+) {
+  return clean(value)
+    .toLowerCase()
+    .endsWith("@example.com")
 }
 
 async function postInternal(
@@ -2194,6 +2190,19 @@ async function createLeadMatches({
   lead:
     MatchableLead
 }) {
+  if (
+    isAutomatedTestEmail(
+      lead.email
+    )
+  ) {
+    return {
+      ok: true,
+      created: 0,
+      match_ids:
+        [] as string[],
+      skipped: true,
+    }
+  }
   const isTenant =
     lead.role ===
       "tenant" &&
@@ -2307,33 +2316,16 @@ async function createLeadMatches({
         ) as unknown as OwnerLeadRow[]
       ).filter(
         (ownerLead) => {
-          const ownerEmail =
-            clean(
-              ownerLead.email
-            ).toLowerCase()
-
-          const leadIsE2E =
-            E2E_EMAILS.has(
-              lead.email
-            )
-
-          const ownerIsE2E =
-            E2E_EMAILS.has(
-              ownerEmail
-            )
-
           return (
+            !isAutomatedTestEmail(
+              ownerLead.email
+            ) &&
             ownerLead
               .lead_quality !==
               "duplicate" &&
             ownerLead
               .lead_quality !==
-              "needs_reclassification" &&
-            (
-              leadIsE2E
-                ? ownerIsE2E
-                : !ownerIsE2E
-            )
+              "needs_reclassification"
           )
         }
       )
@@ -2740,33 +2732,16 @@ async function createLeadMatches({
         (
           tenantLead
         ) => {
-          const tenantEmail =
-            clean(
-              tenantLead.email
-            ).toLowerCase()
-
-          const leadIsE2E =
-            E2E_EMAILS.has(
-              lead.email
-            )
-
-          const tenantIsE2E =
-            E2E_EMAILS.has(
-              tenantEmail
-            )
-
           return (
+            !isAutomatedTestEmail(
+              tenantLead.email
+            ) &&
             tenantLead
               .lead_quality !==
               "duplicate" &&
             tenantLead
               .lead_quality !==
-              "needs_reclassification" &&
-            (
-              leadIsE2E
-                ? tenantIsE2E
-                : !tenantIsE2E
-            )
+              "needs_reclassification"
           )
         }
       )
