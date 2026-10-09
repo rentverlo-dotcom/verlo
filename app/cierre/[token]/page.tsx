@@ -10,6 +10,7 @@ import {
 
 import {
   useParams,
+  useRouter,
 } from "next/navigation"
 
 import VerloBrand from "@/components/VerloBrand"
@@ -893,6 +894,9 @@ export default function ClosingPage() {
         ""
     )
 
+  const router =
+    useRouter()
+
   const analyticsOpenedRef =
     useRef(
       false
@@ -1233,6 +1237,17 @@ export default function ClosingPage() {
       const json:
         ClosingData =
         await response.json()
+
+      if (
+        response.status === 403 ||
+        response.status === 404
+      ) {
+        router.replace(
+          "/mi-verlo"
+        )
+
+        return
+      }
 
       if (
         !response.ok ||
