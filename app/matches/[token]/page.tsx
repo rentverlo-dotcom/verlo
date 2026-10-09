@@ -305,6 +305,17 @@ export default function MatchesPage() {
         await response.json()
 
       if (
+        response.status === 403 ||
+        response.status === 404
+      ) {
+        router.replace(
+          "/mi-verlo"
+        )
+
+        return null
+      }
+
+      if (
         !response.ok ||
         !json?.ok
       ) {
