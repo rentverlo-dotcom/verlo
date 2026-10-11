@@ -46,9 +46,13 @@ export async function POST(request: Request) {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return deny(503, "Servicio no configurado")
   const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+  // Repeat requests must return their original ID without consuming another rate slot.
   const existing = await db.from("temporary_demands").select("id").eq("tenant_user_id", auth.userId).eq("request_key",requestKey).maybeSingle()
   if (existing.error) return deny(500, "No se pudo verificar la solicitud")
   if (existing.data) return NextResponse.json({ok:true,id:existing.data.id,reused:true},{status:200,headers:{"Cache-Control":"no-store"}})
+  const slot = await db.rpc("temporary_take_write_slot", { p_user_id: auth.userId, p_action: "tenant" })
+  if (slot.error || typeof slot.data !== "boolean") return deny(503, "No se pudo verificar el límite de solicitudes")
+  if (!slot.data) return deny(429, "Demasiados intentos. Esperá unos minutos y volvé a probar")
   const { data, error } = await db.from("temporary_demands").insert({
     request_key: requestKey, tenant_user_id: auth.userId, tenant_full_name: fullName,
     tenant_email: auth.email, tenant_phone: phone,
