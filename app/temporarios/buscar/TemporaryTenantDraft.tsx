@@ -13,6 +13,7 @@ export default function TemporaryTenantDraft() {
   async function save(form: HTMLFormElement) {
     if (saving) return
     const payload = new FormData(form)
+    if (String(payload.get("website") || "").trim()) return
     const parsed = tenantDraftFromForm(payload)
     if (!parsed.ok) { setResult("error" in parsed ? parsed.error : "Datos inválidos"); return }
     const fullName = String(payload.get("fullName") || "").trim()
@@ -23,7 +24,7 @@ export default function TemporaryTenantDraft() {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session?.access_token) {
-        savePendingTemporaryDraft("tenant", {...parsed.value, fullName, phone})
+        savePendingTemporaryDraft("tenant", {...parsed.value, fullName, phone, website: String(payload.get("website") || "")})
         router.push("/temporarios/acceso?next=/temporarios/buscar")
         return
       }
@@ -44,7 +45,8 @@ export default function TemporaryTenantDraft() {
     finally { setSaving(false) }
   }
   return <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
-    <form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }} style={{ display: "grid", gap: 20 }}>
+    <form onSubmit={event =>
+      <div aria-hidden="true" style={{position:"absolute",left:"-10000px",height:1,width:1,overflow:"hidden"}}><label>Dejá este campo vacío<input name="website" type="text" tabIndex={-1} autoComplete="off" /></label></div> { event.preventDefault(); void save(event.currentTarget) }} style={{ display: "grid", gap: 20 }}>
       <p style={{ fontSize: 14, margin: 0 }}>Elegí dónde querés alojarte y las fechas de tu viaje.</p>
       <label style={fieldLabel}>Tipo de propiedad
         <select name="propertyType" style={field} defaultValue="" required>
