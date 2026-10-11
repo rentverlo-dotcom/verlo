@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 import Link from "next/link"
-import VerloBrand from "@/components/VerloBrand"
+import BrandHeader from "@/app/temporarios/BrandHeader"
 
 type Role = "owner" | "tenant"
 
@@ -775,43 +775,23 @@ export default function TemporarySuccess({role}: {role:Role}) {
     return () => { active = false }
   }, [id, role])
 
+  const confirmed=status==="verified"
   return <>
     <style>{styles}</style>
     <div className="success-root">
-      <header className="success-nav"><div className="success-container"><VerloBrand /></div></header>
+      <BrandHeader/>
       <main className="success-main"><div className="success-container">
         <section className="success-card">
           <div className="hero">
-            <div className="success-badge">{status === "verified" ? "Registro confirmado" : "Temporarios · En preparación"}</div>
-            <h1 className="success-title">Ya estás en <em>Verlo</em></h1>
-            <p className="success-copy">El próximo paso es conectar tu {role === "owner" ? "propiedad" : "búsqueda"} con alquileres temporarios compatibles.</p>
-            <p className="success-status">{status === "loading" ? "Verificando el registro..." : status === "verified" ? "Tu registro temporario está guardado. Próximamente podrás gestionarlo aquí." : "No se pudo confirmar ningún registro en esta sesión. Esta pantalla no acredita una publicación ni búsqueda guardada."}</p>
+            <div className="success-badge">{confirmed?"Registro confirmado":"VERLO Temporarios"}</div>
+            <h1 className="success-title">{confirmed?"¡Listo!":"Tu registro"} <em>{confirmed?"Ya estás en Verlo.":"en VERLO."}</em></h1>
+            <p className="success-copy">{status==="loading"?"Estamos comprobando tu registro...":confirmed?(role==="owner"?"Tu alojamiento quedó registrado. Ya podés ver tus propiedades, agregar fotografías y consultar coincidencias.":"Tu búsqueda quedó registrada. Ya podés consultar los alojamientos compatibles y tus coincidencias."):"No pudimos confirmar este registro. Ingresá a tu cuenta para consultar tus publicaciones y búsquedas."}</p>
           </div>
-          <h2 className="actions-heading">Dejá tu acceso listo cuando habilitemos Temporarios</h2>
-          <div className="actions">
-            <article className="action-card notifications">
-              <div className="action-top">
-                <div className="action-icon"><Icon kind="bell" /></div>
-                <div className="action-content"><h2>ACTIVÁ LAS NOTIFICACIONES</h2><p>Te avisaremos cuando tengas coincidencias o pasos pendientes.</p></div>
-              </div>
-              <div className="action-control"><button className="action-button" type="button" disabled>PRÓXIMAMENTE</button></div>
-            </article>
-            <article className="action-card install">
-              <div className="action-top">
-                <div className="action-icon"><Icon kind="download" /></div>
-                <div className="action-content"><h2>DESCARGÁ ACCESO DIRECTO</h2><p>Accedé a Verlo fácilmente desde tu dispositivo.</p></div>
-              </div>
-              <div className="action-control"><button className="action-button secondary-button" type="button" disabled>PRÓXIMAMENTE</button></div>
-            </article>
-            <article className="action-card access">
-              <div className="action-top">
-                <div className="action-icon"><Icon kind="home" /></div>
-                <div className="action-content"><h2>ENTRÁ A MI VERLO</h2><p>El acceso al espacio de temporarios se habilitará cuando esté conectado el registro.</p></div>
-              </div>
-              <div className="action-control"><button className="action-button" type="button" disabled>PRÓXIMAMENTE</button></div>
-            </article>
+          <div style={{display:"grid",gap:12,maxWidth:540,margin:"32px auto 0"}}>
+            <Link className="action-button" href="/temporarios/mi-verlo" style={{display:"grid",placeItems:"center",textDecoration:"none",padding:"14px 22px"}}>Entrar a Mi VERLO</Link>
+            <Link className="action-button secondary-button" href={role==="owner"?"/temporarios/publicar":"/temporarios/buscar"} style={{display:"grid",placeItems:"center",textDecoration:"none",padding:"14px 22px"}}>{role==="owner"?"Publicar otro alojamiento":"Registrar otra búsqueda"}</Link>
           </div>
-          <div className="important-note">Todavía no se registran publicaciones ni búsquedas temporarias. <Link href="/temporarios" style={{textDecoration:"underline"}}>Volver a Temporarios</Link></div>
+          <p className="important-note">{confirmed?"Tus datos permanecen vinculados a tu cuenta. La coincidencia no representa una reserva confirmada.":"Solo podrás consultar los registros asociados a tu cuenta."}</p>
         </section>
       </div></main>
     </div>
