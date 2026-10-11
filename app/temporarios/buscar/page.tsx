@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import VerloBrand from "@/components/VerloBrand"
+import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import { shell, container, nav, navInner, hero, heading, script, subtitle, panel, field, fieldLabel, button } from "../brand"
 export const metadata: Metadata = { title: "Buscar alquiler temporario | VERLO", robots: { index: false, follow: false } }
 export default function BuscarTemporarioPage() {
@@ -13,7 +14,7 @@ export default function BuscarTemporarioPage() {
       </section>
       <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
         <div style={{ display: "grid", gap: 20 }}>
-          <label style={fieldLabel}>Localidad o zona<input disabled style={field} placeholder="Ej.: Mar Azul, Pinamar, Palermo" /></label>
+          <div style={fieldLabel}>Zonas donde buscás (Georef)<ArgentinaLocationSelector mode="multi" className="temporary-georef" labelName="temporary_locations_labels" keyName="temporary_locations_keys" dataName="temporary_locations_data" /></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16 }}>
             <label style={fieldLabel}>Fecha de entrada<input type="date" disabled style={field} /></label>
             <label style={fieldLabel}>Fecha de salida<input type="date" disabled style={field} /></label>
