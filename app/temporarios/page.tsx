@@ -1,3 +1,4 @@
+import BrandHeader from "@/app/temporarios/BrandHeader"
 import type { Metadata } from "next"
 import Link from "next/link"
 import VerloBrand from "@/components/VerloBrand"
@@ -10,10 +11,7 @@ export const metadata: Metadata = {
 }
 export default function TemporariosPage() {
   return <main style={shell}>
-    <header style={nav}><div style={navInner}>
-      <VerloBrand width={112} />
-      <Link href="/" style={{ fontSize: 14, fontWeight: 900, color: "#050002" }}>Volver a VERLO</Link>
-    </div></header>
+    <BrandHeader/>
     <div style={container}>
       <section style={hero}>
         <h1 style={heading}>Alquilá directo.<br /><em style={script}>Encontrá tu verano.</em></h1>
