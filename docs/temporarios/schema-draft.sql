@@ -23,11 +23,12 @@ CREATE TABLE IF NOT EXISTS public.temporary_properties (
   owner_email text NOT NULL,
   owner_phone text NOT NULL,
   locality text NOT NULL,
+  locality_key text NOT NULL, -- Georef ID
   public_location_reference text,
   private_address text,
   title text,
   description text,
-  property_type text NOT NULL,
+  property_type text NOT NULL CHECK (property_type IN ('casa','departamento','cabana','habitacion')),
   max_guests integer CHECK (max_guests IS NULL OR max_guests > 0),
   nightly_price_ars numeric(14,2) NOT NULL CHECK (nightly_price_ars > 0),
   availability_start date NOT NULL,
@@ -49,6 +50,8 @@ CREATE TABLE IF NOT EXISTS public.temporary_demands (
   tenant_email text NOT NULL,
   tenant_phone text NOT NULL,
   locality text NOT NULL,
+  locality_keys text[] NOT NULL, -- Georef IDs
+  property_type text NOT NULL CHECK (property_type IN ('casa','departamento','cabana','habitacion')),
   check_in date NOT NULL,
   check_out date NOT NULL,
   max_total_budget_ars numeric(14,2) NOT NULL
