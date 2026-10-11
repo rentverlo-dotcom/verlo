@@ -45,8 +45,8 @@ export default function TemporaryTenantDraft() {
     finally { setSaving(false) }
   }
   return <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
-    <form onSubmit={event =>
-      <div aria-hidden="true" style={{position:"absolute",left:"-10000px",height:1,width:1,overflow:"hidden"}}><label>Dejá este campo vacío<input name="website" type="text" tabIndex={-1} autoComplete="off" /></label></div> { event.preventDefault(); void save(event.currentTarget) }} style={{ display: "grid", gap: 20 }}>
+    <form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }} style={{ display: "grid", gap: 20 }}>
+      <div aria-hidden="true" style={{position:"absolute",left:"-10000px",height:1,width:1,overflow:"hidden"}}><label>Dejá este campo vacío<input name="website" type="text" tabIndex={-1} autoComplete="off" /></label></div>
       <p style={{ fontSize: 14, margin: 0 }}>Elegí dónde querés alojarte y las fechas de tu viaje.</p>
       <label style={fieldLabel}>Tipo de propiedad
         <select name="propertyType" style={field} defaultValue="" required>
