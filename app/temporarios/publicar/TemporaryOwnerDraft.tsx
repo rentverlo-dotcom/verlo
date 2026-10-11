@@ -14,7 +14,23 @@ export default function TemporaryOwnerDraft() {
   const [until, setUntil] = useState("")
   const [deposit, setDeposit] = useState("no")
   const [result, setResult] = useState("")
-  function check(e: FormEvent<HTMLFormElement>) { e.preventDefault(); const parsed = ownerDraftFromForm(new FormData(e.currentTarget)); setResult(parsed.ok ? "Georef, tipo, precio y fechas listos para matching: " + parsed.value.localityKey : "error" in parsed ? parsed.error : "Datos inválidos") }
+  async function check(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const parsed = ownerDraftFromForm(new FormData(e.currentTarget))
+    if (!parsed.ok) { setResult("error" in parsed ? parsed.error : "Datos inválidos"); return }
+    setResult("Validando datos...")
+    try {
+      const response = await fetch("/api/temporarios/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "owner", ...parsed.value }),
+      })
+      const data: { ok?: boolean; error?: string } = await response.json()
+      setResult(response.ok && data.ok
+        ? "Datos validados por VERLO. Esta vista no guarda ni publica propiedades."
+        : data.error || "No se pudieron validar los datos.")
+    } catch { setResult("Error de conexión. No se guardaron datos.") }
+  }
 
   const price = Number(nightlyPrice)
   const datesValid = Boolean(from && until && until > from)
