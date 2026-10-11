@@ -1,6 +1,7 @@
 "use client"
 import BrandHeader from "@/app/temporarios/BrandHeader"
 import PropertyPhotoUpload from "./PropertyPhotoUpload"
+import PropertyGallery from "./PropertyGallery"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase/client"
@@ -13,7 +14,7 @@ const displayDate=(value:string)=>{const parts=value.split("-");return parts.len
 type Property = {id:string;locality_label:string;property_type:string;nightly_price_ars:number;availability_start:string;availability_end:string;status:string}
 type Demand = {id:string;locality_keys:string[];property_type:string;check_in:string;check_out:string;max_total_budget_ars:number;status:string}
 type Match = {id:string;property_id:string;demand_id:string;check_in:string;check_out:string;agreed_total_ars:number;status:string;owner_decision:string;tenant_decision:string;temporary_properties?:{locality_label:string;property_type:string}|null}
-type Mine = {ok:true;properties:Property[];demands:Demand[];ownerMatches:Match[];tenantMatches:Match[]} | {ok:false;error:string}
+type Mine = {ok:true;properties:Property[];demands:Demand[];ownerMatches:Match[];tenantMatches:Match[];media:Array<{id:string;property_id:string;mime_type:string}>} | {ok:false;error:string}
 
 export default function MyTemporaries() {
   const [result,setResult] = useState<Mine|null>(null)
@@ -65,6 +66,7 @@ export default function MyTemporaries() {
         </> : result && result.ok ? <>
           <h2>Mis propiedades ({result.properties.length})</h2>
           {result.properties.length ? result.properties.map(p=><article key={p.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
+            <PropertyGallery photos={result.media.filter(x=>x.property_id===p.id)}/>
             <strong>{typeName(p.property_type)} · {p.locality_label}</strong>
             <p>{Number(p.nightly_price_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} por noche</p>
             <p>{displayDate(p.availability_start)} al {displayDate(p.availability_end)} · Estado: {stateName(p.status)}</p>
@@ -73,6 +75,7 @@ export default function MyTemporaries() {
           {decisionError && <p role="alert">{decisionError}</p>}
           <h2>Interesados en mis propiedades ({result.ownerMatches.length})</h2>
           {result.ownerMatches.length ? result.ownerMatches.map(m=><article key={m.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
+            <PropertyGallery photos={result.media.filter(x=>x.property_id===m.property_id)}/>
             <strong>{typeName(m.temporary_properties?.property_type || "")} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
             <p>Estadía solicitada: {displayDate(m.check_in)} al {displayDate(m.check_out)}</p>
             <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {stateName(m.status)}</p>
