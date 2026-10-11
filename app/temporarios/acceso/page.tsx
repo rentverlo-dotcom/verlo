@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 import { readPendingTemporaryDraft, clearPendingTemporaryDraft } from "@/lib/temporarios/pending-draft"
+import { clearTemporaryRequestKey } from "@/lib/temporarios/request-key"
 import VerloBrand from "@/components/VerloBrand"
 import { shell, container, nav, navInner, panel, field, fieldLabel, button, heading, script } from "../brand"
 
@@ -67,6 +68,7 @@ export default function TemporaryAccess() {
           return
         }
         clearPendingTemporaryDraft(kind)
+        clearTemporaryRequestKey(kind)
         window.localStorage.removeItem(lockKey)
         router.replace((kind === "owner" ? "/temporarios/success/propietario" : "/temporarios/success/inquilino") +
           "?registro=" + encodeURIComponent(data.id))
