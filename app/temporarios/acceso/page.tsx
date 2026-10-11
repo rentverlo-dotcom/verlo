@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 import { readPendingTemporaryDraft, clearPendingTemporaryDraft } from "@/lib/temporarios/pending-draft"
 import { clearTemporaryRequestKey } from "@/lib/temporarios/request-key"
+import {takeOwnerFiles,uploadOwnerFiles,clearOwnerFiles} from "@/lib/temporarios/owner-media-upload"
 import VerloBrand from "@/components/VerloBrand"
 import { shell, container, nav, navInner, panel, field, fieldLabel, button, heading, script } from "../brand"
 
@@ -67,6 +68,19 @@ export default function TemporaryAccess() {
         if (!response.ok || !data.ok || !data.id) {
           setMessage(data.error || "No se pudo guardar. Tu formulario sigue disponible en este navegador.")
           return
+        }
+        if(kind==="owner"){
+          try{
+            const photos=await takeOwnerFiles()
+            if(photos.length)await uploadOwnerFiles(data.id,photos,setMessage)
+            await clearOwnerFiles()
+          }catch(error){
+            setMessage((error instanceof Error?error.message:"No se pudieron subir las fotos")+". La propiedad quedó guardada; agregá las fotos desde Mis temporarios.")
+            clearPendingTemporaryDraft(kind)
+            clearTemporaryRequestKey(kind)
+            window.localStorage.removeItem(lockKey)
+            return
+          }
         }
         clearPendingTemporaryDraft(kind)
         clearTemporaryRequestKey(kind)
