@@ -6,6 +6,9 @@ import { supabase } from "@/lib/supabase/client"
 import VerloBrand from "@/components/VerloBrand"
 import { shell, container, nav, navInner, panel, button } from "../brand"
 
+const typeName=(value:string)=>({casa:"Casa",departamento:"Departamento",cabana:"Cabaña",habitacion:"Habitación"} as Record<string,string>)[value]||"Alojamiento"
+const stateName=(value:string)=>({draft:"Borrador",published:"Publicada",active:"Activa",new:"Nueva coincidencia",accepted:"Ambos aceptaron",rejected:"Rechazada",paused:"Pausada",archived:"Archivada"} as Record<string,string>)[value]||"En proceso"
+const displayDate=(value:string)=>{const parts=value.split("-");return parts.length===3?parts[2]+"/"+parts[1]+"/"+parts[0]:value}
 type Property = {id:string;locality_label:string;property_type:string;nightly_price_ars:number;availability_start:string;availability_end:string;status:string}
 type Demand = {id:string;locality_keys:string[];property_type:string;check_in:string;check_out:string;max_total_budget_ars:number;status:string}
 type Match = {id:string;property_id:string;demand_id:string;check_in:string;check_out:string;agreed_total_ars:number;status:string;owner_decision:string;tenant_decision:string;temporary_properties?:{locality_label:string;property_type:string}|null}
@@ -50,40 +53,40 @@ export default function MyTemporaries() {
   },[])
   return <main style={shell}>
     <BrandHeader/>
-    <div style={{...container,maxWidth:850,paddingTop:55,paddingBottom:80}}>
+    <div style={{...container,maxWidth:1060,paddingTop:55,paddingBottom:80}}>
       <section style={panel}>
         <h1 style={{fontSize:"clamp(34px,6vw,62px)",fontWeight:950,letterSpacing:"-.05em"}}>Mis temporarios</h1>
-        <p>Solo podés consultar registros vinculados a tu identidad. Esta vista todavía no administra reservas.</p>
+        <p style={{color:"#676066",fontSize:17}}>Tus alojamientos, búsquedas y coincidencias, en un solo lugar.</p>
         {loading ? <p role="status">Consultando...</p> : result && "error" in result ? <>
           <p role="status">{result.error}</p>
           <Link href="/temporarios/acceso?next=/temporarios/mi-verlo" style={{...button,display:"inline-flex"}}>Ingresar a VERLO</Link>
         </> : result && result.ok ? <>
           <h2>Mis propiedades ({result.properties.length})</h2>
           {result.properties.length ? result.properties.map(p=><article key={p.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
-            <strong>{p.property_type} · {p.locality_label}</strong>
+            <strong>{typeName(p.property_type)} · {p.locality_label}</strong>
             <p>{Number(p.nightly_price_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} por noche</p>
-            <p>{p.availability_start} a {p.availability_end} · Estado: {p.status}</p>
+            <p>{displayDate(p.availability_start)} al {displayDate(p.availability_end)} · Estado: {stateName(p.status)}</p>
           </article>) : <p>Todavía no tenés propiedades temporarias registradas.</p>}
           {decisionError && <p role="alert">{decisionError}</p>}
-          <h2>Coincidencias de mis propiedades ({result.ownerMatches.length})</h2>
+          <h2>Interesados en mis propiedades ({result.ownerMatches.length})</h2>
           {result.ownerMatches.length ? result.ownerMatches.map(m=><article key={m.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
-            <strong>{m.temporary_properties?.property_type || "Alojamiento"} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
-            <p>Estadía solicitada: {m.check_in} al {m.check_out}</p>
-            <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {m.status}</p>
+            <strong>{typeName(m.temporary_properties?.property_type || "")} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
+            <p>Estadía solicitada: {displayDate(m.check_in)} al {displayDate(m.check_out)}</p>
+            <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {stateName(m.status)}</p>
             <p>Tu respuesta: {m.owner_decision === "accepted" ? "Aceptaste" : m.owner_decision === "rejected" ? "Rechazaste" : "Pendiente"} · La otra parte: {m.tenant_decision === "accepted" ? "Aceptó" : m.tenant_decision === "rejected" ? "Rechazó" : "Pendiente"}</p>
             {m.owner_decision === "pending" && m.status === "new" && <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"owner","accepted")} style={button}>Aceptar coincidencia</button><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"owner","rejected")} style={{...button,background:"#777"}}>Rechazar</button></div>}
           </article>) : <p>Aún no hay coincidencias para tus propiedades.</p>}
           <h2>Mis búsquedas ({result.demands.length})</h2>
           {result.demands.length ? result.demands.map(d=><article key={d.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
-            <strong>{d.property_type}</strong>
-            <p>{d.check_in} a {d.check_out} · Presupuesto {Number(d.max_total_budget_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})}</p>
-            <p>Estado: {d.status}</p>
+            <strong>{typeName(d.property_type)}</strong>
+            <p>{displayDate(d.check_in)} al {displayDate(d.check_out)} · Presupuesto {Number(d.max_total_budget_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})}</p>
+            <p>Estado: {stateName(d.status)}</p>
           </article>) : <p>Todavía no tenés búsquedas temporarias registradas.</p>}
-          <h2>Coincidencias de mis búsquedas ({result.tenantMatches.length})</h2>
+          <h2>Alojamientos para mis búsquedas ({result.tenantMatches.length})</h2>
           {result.tenantMatches.length ? result.tenantMatches.map(m=><article key={m.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
-            <strong>{m.temporary_properties?.property_type || "Alojamiento"} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
-            <p>Estadía: {m.check_in} al {m.check_out}</p>
-            <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {m.status}</p>
+            <strong>{typeName(m.temporary_properties?.property_type || "")} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
+            <p>Estadía: {displayDate(m.check_in)} al {displayDate(m.check_out)}</p>
+            <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {stateName(m.status)}</p>
             <p>Tu respuesta: {m.tenant_decision === "accepted" ? "Aceptaste" : m.tenant_decision === "rejected" ? "Rechazaste" : "Pendiente"} · La otra parte: {m.owner_decision === "accepted" ? "Aceptó" : m.owner_decision === "rejected" ? "Rechazó" : "Pendiente"}</p>
             {m.tenant_decision === "pending" && m.status === "new" && <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"tenant","accepted")} style={button}>Aceptar coincidencia</button><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"tenant","rejected")} style={{...button,background:"#777"}}>Rechazar</button></div>}
           </article>) : <p>Aún no hay coincidencias para tus búsquedas.</p>}
