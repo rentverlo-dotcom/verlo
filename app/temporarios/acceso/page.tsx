@@ -9,7 +9,7 @@ import { shell, container, nav, navInner, panel, field, fieldLabel, button, head
 function destination(): string {
   const params = new URLSearchParams(window.location.search)
   const next = params.get("next")
-  return next === "/temporarios/publicar" || next === "/temporarios/buscar"
+  return next === "/temporarios/publicar" || next === "/temporarios/buscar" || next === "/temporarios/mi-verlo"
     ? next : "/temporarios/qa"
 }
 
