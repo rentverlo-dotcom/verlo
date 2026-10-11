@@ -7,7 +7,8 @@ import { shell, container, nav, navInner, panel, button } from "../brand"
 
 type Property = {id:string;locality_label:string;property_type:string;nightly_price_ars:number;availability_start:string;availability_end:string;status:string}
 type Demand = {id:string;locality_keys:string[];property_type:string;check_in:string;check_out:string;max_total_budget_ars:number;status:string}
-type Mine = {ok:true;properties:Property[];demands:Demand[]} | {ok:false;error:string}
+type Match = {id:string;property_id:string;demand_id:string;check_in:string;check_out:string;agreed_total_ars:number;status:string;temporary_properties?:{locality_label:string;property_type:string}|null}
+type Mine = {ok:true;properties:Property[];demands:Demand[];ownerMatches:Match[];tenantMatches:Match[]} | {ok:false;error:string}
 
 export default function MyTemporaries() {
   const [result,setResult] = useState<Mine|null>(null)
@@ -45,12 +46,24 @@ export default function MyTemporaries() {
             <p>{Number(p.nightly_price_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} por noche</p>
             <p>{p.availability_start} a {p.availability_end} · Estado: {p.status}</p>
           </article>) : <p>Todavía no tenés propiedades temporarias registradas.</p>}
+          <h2>Coincidencias de mis propiedades ({result.ownerMatches.length})</h2>
+          {result.ownerMatches.length ? result.ownerMatches.map(m=><article key={m.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
+            <strong>{m.temporary_properties?.property_type || "Alojamiento"} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
+            <p>Estadía solicitada: {m.check_in} al {m.check_out}</p>
+            <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {m.status}</p>
+          </article>) : <p>Aún no hay coincidencias para tus propiedades.</p>}
           <h2>Mis búsquedas ({result.demands.length})</h2>
           {result.demands.length ? result.demands.map(d=><article key={d.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
             <strong>{d.property_type}</strong>
             <p>{d.check_in} a {d.check_out} · Presupuesto {Number(d.max_total_budget_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})}</p>
             <p>Estado: {d.status}</p>
           </article>) : <p>Todavía no tenés búsquedas temporarias registradas.</p>}
+          <h2>Coincidencias de mis búsquedas ({result.tenantMatches.length})</h2>
+          {result.tenantMatches.length ? result.tenantMatches.map(m=><article key={m.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
+            <strong>{m.temporary_properties?.property_type || "Alojamiento"} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
+            <p>Estadía: {m.check_in} al {m.check_out}</p>
+            <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {m.status}</p>
+          </article>) : <p>Aún no hay coincidencias para tus búsquedas.</p>}
           <div style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:24}}>
             <Link href="/temporarios/publicar" style={button}>Publicar</Link>
             <Link href="/temporarios/buscar" style={button}>Buscar</Link>
