@@ -1,4 +1,5 @@
 import type { TemporaryDemand, TemporaryProperty, TemporaryPropertyType } from "./matching"
+import { stayNights } from "./matching"
 
 type Location = { key?: string; label?: string }
 export type DraftResult<T> = { ok: true; value: T } | { ok: false; error: string }
@@ -29,8 +30,13 @@ export function tenantDraftFromForm(form: FormData): DraftResult<TemporaryDemand
   const checkIn = String(form.get("checkIn") || "")
   const checkOut = String(form.get("checkOut") || "")
   const maxTotalBudgetArs = Number(form.get("maxTotalBudgetArs"))
-  if (!localityKeys.length || !isType(propertyType) || !checkIn || !checkOut ||
-    checkOut <= checkIn || !(maxTotalBudgetArs > 0) || !Number.isFinite(maxTotalBudgetArs))
-    return { ok: false, error: "Seleccioná al menos una zona Georef, tipo, fechas y presupuesto total." }
+  if (!localityKeys.length) return { ok: false, error: "Elegí al menos una localidad." }
+  if (!isType(propertyType)) return { ok: false, error: "Elegí un tipo de propiedad." }
+  if (!checkIn || !checkOut) return { ok: false, error: "Seleccioná las fechas de entrada y salida." }
+  if (checkOut <= checkIn) return { ok: false, error: "La fecha de salida tiene que ser posterior a la entrada." }
+  if (stayNights({ checkIn, checkOut }) === null)
+    return { ok: false, error: "La estadía debe ser de 1 a 90 noches." }
+  if (!(maxTotalBudgetArs > 0) || !Number.isFinite(maxTotalBudgetArs))
+    return { ok: false, error: "Ingresá un presupuesto total válido." }
   return { ok: true, value: { localityKeys, propertyType, checkIn, checkOut, maxTotalBudgetArs } }
 }
