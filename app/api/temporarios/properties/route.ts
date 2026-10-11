@@ -23,6 +23,10 @@ export async function POST(request: Request) {
     body = raw as Record<string, unknown>
   } catch { return deny(400, "JSON inválido") }
 
+  // Hidden bot trap: never persist submissions filling this field.
+  if (typeof body.website === "string" && body.website.trim())
+    return deny(400, "Solicitud inválida")
+
   const localityKey = body.localityKey
   const localityLabel = str(body.localityLabel)
   const propertyType = body.propertyType
