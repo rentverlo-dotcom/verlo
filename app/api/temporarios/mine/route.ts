@@ -26,15 +26,17 @@ export async function GET(request: Request) {
     return answer(401, {ok:false,error:"Verified login required"})
 
   const db = createClient(url, service, {auth:{persistSession:false,autoRefreshToken:false}})
-  const [properties,demands] = await Promise.all([
+  const [properties,demands,ownerMatches,tenantMatches] = await Promise.all([
     db.from("temporary_properties")
       .select("id,locality_label,property_type,nightly_price_ars,availability_start,availability_end,status,created_at")
       .eq("owner_user_id",user.id).order("created_at",{ascending:false}).limit(50),
     db.from("temporary_demands")
       .select("id,locality_keys,property_type,check_in,check_out,max_total_budget_ars,status,created_at")
       .eq("tenant_user_id",user.id).order("created_at",{ascending:false}).limit(50),
+    db.from("temporary_matches").select("id,property_id,demand_id,check_in,check_out,agreed_total_ars,status,created_at,temporary_properties!inner(owner_user_id,locality_label,property_type)").eq("temporary_properties.owner_user_id",user.id).order("created_at",{ascending:false}).limit(50),
+    db.from("temporary_matches").select("id,property_id,demand_id,check_in,check_out,agreed_total_ars,status,created_at,temporary_demands!inner(tenant_user_id),temporary_properties(locality_label,property_type)").eq("temporary_demands.tenant_user_id",user.id).order("created_at",{ascending:false}).limit(50),
   ])
-  if (properties.error || demands.error)
+  if (properties.error || demands.error || ownerMatches.error || tenantMatches.error)
     return answer(503,{ok:false,error:"No pudimos consultar tus temporarios"})
-  return answer(200,{ok:true,properties:properties.data||[],demands:demands.data||[]})
+  return answer(200,{ok:true,properties:properties.data||[],demands:demands.data||[],ownerMatches:ownerMatches.data||[],tenantMatches:tenantMatches.data||[]})
 }
