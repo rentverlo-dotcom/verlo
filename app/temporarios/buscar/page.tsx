@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import VerloBrand from "@/components/VerloBrand"
-import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
-import { shell, container, nav, navInner, hero, heading, script, subtitle, panel, field, fieldLabel, button } from "../brand"
+import TemporaryTenantDraft from "./TemporaryTenantDraft"
+import { shell, container, nav, navInner, hero, heading, script, subtitle } from "../brand"
 export const metadata: Metadata = { title: "Buscar alquiler temporario | VERLO", robots: { index: false, follow: false } }
 export default function BuscarTemporarioPage() {
   return <main style={shell}>
@@ -12,19 +12,7 @@ export default function BuscarTemporarioPage() {
         <h1 style={{ ...heading, fontSize: "clamp(52px,7vw,88px)" }}>Elegí tus fechas.<br /><em style={script}>Encontrá tu lugar.</em></h1>
         <p style={subtitle}>Buscá alojamiento por 1 a 90 noches, según ubicación y presupuesto total.</p>
       </section>
-      <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
-        <div style={{ display: "grid", gap: 20 }}>
-          <label style={fieldLabel}>Tipo de propiedad<select style={field} defaultValue="" disabled><option value="">Elegí una opción</option><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="cabana">Cabaña</option><option value="habitacion">Habitación</option></select></label>
-          <div style={fieldLabel}>Zonas donde buscás (Georef)<ArgentinaLocationSelector mode="multi" className="temporary-georef" labelName="temporary_locations_labels" keyName="temporary_locations_keys" dataName="temporary_locations_data" /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16 }}>
-            <label style={fieldLabel}>Fecha de entrada<input type="date" disabled style={field} /></label>
-            <label style={fieldLabel}>Fecha de salida<input type="date" disabled style={field} /></label>
-          </div>
-          <label style={fieldLabel}>Presupuesto total de la estadía (ARS)<input type="number" disabled style={field} placeholder="Ej.: 1200000" /></label>
-          <p style={{ margin: 0, fontSize: 14 }}>El presupuesto corresponde a toda la estadía. VERLO cobra $29.900 al habilitar el cierre del contrato.</p>
-          <button disabled style={{ ...button, opacity: .5, cursor: "not-allowed" }}>Formulario en preparación</button>
-        </div>
-      </section>
+      <TemporaryTenantDraft />
     </div>
   </main>
 }
