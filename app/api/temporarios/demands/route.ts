@@ -13,7 +13,7 @@ const str = (v: unknown, max = 255) => typeof v === "string" ? v.trim().slice(0,
 
 export async function POST(request: Request) {
   const auth = await authorizeTemporaryWrite(request, "tenant")
-  if (!auth.ok) return deny("status" in auth ? auth.status : 503, "error" in auth ? auth.error : "No autorizado")
+  if ("status" in auth) return deny(auth.status, auth.error)
   if (Number(request.headers.get("content-length") || 0) > 8192) return deny(413, "Payload demasiado grande")
   let body: Record<string, unknown>
   try {
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const { data, error } = await db.from("temporary_demands").insert({
     tenant_user_id: auth.userId, tenant_full_name: fullName,
     tenant_email: auth.email, tenant_phone: phone,
-    locality_keys: [...new Set(localityKeys)],
+    locality_keys: Array.from(new Set(localityKeys as string[])),
     property_type: propertyType, check_in: checkIn, check_out: checkOut,
     max_total_budget_ars: budget, status: "active",
   }).select("id").single()
