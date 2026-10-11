@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import TemporaryMediaPicker from "./TemporaryMediaPicker"
+import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import { panel, field, fieldLabel, button } from "../brand"
 
 export default function TemporaryOwnerDraft() {
-  const [locality, setLocality] = useState("")
   const [reference, setReference] = useState("")
   const [type, setType] = useState("casa")
   const [nightlyPrice, setNightlyPrice] = useState("")
@@ -15,14 +15,14 @@ export default function TemporaryOwnerDraft() {
 
   const price = Number(nightlyPrice)
   const datesValid = Boolean(from && until && until > from)
-  const valid = Boolean(locality.trim() && reference.trim() && price > 0 && Number.isFinite(price) && datesValid)
+  const valid = Boolean(reference.trim() && price > 0 && Number.isFinite(price) && datesValid)
 
   return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}>
     <div style={{ display: "grid", gap: 20 }}>
       <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#050002" }}>Vista previa interactiva — no publica ni guarda información.</p>
-      <label style={fieldLabel}>Localidad o zona
-        <input value={locality} onChange={event => setLocality(event.target.value)} style={field} placeholder="Ej.: Mar Azul, Pinamar, Palermo" />
-      </label>
+      <div style={fieldLabel}>Ubicación (Georef)
+        <ArgentinaLocationSelector mode="single" className="temporary-georef" labelName="temporary_location_label" keyName="temporary_location_key" dataName="temporary_location_data" />
+      </div>
       <label style={fieldLabel}>Referencia pública de ubicación
         <input value={reference} onChange={event => setReference(event.target.value)} style={field} placeholder="Ej.: a 100 metros de la playa" />
       </label>
@@ -55,7 +55,7 @@ export default function TemporaryOwnerDraft() {
       <p style={{ margin: 0, fontSize: 14 }}>La dirección exacta y los datos bancarios serán privados. El propietario publica gratis.</p>
       <div style={{ padding: 18, background: "#fff", borderRadius: 16, border: "1px solid rgba(5,0,2,.12)" }}>
         <strong>Resumen de la publicación</strong>
-        <p style={{ margin: "10px 0 4px" }}>{locality.trim() || "Localidad pendiente"} · {type}</p>
+        <p style={{ margin: "10px 0 4px" }}>Ubicación seleccionada arriba · {type}</p>
         <p style={{ margin: "4px 0" }}>{reference.trim() || "Referencia de ubicación pendiente"}</p>
         <p style={{ margin: "4px 0" }}>{price > 0 && Number.isFinite(price) ? price.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }) + " / noche" : "Precio pendiente"}</p>
         <p style={{ margin: "4px 0" }}>Disponibilidad: {datesValid ? from + " a " + until : "fechas pendientes"}</p>
