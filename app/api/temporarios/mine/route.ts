@@ -33,8 +33,8 @@ export async function GET(request: Request) {
     db.from("temporary_demands")
       .select("id,locality_keys,property_type,check_in,check_out,max_total_budget_ars,status,created_at")
       .eq("tenant_user_id",user.id).order("created_at",{ascending:false}).limit(50),
-    db.from("temporary_matches").select("id,property_id,demand_id,check_in,check_out,agreed_total_ars,status,owner_decision,tenant_decision,created_at,temporary_properties!inner(owner_user_id,locality_label,property_type)").eq("temporary_properties.owner_user_id",user.id).order("created_at",{ascending:false}).limit(50),
-    db.from("temporary_matches").select("id,property_id,demand_id,check_in,check_out,agreed_total_ars,status,owner_decision,tenant_decision,created_at,temporary_demands!inner(tenant_user_id),temporary_properties(locality_label,property_type)").eq("temporary_demands.tenant_user_id",user.id).order("created_at",{ascending:false}).limit(50),
+    db.from("temporary_matches").select("id,property_id,demand_id,check_in,check_out,agreed_total_ars,status,owner_decision,tenant_decision,created_at,temporary_properties!inner(owner_user_id,locality_label,property_type,nightly_price_ars,title,description,public_location_reference,max_guests)").eq("temporary_properties.owner_user_id",user.id).order("created_at",{ascending:false}).limit(50),
+    db.from("temporary_matches").select("id,property_id,demand_id,check_in,check_out,agreed_total_ars,status,owner_decision,tenant_decision,created_at,temporary_demands!inner(tenant_user_id),temporary_properties(locality_label,property_type,nightly_price_ars,title,description,public_location_reference,max_guests)").eq("temporary_demands.tenant_user_id",user.id).order("created_at",{ascending:false}).limit(50),
   ])
   if (properties.error || demands.error || ownerMatches.error || tenantMatches.error)
     return answer(503,{ok:false,error:"No pudimos consultar tus temporarios"})
