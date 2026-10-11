@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import { savePendingTemporaryDraft } from "@/lib/temporarios/pending-draft"
+import { getTemporaryRequestKey, clearTemporaryRequestKey } from "@/lib/temporarios/request-key"
 import { useRouter } from "next/navigation"
 import { ownerDraftFromForm } from "@/lib/temporarios/form-mapping"
 import TemporaryMediaPicker from "./TemporaryMediaPicker"
@@ -29,12 +30,13 @@ export default function TemporaryOwnerDraft() {
     const phone = String(formData.get("phone") || "").trim()
     const localityLabel = String(formData.get("temporary_location_label") || "").trim()
     if (!fullName || !phone || !localityLabel) { setResult("Completá nombre, teléfono y ubicación."); return }
+    const requestKey = getTemporaryRequestKey("owner")
     setSaving(true)
     setResult("Comprobando acceso...")
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session?.access_token) {
-        savePendingTemporaryDraft("owner", {...parsed.value, localityLabel, fullName, phone, website: String(formData.get("website") || ""), publicLocationReference: reference, depositRequired: deposit === "si"})
+        savePendingTemporaryDraft("owner", {...parsed.value, requestKey, localityLabel, fullName, phone, website: String(formData.get("website") || ""), publicLocationReference: reference, depositRequired: deposit === "si"})
         router.push("/temporarios/acceso?next=/temporarios/publicar")
         return
       }
@@ -42,7 +44,7 @@ export default function TemporaryOwnerDraft() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
         body: JSON.stringify({
-          ...parsed.value, localityLabel, fullName, phone, website: String(formData.get("website") || ""),
+          ...parsed.value, requestKey, localityLabel, fullName, phone, website: String(formData.get("website") || ""),
           publicLocationReference: reference, depositRequired: deposit === "si",
         }),
       })
@@ -53,6 +55,7 @@ export default function TemporaryOwnerDraft() {
           : data.error || "No se pudo guardar la publicación.")
         return
       }
+      clearTemporaryRequestKey("owner")
       router.push("/temporarios/success/propietario?registro=" + encodeURIComponent(data.id))
     } catch { setResult("Error de conexión. No se guardó la publicación.") }
     finally { setSaving(false) }
