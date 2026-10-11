@@ -48,5 +48,12 @@ export async function GET(request: Request) {
     if(listing.error)return answer(503,{ok:false,error:"No pudimos consultar las fotografías"})
     media=listing.data||[]
   }
-  return answer(200,{ok:true,media,properties:properties.data||[],demands:demands.data||[],ownerMatches:ownerMatches.data||[],tenantMatches:tenantMatches.data||[]})
+  const matchIds=Array.from(new Set([...(ownerMatches.data||[]),...(tenantMatches.data||[])].map(m=>m.id)))
+  let reservations:Array<{id:string;match_id:string;status:string;agreed_terms_owner_at:string|null;agreed_terms_tenant_at:string|null}>=[]
+  if(matchIds.length){
+    const rows=await db.from("temporary_reservations").select("id,match_id,status,agreed_terms_owner_at,agreed_terms_tenant_at").in("match_id",matchIds).limit(100)
+    if(rows.error)return answer(503,{ok:false,error:"No pudimos consultar las reservas"})
+    reservations=rows.data||[]
+  }
+  return answer(200,{ok:true,reservations,media,properties:properties.data||[],demands:demands.data||[],ownerMatches:ownerMatches.data||[],tenantMatches:tenantMatches.data||[]})
 }
