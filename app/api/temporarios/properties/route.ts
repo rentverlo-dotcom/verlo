@@ -27,6 +27,9 @@ export async function POST(request: Request) {
   if (typeof body.website === "string" && body.website.trim())
     return deny(400, "Solicitud inválida")
 
+  const requestKey = body.requestKey
+  if (typeof requestKey !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey))
+    return deny(400, "Identificador de solicitud inválido")
   const localityKey = body.localityKey
   const localityLabel = str(body.localityLabel)
   const propertyType = body.propertyType
@@ -47,13 +50,20 @@ export async function POST(request: Request) {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return deny(503, "Servicio no configurado")
   const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+  const existing = await db.from("temporary_properties").select("id").eq("owner_user_id", auth.userId).eq("request_key",requestKey).maybeSingle()
+  if (existing.error) return deny(500, "No se pudo verificar la solicitud")
+  if (existing.data) return NextResponse.json({ok:true,id:existing.data.id,reused:true},{status:200,headers:{"Cache-Control":"no-store"}})
   const { data, error } = await db.from("temporary_properties").insert({
-    owner_user_id: auth.userId, owner_full_name: fullName, owner_email: auth.email,
+    request_key: requestKey, owner_user_id: auth.userId, owner_full_name: fullName, owner_email: auth.email,
     owner_phone: phone, locality_key: localityKey, locality_label: localityLabel,
     public_location_reference: reference || null, property_type: propertyType,
     nightly_price_ars: price, availability_start: start, availability_end: end,
     deposit_required: depositRequired, status: "draft",
   }).select("id").single()
+  if (error?.code === "23505") {
+    const previous = await db.from("temporary_properties").select("id").eq("owner_user_id",auth.userId).eq("request_key",requestKey).maybeSingle()
+    if (previous.data?.id) return NextResponse.json({ok:true,id:previous.data.id,reused:true},{status:200,headers:{"Cache-Control":"no-store"}})
+  }
   if (error || !data) return deny(500, "No se pudo crear el borrador")
   return NextResponse.json({ ok: true, id: data.id, status: "draft" }, { status: 201, headers: { "Cache-Control": "no-store" } })
 }
