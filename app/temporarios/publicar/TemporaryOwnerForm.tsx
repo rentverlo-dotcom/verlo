@@ -69,7 +69,7 @@ export default function TemporaryOwnerForm() {
         <textarea name="deposit_terms" rows={3} style={field}
           placeholder="Ej.: 20% del total, transferido directamente al propietario." />
       </label>}
-      <TemporaryMediaPicker />
+      <TemporaryMediaPicker onFiles={() => {}} />
       <div style={{ padding: 18, background: "rgba(242,168,169,.22)", borderRadius: 16, border: "1px solid rgba(5,0,2,.1)" }}>
         <strong>¿Cuándo se bloquean las fechas?</strong>
         <p style={{ margin: "9px 0 0" }}>Solo después de la reserva y la seña, cuando corresponda, cuando propietario e inquilino aceptan expresamente bloquear las fechas. Un match o un comprobante no bloquean la propiedad.</p>
