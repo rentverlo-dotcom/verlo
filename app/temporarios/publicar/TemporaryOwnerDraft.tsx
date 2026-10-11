@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type FormEvent } from "react"
+import { ownerDraftFromForm } from "@/lib/temporarios/form-mapping"
 import TemporaryMediaPicker from "./TemporaryMediaPicker"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import { panel, field, fieldLabel, button } from "../brand"
@@ -12,12 +13,14 @@ export default function TemporaryOwnerDraft() {
   const [from, setFrom] = useState("")
   const [until, setUntil] = useState("")
   const [deposit, setDeposit] = useState("no")
+  const [result, setResult] = useState("")
+  function check(e: FormEvent<HTMLFormElement>) { e.preventDefault(); const parsed = ownerDraftFromForm(new FormData(e.currentTarget)); setResult(parsed.ok ? "Georef, tipo, precio y fechas listos para matching: " + parsed.value.localityKey : parsed.error) }
 
   const price = Number(nightlyPrice)
   const datesValid = Boolean(from && until && until > from)
   const valid = Boolean(reference.trim() && price > 0 && Number.isFinite(price) && datesValid)
 
-  return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}>
+  return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}><form onSubmit={check}>
     <div style={{ display: "grid", gap: 20 }}>
       <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#050002" }}>Vista previa interactiva — no publica ni guarda información.</p>
       <div style={fieldLabel}>Ubicación (Georef)
@@ -27,19 +30,19 @@ export default function TemporaryOwnerDraft() {
         <input value={reference} onChange={event => setReference(event.target.value)} style={field} placeholder="Ej.: a 100 metros de la playa" />
       </label>
       <label style={fieldLabel}>Tipo de propiedad
-        <select value={type} onChange={event => setType(event.target.value)} style={field}>
+        <select name="propertyType" value={type} onChange={event => setType(event.target.value)} style={field}>
           <option value="casa">Casa</option><option value="departamento">Departamento</option><option value="cabana">Cabaña</option><option value="habitacion">Habitación</option>
         </select>
       </label>
       <label style={fieldLabel}>Precio por noche (ARS)
-        <input type="number" min="1" value={nightlyPrice} onChange={event => setNightlyPrice(event.target.value)} style={field} placeholder="Ej.: 120000" />
+        <input name="nightlyPriceArs" type="number" min="1" value={nightlyPrice} onChange={event => setNightlyPrice(event.target.value)} style={field} placeholder="Ej.: 120000" />
       </label>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16 }}>
         <label style={fieldLabel}>Disponible desde
-          <input type="date" value={from} onChange={event => setFrom(event.target.value)} style={field} />
+          <input name="availabilityStart" type="date" value={from} onChange={event => setFrom(event.target.value)} style={field} />
         </label>
         <label style={fieldLabel}>Disponible hasta
-          <input type="date" min={from || undefined} value={until} onChange={event => setUntil(event.target.value)} style={field} />
+          <input name="availabilityEnd" type="date" min={from || undefined} value={until} onChange={event => setUntil(event.target.value)} style={field} />
         </label>
       </div>
       <label style={fieldLabel}>¿Solicitás seña?
@@ -61,10 +64,9 @@ export default function TemporaryOwnerDraft() {
         <p style={{ margin: "4px 0" }}>Disponibilidad: {datesValid ? from + " a " + until : "fechas pendientes"}</p>
         <p style={{ margin: "4px 0" }}>Seña: {deposit === "si" ? "opcional, a acordar" : "no solicitada"}</p>
       </div>
-      <button type="button" disabled style={{ ...button, opacity: .5, cursor: "not-allowed" }}>
-        {valid ? "Vista previa lista · Guardado pendiente" : "Completá los datos para ver el resumen"}
-      </button>
+      <button type="submit" style={button}>Comprobar datos del matching (sin guardar)</button>
+      {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
       <p style={{ margin: 0, fontSize: 13 }}>Los datos y las fotos permanecen únicamente en este navegador durante esta vista. No se envían a VERLO, R2 ni Supabase.</p>
-    </div>
+    </div></form>
   </section>
 }
