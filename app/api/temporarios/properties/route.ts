@@ -13,7 +13,7 @@ const str = (v: unknown, max = 255) => typeof v === "string" ? v.trim().slice(0,
 
 export async function POST(request: Request) {
   const auth = await authorizeTemporaryWrite(request, "owner")
-  if (!auth.ok) return deny(auth.status, auth.error)
+  if (!auth.ok) return deny("status" in auth ? auth.status : 503, "error" in auth ? auth.error : "No autorizado")
   if (Number(request.headers.get("content-length") || 0) > 8192) return deny(413, "Payload demasiado grande")
 
   let body: Record<string, unknown>
