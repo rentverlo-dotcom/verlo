@@ -7,12 +7,29 @@ import { shell, container, nav, navInner, panel, button } from "../brand"
 
 type Property = {id:string;locality_label:string;property_type:string;nightly_price_ars:number;availability_start:string;availability_end:string;status:string}
 type Demand = {id:string;locality_keys:string[];property_type:string;check_in:string;check_out:string;max_total_budget_ars:number;status:string}
-type Match = {id:string;property_id:string;demand_id:string;check_in:string;check_out:string;agreed_total_ars:number;status:string;temporary_properties?:{locality_label:string;property_type:string}|null}
+type Match = {id:string;property_id:string;demand_id:string;check_in:string;check_out:string;agreed_total_ars:number;status:string;owner_decision:string;tenant_decision:string;temporary_properties?:{locality_label:string;property_type:string}|null}
 type Mine = {ok:true;properties:Property[];demands:Demand[];ownerMatches:Match[];tenantMatches:Match[]} | {ok:false;error:string}
 
 export default function MyTemporaries() {
   const [result,setResult] = useState<Mine|null>(null)
   const [loading,setLoading] = useState(true)
+  const [deciding,setDeciding] = useState("")
+  const [decisionError,setDecisionError] = useState("")
+  async function decide(matchId:string,role:"owner"|"tenant",decision:"accepted"|"rejected") {
+    const key=matchId+":"+role
+    if(deciding)return
+    setDeciding(key)
+    setDecisionError("")
+    try{
+      const {data:{session}}=await supabase.auth.getSession()
+      if(!session?.access_token)throw new Error("Iniciá sesión para continuar")
+      const response=await fetch("/api/temporarios/matches/decide",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({matchId,role,decision})})
+      const data:{ok?:boolean;error?:string;match?:{status:string;ownerDecision:string;tenantDecision:string}}=await response.json()
+      if(!response.ok||!data.ok||!data.match)throw new Error(data.error||"No se pudo guardar tu respuesta")
+      setResult(old=>old?.ok ? {...old,ownerMatches:old.ownerMatches.map(m=>m.id===matchId?{...m,status:data.match!.status,owner_decision:data.match!.ownerDecision,tenant_decision:data.match!.tenantDecision}:m),tenantMatches:old.tenantMatches.map(m=>m.id===matchId?{...m,status:data.match!.status,owner_decision:data.match!.ownerDecision,tenant_decision:data.match!.tenantDecision}:m)} : old)
+    }catch(error){setDecisionError(error instanceof Error?error.message:"Error de conexión")}
+    finally{setDeciding("")}
+  }
   useEffect(()=>{
     let active = true
     async function load() {
@@ -46,11 +63,14 @@ export default function MyTemporaries() {
             <p>{Number(p.nightly_price_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} por noche</p>
             <p>{p.availability_start} a {p.availability_end} · Estado: {p.status}</p>
           </article>) : <p>Todavía no tenés propiedades temporarias registradas.</p>}
+          {decisionError && <p role="alert">{decisionError}</p>}
           <h2>Coincidencias de mis propiedades ({result.ownerMatches.length})</h2>
           {result.ownerMatches.length ? result.ownerMatches.map(m=><article key={m.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
             <strong>{m.temporary_properties?.property_type || "Alojamiento"} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
             <p>Estadía solicitada: {m.check_in} al {m.check_out}</p>
             <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {m.status}</p>
+            <p>Tu respuesta: {m.owner_decision === "accepted" ? "Aceptaste" : m.owner_decision === "rejected" ? "Rechazaste" : "Pendiente"} · La otra parte: {m.tenant_decision === "accepted" ? "Aceptó" : m.tenant_decision === "rejected" ? "Rechazó" : "Pendiente"}</p>
+            {m.owner_decision === "pending" && m.status === "new" && <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"owner","accepted")} style={button}>Aceptar coincidencia</button><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"owner","rejected")} style={{...button,background:"#777"}}>Rechazar</button></div>}
           </article>) : <p>Aún no hay coincidencias para tus propiedades.</p>}
           <h2>Mis búsquedas ({result.demands.length})</h2>
           {result.demands.length ? result.demands.map(d=><article key={d.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
@@ -63,6 +83,8 @@ export default function MyTemporaries() {
             <strong>{m.temporary_properties?.property_type || "Alojamiento"} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
             <p>Estadía: {m.check_in} al {m.check_out}</p>
             <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {m.status}</p>
+            <p>Tu respuesta: {m.tenant_decision === "accepted" ? "Aceptaste" : m.tenant_decision === "rejected" ? "Rechazaste" : "Pendiente"} · La otra parte: {m.owner_decision === "accepted" ? "Aceptó" : m.owner_decision === "rejected" ? "Rechazó" : "Pendiente"}</p>
+            {m.tenant_decision === "pending" && m.status === "new" && <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"tenant","accepted")} style={button}>Aceptar coincidencia</button><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"tenant","rejected")} style={{...button,background:"#777"}}>Rechazar</button></div>}
           </article>) : <p>Aún no hay coincidencias para tus búsquedas.</p>}
           <div style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:24}}>
             <Link href="/temporarios/publicar" style={button}>Publicar</Link>
