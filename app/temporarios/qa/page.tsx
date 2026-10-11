@@ -12,6 +12,21 @@ export default function TemporaryQaIdentity() {
   const [identity, setIdentity] = useState<Identity>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [matchPreview, setMatchPreview] = useState("")
+  const [checkingMatches, setCheckingMatches] = useState(false)
+  async function checkMatches() {
+    setCheckingMatches(true)
+    setMatchPreview("")
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error("Sesión no disponible")
+      const response = await fetch("/api/temporarios/matches/preview", {headers:{Authorization:"Bearer "+session.access_token},cache:"no-store"})
+      const body: {ok?:boolean;error?:string;candidateCount?:number;propertyCount?:number;demandCount?:number;truncated?:boolean} = await response.json()
+      if (!response.ok || !body.ok) throw new Error(body.error || "No pudimos consultar las coincidencias")
+      setMatchPreview("Propiedades publicadas: "+body.propertyCount+" · Búsquedas activas: "+body.demandCount+" · Coincidencias compatibles: "+body.candidateCount+(body.truncated?" · Resultado parcial":""))
+    } catch (error) { setMatchPreview(error instanceof Error ? error.message : "Error de conexión") }
+    finally { setCheckingMatches(false) }
+  }
   useEffect(() => {
     let active = true
     void supabase.auth.getSession().then(async ({ data: sessionData, error: sessionError }) => {
@@ -51,6 +66,8 @@ export default function TemporaryQaIdentity() {
             <p><strong>ID de usuario QA:</strong></p>
             <code style={{wordBreak:"break-all",display:"block",padding:15,background:"#fff",borderRadius:12}}>{identity.id}</code>
             <button type="button" style={{...button,marginTop:15}} onClick={() => void navigator.clipboard.writeText(identity.id)}>Copiar ID de usuario</button>
+            <button type="button" disabled={checkingMatches} style={{...button,marginTop:12}} onClick={() => void checkMatches()}>{checkingMatches ? "Comprobando..." : "Verificar matching sin guardar"}</button>
+            {matchPreview && <p role="status">{matchPreview}</p>}
           </> : <>
             <p role="status">{error || "No hay una sesión activa."}</p>
             <Link href="/login" style={{...button,display:"block",textAlign:"center"}}>Iniciar sesión en VERLO</Link>
