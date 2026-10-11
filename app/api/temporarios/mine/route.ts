@@ -38,5 +38,15 @@ export async function GET(request: Request) {
   ])
   if (properties.error || demands.error || ownerMatches.error || tenantMatches.error)
     return answer(503,{ok:false,error:"No pudimos consultar tus temporarios"})
-  return answer(200,{ok:true,properties:properties.data||[],demands:demands.data||[],ownerMatches:ownerMatches.data||[],tenantMatches:tenantMatches.data||[]})
+  const ids = Array.from(new Set([
+    ...(properties.data||[]).map(p=>p.id),
+    ...(tenantMatches.data||[]).map(m=>m.property_id),
+  ]))
+  let media: Array<{id:string;property_id:string;mime_type:string}> = []
+  if(ids.length){
+    const listing=await db.from("temporary_property_media").select("id,property_id,mime_type").in("property_id",ids).order("created_at",{ascending:true}).limit(600)
+    if(listing.error)return answer(503,{ok:false,error:"No pudimos consultar las fotografías"})
+    media=listing.data||[]
+  }
+  return answer(200,{ok:true,media,properties:properties.data||[],demands:demands.data||[],ownerMatches:ownerMatches.data||[],tenantMatches:tenantMatches.data||[]})
 }
