@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { supabase } from "@/lib/supabase/client"
+import { savePendingTemporaryDraft } from "@/lib/temporarios/pending-draft"
 import { useRouter } from "next/navigation"
 import { ownerDraftFromForm } from "@/lib/temporarios/form-mapping"
 import TemporaryMediaPicker from "./TemporaryMediaPicker"
@@ -32,7 +33,8 @@ export default function TemporaryOwnerDraft() {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session?.access_token) {
-        setResult("Para guardar, ingresá a VERLO con tu email. Tus datos todavía no fueron guardados.")
+        savePendingTemporaryDraft("owner", {...parsed.value, localityLabel, fullName, phone, publicLocationReference: reference, depositRequired: deposit === "si"})
+        router.push("/temporarios/acceso?next=/temporarios/publicar")
         return
       }
       const response = await fetch("/api/temporarios/properties", {
