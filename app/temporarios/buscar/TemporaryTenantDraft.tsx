@@ -45,7 +45,7 @@ export default function TemporaryTenantDraft() {
   }
   return <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
     <form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }} style={{ display: "grid", gap: 20 }}>
-      <p style={{ fontSize: 14, margin: 0 }}>Versión de prueba: la búsqueda no genera coincidencias ni notificaciones automáticas.</p>
+      <p style={{ fontSize: 14, margin: 0 }}>Elegí dónde querés alojarte y las fechas de tu viaje.</p>
       <label style={fieldLabel}>Tipo de propiedad
         <select name="propertyType" style={field} defaultValue="" required>
           <option value="" disabled>Elegí una opción</option>
@@ -56,7 +56,7 @@ export default function TemporaryTenantDraft() {
         </select>
       </label>
       <div style={fieldLabel}>Zonas donde buscás (Georef)
-        <ArgentinaLocationSelector mode="multi" className="temporary-georef" labelName="temporary_locations_labels" keyName="temporary_locations_keys" dataName="temporary_locations_data" />
+        <ArgentinaLocationSelector mode="multi" autoAddMulti className="temporary-georef" labelName="temporary_locations_labels" keyName="temporary_locations_keys" dataName="temporary_locations_data" />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16 }}>
         <label style={fieldLabel}>Fecha de entrada<input type="date" name="checkIn" style={field} required /></label>
@@ -73,7 +73,6 @@ export default function TemporaryTenantDraft() {
       </label>
       <p style={{ margin: 0, fontSize: 14 }}>El presupuesto es por toda la estadía, no por noche. La tarifa de VERLO es $29.900 al habilitar el cierre.</p>
       <button type="submit" disabled={saving} style={{...button,opacity:saving?0.6:1}}>{saving ? "Procesando..." : "Registrar mi búsqueda"}</button>
-      <a href="/temporarios/acceso?next=/temporarios/buscar" style={{textDecoration:"underline",fontSize:14,fontWeight:800}}>¿No tenés sesión? Recibí tu Magic Link para continuar.</a>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
     </form>
   </section>
