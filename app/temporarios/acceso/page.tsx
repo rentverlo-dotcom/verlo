@@ -1,3 +1,4 @@
+import BrandHeader from "@/app/temporarios/BrandHeader"
 "use client"
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link"
@@ -103,7 +104,7 @@ export default function TemporaryAccess() {
   }
 
   return <main style={shell}>
-    <header style={nav}><div style={navInner}><VerloBrand width={112}/><Link href="/temporarios">Volver a temporarios</Link></div></header>
+    <BrandHeader/>
     <div style={{...container,maxWidth:760,paddingTop:60,paddingBottom:90}}>
       <section style={panel}>
         <h1 style={{...heading,fontSize:"clamp(42px,7vw,68px)"}}>Entrá a <em style={script}>Temporarios.</em></h1>
