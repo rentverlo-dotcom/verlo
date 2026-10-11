@@ -5,7 +5,7 @@ import { validateTemporaryMedia } from "@/lib/temporarios/media-validation"
 
 type Preview = { id: string; url: string; name: string; type: string }
 
-export default function TemporaryMediaPicker() {
+export default function TemporaryMediaPicker({onFiles}:{onFiles:(files:File[])=>void}) {
   const [items, setItems] = useState<Preview[]>([])
   const [error, setError] = useState("")
 
@@ -14,6 +14,7 @@ export default function TemporaryMediaPicker() {
     const validation = validateTemporaryMedia(files)
     if ("message" in validation) { setError(validation.message); return }
     setError("")
+    onFiles(files)
     const next = files.map(file => ({
         id: crypto.randomUUID(),
         url: URL.createObjectURL(file),
@@ -36,10 +37,7 @@ export default function TemporaryMediaPicker() {
         style={{ border: "1px dashed rgba(5,0,2,.3)", borderRadius: 14, padding: 18, background: "white" }} />
     </label>
     {error && <p role="alert" style={{ margin: 0, color: "#a21d36", fontWeight: 700 }}>{error}</p>}
-    <p style={{ margin: 0, fontSize: 13 }}>
-      Vista previa local: todavía NO se suben archivos a R2 ni se guardan en Supabase.
-      La integración existente de R2 se conectará después de aislar el entorno de prueba.
-    </p>
+    <p style={{margin:0,fontSize:13,color:"#63575b"}}>Elegí hasta 12 fotos para acompañar tu publicación.</p>
     {items.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(145px,1fr))", gap: 12 }}>
       {items.map(item => <div key={item.id} style={{ borderRadius: 14, overflow: "hidden", background: "white", border: "1px solid #ded4d8" }}>
         {item.type.startsWith("video/") ?
