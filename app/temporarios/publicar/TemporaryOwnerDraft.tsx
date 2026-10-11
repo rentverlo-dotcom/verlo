@@ -61,8 +61,8 @@ export default function TemporaryOwnerDraft() {
   const datesValid = Boolean(from && until && until > from)
   const valid = Boolean(reference.trim() && price > 0 && Number.isFinite(price) && datesValid)
 
-  return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}><form onSubmit={event =>
-      <div aria-hidden="true" style={{position:"absolute",left:"-10000px",height:1,width:1,overflow:"hidden"}}><label>Dejá este campo vacío<input name="website" type="text" tabIndex={-1} autoComplete="off" /></label></div> { event.preventDefault(); void save(event.currentTarget) }}>
+  return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}><form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }}>
+      <div aria-hidden="true" style={{position:"absolute",left:"-10000px",height:1,width:1,overflow:"hidden"}}><label>Dejá este campo vacío<input name="website" type="text" tabIndex={-1} autoComplete="off" /></label></div>
     <div style={{ display: "grid", gap: 20 }}>
       <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#050002" }}>Publicá tu alojamiento y gestioná las fechas disponibles.</p>
       <div style={fieldLabel}>Ubicación (Georef)
