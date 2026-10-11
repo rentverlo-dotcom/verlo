@@ -26,5 +26,10 @@ export async function authorizeTemporaryWrite(request: Request, role: Role): Pro
   const { data, error } = await client.auth.getUser(bearer.slice(7))
   if (error || !data.user?.id || !data.user.email_confirmed_at || !data.user.email)
     return { ok: false, status: 401, error: "Verified login required" }
+  // An explicit QA identity allowlist is mandatory for Preview writes.
+  const allowed = (process.env.TEMPORARY_QA_USER_IDS || "")
+    .split(",").map(value => value.trim().toLowerCase()).filter(Boolean)
+  if (!allowed.includes(data.user.id.toLowerCase()))
+    return { ok: false, status: 403, error: "Temporary QA access required" }
   return { ok: true, userId: data.user.id, email: data.user.email.toLowerCase() }
 }
