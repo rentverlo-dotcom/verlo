@@ -88,6 +88,16 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
         <p style={{fontSize:13}}>Tu aceptación: <strong>{myTermsAccepted?"Registrada":"Pendiente"}</strong> · Otra parte: <strong>{otherTermsAccepted?"Registrada":"Pendiente"}</strong></p>
         {!myTermsAccepted&&<button type="button" disabled={accepting} onClick={()=>void acceptTerms()} style={{background:"#050002",color:"white",border:0,borderRadius:99,padding:"12px 18px",fontWeight:850,cursor:"pointer"}}>{accepting?"Guardando...":"Acepto las fechas y el precio"}</button>}
       </div>}
+      {hasDraft&&myTermsAccepted&&otherTermsAccepted&&<section aria-label="Próximos pasos de la reserva" style={{marginTop:18,padding:"18px 16px",borderRadius:16,background:"#fff",border:"1px solid #ecdde2"}}>
+       <strong style={{fontSize:18}}>Condiciones aceptadas por ambas partes</strong>
+       <p style={{fontSize:13,lineHeight:1.55,color:"#63565d"}}>El importe de la estadía es {money(match.agreed_total_ars)} y se acuerda entre las partes. VERLO tiene un cargo único de {money(29900)} a cargo del inquilino, separado del alojamiento.</p>
+       <div style={{display:"grid",gap:10,fontSize:14,lineHeight:1.5}}>
+        <div><strong>1. Condiciones</strong> · Aceptadas por ambas partes.</div>
+        <div><strong>2. Pago de VERLO</strong> · {reservation?.status==="fee_paid"||reservation?.status==="deposit_pending"||reservation?.status==="ready_to_block"||reservation?.status==="confirmed"?"Estado registrado en el sistema.":"Pendiente. El cobro todavía no está habilitado en esta prueba."}</div>
+        <div><strong>3. Confirmación de fechas</strong> · {reservation?.status==="confirmed"?"Reserva confirmada.":"Pendiente. Ambas partes deberán aprobar expresamente el bloqueo."}</div>
+       </div>
+       <p style={{fontSize:12,color:"#73666d",marginBottom:0}}>Aceptar condiciones no implica reservar fechas. No envíes dinero por esta pantalla.</p>
+      </section>}
       {reservationMessage&&<p role="status" style={{fontSize:14,margin:"12px 0 0"}}>{reservationMessage}</p>}
      </div>}
      {match.status==="new"&&ownDecision==="pending"&&<div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
