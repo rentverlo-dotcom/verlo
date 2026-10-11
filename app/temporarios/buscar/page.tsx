@@ -1,79 +1,43 @@
 import type { Metadata } from "next"
+import Link from "next/link"
+import VerloBrand from "@/components/VerloBrand"
+import {shell,container,panel,eyebrow,heading,subtitle,field,fieldLabel,button} from "../brand"
 
 export const metadata: Metadata = {
   title: "Buscar alquiler temporario | VERLO",
-  description: "Formulario de alquileres temporarios de VERLO en preparación.",
-  robots: { index: false, follow: false },
+  description: "Buscá alquileres temporarios por fechas y presupuesto.",
+  robots: {index:false,follow:false},
 }
 
 export default function BuscarTemporarioPage() {
   return (
-    <main
-      style={{
-        maxWidth: 760,
-        margin: "0 auto",
-        padding: "48px 20px 88px",
-      }}
-    >
-      <a href="/temporarios">← Temporarios</a>
-      <h1>Buscá un alquiler temporario</h1>
-      <p>
-        Elegí dónde querés alojarte y las fechas de tu estadía.
-        VERLO permite alquileres de 1 a 90 noches.
-      </p>
-
-      <div
-        style={{
-          display: "grid",
-          gap: 18,
-          border: "1px solid #d1d5db",
-          borderRadius: 16,
-          padding: 24,
-          marginTop: 24,
-        }}
-      >
-        <label style={{ display: "grid", gap: 6 }}>
-          Localidad o zona
-          <input
-            type="text"
-            placeholder="Ej.: Mar Azul, Pinamar, Palermo"
-            disabled
-            style={{ padding: 12 }}
-          />
-        </label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <label style={{ display: "grid", gap: 6 }}>
-            Entrada
-            <input type="date" disabled style={{ padding: 12, minWidth: 0 }} />
-          </label>
-          <label style={{ display: "grid", gap: 6 }}>
-            Salida
-            <input type="date" disabled style={{ padding: 12, minWidth: 0 }} />
-          </label>
-        </div>
-        <label style={{ display: "grid", gap: 6 }}>
-          Presupuesto total de la estadía (ARS)
-          <input
-            type="number"
-            min="1"
-            placeholder="Ej.: 1200000"
-            disabled
-            style={{ padding: 12 }}
-          />
-        </label>
-        <p style={{ fontSize: 14, margin: 0 }}>
-          El presupuesto es por toda la estadía, no por mes.
-          La tarifa de VERLO es de $29.900 por contrato temporario,
-          únicamente en el momento de habilitar el cierre.
-        </p>
-        <button type="button" disabled style={{ padding: 14, cursor: "not-allowed" }}>
-          Formulario en preparación
-        </button>
+    <main style={shell}>
+      <div style={{...container,maxWidth:780}}>
+        <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:44,flexWrap:"wrap"}}>
+          <VerloBrand />
+          <Link href="/temporarios" style={{color:"#050002",fontSize:14,fontWeight:700}}>← Temporarios</Link>
+        </nav>
+        <p style={eyebrow}>INQUILINOS · TEMPORARIOS</p>
+        <h1 style={{...heading,fontSize:"clamp(34px,5vw,50px)"}}>Elegí tus fechas. Encontrá tu lugar.</h1>
+        <p style={subtitle}>Buscá alojamiento de 1 a 90 noches, según ubicación y presupuesto total.</p>
+        <section style={{...panel,marginTop:32}}>
+          <div style={{display:"grid",gap:20}}>
+            <label style={fieldLabel}>Localidad o zona
+              <input type="text" placeholder="Ej.: Mar Azul, Pinamar, Palermo" disabled style={field}/>
+            </label>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:16}}>
+              <label style={fieldLabel}>Fecha de entrada<input type="date" disabled style={field}/></label>
+              <label style={fieldLabel}>Fecha de salida<input type="date" disabled style={field}/></label>
+            </div>
+            <label style={fieldLabel}>Presupuesto total de la estadía (ARS)
+              <input type="number" min="1" placeholder="Ej.: 1200000" disabled style={field}/>
+            </label>
+            <p style={{fontSize:14,margin:0}}>El presupuesto es por la estadía completa, no mensual. VERLO cobra $29.900 al inquilino por contrato temporario al habilitar el cierre.</p>
+            <button type="button" disabled style={{...button,border:0,opacity:0.55,cursor:"not-allowed"}}>Formulario en preparación</button>
+          </div>
+        </section>
+        <p style={{fontSize:13,marginTop:20}}>Pantalla de desarrollo: no guarda datos, no crea matches, no envía avisos y no inicia pagos.</p>
       </div>
-      <p style={{ fontSize: 13, marginTop: 20 }}>
-        Pantalla de desarrollo. No guarda datos, no genera matches,
-        no envía mensajes y no inicia pagos.
-      </p>
     </main>
   )
 }
