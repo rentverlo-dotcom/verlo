@@ -22,6 +22,7 @@ export default function TemporaryOwnerDraft() {
   async function save(form: HTMLFormElement) {
     if (saving) return
     const formData = new FormData(form)
+    if (String(formData.get("website") || "").trim()) return
     const parsed = ownerDraftFromForm(formData)
     if (!parsed.ok) { setResult("error" in parsed ? parsed.error : "Datos inválidos"); return }
     const fullName = String(formData.get("fullName") || "").trim()
@@ -33,7 +34,7 @@ export default function TemporaryOwnerDraft() {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session?.access_token) {
-        savePendingTemporaryDraft("owner", {...parsed.value, localityLabel, fullName, phone, publicLocationReference: reference, depositRequired: deposit === "si"})
+        savePendingTemporaryDraft("owner", {...parsed.value, localityLabel, fullName, phone, website: String(formData.get("website") || ""), publicLocationReference: reference, depositRequired: deposit === "si"})
         router.push("/temporarios/acceso?next=/temporarios/publicar")
         return
       }
@@ -41,7 +42,7 @@ export default function TemporaryOwnerDraft() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
         body: JSON.stringify({
-          ...parsed.value, localityLabel, fullName, phone,
+          ...parsed.value, localityLabel, fullName, phone, website: String(formData.get("website") || ""),
           publicLocationReference: reference, depositRequired: deposit === "si",
         }),
       })
@@ -60,7 +61,8 @@ export default function TemporaryOwnerDraft() {
   const datesValid = Boolean(from && until && until > from)
   const valid = Boolean(reference.trim() && price > 0 && Number.isFinite(price) && datesValid)
 
-  return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}><form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }}>
+  return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}><form onSubmit={event =>
+      <div aria-hidden="true" style={{position:"absolute",left:"-10000px",height:1,width:1,overflow:"hidden"}}><label>Dejá este campo vacío<input name="website" type="text" tabIndex={-1} autoComplete="off" /></label></div> { event.preventDefault(); void save(event.currentTarget) }}>
     <div style={{ display: "grid", gap: 20 }}>
       <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#050002" }}>Publicá tu alojamiento y gestioná las fechas disponibles.</p>
       <div style={fieldLabel}>Ubicación (Georef)
