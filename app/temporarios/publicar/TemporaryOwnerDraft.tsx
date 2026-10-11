@@ -7,6 +7,7 @@ import { getTemporaryRequestKey, clearTemporaryRequestKey } from "@/lib/temporar
 import { useRouter } from "next/navigation"
 import { ownerDraftFromForm } from "@/lib/temporarios/form-mapping"
 import TemporaryMediaPicker from "./TemporaryMediaPicker"
+import {rememberOwnerFiles,uploadOwnerFiles} from "@/lib/temporarios/owner-media-upload"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import { panel, field, fieldLabel, button } from "../brand"
 
@@ -19,6 +20,7 @@ export default function TemporaryOwnerDraft() {
   const [deposit, setDeposit] = useState("no")
   const [result, setResult] = useState("")
   const [saving, setSaving] = useState(false)
+  const [files,setFiles] = useState<File[]>([])
   const router = useRouter()
   async function save(form: HTMLFormElement) {
     if (saving) return
@@ -36,6 +38,7 @@ export default function TemporaryOwnerDraft() {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session?.access_token) {
+        if(files.length) await rememberOwnerFiles(files)
         savePendingTemporaryDraft("owner", {...parsed.value, requestKey, localityLabel, fullName, phone, website: String(formData.get("website") || ""), publicLocationReference: reference, depositRequired: deposit === "si"})
         router.push("/temporarios/acceso?next=/temporarios/publicar")
         return
@@ -54,6 +57,13 @@ export default function TemporaryOwnerDraft() {
           ? "El guardado todavía está deshabilitado en este Preview. No se guardó la publicación."
           : data.error || "No se pudo guardar la publicación.")
         return
+      }
+      if(files.length){
+        try{await uploadOwnerFiles(data.id,files,setResult)}catch(error){
+          setResult((error instanceof Error?error.message:"No se pudieron subir las fotos")+". Tu propiedad quedó guardada. Podés agregar fotos desde Mis temporarios.")
+          clearTemporaryRequestKey("owner")
+          return
+        }
       }
       clearTemporaryRequestKey("owner")
       router.push("/temporarios/success/propietario?registro=" + encodeURIComponent(data.id))
@@ -101,7 +111,7 @@ export default function TemporaryOwnerDraft() {
       <label style={fieldLabel}>Teléfono de contacto
         <input name="phone" type="tel" style={field} maxLength={30} required autoComplete="tel" placeholder="Ej.: +54 11 5555 5555" />
       </label>
-      <TemporaryMediaPicker />
+      <TemporaryMediaPicker onFiles={setFiles} />
       <div style={{ background: "rgba(242,168,169,.22)", padding: 18, borderRadius: 16, border: "1px solid rgba(5,0,2,.1)" }}>
         <strong>¿Cuándo se bloquean las fechas?</strong>
         <p style={{ margin: "9px 0 0" }}>Solo después de la reserva y la seña, si corresponde, cuando propietario e inquilino aceptan expresamente el bloqueo. Un match o un comprobante no bloquean la propiedad.</p>
