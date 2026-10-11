@@ -10,7 +10,7 @@ export default function TemporaryTenantDraft() {
     const parsed = tenantDraftFromForm(new FormData(event.currentTarget))
     setResult(parsed.ok
       ? "Búsqueda lista: " + parsed.value.localityKeys.length + " zona(s), " + parsed.value.propertyType + ", presupuesto máximo $" + parsed.value.maxTotalBudgetArs.toLocaleString("es-AR")
-      : parsed.error)
+      : "error" in parsed ? parsed.error : "Datos inválidos")
   }
   return <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
     <form onSubmit={check} style={{ display: "grid", gap: 20 }}>
