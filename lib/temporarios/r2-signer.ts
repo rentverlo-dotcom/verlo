@@ -5,7 +5,7 @@ const encode = (s:string) => encodeURIComponent(s).replace(/[!'()*]/g,c=>"%"+c.c
 const hmac=(key:Buffer|string,value:string)=>createHmac("sha256",key).update(value).digest()
 const sha=(value:string)=>createHash("sha256").update(value).digest("hex")
 
-export function signTemporaryObject(config:TemporaryStorageConfig, method:"PUT"|"HEAD", key:string, mime?:string) {
+export function signTemporaryObject(config:TemporaryStorageConfig, method:"PUT"|"HEAD"|"GET", key:string, mime?:string) {
   const host=config.accountId+".r2.cloudflarestorage.com"
   const path="/"+encode(config.bucket)+"/"+key.split("/").map(encode).join("/")
   const now=new Date()
