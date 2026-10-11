@@ -12,7 +12,7 @@ export default function TemporaryMediaPicker() {
   function onSelect(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || [])
     const validation = validateTemporaryMedia(files)
-    if (!validation.valid) { setError(validation.message); return }
+    if ("message" in validation) { setError(validation.message); return }
     setError("")
     const next = files.map(file => ({
         id: crypto.randomUUID(),
