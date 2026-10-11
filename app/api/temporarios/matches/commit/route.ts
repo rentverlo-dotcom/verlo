@@ -45,7 +45,7 @@ export async function POST(request:Request) {
     nightlyPriceArs:Number(p.data.nightly_price_ars),availabilityStart:p.data.availability_start,
     availabilityEnd:p.data.availability_end,maxGuests:p.data.max_guests,status:"published",
   },(b.data||[]).map(x=>({checkIn:x.check_in,checkOut:x.check_out})))
-  if(!decision.compatible) return reply(409,{ok:false,error:"La coincidencia ya no cumple los requisitos",reason:decision.reason})
+  if(!decision.compatible) return reply(409,{ok:false,error:"La coincidencia ya no cumple los requisitos",reason:"reason" in decision ? decision.reason : "not_compatible"})
   const {data,error}=await db.from("temporary_matches").insert({
     property_id:p.data.id,demand_id:d.data.id,check_in:d.data.check_in,check_out:d.data.check_out,
     agreed_total_ars:decision.totalPriceArs,status:"new",
