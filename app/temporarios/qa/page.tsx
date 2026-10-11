@@ -14,13 +14,28 @@ export default function TemporaryQaIdentity() {
   const [error, setError] = useState("")
   useEffect(() => {
     let active = true
-    void supabase.auth.getUser().then(({ data, error: authError }) => {
+    void supabase.auth.getSession().then(async ({ data: sessionData, error: sessionError }) => {
       if (!active) return
-      if (authError) setError("No se pudo comprobar la sesión.")
-      const user = data.user
-      if (user) setIdentity({ id: user.id, email: user.email || "", verified: Boolean(user.email_confirmed_at) })
+      if (sessionError) {
+        setError("No se pudo leer la sesión local. Volvé a ingresar a VERLO.")
+        setLoading(false)
+        return
+      }
+      if (!sessionData.session) {
+        setError("No hay una sesión iniciada en este Preview.")
+        setLoading(false)
+        return
+      }
+      const { data, error: authError } = await supabase.auth.getUser()
+      if (!active) return
+      if (authError || !data.user) {
+        setError("Hay una sesión local, pero Supabase no pudo validarla. Ingresá nuevamente a VERLO.")
+      } else {
+        const user = data.user
+        setIdentity({ id: user.id, email: user.email || "", verified: Boolean(user.email_confirmed_at) })
+      }
       setLoading(false)
-    }).catch(() => { if (active) { setError("Error de conexión."); setLoading(false) } })
+    }).catch(() => { if (active) { setError("Error de conexión con Supabase."); setLoading(false) } })
     return () => { active = false }
   }, [])
   return <main style={shell}>
