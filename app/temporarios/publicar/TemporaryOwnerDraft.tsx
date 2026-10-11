@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, type FormEvent } from "react"
+import { supabase } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 import { ownerDraftFromForm } from "@/lib/temporarios/form-mapping"
 import TemporaryMediaPicker from "./TemporaryMediaPicker"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
@@ -14,6 +16,8 @@ export default function TemporaryOwnerDraft() {
   const [until, setUntil] = useState("")
   const [deposit, setDeposit] = useState("no")
   const [result, setResult] = useState("")
+  const [saving, setSaving] = useState(false)
+  const router = useRouter()
   async function check(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const parsed = ownerDraftFromForm(new FormData(e.currentTarget))
@@ -32,6 +36,43 @@ export default function TemporaryOwnerDraft() {
     } catch { setResult("Error de conexión. No se guardaron datos.") }
   }
 
+  async function save(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (saving) return
+    const form = new FormData(e.currentTarget)
+    const parsed = ownerDraftFromForm(form)
+    if (!parsed.ok) { setResult("error" in parsed ? parsed.error : "Datos inválidos"); return }
+    const fullName = String(form.get("fullName") || "").trim()
+    const phone = String(form.get("phone") || "").trim()
+    const localityLabel = String(form.get("temporary_location_label") || "").trim()
+    if (!fullName || !phone || !localityLabel) { setResult("Completá nombre, teléfono y ubicación."); return }
+    setSaving(true)
+    setResult("Comprobando acceso...")
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session?.access_token) {
+        setResult("Para guardar, ingresá a VERLO con tu email. Tus datos todavía no fueron guardados.")
+        return
+      }
+      const response = await fetch("/api/temporarios/properties", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+        body: JSON.stringify({
+          ...parsed.value, localityLabel, fullName, phone,
+          publicLocationReference: reference, depositRequired: deposit === "si",
+        }),
+      })
+      const data: { ok?: boolean; id?: string; error?: string } = await response.json()
+      if (!response.ok || !data.ok || !data.id) {
+        setResult(data.error === "Temporary writes are disabled"
+          ? "El guardado todavía está deshabilitado en este Preview. No se guardó la publicación."
+          : data.error || "No se pudo guardar la publicación.")
+        return
+      }
+      router.push("/temporarios/success/propietario?registro=" + encodeURIComponent(data.id))
+    } catch { setResult("Error de conexión. No se guardó la publicación.") }
+    finally { setSaving(false) }
+  }
   const price = Number(nightlyPrice)
   const datesValid = Boolean(from && until && until > from)
   const valid = Boolean(reference.trim() && price > 0 && Number.isFinite(price) && datesValid)
@@ -66,6 +107,12 @@ export default function TemporaryOwnerDraft() {
           <option value="no">No</option><option value="si">Sí, de acuerdo con el inquilino</option>
         </select>
       </label>
+      <label style={fieldLabel}>Nombre y apellido
+        <input name="fullName" style={field} maxLength={120} required autoComplete="name" placeholder="Tu nombre completo" />
+      </label>
+      <label style={fieldLabel}>Teléfono de contacto
+        <input name="phone" type="tel" style={field} maxLength={30} required autoComplete="tel" placeholder="Ej.: +54 11 5555 5555" />
+      </label>
       <TemporaryMediaPicker />
       <div style={{ background: "rgba(242,168,169,.22)", padding: 18, borderRadius: 16, border: "1px solid rgba(5,0,2,.1)" }}>
         <strong>¿Cuándo se bloquean las fechas?</strong>
@@ -81,8 +128,9 @@ export default function TemporaryOwnerDraft() {
         <p style={{ margin: "4px 0" }}>Seña: {deposit === "si" ? "opcional, a acordar" : "no solicitada"}</p>
       </div>
       <button type="submit" style={button}>Comprobar datos del matching (sin guardar)</button>
+      <button type="button" disabled={saving} onClick={event => { const form = event.currentTarget.closest("form"); if (form) void save({ preventDefault() {}, currentTarget: form } as FormEvent<HTMLFormElement>) }} style={{...button,opacity:saving?0.6:1}}>{saving ? "Comprobando..." : "Guardar publicación (requiere acceso)"}</button>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
-      <p style={{ margin: 0, fontSize: 13 }}>Los datos y las fotos permanecen únicamente en este navegador durante esta vista. No se envían a VERLO, R2 ni Supabase.</p>
+      <p style={{ margin: 0, fontSize: 13 }}>La comprobación no guarda datos. Guardar requiere una sesión verificada y la habilitación del backend. Las fotos son solo una vista local: todavía no se suben a R2.</p>
     </div></form>
   </section>
 }
