@@ -1,5 +1,5 @@
 "use client"
-import {useEffect,useState} from "react"
+import {useEffect,useRef,useState} from "react"
 import {supabase} from "@/lib/supabase/client"
 
 type Photo={id:string;mime_type:string}
@@ -9,6 +9,7 @@ export default function PropertyGallery({photos}:{photos:Photo[]}){
  const [images,setImages]=useState<Loaded[]>([])
  const [active,setActive]=useState<number|null>(null)
  const [loading,setLoading]=useState(false)
+ const touchStart=useRef<number|null>(null)
  const photoIds=photos.filter(p=>p.mime_type.startsWith("image/")).map(p=>p.id).join(",")
 
  useEffect(()=>{
@@ -63,10 +64,17 @@ export default function PropertyGallery({photos}:{photos:Photo[]}){
   </button>
   {active!==null&&<div role="dialog" aria-modal="true" aria-label="Galería del alojamiento" onClick={()=>setActive(null)} style={{position:"fixed",inset:0,zIndex:99999,background:"rgba(5,0,2,.95)",display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
    <button type="button" aria-label="Cerrar galería" onClick={()=>setActive(null)} style={{...navStyle,position:"absolute",right:20,top:20,zIndex:2}}>×</button>
-   <div onClick={event=>event.stopPropagation()} style={{width:"100%",maxWidth:1100,display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
-    {images.length>1&&<button type="button" aria-label="Fotografía anterior" style={navStyle} onClick={()=>setActive(x=>x===null?null:(x-1+images.length)%images.length)}>‹</button>}
-    <img src={images[active].url} alt={"Fotografía "+(active+1)+" de "+images.length} style={{maxWidth:"calc(100% - 110px)",maxHeight:"82vh",objectFit:"contain",borderRadius:10}}/>
-    {images.length>1&&<button type="button" aria-label="Fotografía siguiente" style={navStyle} onClick={()=>setActive(x=>x===null?null:(x+1)%images.length)}>›</button>}
+   <div onClick={event=>event.stopPropagation()} onTouchStart={event=>{touchStart.current=event.touches[0]?.clientX??null}} onTouchEnd={event=>{if(touchStart.current===null||images.length<2)return;const dx=event.changedTouches[0].clientX-touchStart.current;touchStart.current=null;if(Math.abs(dx)>55)setActive(x=>x===null?null:(x+(dx<0?1:-1)+images.length)%images.length)}} style={{width:"100%",maxWidth:1100,display:"flex",alignItems:"center",justifyContent:"center",gap:12,flexDirection:"column"}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,width:"100%"}}>
+     {images.length>1&&<button type="button" aria-label="Fotografía anterior" style={{...navStyle,flexShrink:0}} onClick={()=>setActive(x=>x===null?null:(x-1+images.length)%images.length)}>‹</button>}
+     <img src={images[active].url} alt={"Fotografía "+(active+1)+" de "+images.length} style={{maxWidth:"calc(100% - 112px)",maxHeight:"70vh",objectFit:"contain",borderRadius:10}}/>
+     {images.length>1&&<button type="button" aria-label="Fotografía siguiente" style={{...navStyle,flexShrink:0}} onClick={()=>setActive(x=>x===null?null:(x+1)%images.length)}>›</button>}
+    </div>
+    {images.length>1&&<div aria-label="Miniaturas de la galería" style={{display:"flex",maxWidth:"100%",overflowX:"auto",gap:8,padding:6}}>
+      {images.map((image,i)=><button key={image.id} type="button" aria-label={"Ver fotografía "+(i+1)} aria-current={active===i?"true":undefined} onClick={()=>setActive(i)} style={{padding:0,border:active===i?"3px solid #f6bbc6":"3px solid transparent",borderRadius:10,background:"transparent",cursor:"pointer",flexShrink:0}}>
+       <img src={image.url} alt="" style={{width:68,height:52,objectFit:"cover",borderRadius:7,display:"block"}}/>
+      </button>)}
+    </div>}
    </div>
    <div style={{position:"absolute",bottom:18,color:"#fff",fontWeight:800,fontSize:15}}>{active+1} / {images.length}</div>
   </div>}
