@@ -28,7 +28,7 @@ export default function TemporaryOwnerDraft() {
       </label>
       <label style={fieldLabel}>Tipo de propiedad
         <select value={type} onChange={event => setType(event.target.value)} style={field}>
-          <option value="casa">Casa</option><option value="departamento">Departamento</option><option value="otro">Otro</option>
+          <option value="casa">Casa</option><option value="departamento">Departamento</option><option value="cabana">Cabaña</option><option value="habitacion">Habitación</option>
         </select>
       </label>
       <label style={fieldLabel}>Precio por noche (ARS)
