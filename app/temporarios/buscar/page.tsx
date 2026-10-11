@@ -14,6 +14,7 @@ export default function BuscarTemporarioPage() {
       </section>
       <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
         <div style={{ display: "grid", gap: 20 }}>
+          <label style={fieldLabel}>Tipo de propiedad<select style={field} defaultValue="" disabled><option value="">Elegí una opción</option><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="cabana">Cabaña</option><option value="habitacion">Habitación</option></select></label>
           <div style={fieldLabel}>Zonas donde buscás (Georef)<ArgentinaLocationSelector mode="multi" className="temporary-georef" labelName="temporary_locations_labels" keyName="temporary_locations_keys" dataName="temporary_locations_data" /></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16 }}>
             <label style={fieldLabel}>Fecha de entrada<input type="date" disabled style={field} /></label>
