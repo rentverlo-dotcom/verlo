@@ -1,3 +1,8 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { supabase } from "@/lib/supabase/client"
 import Link from "next/link"
 import VerloBrand from "@/components/VerloBrand"
 
@@ -748,6 +753,28 @@ function Icon({ kind }: { kind: "bell" | "download" | "home" }) {
 }
 
 export default function TemporarySuccess({role}: {role:Role}) {
+  const params = useSearchParams()
+  const id = params.get("registro")
+  const [status, setStatus] = useState<"loading" | "verified" | "unverified">("loading")
+
+  useEffect(() => {
+    let active = true
+    async function verify() {
+      if (!id) { if (active) setStatus("unverified"); return }
+      try {
+        const {data: {session}} = await supabase.auth.getSession()
+        if (!session?.access_token) { if (active) setStatus("unverified"); return }
+        const query = new URLSearchParams({role, id})
+        const response = await fetch("/api/temporarios/registration?" + query.toString(), {
+          headers: {Authorization: "Bearer " + session.access_token}, cache: "no-store",
+        })
+        if (active) setStatus(response.ok ? "verified" : "unverified")
+      } catch { if (active) setStatus("unverified") }
+    }
+    void verify()
+    return () => { active = false }
+  }, [id, role])
+
   return <>
     <style>{styles}</style>
     <div className="success-root">
@@ -755,10 +782,10 @@ export default function TemporarySuccess({role}: {role:Role}) {
       <main className="success-main"><div className="success-container">
         <section className="success-card">
           <div className="hero">
-            <div className="success-badge">Temporarios · En preparación</div>
+            <div className="success-badge">{status === "verified" ? "Registro confirmado" : "Temporarios · En preparación"}</div>
             <h1 className="success-title">Ya estás en <em>Verlo</em></h1>
             <p className="success-copy">El próximo paso es conectar tu {role === "owner" ? "propiedad" : "búsqueda"} con alquileres temporarios compatibles.</p>
-            <p className="success-status">Esta pantalla es una vista previa. Todavía no se guardó ningún registro.</p>
+            <p className="success-status">{status === "loading" ? "Verificando el registro..." : status === "verified" ? "Tu registro temporario está guardado. Próximamente podrás gestionarlo aquí." : "No se pudo confirmar ningún registro en esta sesión. Esta pantalla no acredita una publicación ni búsqueda guardada."}</p>
           </div>
           <h2 className="actions-heading">Dejá tu acceso listo cuando habilitemos Temporarios</h2>
           <div className="actions">
