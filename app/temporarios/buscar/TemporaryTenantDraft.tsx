@@ -1,5 +1,5 @@
 "use client"
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
@@ -9,23 +9,6 @@ export default function TemporaryTenantDraft() {
   const [result, setResult] = useState("")
   const [saving, setSaving] = useState(false)
   const router = useRouter()
-  async function check(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const parsed = tenantDraftFromForm(new FormData(event.currentTarget))
-    if (!parsed.ok) { setResult("error" in parsed ? parsed.error : "Datos inválidos"); return }
-    setResult("Validando búsqueda...")
-    try {
-      const response = await fetch("/api/temporarios/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "tenant", ...parsed.value }),
-      })
-      const data: { ok?: boolean; error?: string } = await response.json()
-      setResult(response.ok && data.ok
-        ? "Búsqueda validada por VERLO. No se guardaron datos ni se generaron matches."
-        : data.error || "No se pudo validar la búsqueda.")
-    } catch { setResult("Error de conexión. No se guardaron datos.") }
-  }
   async function save(form: HTMLFormElement) {
     if (saving) return
     const payload = new FormData(form)
@@ -59,8 +42,8 @@ export default function TemporaryTenantDraft() {
     finally { setSaving(false) }
   }
   return <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
-    <form onSubmit={check} style={{ display: "grid", gap: 20 }}>
-      <p style={{ fontSize: 14, margin: 0 }}>Vista previa interactiva. No guarda datos ni genera coincidencias reales.</p>
+    <form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }} style={{ display: "grid", gap: 20 }}>
+      <p style={{ fontSize: 14, margin: 0 }}>Versión de prueba: la búsqueda no genera coincidencias ni notificaciones automáticas.</p>
       <label style={fieldLabel}>Tipo de propiedad
         <select name="propertyType" style={field} defaultValue="" required>
           <option value="" disabled>Elegí una opción</option>
@@ -87,8 +70,7 @@ export default function TemporaryTenantDraft() {
         <input name="phone" type="tel" style={field} maxLength={30} required autoComplete="tel" placeholder="Ej.: +54 11 5555 5555" />
       </label>
       <p style={{ margin: 0, fontSize: 14 }}>El presupuesto es por toda la estadía, no por noche. La tarifa de VERLO es $29.900 al habilitar el cierre.</p>
-      <button type="submit" style={button}>Comprobar búsqueda (sin guardar)</button>
-      <button type="button" disabled={saving} onClick={event => { const form = event.currentTarget.closest("form"); if (form) void save(form) }} style={{...button,opacity:saving?0.6:1}}>{saving ? "Comprobando..." : "Guardar búsqueda (requiere acceso)"}</button>
+      <button type="submit" disabled={saving} style={{...button,opacity:saving?0.6:1}}>{saving ? "Procesando..." : "Registrar mi búsqueda"}</button>
       <a href="/temporarios/acceso?next=/temporarios/buscar" style={{textDecoration:"underline",fontSize:14,fontWeight:800}}>¿No tenés sesión? Recibí tu Magic Link para continuar.</a>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
     </form>
