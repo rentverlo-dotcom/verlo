@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { ownerDraftFromForm } from "@/lib/temporarios/form-mapping"
@@ -18,24 +18,6 @@ export default function TemporaryOwnerDraft() {
   const [result, setResult] = useState("")
   const [saving, setSaving] = useState(false)
   const router = useRouter()
-  async function check(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const parsed = ownerDraftFromForm(new FormData(e.currentTarget))
-    if (!parsed.ok) { setResult("error" in parsed ? parsed.error : "Datos inválidos"); return }
-    setResult("Validando datos...")
-    try {
-      const response = await fetch("/api/temporarios/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "owner", ...parsed.value }),
-      })
-      const data: { ok?: boolean; error?: string } = await response.json()
-      setResult(response.ok && data.ok
-        ? "Datos validados por VERLO. Esta vista no guarda ni publica propiedades."
-        : data.error || "No se pudieron validar los datos.")
-    } catch { setResult("Error de conexión. No se guardaron datos.") }
-  }
-
   async function save(form: HTMLFormElement) {
     if (saving) return
     const formData = new FormData(form)
@@ -76,9 +58,9 @@ export default function TemporaryOwnerDraft() {
   const datesValid = Boolean(from && until && until > from)
   const valid = Boolean(reference.trim() && price > 0 && Number.isFinite(price) && datesValid)
 
-  return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}><form onSubmit={check}>
+  return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}><form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }}>
     <div style={{ display: "grid", gap: 20 }}>
-      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#050002" }}>Vista previa interactiva — no publica ni guarda información.</p>
+      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#050002" }}>Versión de prueba: la publicación se registra como borrador y no aparece públicamente.</p>
       <div style={fieldLabel}>Ubicación (Georef)
         <ArgentinaLocationSelector mode="single" className="temporary-georef" labelName="temporary_location_label" keyName="temporary_location_key" dataName="temporary_location_data" />
       </div>
@@ -126,11 +108,10 @@ export default function TemporaryOwnerDraft() {
         <p style={{ margin: "4px 0" }}>Disponibilidad: {datesValid ? from + " a " + until : "fechas pendientes"}</p>
         <p style={{ margin: "4px 0" }}>Seña: {deposit === "si" ? "opcional, a acordar" : "no solicitada"}</p>
       </div>
-      <button type="submit" style={button}>Comprobar datos del matching (sin guardar)</button>
-      <button type="button" disabled={saving} onClick={event => { const form = event.currentTarget.closest("form"); if (form) void save(form) }} style={{...button,opacity:saving?0.6:1}}>{saving ? "Comprobando..." : "Guardar publicación (requiere acceso)"}</button>
+      <button type="submit" disabled={saving} style={{...button,opacity:saving?0.6:1}}>{saving ? "Procesando..." : "Publicar mi propiedad"}</button>
       <a href="/temporarios/acceso?next=/temporarios/publicar" style={{textDecoration:"underline",fontSize:14,fontWeight:800}}>¿No tenés sesión? Recibí tu Magic Link para continuar.</a>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
-      <p style={{ margin: 0, fontSize: 13 }}>La comprobación no guarda datos. Guardar requiere una sesión verificada y la habilitación del backend. Las fotos son solo una vista local: todavía no se suben a R2.</p>
+      <p style={{ margin: 0, fontSize: 13 }}>Para esta prueba se requiere una sesión verificada. Las fotos todavía no se suben a R2.</p>
     </div></form>
   </section>
 }
