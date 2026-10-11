@@ -1,10 +1,14 @@
 "use client"
 import { useState, type FormEvent } from "react"
+import { supabase } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import { tenantDraftFromForm } from "@/lib/temporarios/form-mapping"
 import { panel, field, fieldLabel, button } from "../brand"
 export default function TemporaryTenantDraft() {
   const [result, setResult] = useState("")
+  const [saving, setSaving] = useState(false)
+  const router = useRouter()
   async function check(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const parsed = tenantDraftFromForm(new FormData(event.currentTarget))
@@ -21,6 +25,38 @@ export default function TemporaryTenantDraft() {
         ? "Búsqueda validada por VERLO. No se guardaron datos ni se generaron matches."
         : data.error || "No se pudo validar la búsqueda.")
     } catch { setResult("Error de conexión. No se guardaron datos.") }
+  }
+  async function save(form: HTMLFormElement) {
+    if (saving) return
+    const payload = new FormData(form)
+    const parsed = tenantDraftFromForm(payload)
+    if (!parsed.ok) { setResult("error" in parsed ? parsed.error : "Datos inválidos"); return }
+    const fullName = String(payload.get("fullName") || "").trim()
+    const phone = String(payload.get("phone") || "").trim()
+    if (!fullName || !phone) { setResult("Completá nombre y teléfono."); return }
+    setSaving(true)
+    setResult("Comprobando acceso...")
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session?.access_token) {
+        setResult("Para guardar, ingresá a VERLO con tu email. No se guardó la búsqueda.")
+        return
+      }
+      const response = await fetch("/api/temporarios/demands", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+        body: JSON.stringify({ ...parsed.value, fullName, phone }),
+      })
+      const data: { ok?: boolean; id?: string; error?: string } = await response.json()
+      if (!response.ok || !data.ok || !data.id) {
+        setResult(data.error === "Temporary writes are disabled"
+          ? "El guardado todavía está deshabilitado en este Preview. No se guardó la búsqueda."
+          : data.error || "No se pudo guardar la búsqueda.")
+        return
+      }
+      router.push("/temporarios/success/inquilino?registro=" + encodeURIComponent(data.id))
+    } catch { setResult("Error de conexión. No se guardó la búsqueda.") }
+    finally { setSaving(false) }
   }
   return <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
     <form onSubmit={check} style={{ display: "grid", gap: 20 }}>
@@ -44,8 +80,15 @@ export default function TemporaryTenantDraft() {
       <label style={fieldLabel}>Presupuesto total de la estadía (ARS)
         <input type="number" name="maxTotalBudgetArs" min="1" style={field} placeholder="Ej.: 1200000" required />
       </label>
+      <label style={fieldLabel}>Nombre y apellido
+        <input name="fullName" style={field} maxLength={120} required autoComplete="name" placeholder="Tu nombre completo" />
+      </label>
+      <label style={fieldLabel}>Teléfono de contacto
+        <input name="phone" type="tel" style={field} maxLength={30} required autoComplete="tel" placeholder="Ej.: +54 11 5555 5555" />
+      </label>
       <p style={{ margin: 0, fontSize: 14 }}>El presupuesto es por toda la estadía, no por noche. La tarifa de VERLO es $29.900 al habilitar el cierre.</p>
       <button type="submit" style={button}>Comprobar búsqueda (sin guardar)</button>
+      <button type="button" disabled={saving} onClick={event => { const form = event.currentTarget.closest("form"); if (form) void save(form) }} style={{...button,opacity:saving?0.6:1}}>{saving ? "Comprobando..." : "Guardar búsqueda (requiere acceso)"}</button>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
     </form>
   </section>
