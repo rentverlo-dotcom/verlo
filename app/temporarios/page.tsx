@@ -1,64 +1,38 @@
 import type { Metadata } from "next"
+import Link from "next/link"
+import VerloBrand from "@/components/VerloBrand"
+import {shell,container,panel,eyebrow,heading,subtitle,button,outline} from "./brand"
 
 export const metadata: Metadata = {
   title: "Alquileres temporarios | VERLO",
-  description:
-    "VERLO Temporarios: alquileres por 1 a 90 noches. Próximamente podrás buscar y publicar propiedades por fechas.",
-  robots: {
-    index: false,
-    follow: false,
-  },
+  description: "Alquileres temporarios de 1 a 90 noches. Próximamente en VERLO.",
+  robots: {index:false,follow:false},
 }
 
 export default function TemporariosPage() {
   return (
-    <main
-      style={{
-        maxWidth: 760,
-        margin: "0 auto",
-        padding: "64px 24px",
-        minHeight: "75vh",
-        fontFamily: "inherit",
-      }}
-    >
-      <p style={{ fontWeight: 700, letterSpacing: "0.08em" }}>
-        VERLO / TEMPORARIOS
-      </p>
-      <h1 style={{ fontSize: "clamp(2rem, 5vw, 3.2rem)", lineHeight: 1.15 }}>
-        Alquileres temporarios de 1 a 90 noches
-      </h1>
-      <p style={{ fontSize: 18, lineHeight: 1.65 }}>
-        Estamos preparando una experiencia para buscar y publicar alquileres
-        temporarios según ubicación, fechas y presupuesto.
-      </p>
-      <section
-        style={{
-          border: "1px solid #d1d5db",
-          borderRadius: 16,
-          padding: 24,
-          marginTop: 32,
-        }}
-      >
-        <h2 style={{ marginTop: 0 }}>Cómo funcionará</h2>
-        <p>Una propiedad se publica una sola vez y sus fechas se administran desde un calendario.</p>
-        <p>
-          El propietario puede solicitar una seña opcional, que el inquilino
-          transfiere directamente al propietario, nunca a VERLO.
-        </p>
-        <p>
-          Las fechas solo se bloquean después de completar la reserva, cuando
-          corresponde, y cuando ambas partes confirman expresamente el bloqueo.
-          Un match, el pago a VERLO o un comprobante no bloquean fechas.
-        </p>
-        <p>
-          La tarifa prevista de VERLO para el inquilino es de $29.900 por
-          contrato temporario. Publicar es gratis para propietarios.
-        </p>
-      </section>
-      <p style={{ marginTop: 32, fontSize: 14 }}>
-        Módulo en preparación. Los formularios y las reservas temporarias
-        todavía no están habilitados.
-      </p>
+    <main style={shell}>
+      <div style={container}>
+        <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:58,flexWrap:"wrap"}}>
+          <VerloBrand />
+          <Link href="/" style={{fontSize:14,fontWeight:700,color:"#050002"}}>Volver a VERLO</Link>
+        </nav>
+        <p style={eyebrow}>VERLO · TEMPORARIOS</p>
+        <h1 style={heading}>Tu próximo alquiler temporario, directo.</h1>
+        <p style={subtitle}>Alquileres de 1 a 90 noches. Encontrá propiedades según destino, fechas y presupuesto, sin intermediarios inmobiliarios.</p>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",margin:"30px 0 44px"}}>
+          <Link href="/temporarios/buscar" style={button}>Busco alojamiento</Link>
+          <span style={{...outline,opacity:0.65}}>Quiero publicar · Próximamente</span>
+        </div>
+        <section style={panel}>
+          <h2 style={{fontSize:"clamp(24px,4vw,32px)",margin:"0 0 18px",color:"#050002"}}>Una propiedad. Muchas fechas posibles.</h2>
+          <p>El propietario publica una sola vez y administra las fechas disponibles desde su calendario.</p>
+          <p>La seña es opcional y se transfiere directamente al propietario, nunca a VERLO.</p>
+          <p><strong>Las fechas solo se bloquean cuando ambas partes lo aceptan expresamente</strong>, después de realizar la reserva y la seña, si corresponde. Un match, el pago a VERLO o el envío de un comprobante no bloquean fechas.</p>
+          <p><strong>Inquilinos: $29.900 por contrato temporario.</strong> Propietarios: publicación gratuita.</p>
+          <p style={{fontSize:14}}>Módulo en preparación. Por ahora no hay reservas ni pagos habilitados.</p>
+        </section>
+      </div>
     </main>
   )
 }
