@@ -1,6 +1,7 @@
 "use client"
 import {useState} from "react"
 import PropertyGallery from "./PropertyGallery"
+import {supabase} from "@/lib/supabase/client"
 
 export type LodgingMatch={
   id:string;property_id:string;check_in:string;check_out:string;agreed_total_ars:number;status:string;
@@ -16,6 +17,23 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled}
  onDecision:(id:string,role:"owner"|"tenant",decision:"accepted"|"rejected")=>void;disabled:boolean
 }){
  const [open,setOpen]=useState(false)
+ const [starting,setStarting]=useState(false)
+ const [reservationMessage,setReservationMessage]=useState("")
+ const [reservationId,setReservationId]=useState("")
+ async function startReservation(){
+  if(starting)return
+  setStarting(true);setReservationMessage("")
+  try{
+   const {data:{session}}=await supabase.auth.getSession()
+   if(!session?.access_token)throw Error("Iniciá sesión para continuar")
+   const response=await fetch("/api/temporarios/reservations/start",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({matchId:match.id})})
+   const data:{ok?:boolean;error?:string;reservation?:{id:string;status:string;reused?:boolean}}=await response.json()
+   if(!response.ok||!data.ok||!data.reservation)throw Error(data.error||"No se pudo iniciar la reserva")
+   setReservationId(data.reservation.id)
+   setReservationMessage("Reserva en borrador creada. Las fechas aún no están bloqueadas ni se realizó ningún pago.")
+  }catch(error){setReservationMessage(error instanceof Error?error.message:"No se pudo iniciar la reserva")}
+  finally{setStarting(false)}
+ }
  const p=match.temporary_properties
  const ownDecision=role==="owner"?match.owner_decision:match.tenant_decision
  const otherDecision=role==="owner"?match.tenant_decision:match.owner_decision
@@ -37,7 +55,11 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled}
      {p?.public_location_reference&&<p><strong>Zona:</strong> {p.public_location_reference}</p>}
      {p?.description&&<p style={{lineHeight:1.55}}>{p.description}</p>}
      <p style={{color:"#685f64"}}>Tu respuesta: {ownDecision==="accepted"?"Aceptaste":ownDecision==="rejected"?"Rechazaste":"Pendiente"} · Otra parte: {otherDecision==="accepted"?"Aceptó":otherDecision==="rejected"?"Rechazó":"Pendiente"}</p>
-     {match.status==="accepted"&&<p style={{fontSize:13,color:"#6c6266"}}>Ambas partes aceptaron. Las fechas aún no están reservadas.</p>}
+     {match.status==="accepted"&&<div style={{marginTop:16,padding:16,background:"#fbf3f5",borderRadius:16}}>
+      <p style={{fontSize:14,color:"#51474c",margin:"0 0 12px"}}>Ambas partes aceptaron. Podés iniciar el trámite de reserva; todavía no bloquea fechas ni cobra dinero.</p>
+      <button type="button" disabled={starting||Boolean(reservationId)} onClick={()=>void startReservation()} style={{background:"#050002",color:"white",border:0,borderRadius:99,padding:"13px 22px",fontWeight:850,cursor:starting?"wait":"pointer",opacity:starting?.6:1}}>{starting?"Iniciando...":reservationId?"Borrador iniciado":"Iniciar reserva"}</button>
+      {reservationMessage&&<p role="status" style={{fontSize:14,margin:"12px 0 0"}}>{reservationMessage}</p>}
+     </div>}
      {match.status==="new"&&ownDecision==="pending"&&<div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
        <button type="button" disabled={disabled} onClick={()=>onDecision(match.id,role,"accepted")} style={{background:"#050002",color:"white",border:0,borderRadius:99,padding:"12px 22px",fontWeight:850}}>Aceptar coincidencia</button>
        <button type="button" disabled={disabled} onClick={()=>onDecision(match.id,role,"rejected")} style={{background:"#f5edef",color:"#050002",border:0,borderRadius:99,padding:"12px 22px",fontWeight:850}}>Rechazar</button>
