@@ -1,38 +1,36 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import VerloBrand from "@/components/VerloBrand"
-import {shell,container,panel,eyebrow,heading,subtitle,button,outline} from "./brand"
+import { shell, container, nav, navInner, hero, heading, script, subtitle, button, outline, panel } from "./brand"
 
 export const metadata: Metadata = {
   title: "Alquileres temporarios | VERLO",
   description: "Alquileres temporarios de 1 a 90 noches. Próximamente en VERLO.",
-  robots: {index:false,follow:false},
+  robots: { index: false, follow: false },
 }
-
 export default function TemporariosPage() {
-  return (
-    <main style={shell}>
-      <div style={container}>
-        <nav style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:58,flexWrap:"wrap"}}>
-          <VerloBrand />
-          <Link href="/" style={{fontSize:14,fontWeight:700,color:"#050002"}}>Volver a VERLO</Link>
-        </nav>
-        <p style={eyebrow}>VERLO · TEMPORARIOS</p>
-        <h1 style={heading}>Tu próximo alquiler temporario, directo.</h1>
-        <p style={subtitle}>Alquileres de 1 a 90 noches. Encontrá propiedades según destino, fechas y presupuesto, sin intermediarios inmobiliarios.</p>
-        <div style={{display:"flex",gap:12,flexWrap:"wrap",margin:"30px 0 44px"}}>
+  return <main style={shell}>
+    <header style={nav}><div style={navInner}>
+      <VerloBrand width={112} />
+      <Link href="/" style={{ fontSize: 14, fontWeight: 900, color: "#050002" }}>Volver a VERLO</Link>
+    </div></header>
+    <div style={container}>
+      <section style={hero}>
+        <h1 style={heading}>Alquilá directo.<br /><em style={script}>Encontrá tu verano.</em></h1>
+        <p style={subtitle}>Alquileres temporarios de 1 a 90 noches. Elegí destino, fechas y presupuesto. Conectá directamente con propietarios.</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 34 }}>
           <Link href="/temporarios/buscar" style={button}>Busco alojamiento</Link>
-          <span style={{...outline,opacity:0.65}}>Quiero publicar · Próximamente</span>
+          <Link href="/temporarios/publicar" style={outline}>Quiero publicar</Link>
         </div>
-        <section style={panel}>
-          <h2 style={{fontSize:"clamp(24px,4vw,32px)",margin:"0 0 18px",color:"#050002"}}>Una propiedad. Muchas fechas posibles.</h2>
-          <p>El propietario publica una sola vez y administra las fechas disponibles desde su calendario.</p>
-          <p>La seña es opcional y se transfiere directamente al propietario, nunca a VERLO.</p>
-          <p><strong>Las fechas solo se bloquean cuando ambas partes lo aceptan expresamente</strong>, después de realizar la reserva y la seña, si corresponde. Un match, el pago a VERLO o el envío de un comprobante no bloquean fechas.</p>
-          <p><strong>Inquilinos: $29.900 por contrato temporario.</strong> Propietarios: publicación gratuita.</p>
-          <p style={{fontSize:14}}>Módulo en preparación. Por ahora no hay reservas ni pagos habilitados.</p>
-        </section>
-      </div>
-    </main>
-  )
+      </section>
+      <section style={{ ...panel, marginBottom: 76 }}>
+        <h2 style={{ fontSize: "clamp(27px,4vw,42px)", fontWeight: 900, lineHeight: 1.15, margin: "0 0 22px" }}>Una propiedad. Muchas fechas posibles.</h2>
+        <p>Publicás una sola vez y administrás la disponibilidad de tu propiedad.</p>
+        <p>La seña es opcional y se transfiere directamente al propietario, nunca a VERLO.</p>
+        <p><strong>Las fechas solo se bloquean cuando ambas partes lo aceptan expresamente</strong>, después de completar la reserva y la seña, si corresponde. El match, el pago a VERLO o el comprobante no bloquean fechas.</p>
+        <p><strong>Inquilinos: $29.900 por contrato temporario. Propietarios: gratis.</strong></p>
+        <p style={{ fontSize: 14 }}>Módulo en preparación. Formularios sin envíos ni pagos habilitados.</p>
+      </section>
+    </div>
+  </main>
 }
