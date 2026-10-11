@@ -21,6 +21,8 @@ export async function POST(request: Request) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return deny(400, "Datos inválidos")
     body = value as Record<string, unknown>
   } catch { return deny(400, "JSON inválido") }
+  if (typeof body.website === "string" && body.website.trim())
+    return deny(400, "Solicitud invalida")
   const localityKeys = body.localityKeys
   const propertyType = body.propertyType
   const checkIn = body.checkIn
