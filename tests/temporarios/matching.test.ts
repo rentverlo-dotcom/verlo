@@ -10,7 +10,8 @@ import {
 } from "../../lib/temporarios/matching"
 
 const property: TemporaryProperty = {
-  locality: "Mar Azul",
+  localityKey: "ar:06:06357:006",
+  propertyType: "casa",
   nightlyPriceArs: 100000,
   availabilityStart: "2027-01-01",
   availabilityEnd: "2027-02-01",
@@ -18,7 +19,8 @@ const property: TemporaryProperty = {
   status: "published",
 }
 const demand: TemporaryDemand = {
-  locality: "Mar Azul",
+  localityKeys: ["ar:06:06357:006"],
+  propertyType: "casa",
   checkIn: "2027-01-16",
   checkOut: "2027-01-25",
   maxTotalBudgetArs: 1000000,
@@ -76,7 +78,7 @@ test("rejects a paused property, different location, excess guests or bad price"
   assert.deepEqual(evaluateTemporaryMatch(demand, { ...property, status: "paused" }), {
     compatible: false, reason: "unpublished",
   })
-  assert.deepEqual(evaluateTemporaryMatch(demand, { ...property, locality: "Pinamar" }), {
+  assert.deepEqual(evaluateTemporaryMatch(demand, { ...property, localityKey: "ar:06:06357:007" }), {
     compatible: false, reason: "different_locality",
   })
   assert.deepEqual(evaluateTemporaryMatch({ ...demand, guests: 5 }, property), {
@@ -87,9 +89,20 @@ test("rejects a paused property, different location, excess guests or bad price"
   })
 })
 
-test("normalizes accents and whitespace in locality names", () => {
-  const normalized = { ...demand, locality: "  MÁR   AZUL " }
-  assert.equal(evaluateTemporaryMatch(normalized, property).compatible, true)
+test("matches one of multiple tenant Georef zones and rejects unrelated IDs", () => {
+  assert.equal(evaluateTemporaryMatch({ ...demand, localityKeys: ["ar:06:other", property.localityKey] }, property).compatible, true)
+  assert.deepEqual(evaluateTemporaryMatch({ ...demand, localityKeys: ["ar:06:other"] }, property), {
+    compatible: false, reason: "different_locality",
+  })
+})
+
+test("property type must match: casa, departamento, cabana, habitacion", () => {
+  for (const propertyType of ["casa", "departamento", "cabana", "habitacion"] as const) {
+    assert.equal(evaluateTemporaryMatch({ ...demand, propertyType }, { ...property, propertyType }).compatible, true)
+    assert.deepEqual(evaluateTemporaryMatch({ ...demand, propertyType }, { ...property, propertyType: propertyType === "casa" ? "departamento" : "casa" }), {
+      compatible: false, reason: "different_property_type",
+    })
+  }
 })
 
 test("bilateral acceptance and received deposit are necessary for blocking", () => {
