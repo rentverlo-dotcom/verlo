@@ -1,8 +1,9 @@
 "use client"
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
+import { readPendingTemporaryDraft, clearPendingTemporaryDraft } from "@/lib/temporarios/pending-draft"
 import VerloBrand from "@/components/VerloBrand"
 import { shell, container, nav, navInner, panel, field, fieldLabel, button, heading, script } from "../brand"
 
@@ -19,6 +20,8 @@ export default function TemporaryAccess() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [signedIn, setSignedIn] = useState(false)
+  const [finishing, setFinishing] = useState(false)
+  const processing = useRef(false)
 
   useEffect(() => {
     let active = true
@@ -30,6 +33,43 @@ export default function TemporaryAccess() {
     })
     return () => { active = false; subscription.unsubscribe() }
   }, [])
+
+  useEffect(() => {
+    if (!signedIn || processing.current) return
+    const next = destination()
+    const kind = next === "/temporarios/publicar" ? "owner" :
+      next === "/temporarios/buscar" ? "tenant" : null
+    if (!kind) return
+    const pending = readPendingTemporaryDraft(kind)
+    if (!pending) return
+    processing.current = true
+    setFinishing(true)
+    setMessage("Guardando tu formulario de Temporarios...")
+    void (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) throw new Error("Sesión no disponible")
+        const response = await fetch(kind === "owner" ? "/api/temporarios/properties" : "/api/temporarios/demands", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+          body: JSON.stringify(pending),
+        })
+        const data: { ok?: boolean; id?: string; error?: string } = await response.json()
+        if (!response.ok || !data.ok || !data.id) {
+          setMessage(data.error || "No se pudo guardar. Tu formulario sigue disponible en este navegador.")
+          return
+        }
+        clearPendingTemporaryDraft(kind)
+        router.replace((kind === "owner" ? "/temporarios/success/propietario" : "/temporarios/success/inquilino") +
+          "?registro=" + encodeURIComponent(data.id))
+      } catch {
+        setMessage("No se pudo guardar por un problema de conexión. Tu formulario sigue disponible en este navegador.")
+      } finally {
+        setFinishing(false)
+        processing.current = false
+      }
+    })()
+  }, [signedIn, router])
 
   async function sendLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -58,8 +98,9 @@ export default function TemporaryAccess() {
       <section style={panel}>
         <h1 style={{...heading,fontSize:"clamp(42px,7vw,68px)"}}>Entrá a <em style={script}>Temporarios.</em></h1>
         {signedIn ? <>
-          <p>Tu sesión ya está iniciada. Podés continuar con tu publicación o búsqueda.</p>
-          <button style={button} type="button" onClick={() => router.push(destination())}>Continuar en Temporarios</button>
+          <p>{finishing ? "Guardando tu formulario..." : "Tu sesión ya está iniciada. Podés continuar con tu publicación o búsqueda."}</p>
+          {message && <p role="status">{message}</p>}
+          <button style={button} disabled={finishing} type="button" onClick={() => router.push(destination())}>Continuar en Temporarios</button>
         </> : <>
           <p>Usamos la misma cuenta de VERLO. Si todavía no tenés una, el enlace permitirá crearla con tu email.</p>
           <form onSubmit={sendLink} style={{display:"grid",gap:18,marginTop:22}}>
