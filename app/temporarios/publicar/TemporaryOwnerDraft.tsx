@@ -36,15 +36,14 @@ export default function TemporaryOwnerDraft() {
     } catch { setResult("Error de conexión. No se guardaron datos.") }
   }
 
-  async function save(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
+  async function save(form: HTMLFormElement) {
     if (saving) return
-    const form = new FormData(e.currentTarget)
-    const parsed = ownerDraftFromForm(form)
+    const formData = new FormData(form)
+    const parsed = ownerDraftFromForm(formData)
     if (!parsed.ok) { setResult("error" in parsed ? parsed.error : "Datos inválidos"); return }
-    const fullName = String(form.get("fullName") || "").trim()
-    const phone = String(form.get("phone") || "").trim()
-    const localityLabel = String(form.get("temporary_location_label") || "").trim()
+    const fullName = String(formData.get("fullName") || "").trim()
+    const phone = String(formData.get("phone") || "").trim()
+    const localityLabel = String(formData.get("temporary_location_label") || "").trim()
     if (!fullName || !phone || !localityLabel) { setResult("Completá nombre, teléfono y ubicación."); return }
     setSaving(true)
     setResult("Comprobando acceso...")
@@ -128,7 +127,7 @@ export default function TemporaryOwnerDraft() {
         <p style={{ margin: "4px 0" }}>Seña: {deposit === "si" ? "opcional, a acordar" : "no solicitada"}</p>
       </div>
       <button type="submit" style={button}>Comprobar datos del matching (sin guardar)</button>
-      <button type="button" disabled={saving} onClick={event => { const form = event.currentTarget.closest("form"); if (form) void save({ preventDefault() {}, currentTarget: form } as FormEvent<HTMLFormElement>) }} style={{...button,opacity:saving?0.6:1}}>{saving ? "Comprobando..." : "Guardar publicación (requiere acceso)"}</button>
+      <button type="button" disabled={saving} onClick={event => { const form = event.currentTarget.closest("form"); if (form) void save(form) }} style={{...button,opacity:saving?0.6:1}}>{saving ? "Comprobando..." : "Guardar publicación (requiere acceso)"}</button>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
       <p style={{ margin: 0, fontSize: 13 }}>La comprobación no guarda datos. Guardar requiere una sesión verificada y la habilitación del backend. Las fotos son solo una vista local: todavía no se suben a R2.</p>
     </div></form>
