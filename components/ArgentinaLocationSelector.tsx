@@ -23,6 +23,7 @@ type Props = {
   keyName: string
   dataName?: string
   className?: string
+  autoAddMulti?: boolean
 }
 
 const ARG_PROVINCES = [
@@ -85,6 +86,7 @@ export default function ArgentinaLocationSelector({
   keyName,
   dataName,
   className = "",
+  autoAddMulti = false,
 }: Props) {
   const [provinceId, setProvinceId] = useState("")
   const [municipalityId, setMunicipalityId] = useState("")
@@ -228,6 +230,13 @@ export default function ArgentinaLocationSelector({
     setSelected([item])
   }, [mode, provinceId, municipalityId, localityId, province, municipality, locality])
 
+  useEffect(() => {
+    if (mode !== "multi" || !autoAddMulti) return
+    const item = buildCurrentLocation()
+    if (!item) return
+    setSelected((current) => current.some((existing) => existing.key === item.key) ? current : [...current, item])
+  }, [mode, autoAddMulti, provinceId, municipalityId, localityId, province, municipality, locality])
+
   return (
     <div className={className}>
       <div className="row">
@@ -281,7 +290,7 @@ export default function ArgentinaLocationSelector({
           ))}
         </select>
 
-        {mode === "multi" ? (
+        {mode === "multi" && !autoAddMulti ? (
           <button
             type="button"
             className="select"
