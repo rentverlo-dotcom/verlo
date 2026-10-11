@@ -2,6 +2,7 @@
 import BrandHeader from "@/app/temporarios/BrandHeader"
 import PropertyPhotoUpload from "./PropertyPhotoUpload"
 import PropertyGallery from "./PropertyGallery"
+import LodgingMatchCard from "./LodgingMatchCard"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase/client"
@@ -13,7 +14,7 @@ const stateName=(value:string)=>({draft:"Borrador",published:"Publicada",active:
 const displayDate=(value:string)=>{const parts=value.split("-");return parts.length===3?parts[2]+"/"+parts[1]+"/"+parts[0]:value}
 type Property = {id:string;locality_label:string;property_type:string;nightly_price_ars:number;availability_start:string;availability_end:string;status:string}
 type Demand = {id:string;locality_keys:string[];property_type:string;check_in:string;check_out:string;max_total_budget_ars:number;status:string}
-type Match = {id:string;property_id:string;demand_id:string;check_in:string;check_out:string;agreed_total_ars:number;status:string;owner_decision:string;tenant_decision:string;temporary_properties?:{locality_label:string;property_type:string}|null}
+type Match = {id:string;property_id:string;demand_id:string;check_in:string;check_out:string;agreed_total_ars:number;status:string;owner_decision:string;tenant_decision:string;temporary_properties?:{locality_label:string;property_type:string;nightly_price_ars?:number;title?:string;description?:string;public_location_reference?:string;max_guests?:number}|null}
 type Mine = {ok:true;properties:Property[];demands:Demand[];ownerMatches:Match[];tenantMatches:Match[];media:Array<{id:string;property_id:string;mime_type:string}>} | {ok:false;error:string}
 
 export default function MyTemporaries() {
@@ -74,14 +75,7 @@ export default function MyTemporaries() {
           </article>) : <p>Todavía no tenés propiedades temporarias registradas.</p>}
           {decisionError && <p role="alert">{decisionError}</p>}
           <h2>Interesados en mis propiedades ({result.ownerMatches.length})</h2>
-          {result.ownerMatches.length ? result.ownerMatches.map(m=><article key={m.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
-            <PropertyGallery photos={result.media.filter(x=>x.property_id===m.property_id)}/>
-            <strong>{typeName(m.temporary_properties?.property_type || "")} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
-            <p>Estadía solicitada: {displayDate(m.check_in)} al {displayDate(m.check_out)}</p>
-            <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {stateName(m.status)}</p>
-            <p>Tu respuesta: {m.owner_decision === "accepted" ? "Aceptaste" : m.owner_decision === "rejected" ? "Rechazaste" : "Pendiente"} · La otra parte: {m.tenant_decision === "accepted" ? "Aceptó" : m.tenant_decision === "rejected" ? "Rechazó" : "Pendiente"}</p>
-            {m.owner_decision === "pending" && m.status === "new" && <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"owner","accepted")} style={button}>Aceptar coincidencia</button><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"owner","rejected")} style={{...button,background:"#777"}}>Rechazar</button></div>}
-          </article>) : <p>Aún no hay coincidencias para tus propiedades.</p>}
+          {result.ownerMatches.length ? result.ownerMatches.map(m=><LodgingMatchCard key={m.id} match={m} photos={result.media.filter(x=>x.property_id===m.property_id)} role="owner" onDecision={(id,r,d)=>void decide(id,r,d)} disabled={Boolean(deciding)}/>) : <p>Aún no hay coincidencias para tus propiedades.</p>}
           <h2>Mis búsquedas ({result.demands.length})</h2>
           {result.demands.length ? result.demands.map(d=><article key={d.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
             <strong>{typeName(d.property_type)}</strong>
@@ -89,13 +83,7 @@ export default function MyTemporaries() {
             <p>Estado: {stateName(d.status)}</p>
           </article>) : <p>Todavía no tenés búsquedas temporarias registradas.</p>}
           <h2>Alojamientos para mis búsquedas ({result.tenantMatches.length})</h2>
-          {result.tenantMatches.length ? result.tenantMatches.map(m=><article key={m.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
-            <strong>{typeName(m.temporary_properties?.property_type || "")} · {m.temporary_properties?.locality_label || "Propiedad compatible"}</strong>
-            <p>Estadía: {displayDate(m.check_in)} al {displayDate(m.check_out)}</p>
-            <p>Total: {Number(m.agreed_total_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} · Estado: {stateName(m.status)}</p>
-            <p>Tu respuesta: {m.tenant_decision === "accepted" ? "Aceptaste" : m.tenant_decision === "rejected" ? "Rechazaste" : "Pendiente"} · La otra parte: {m.owner_decision === "accepted" ? "Aceptó" : m.owner_decision === "rejected" ? "Rechazó" : "Pendiente"}</p>
-            {m.tenant_decision === "pending" && m.status === "new" && <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"tenant","accepted")} style={button}>Aceptar coincidencia</button><button type="button" disabled={Boolean(deciding)} onClick={()=>void decide(m.id,"tenant","rejected")} style={{...button,background:"#777"}}>Rechazar</button></div>}
-          </article>) : <p>Aún no hay coincidencias para tus búsquedas.</p>}
+          {result.tenantMatches.length ? result.tenantMatches.map(m=><LodgingMatchCard key={m.id} match={m} photos={result.media.filter(x=>x.property_id===m.property_id)} role="tenant" onDecision={(id,r,d)=>void decide(id,r,d)} disabled={Boolean(deciding)}/>) : <p>Aún no hay coincidencias para tus búsquedas.</p>}
           <div style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:24}}>
             <Link href="/temporarios/publicar" style={button}>Publicar</Link>
             <Link href="/temporarios/buscar" style={button}>Buscar</Link>
