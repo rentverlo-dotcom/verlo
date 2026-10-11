@@ -5,12 +5,22 @@ import { tenantDraftFromForm } from "@/lib/temporarios/form-mapping"
 import { panel, field, fieldLabel, button } from "../brand"
 export default function TemporaryTenantDraft() {
   const [result, setResult] = useState("")
-  function check(event: FormEvent<HTMLFormElement>) {
+  async function check(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const parsed = tenantDraftFromForm(new FormData(event.currentTarget))
-    setResult(parsed.ok
-      ? "Búsqueda lista: " + parsed.value.localityKeys.length + " zona(s), " + parsed.value.propertyType + ", presupuesto máximo $" + parsed.value.maxTotalBudgetArs.toLocaleString("es-AR")
-      : "error" in parsed ? parsed.error : "Datos inválidos")
+    if (!parsed.ok) { setResult("error" in parsed ? parsed.error : "Datos inválidos"); return }
+    setResult("Validando búsqueda...")
+    try {
+      const response = await fetch("/api/temporarios/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "tenant", ...parsed.value }),
+      })
+      const data: { ok?: boolean; error?: string } = await response.json()
+      setResult(response.ok && data.ok
+        ? "Búsqueda validada por VERLO. No se guardaron datos ni se generaron matches."
+        : data.error || "No se pudo validar la búsqueda.")
+    } catch { setResult("Error de conexión. No se guardaron datos.") }
   }
   return <section style={{ ...panel, marginBottom: 70, maxWidth: 800 }}>
     <form onSubmit={check} style={{ display: "grid", gap: 20 }}>
