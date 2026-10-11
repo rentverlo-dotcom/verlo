@@ -1,3 +1,4 @@
+import BrandHeader from "@/app/temporarios/BrandHeader"
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -48,7 +49,7 @@ export default function MyTemporaries() {
     return ()=>{active=false}
   },[])
   return <main style={shell}>
-    <header style={nav}><div style={navInner}><VerloBrand width={112}/><Link href="/temporarios" style={{fontSize:14,fontWeight:900,color:"#050002",textDecoration:"none"}}>Volver a Temporarios</Link></div></header>
+    <BrandHeader/>
     <div style={{...container,maxWidth:850,paddingTop:55,paddingBottom:80}}>
       <section style={panel}>
         <h1 style={{fontSize:"clamp(34px,6vw,62px)",fontWeight:950,letterSpacing:"-.05em"}}>Mis temporarios</h1>
