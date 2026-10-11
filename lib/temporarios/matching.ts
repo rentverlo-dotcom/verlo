@@ -4,13 +4,16 @@
  * Dates are local stay dates encoded as YYYY-MM-DD; checkout is exclusive.
  */
 export type Stay = { checkIn: string; checkOut: string }
+export type TemporaryPropertyType = "casa" | "departamento" | "cabana" | "habitacion"
 export type TemporaryDemand = Stay & {
-  locality: string
+  localityKeys: string[]
+  propertyType: TemporaryPropertyType
   maxTotalBudgetArs: number
   guests?: number | null
 }
 export type TemporaryProperty = {
-  locality: string
+  localityKey: string
+  propertyType: TemporaryPropertyType
   nightlyPriceArs: number
   availabilityStart: string
   availabilityEnd: string
@@ -20,7 +23,7 @@ export type TemporaryProperty = {
 export type DateBlock = Stay
 export type MatchDecision =
   | { compatible: true; nights: number; totalPriceArs: number }
-  | { compatible: false; reason: "invalid_stay" | "unpublished" | "different_locality" | "unavailable_dates" | "blocked_dates" | "insufficient_capacity" | "invalid_price" | "over_budget" }
+  | { compatible: false; reason: "invalid_stay" | "unpublished" | "different_locality" | "different_property_type" | "unavailable_dates" | "blocked_dates" | "insufficient_capacity" | "invalid_price" | "over_budget" }
 
 function dayIndex(date: string): number | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null
@@ -64,10 +67,11 @@ export function evaluateTemporaryMatch(
   const nights = stayNights(demand)
   if (nights === null) return { compatible: false, reason: "invalid_stay" }
   if (property.status !== "published") return { compatible: false, reason: "unpublished" }
-  const normalize = (name: string) =>
-    name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("es-AR").replace(/\s+/g, " ")
-  if (!normalize(demand.locality) || normalize(demand.locality) !== normalize(property.locality))
+  // Compare stable Georef IDs, never user-entered locality names.
+  if (!property.localityKey || !demand.localityKeys?.includes(property.localityKey))
     return { compatible: false, reason: "different_locality" }
+  if (demand.propertyType !== property.propertyType)
+    return { compatible: false, reason: "different_property_type" }
 
   const start = dayIndex(demand.checkIn)
   const end = dayIndex(demand.checkOut)
