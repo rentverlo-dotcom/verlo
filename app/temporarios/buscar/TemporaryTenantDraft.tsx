@@ -89,6 +89,7 @@ export default function TemporaryTenantDraft() {
       <p style={{ margin: 0, fontSize: 14 }}>El presupuesto es por toda la estadía, no por noche. La tarifa de VERLO es $29.900 al habilitar el cierre.</p>
       <button type="submit" style={button}>Comprobar búsqueda (sin guardar)</button>
       <button type="button" disabled={saving} onClick={event => { const form = event.currentTarget.closest("form"); if (form) void save(form) }} style={{...button,opacity:saving?0.6:1}}>{saving ? "Comprobando..." : "Guardar búsqueda (requiere acceso)"}</button>
+      <a href="/temporarios/acceso?next=/temporarios/buscar" style={{textDecoration:"underline",fontSize:14,fontWeight:800}}>¿No tenés sesión? Recibí tu Magic Link para continuar.</a>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
     </form>
   </section>
