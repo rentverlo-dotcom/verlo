@@ -1,16 +1,20 @@
 "use client"
 
 import { useEffect, useState, type ChangeEvent } from "react"
+import { validateTemporaryMedia } from "@/lib/temporarios/media-validation"
 
 type Preview = { id: string; url: string; name: string; type: string }
 
 export default function TemporaryMediaPicker() {
   const [items, setItems] = useState<Preview[]>([])
+  const [error, setError] = useState("")
 
   function onSelect(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || [])
-    const next = files.filter(file => file.type.startsWith("image/") || file.type.startsWith("video/"))
-      .slice(0, 12).map(file => ({
+    const validation = validateTemporaryMedia(files)
+    if (!validation.valid) { setError(validation.message); return }
+    setError("")
+    const next = files.map(file => ({
         id: crypto.randomUUID(),
         url: URL.createObjectURL(file),
         name: file.name,
@@ -28,9 +32,10 @@ export default function TemporaryMediaPicker() {
   return <div style={{ display: "grid", gap: 12 }}>
     <label style={{ display: "grid", gap: 8, fontWeight: 850, fontSize: 14 }}>
       Fotos y videos de la propiedad
-      <input type="file" multiple accept="image/*,video/*" onChange={onSelect}
+      <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.mp4" onChange={onSelect}
         style={{ border: "1px dashed rgba(5,0,2,.3)", borderRadius: 14, padding: 18, background: "white" }} />
     </label>
+    {error && <p role="alert" style={{ margin: 0, color: "#a21d36", fontWeight: 700 }}>{error}</p>}
     <p style={{ margin: 0, fontSize: 13 }}>
       Vista previa local: todavía NO se suben archivos a R2 ni se guardan en Supabase.
       La integración existente de R2 se conectará después de aislar el entorno de prueba.
