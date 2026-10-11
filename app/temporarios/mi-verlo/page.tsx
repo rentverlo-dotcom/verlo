@@ -35,7 +35,7 @@ export default function MyTemporaries() {
       <section style={panel}>
         <h1 style={{fontSize:"clamp(34px,6vw,62px)",fontWeight:950,letterSpacing:"-.05em"}}>Mis temporarios</h1>
         <p>Solo podés consultar registros vinculados a tu identidad. Esta vista todavía no administra reservas.</p>
-        {loading ? <p role="status">Consultando...</p> : result && !result.ok ? <>
+        {loading ? <p role="status">Consultando...</p> : result && "error" in result ? <>
           <p role="status">{result.error}</p>
           <Link href="/temporarios/acceso?next=/temporarios/mi-verlo" style={{...button,display:"inline-flex"}}>Ingresar a VERLO</Link>
         </> : result && result.ok ? <>
