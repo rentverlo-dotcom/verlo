@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import { savePendingTemporaryDraft } from "@/lib/temporarios/pending-draft"
+import { getTemporaryRequestKey, clearTemporaryRequestKey } from "@/lib/temporarios/request-key"
 import { useRouter } from "next/navigation"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import { tenantDraftFromForm } from "@/lib/temporarios/form-mapping"
@@ -19,19 +20,20 @@ export default function TemporaryTenantDraft() {
     const fullName = String(payload.get("fullName") || "").trim()
     const phone = String(payload.get("phone") || "").trim()
     if (!fullName || !phone) { setResult("Completá nombre y teléfono."); return }
+    const requestKey = getTemporaryRequestKey("tenant")
     setSaving(true)
     setResult("Comprobando acceso...")
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session?.access_token) {
-        savePendingTemporaryDraft("tenant", {...parsed.value, fullName, phone, website: String(payload.get("website") || "")})
+        savePendingTemporaryDraft("tenant", {...parsed.value, requestKey, fullName, phone, website: String(payload.get("website") || "")})
         router.push("/temporarios/acceso?next=/temporarios/buscar")
         return
       }
       const response = await fetch("/api/temporarios/demands", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
-        body: JSON.stringify({ ...parsed.value, fullName, phone }),
+        body: JSON.stringify({ ...parsed.value, requestKey, fullName, phone }),
       })
       const data: { ok?: boolean; id?: string; error?: string } = await response.json()
       if (!response.ok || !data.ok || !data.id) {
@@ -40,6 +42,7 @@ export default function TemporaryTenantDraft() {
           : data.error || "No se pudo guardar la búsqueda.")
         return
       }
+      clearTemporaryRequestKey("tenant")
       router.push("/temporarios/success/inquilino?registro=" + encodeURIComponent(data.id))
     } catch { setResult("Error de conexión. No se guardó la búsqueda.") }
     finally { setSaving(false) }
