@@ -42,6 +42,13 @@ export default function TemporaryAccess() {
     if (!kind) return
     const pending = readPendingTemporaryDraft(kind)
     if (!pending) return
+    const lockKey = "verlo-temporarios-inflight-" + kind
+    const existing = Number(window.localStorage.getItem(lockKey) || 0)
+    if (existing && Date.now() - existing < 120000) {
+      setMessage("Estamos procesando tu registro. Esperá un momento antes de reintentar.")
+      return
+    }
+    window.localStorage.setItem(lockKey, String(Date.now()))
     processing.current = true
     setFinishing(true)
     setMessage("Guardando tu formulario de Temporarios...")
@@ -60,6 +67,7 @@ export default function TemporaryAccess() {
           return
         }
         clearPendingTemporaryDraft(kind)
+        window.localStorage.removeItem(lockKey)
         router.replace((kind === "owner" ? "/temporarios/success/propietario" : "/temporarios/success/inquilino") +
           "?registro=" + encodeURIComponent(data.id))
       } catch {
