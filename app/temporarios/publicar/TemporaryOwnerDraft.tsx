@@ -62,7 +62,7 @@ export default function TemporaryOwnerDraft() {
 
   return <section style={{ ...panel, maxWidth: 800, marginBottom: 70 }}><form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }}>
     <div style={{ display: "grid", gap: 20 }}>
-      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#050002" }}>Versión de prueba: la publicación se registra como borrador y no aparece públicamente.</p>
+      <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#050002" }}>Publicá tu alojamiento y gestioná las fechas disponibles.</p>
       <div style={fieldLabel}>Ubicación (Georef)
         <ArgentinaLocationSelector mode="single" className="temporary-georef" labelName="temporary_location_label" keyName="temporary_location_key" dataName="temporary_location_data" />
       </div>
@@ -111,9 +111,7 @@ export default function TemporaryOwnerDraft() {
         <p style={{ margin: "4px 0" }}>Seña: {deposit === "si" ? "opcional, a acordar" : "no solicitada"}</p>
       </div>
       <button type="submit" disabled={saving} style={{...button,opacity:saving?0.6:1}}>{saving ? "Procesando..." : "Publicar mi propiedad"}</button>
-      <a href="/temporarios/acceso?next=/temporarios/publicar" style={{textDecoration:"underline",fontSize:14,fontWeight:800}}>¿No tenés sesión? Recibí tu Magic Link para continuar.</a>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
-      <p style={{ margin: 0, fontSize: 13 }}>Para esta prueba se requiere una sesión verificada. Las fotos todavía no se suben a R2.</p>
     </div></form>
   </section>
 }
