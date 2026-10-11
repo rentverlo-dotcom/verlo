@@ -14,7 +14,7 @@ export default function TemporaryOwnerDraft() {
   const [until, setUntil] = useState("")
   const [deposit, setDeposit] = useState("no")
   const [result, setResult] = useState("")
-  function check(e: FormEvent<HTMLFormElement>) { e.preventDefault(); const parsed = ownerDraftFromForm(new FormData(e.currentTarget)); setResult(parsed.ok ? "Georef, tipo, precio y fechas listos para matching: " + parsed.value.localityKey : parsed.error) }
+  function check(e: FormEvent<HTMLFormElement>) { e.preventDefault(); const parsed = ownerDraftFromForm(new FormData(e.currentTarget)); setResult(parsed.ok ? "Georef, tipo, precio y fechas listos para matching: " + parsed.value.localityKey : "error" in parsed ? parsed.error : "Datos inválidos") }
 
   const price = Number(nightlyPrice)
   const datesValid = Boolean(from && until && until > from)
