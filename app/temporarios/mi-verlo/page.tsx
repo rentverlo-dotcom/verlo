@@ -15,7 +15,8 @@ const displayDate=(value:string)=>{const parts=value.split("-");return parts.len
 type Property = {id:string;locality_label:string;property_type:string;nightly_price_ars:number;availability_start:string;availability_end:string;status:string}
 type Demand = {id:string;locality_keys:string[];property_type:string;check_in:string;check_out:string;max_total_budget_ars:number;status:string}
 type Match = {id:string;property_id:string;demand_id:string;check_in:string;check_out:string;agreed_total_ars:number;status:string;owner_decision:string;tenant_decision:string;temporary_properties?:{locality_label:string;property_type:string;nightly_price_ars?:number;title?:string;description?:string;public_location_reference?:string;max_guests?:number}|null}
-type Mine = {ok:true;properties:Property[];demands:Demand[];ownerMatches:Match[];tenantMatches:Match[];media:Array<{id:string;property_id:string;mime_type:string}>} | {ok:false;error:string}
+type Reservation={id:string;match_id:string;status:string;agreed_terms_owner_at:string|null;agreed_terms_tenant_at:string|null}
+type Mine = {ok:true;properties:Property[];demands:Demand[];ownerMatches:Match[];tenantMatches:Match[];reservations:Reservation[];media:Array<{id:string;property_id:string;mime_type:string}>} | {ok:false;error:string}
 
 export default function MyTemporaries() {
   const [result,setResult] = useState<Mine|null>(null)
@@ -75,7 +76,7 @@ export default function MyTemporaries() {
           </article>) : <p>Todavía no tenés propiedades temporarias registradas.</p>}
           {decisionError && <p role="alert">{decisionError}</p>}
           <h2>Interesados en mis propiedades ({result.ownerMatches.length})</h2>
-          {result.ownerMatches.length ? result.ownerMatches.map(m=><LodgingMatchCard key={m.id} match={m} photos={result.media.filter(x=>x.property_id===m.property_id)} role="owner" onDecision={(id,r,d)=>void decide(id,r,d)} disabled={Boolean(deciding)}/>) : <p>Aún no hay coincidencias para tus propiedades.</p>}
+          {result.ownerMatches.length ? result.ownerMatches.map(m=><LodgingMatchCard key={m.id} match={m} photos={result.media.filter(x=>x.property_id===m.property_id)} role="owner" reservation={result.reservations.find(x=>x.match_id===m.id)} onRefresh={()=>setRefresh(v=>v+1)} onDecision={(id,r,d)=>void decide(id,r,d)} disabled={Boolean(deciding)}/>) : <p>Aún no hay coincidencias para tus propiedades.</p>}
           <h2>Mis búsquedas ({result.demands.length})</h2>
           {result.demands.length ? result.demands.map(d=><article key={d.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
             <strong>{typeName(d.property_type)}</strong>
@@ -83,7 +84,7 @@ export default function MyTemporaries() {
             <p>Estado: {stateName(d.status)}</p>
           </article>) : <p>Todavía no tenés búsquedas temporarias registradas.</p>}
           <h2>Alojamientos para mis búsquedas ({result.tenantMatches.length})</h2>
-          {result.tenantMatches.length ? result.tenantMatches.map(m=><LodgingMatchCard key={m.id} match={m} photos={result.media.filter(x=>x.property_id===m.property_id)} role="tenant" onDecision={(id,r,d)=>void decide(id,r,d)} disabled={Boolean(deciding)}/>) : <p>Aún no hay coincidencias para tus búsquedas.</p>}
+          {result.tenantMatches.length ? result.tenantMatches.map(m=><LodgingMatchCard key={m.id} match={m} photos={result.media.filter(x=>x.property_id===m.property_id)} role="tenant" reservation={result.reservations.find(x=>x.match_id===m.id)} onRefresh={()=>setRefresh(v=>v+1)} onDecision={(id,r,d)=>void decide(id,r,d)} disabled={Boolean(deciding)}/>) : <p>Aún no hay coincidencias para tus búsquedas.</p>}
           <div style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:24}}>
             <Link href="/temporarios/publicar" style={button}>Publicar</Link>
             <Link href="/temporarios/buscar" style={button}>Buscar</Link>
