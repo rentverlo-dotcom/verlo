@@ -14,15 +14,39 @@ export default function TemporaryQaIdentity() {
   const [error, setError] = useState("")
   const [matchPreview, setMatchPreview] = useState("")
   const [checkingMatches, setCheckingMatches] = useState(false)
+  const [candidate, setCandidate] = useState<{propertyId:string;demandId:string}|null>(null)
+  const [committing, setCommitting] = useState(false)
+  const [commitMessage, setCommitMessage] = useState("")
+  async function commitMatch() {
+    if (!candidate || committing) return
+    setCommitting(true)
+    setCommitMessage("")
+    try {
+      const {data:{session}}=await supabase.auth.getSession()
+      if(!session?.access_token) throw new Error("Sesión no disponible")
+      const response=await fetch("/api/temporarios/matches/commit",{
+        method:"POST",
+        headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},
+        body:JSON.stringify(candidate),
+      })
+      const data:{ok?:boolean;id?:string;error?:string;reused?:boolean}=await response.json()
+      if(!response.ok||!data.ok||!data.id)throw new Error(data.error||"No se pudo guardar la coincidencia")
+      setCommitMessage(data.reused?"Coincidencia ya registrada: "+data.id:"Coincidencia registrada: "+data.id)
+    } catch(error){setCommitMessage(error instanceof Error?error.message:"Error de conexión")}
+    finally{setCommitting(false)}
+  }
   async function checkMatches() {
     setCheckingMatches(true)
     setMatchPreview("")
+    setCandidate(null)
+    setCommitMessage("")
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) throw new Error("Sesión no disponible")
       const response = await fetch("/api/temporarios/matches/preview", {headers:{Authorization:"Bearer "+session.access_token},cache:"no-store"})
-      const body: {ok?:boolean;error?:string;candidateCount?:number;propertyCount?:number;demandCount?:number;truncated?:boolean} = await response.json()
+      const body: {ok?:boolean;error?:string;candidateCount?:number;propertyCount?:number;demandCount?:number;truncated?:boolean;candidates?:Array<{propertyId:string;demandId:string}>} = await response.json()
       if (!response.ok || !body.ok) throw new Error(body.error || "No pudimos consultar las coincidencias")
+      if(body.candidateCount===1 && !body.truncated && body.candidates?.length===1) setCandidate(body.candidates[0])
       setMatchPreview("Propiedades publicadas: "+body.propertyCount+" · Búsquedas activas: "+body.demandCount+" · Coincidencias compatibles: "+body.candidateCount+(body.truncated?" · Resultado parcial":""))
     } catch (error) { setMatchPreview(error instanceof Error ? error.message : "Error de conexión") }
     finally { setCheckingMatches(false) }
@@ -68,6 +92,8 @@ export default function TemporaryQaIdentity() {
             <button type="button" style={{...button,marginTop:15}} onClick={() => void navigator.clipboard.writeText(identity.id)}>Copiar ID de usuario</button>
             <button type="button" disabled={checkingMatches} style={{...button,marginTop:12}} onClick={() => void checkMatches()}>{checkingMatches ? "Comprobando..." : "Verificar matching sin guardar"}</button>
             {matchPreview && <p role="status">{matchPreview}</p>}
+            {candidate && <button type="button" disabled={committing} style={{...button,marginTop:12}} onClick={() => void commitMatch()}>{committing?"Guardando...":"Registrar única coincidencia QA"}</button>}
+            {commitMessage && <p role="status">{commitMessage}</p>}
           </> : <>
             <p role="status">{error || "No hay una sesión activa."}</p>
             <Link href="/login" style={{...button,display:"block",textAlign:"center"}}>Iniciar sesión en VERLO</Link>
