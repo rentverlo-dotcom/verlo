@@ -128,6 +128,7 @@ export default function TemporaryOwnerDraft() {
       </div>
       <button type="submit" style={button}>Comprobar datos del matching (sin guardar)</button>
       <button type="button" disabled={saving} onClick={event => { const form = event.currentTarget.closest("form"); if (form) void save(form) }} style={{...button,opacity:saving?0.6:1}}>{saving ? "Comprobando..." : "Guardar publicación (requiere acceso)"}</button>
+      <a href="/temporarios/acceso?next=/temporarios/publicar" style={{textDecoration:"underline",fontSize:14,fontWeight:800}}>¿No tenés sesión? Recibí tu Magic Link para continuar.</a>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
       <p style={{ margin: 0, fontSize: 13 }}>La comprobación no guarda datos. Guardar requiere una sesión verificada y la habilitación del backend. Las fotos son solo una vista local: todavía no se suben a R2.</p>
     </div></form>
