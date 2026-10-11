@@ -23,6 +23,9 @@ export async function POST(request: Request) {
   } catch { return deny(400, "JSON inválido") }
   if (typeof body.website === "string" && body.website.trim())
     return deny(400, "Solicitud invalida")
+  const requestKey = body.requestKey
+  if (typeof requestKey !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey))
+    return deny(400, "Identificador de solicitud inválido")
   const localityKeys = body.localityKeys
   const propertyType = body.propertyType
   const checkIn = body.checkIn
@@ -43,13 +46,20 @@ export async function POST(request: Request) {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return deny(503, "Servicio no configurado")
   const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+  const existing = await db.from("temporary_demands").select("id").eq("tenant_user_id", auth.userId).eq("request_key",requestKey).maybeSingle()
+  if (existing.error) return deny(500, "No se pudo verificar la solicitud")
+  if (existing.data) return NextResponse.json({ok:true,id:existing.data.id,reused:true},{status:200,headers:{"Cache-Control":"no-store"}})
   const { data, error } = await db.from("temporary_demands").insert({
-    tenant_user_id: auth.userId, tenant_full_name: fullName,
+    request_key: requestKey, tenant_user_id: auth.userId, tenant_full_name: fullName,
     tenant_email: auth.email, tenant_phone: phone,
     locality_keys: Array.from(new Set(localityKeys as string[])),
     property_type: propertyType, check_in: checkIn, check_out: checkOut,
     max_total_budget_ars: budget, status: "active",
   }).select("id").single()
+  if (error?.code === "23505") {
+    const previous = await db.from("temporary_demands").select("id").eq("tenant_user_id",auth.userId).eq("request_key",requestKey).maybeSingle()
+    if (previous.data?.id) return NextResponse.json({ok:true,id:previous.data.id,reused:true},{status:200,headers:{"Cache-Control":"no-store"}})
+  }
   if (error || !data) return deny(500, "No se pudo guardar la búsqueda")
   return NextResponse.json({ok:true,id:data.id}, {status:201,headers:{"Cache-Control":"no-store"}})
 }
