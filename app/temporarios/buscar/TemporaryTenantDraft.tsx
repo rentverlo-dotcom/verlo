@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import { supabase } from "@/lib/supabase/client"
+import { savePendingTemporaryDraft } from "@/lib/temporarios/pending-draft"
 import { useRouter } from "next/navigation"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import { tenantDraftFromForm } from "@/lib/temporarios/form-mapping"
@@ -22,7 +23,8 @@ export default function TemporaryTenantDraft() {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session?.access_token) {
-        setResult("Para guardar, ingresá a VERLO con tu email. No se guardó la búsqueda.")
+        savePendingTemporaryDraft("tenant", {...parsed.value, fullName, phone})
+        router.push("/temporarios/acceso?next=/temporarios/buscar")
         return
       }
       const response = await fetch("/api/temporarios/demands", {
