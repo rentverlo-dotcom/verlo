@@ -9,15 +9,19 @@ export type LodgingMatch={
   temporary_properties?:{locality_label:string;property_type:string;nightly_price_ars?:number;title?:string;description?:string;public_location_reference?:string;max_guests?:number}|null
 }
 type Photo={id:string;property_id:string;mime_type:string}
+type Reservation={id:string;match_id:string;status:string;agreed_terms_owner_at:string|null;agreed_terms_tenant_at:string|null}
 const date=(value:string)=>{const p=value.split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:value}
 const money=(value:number)=>Number(value).toLocaleString("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0})
 const kind=(x:string)=>({casa:"Casa",departamento:"Departamento",cabana:"Cabaña",habitacion:"Habitación"} as Record<string,string>)[x]||"Alojamiento"
-export default function LodgingMatchCard({match,photos,role,onDecision,disabled}:{
- match:LodgingMatch;photos:Photo[];role:"owner"|"tenant";
+export default function LodgingMatchCard({match,photos,role,onDecision,disabled,reservation,onRefresh}:{
+ match:LodgingMatch;photos:Photo[];role:"owner"|"tenant";reservation?:Reservation;onRefresh:()=>void;
  onDecision:(id:string,role:"owner"|"tenant",decision:"accepted"|"rejected")=>void;disabled:boolean
 }){
  const [open,setOpen]=useState(false)
  const [starting,setStarting]=useState(false)
+ const [accepting,setAccepting]=useState(false)
+ const [acceptedLocally,setAcceptedLocally]=useState(false)
+ const [otherAcceptedLocally,setOtherAcceptedLocally]=useState(false)
  const [reservationMessage,setReservationMessage]=useState("")
  const [reservationId,setReservationId]=useState("")
  async function startReservation(){
@@ -30,10 +34,30 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled}
    const data:{ok?:boolean;error?:string;reservation?:{id:string;status:string;reused?:boolean}}=await response.json()
    if(!response.ok||!data.ok||!data.reservation)throw Error(data.error||"No se pudo iniciar la reserva")
    setReservationId(data.reservation.id)
+   onRefresh()
    setReservationMessage("Reserva en borrador creada. Las fechas aún no están bloqueadas ni se realizó ningún pago.")
   }catch(error){setReservationMessage(error instanceof Error?error.message:"No se pudo iniciar la reserva")}
   finally{setStarting(false)}
  }
+ async function acceptTerms(){
+  if(accepting)return
+  setAccepting(true);setReservationMessage("")
+  try{
+   const {data:{session}}=await supabase.auth.getSession()
+   if(!session?.access_token)throw Error("Iniciá sesión para continuar")
+   const response=await fetch("/api/temporarios/reservations/accept-terms",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({matchId:match.id,role})})
+   const data:{ok?:boolean;error?:string;reservation?:{status:string;ownerAccepted:boolean;tenantAccepted:boolean}}=await response.json()
+   if(!response.ok||!data.ok||!data.reservation)throw Error(data.error||"No se pudieron aceptar las condiciones")
+   setAcceptedLocally(true)
+   setOtherAcceptedLocally(role==="owner"?data.reservation.tenantAccepted:data.reservation.ownerAccepted)
+   setReservationMessage(data.reservation.ownerAccepted&&data.reservation.tenantAccepted?"Ambas partes aceptaron las condiciones. Todavía no hay reserva confirmada ni fechas bloqueadas.":"Guardamos tu aceptación. Falta que la otra parte acepte las condiciones.")
+   onRefresh()
+  }catch(error){setReservationMessage(error instanceof Error?error.message:"No pudimos guardar tu aceptación")}
+  finally{setAccepting(false)}
+ }
+ const hasDraft=Boolean(reservation||reservationId)
+ const myTermsAccepted=acceptedLocally||(role==="owner"?Boolean(reservation?.agreed_terms_owner_at):Boolean(reservation?.agreed_terms_tenant_at))
+ const otherTermsAccepted=otherAcceptedLocally||(role==="owner"?Boolean(reservation?.agreed_terms_tenant_at):Boolean(reservation?.agreed_terms_owner_at))
  const p=match.temporary_properties
  const ownDecision=role==="owner"?match.owner_decision:match.tenant_decision
  const otherDecision=role==="owner"?match.tenant_decision:match.owner_decision
@@ -57,7 +81,13 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled}
      <p style={{color:"#685f64"}}>Tu respuesta: {ownDecision==="accepted"?"Aceptaste":ownDecision==="rejected"?"Rechazaste":"Pendiente"} · Otra parte: {otherDecision==="accepted"?"Aceptó":otherDecision==="rejected"?"Rechazó":"Pendiente"}</p>
      {match.status==="accepted"&&<div style={{marginTop:16,padding:16,background:"#fbf3f5",borderRadius:16}}>
       <p style={{fontSize:14,color:"#51474c",margin:"0 0 12px"}}>Ambas partes aceptaron. Podés iniciar el trámite de reserva; todavía no bloquea fechas ni cobra dinero.</p>
-      <button type="button" disabled={starting||Boolean(reservationId)} onClick={()=>void startReservation()} style={{background:"#050002",color:"white",border:0,borderRadius:99,padding:"13px 22px",fontWeight:850,cursor:starting?"wait":"pointer",opacity:starting?.6:1}}>{starting?"Iniciando...":reservationId?"Borrador iniciado":"Iniciar reserva"}</button>
+      <button type="button" disabled={starting||hasDraft} onClick={()=>void startReservation()} style={{background:"#050002",color:"white",border:0,borderRadius:99,padding:"13px 22px",fontWeight:850,cursor:starting?"wait":"pointer",opacity:starting?.6:1}}>{starting?"Iniciando...":hasDraft?"Borrador iniciado":"Iniciar reserva"}</button>
+      {hasDraft&&<div style={{marginTop:17,paddingTop:15,borderTop:"1px solid #e5d5da"}}>
+        <strong style={{fontSize:16}}>Condiciones de la estadía</strong>
+        <p style={{fontSize:13,lineHeight:1.55}}>Estadía del {date(match.check_in)} al {date(match.check_out)} por {money(match.agreed_total_ars)}. Al aceptar confirmás estas fechas y el precio indicado; esto no realiza ningún pago ni bloquea el calendario.</p>
+        <p style={{fontSize:13}}>Tu aceptación: <strong>{myTermsAccepted?"Registrada":"Pendiente"}</strong> · Otra parte: <strong>{otherTermsAccepted?"Registrada":"Pendiente"}</strong></p>
+        {!myTermsAccepted&&<button type="button" disabled={accepting} onClick={()=>void acceptTerms()} style={{background:"#050002",color:"white",border:0,borderRadius:99,padding:"12px 18px",fontWeight:850,cursor:"pointer"}}>{accepting?"Guardando...":"Acepto las fechas y el precio"}</button>}
+      </div>}
       {reservationMessage&&<p role="status" style={{fontSize:14,margin:"12px 0 0"}}>{reservationMessage}</p>}
      </div>}
      {match.status==="new"&&ownDecision==="pending"&&<div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
