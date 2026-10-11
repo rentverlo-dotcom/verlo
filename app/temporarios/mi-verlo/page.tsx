@@ -1,5 +1,6 @@
 "use client"
 import BrandHeader from "@/app/temporarios/BrandHeader"
+import PropertyPhotoUpload from "./PropertyPhotoUpload"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase/client"
@@ -17,6 +18,7 @@ type Mine = {ok:true;properties:Property[];demands:Demand[];ownerMatches:Match[]
 export default function MyTemporaries() {
   const [result,setResult] = useState<Mine|null>(null)
   const [loading,setLoading] = useState(true)
+  const [refresh,setRefresh] = useState(0)
   const [deciding,setDeciding] = useState("")
   const [decisionError,setDecisionError] = useState("")
   async function decide(matchId:string,role:"owner"|"tenant",decision:"accepted"|"rejected") {
@@ -50,7 +52,7 @@ export default function MyTemporaries() {
     }
     void load()
     return ()=>{active=false}
-  },[])
+  },[refresh])
   return <main style={shell}>
     <BrandHeader/>
     <div style={{...container,maxWidth:1060,paddingTop:55,paddingBottom:80}}>
@@ -66,6 +68,7 @@ export default function MyTemporaries() {
             <strong>{typeName(p.property_type)} · {p.locality_label}</strong>
             <p>{Number(p.nightly_price_ars).toLocaleString("es-AR",{style:"currency",currency:"ARS"})} por noche</p>
             <p>{displayDate(p.availability_start)} al {displayDate(p.availability_end)} · Estado: {stateName(p.status)}</p>
+            <PropertyPhotoUpload propertyId={p.id} onUploaded={()=>setRefresh(v=>v+1)}/>
           </article>) : <p>Todavía no tenés propiedades temporarias registradas.</p>}
           {decisionError && <p role="alert">{decisionError}</p>}
           <h2>Interesados en mis propiedades ({result.ownerMatches.length})</h2>
