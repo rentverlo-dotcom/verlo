@@ -19,6 +19,8 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
 }){
  const [open,setOpen]=useState(false)
  const [starting,setStarting]=useState(false)
+ const [preparingPayment,setPreparingPayment]=useState(false)
+ const [preferenceId,setPreferenceId]=useState("")
  const [accepting,setAccepting]=useState(false)
  const [acceptedLocally,setAcceptedLocally]=useState(false)
  const [otherAcceptedLocally,setOtherAcceptedLocally]=useState(false)
@@ -38,6 +40,23 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
    setReservationMessage("Reserva en borrador creada. Las fechas aún no están bloqueadas ni se realizó ningún pago.")
   }catch(error){setReservationMessage(error instanceof Error?error.message:"No se pudo iniciar la reserva")}
   finally{setStarting(false)}
+ }
+ async function preparePayment(){
+  if(preparingPayment||preferenceId)return
+  setPreparingPayment(true);setReservationMessage("")
+  try{
+   const {data:{session}}=await supabase.auth.getSession()
+   if(!session?.access_token)throw Error("Iniciá sesión para continuar")
+   const response=await fetch("/api/temporarios/payments/prepare",{
+    method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},
+    body:JSON.stringify({matchId:match.id})
+   })
+   const data:{ok?:boolean;error?:string;preferenceId?:string}=await response.json()
+   if(!response.ok||!data.ok||!data.preferenceId)throw Error(data.error||"No se pudo preparar el checkout")
+   setPreferenceId(data.preferenceId)
+   setReservationMessage("Checkout de prueba preparado correctamente. No se realizó ningún cobro ni se bloquearon fechas.")
+  }catch(error){setReservationMessage(error instanceof Error?error.message:"No pudimos preparar el checkout")}
+  finally{setPreparingPayment(false)}
  }
  async function acceptTerms(){
   if(accepting)return
@@ -96,6 +115,13 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
         <div><strong>2. Pago de VERLO</strong> · {reservation?.status==="fee_paid"||reservation?.status==="deposit_pending"||reservation?.status==="ready_to_block"||reservation?.status==="confirmed"?"Estado registrado en el sistema.":"Pendiente. El cobro todavía no está habilitado en esta prueba."}</div>
         <div><strong>3. Confirmación de fechas</strong> · {reservation?.status==="confirmed"?"Reserva confirmada.":"Pendiente. Ambas partes deberán aprobar expresamente el bloqueo."}</div>
        </div>
+       {role==="tenant"&&reservation?.status==="terms_accepted"&&<div style={{marginTop:14}}>
+        <button type="button" disabled={preparingPayment||Boolean(preferenceId)} onClick={()=>void preparePayment()}
+         style={{border:0,borderRadius:99,background:"#050002",color:"#fff",padding:"12px 20px",fontWeight:850,cursor:"pointer"}}>
+         {preparingPayment?"Preparando...":preferenceId?"Checkout de prueba preparado":"Preparar checkout de prueba"}
+        </button>
+        <p style={{fontSize:12,color:"#73666d"}}>Solo prepara una preferencia de Mercado Pago: no abre una pantalla de cobro.</p>
+       </div>}
        <p style={{fontSize:12,color:"#73666d",marginBottom:0}}>Aceptar condiciones no implica reservar fechas. No envíes dinero por esta pantalla.</p>
       </section>}
       {reservationMessage&&<p role="status" style={{fontSize:14,margin:"12px 0 0"}}>{reservationMessage}</p>}
