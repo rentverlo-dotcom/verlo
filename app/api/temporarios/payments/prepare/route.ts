@@ -36,35 +36,27 @@ export async function POST(request:Request){
  if(!r||r.status!=="terms_accepted"||!r.agreed_terms_owner_at||!r.agreed_terms_tenant_at)
   return reply(409,{ok:false,error:"Ambas partes deben aceptar las condiciones antes del pago"})
  const previous=await db.from("temporary_payment_attempts")
-  .select("id,mp_preference_id").eq("reservation_id",r.id).eq("status","pending").maybeSingle()
+  .select("id,mp_preference_id,mp_checkout_url").eq("reservation_id",r.id).eq("status","pending").maybeSingle()
  if(previous.error)return reply(503,{ok:false,error:"No pudimos consultar el intento de pago"})
  let attempt=previous.data
  if(!attempt){
   const inserted=await db.from("temporary_payment_attempts")
    .insert({reservation_id:r.id,tenant_user_id:auth.userId,amount_ars:FEE,currency:"ARS",status:"pending"})
-   .select("id,mp_preference_id").single()
+   .select("id,mp_preference_id,mp_checkout_url").single()
   if(inserted.error||!inserted.data){
    // If concurrent requests created the same pending row, use the unique winner.
    const winner=await db.from("temporary_payment_attempts")
-    .select("id,mp_preference_id").eq("reservation_id",r.id).eq("status","pending").maybeSingle()
+    .select("id,mp_preference_id,mp_checkout_url").eq("reservation_id",r.id).eq("status","pending").maybeSingle()
    if(winner.error||!winner.data)return reply(503,{ok:false,error:"No pudimos preparar el pago"})
    attempt=winner.data
   }else attempt=inserted.data
  }
- if(attempt.mp_preference_id){
-  const lookup=await fetch("https://api.mercadopago.com/checkout/preferences/"+encodeURIComponent(attempt.mp_preference_id),{headers:{Authorization:"Bearer "+mpToken},cache:"no-store"}).catch(()=>null)
-  const existing=lookup?.ok?await lookup.json().catch(()=>null) as Preference|null:null
-  if(!lookup?.ok)return reply(502,{ok:false,error:"Mercado Pago no pudo consultar la preferencia existente",providerStatus:lookup?.status||0})
-  if(existing?.id!==attempt.mp_preference_id||existing?.external_reference!==attempt.id)return reply(409,{ok:false,error:"La preferencia recuperada no coincide con el intento de pago"})
-  const checkoutUrl=existing.sandbox_init_point||existing.init_point
-  if(!checkoutUrl)return reply(502,{ok:false,error:"La preferencia no tiene enlace de Checkout Pro"})
-  return reply(200,{ok:true,prepared:true,preferenceId:attempt.mp_preference_id,checkoutUrl})
- }
+ if(attempt.mp_checkout_url)return reply(200,{ok:true,prepared:true,preferenceId:attempt.mp_preference_id,checkoutUrl:attempt.mp_checkout_url})
  const base=new URL(request.url).origin
  // Preview-only environment, branch-scoped credential from test-credentials page, fixed fee and stable external_reference.
  const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{
   method:"POST",
-  headers:{Authorization:"Bearer "+mpToken,"Content-Type":"application/json","X-Idempotency-Key":attempt.id},
+  headers:{Authorization:"Bearer "+mpToken,"Content-Type":"application/json","X-Idempotency-Key":attempt.id+(attempt.mp_preference_id?"-link-recovery":"")},
   body:JSON.stringify({
    items:[{id:"verlo-temporarios-fee",title:"VERLO Temporarios · Gestión de reserva",quantity:1,unit_price:FEE,currency_id:"ARS"}],
    external_reference:attempt.id,
@@ -81,8 +73,8 @@ export async function POST(request:Request){
  const preference=await mp.json().catch(()=>null) as Preference|null
  if(!preference?.id||!(preference.sandbox_init_point||preference.init_point))return reply(502,{ok:false,error:"Mercado Pago no devolvió un checkout de prueba"})
  const saved=await db.from("temporary_payment_attempts")
-  .update({mp_preference_id:preference.id,updated_at:new Date().toISOString()})
-  .eq("id",attempt.id).eq("status","pending").is("mp_preference_id",null)
+  .update({mp_preference_id:preference.id,mp_checkout_url:preference.sandbox_init_point||preference.init_point,updated_at:new Date().toISOString()})
+  .eq("id",attempt.id).eq("status","pending")
  if(saved.error)return reply(503,{ok:false,error:"No pudimos guardar la preferencia"})
  // No checkout URL returned to browser yet: webhook + payment verification are a separate QA gate.
  return reply(200,{ok:true,prepared:true,preferenceId:preference.id,checkoutUrl:preference.sandbox_init_point||preference.init_point})
