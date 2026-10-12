@@ -9,7 +9,7 @@ export type LodgingMatch={
   temporary_properties?:{locality_label:string;property_type:string;nightly_price_ars?:number;title?:string;description?:string;public_location_reference?:string;max_guests?:number}|null
 }
 type Photo={id:string;property_id:string;mime_type:string}
-type Reservation={id:string;match_id:string;status:string;agreed_terms_owner_at:string|null;agreed_terms_tenant_at:string|null}
+type Reservation={id:string;match_id:string;status:string;agreed_terms_owner_at:string|null;agreed_terms_tenant_at:string|null;confirmed_by_owner_at?:string|null;confirmed_by_tenant_at?:string|null}
 const date=(value:string)=>{const p=value.split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:value}
 const money=(value:number)=>Number(value).toLocaleString("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0})
 const kind=(x:string)=>({casa:"Casa",departamento:"Departamento",cabana:"Cabaña",habitacion:"Habitación"} as Record<string,string>)[x]||"Alojamiento"
@@ -25,6 +25,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
  const [preferenceId,setPreferenceId]=useState("")
  const [checkoutUrl,setCheckoutUrl]=useState("")
  const [accepting,setAccepting]=useState(false)
+ const [confirming,setConfirming]=useState(false)
  const [acceptedLocally,setAcceptedLocally]=useState(false)
  const [otherAcceptedLocally,setOtherAcceptedLocally]=useState(false)
  const [reservationMessage,setReservationMessage]=useState("")
@@ -92,6 +93,26 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
   }catch(error){setReservationMessage(error instanceof Error?error.message:"No pudimos guardar tu aceptación")}
   finally{setAccepting(false)}
  }
+ async function confirmReservation(){
+  if(confirming)return
+  setConfirming(true);setReservationMessage("")
+  try{
+   const {data:{session}}=await supabase.auth.getSession()
+   if(!session?.access_token)throw Error("Iniciá sesión para continuar")
+   const response=await fetch("/api/temporarios/reservations/confirm",{
+    method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},
+    body:JSON.stringify({matchId:match.id,role})
+   })
+   const data:{ok?:boolean;error?:string;reservation?:{status:string}}=await response.json()
+   if(!response.ok||!data.ok)throw Error(data.error||"No se pudo confirmar la reserva")
+   setReservationMessage(data.reservation?.status==="confirmed"
+    ?"Reserva confirmada. Las fechas quedaron bloqueadas."
+    :"Confirmación registrada. Falta la aprobación de la otra parte.")
+   onRefresh()
+  }catch(error){setReservationMessage(error instanceof Error?error.message:"No se pudo confirmar la reserva")}
+  finally{setConfirming(false)}
+ }
  const hasDraft=Boolean(reservation||reservationId)
  const myTermsAccepted=acceptedLocally||(role==="owner"?Boolean(reservation?.agreed_terms_owner_at):Boolean(reservation?.agreed_terms_tenant_at))
  const otherTermsAccepted=otherAcceptedLocally||(role==="owner"?Boolean(reservation?.agreed_terms_tenant_at):Boolean(reservation?.agreed_terms_owner_at))
@@ -146,6 +167,17 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
         </div>
         {checkoutUrl&&<p style={{fontSize:13,marginTop:12}}><a href={checkoutUrl} target="_blank" rel="noopener noreferrer" style={{fontWeight:850,color:"#050002",textDecoration:"underline"}}>Abrir Mercado Pago (prueba)</a></p>}
         <p style={{fontSize:12,color:"#73666d"}}>Usá exclusivamente una cuenta compradora y tarjetas de prueba de Mercado Pago. No pagues con una cuenta real.</p>
+       </div>}
+       {(reservation?.status==="fee_paid"||reservation?.status==="ready_to_block"||reservation?.status==="confirmed")&&<div style={{marginTop:18,padding:14,borderRadius:12,background:"#fbf4f5"}}>
+        <strong>Confirmación definitiva de fechas</strong>
+        <p style={{fontSize:13}}>Propietario: {reservation.confirmed_by_owner_at?"Confirmó":"Pendiente"} · Inquilino: {reservation.confirmed_by_tenant_at?"Confirmó":"Pendiente"}</p>
+        <p style={{fontSize:12,color:"#73666d"}}>La reserva solo queda confirmada y las fechas bloqueadas cuando ambas partes autorizan el bloqueo.</p>
+        {reservation.status!=="confirmed" && !(role==="owner"?reservation.confirmed_by_owner_at:reservation.confirmed_by_tenant_at)&&
+         <button type="button" onClick={()=>void confirmReservation()} disabled={confirming}
+          style={{background:"#050002",color:"#fff",border:0,borderRadius:99,padding:"12px 18px",fontWeight:850}}>
+          {confirming?"Confirmando...":"Confirmar reserva y autorizar bloqueo"}
+         </button>}
+        {reservation.status==="confirmed"&&<strong role="status">Reserva confirmada · Fechas bloqueadas</strong>}
        </div>}
        <a href={"/temporarios/contrato?matchId="+encodeURIComponent(match.id)} style={{display:"inline-flex",marginTop:18,padding:"12px 20px",background:"#050002",color:"#fff",borderRadius:99,textDecoration:"none",fontWeight:850}}>Ver contrato digital</a>
        <p style={{fontSize:12,color:"#73666d",marginBottom:0}}>Aceptar condiciones no implica reservar fechas. No envíes dinero por esta pantalla.</p>
