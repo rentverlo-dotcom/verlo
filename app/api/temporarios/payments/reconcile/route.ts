@@ -33,3 +33,4 @@ export async function POST(request:Request){
  if(stored.error)return reply(503,{ok:false,error:"El pago fue verificado pero no se pudo registrar"})
  return reply(200,{ok:true,verified:true,reservation:stored.data})
 }
+
