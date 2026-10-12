@@ -23,7 +23,7 @@ export async function POST(request:NextRequest){
  const secret=process.env.TEMPORARY_MP_WEBHOOK_SECRET
  const token=process.env.TEMPORARY_MP_ACCESS_TOKEN
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL,service=process.env.SUPABASE_SERVICE_ROLE_KEY
- if(!secret||!token?.startsWith("TEST-")||!url||!service)return reply(503,{ok:false,error:"Webhook de prueba no configurado"})
+ if(!secret||!(token?.startsWith("APP_USR-")||token?.startsWith("TEST-"))||!url||!service)return reply(503,{ok:false,error:"Webhook de prueba no configurado"})
  if(Number(request.headers.get("content-length")||0)>8192)return reply(413,{ok:false})
  let body:{type?:unknown;data?:{id?:unknown}}
  try{body=await request.json()}catch{return reply(400,{ok:false})}
