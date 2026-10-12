@@ -17,7 +17,7 @@ export async function POST(request:Request){
  try{body=await request.json()}catch{return reply(400,{ok:false,error:"Solicitud inválida"})}
  if(!body||typeof body.matchId!=="string"||!uuid.test(body.matchId))return reply(400,{ok:false,error:"Coincidencia inválida"})
  const mpToken=process.env.TEMPORARY_MP_ACCESS_TOKEN
- if(!mpToken||!mpToken.startsWith("TEST-"))return reply(503,{ok:false,error:"Mercado Pago de prueba no está configurado"})
+ if(!mpToken||!(mpToken.startsWith("APP_USR-")||mpToken.startsWith("TEST-")))return reply(503,{ok:false,error:"Mercado Pago de prueba no está configurado"})
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY
  if(!url||!key)return reply(503,{ok:false,error:"Servicio no disponible"})
@@ -53,7 +53,7 @@ export async function POST(request:Request){
  }
  if(attempt.mp_preference_id)return reply(200,{ok:true,prepared:true,preferenceId:attempt.mp_preference_id})
  const base=new URL(request.url).origin
- // Preview-only environment, strict test token, fixed fee and stable external_reference.
+ // Preview-only environment, branch-scoped credential from test-credentials page, fixed fee and stable external_reference.
  const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{
   method:"POST",
   headers:{Authorization:"Bearer "+mpToken,"Content-Type":"application/json","X-Idempotency-Key":attempt.id},
@@ -71,7 +71,7 @@ export async function POST(request:Request){
  }).catch(()=>null)
  if(!mp?.ok)return reply(502,{ok:false,error:"Mercado Pago no pudo preparar el pago de prueba"})
  const preference=await mp.json().catch(()=>null) as Preference|null
- if(!preference?.id||!preference.sandbox_init_point)return reply(502,{ok:false,error:"Mercado Pago no devolvió un checkout de prueba"})
+ if(!preference?.id)return reply(502,{ok:false,error:"Mercado Pago no devolvió un checkout de prueba"})
  const saved=await db.from("temporary_payment_attempts")
   .update({mp_preference_id:preference.id,updated_at:new Date().toISOString()})
   .eq("id",attempt.id).eq("status","pending").is("mp_preference_id",null)
