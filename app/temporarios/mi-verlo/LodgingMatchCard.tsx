@@ -20,6 +20,8 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
  const [open,setOpen]=useState(false)
  const [starting,setStarting]=useState(false)
  const [preparingPayment,setPreparingPayment]=useState(false)
+ const [reconciling,setReconciling]=useState(false)
+ const [paymentOperation,setPaymentOperation]=useState("")
  const [preferenceId,setPreferenceId]=useState("")
  const [checkoutUrl,setCheckoutUrl]=useState("")
  const [accepting,setAccepting]=useState(false)
@@ -59,6 +61,20 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
    setReservationMessage("Checkout de prueba preparado correctamente. No se realizó ningún cobro ni se bloquearon fechas.")
   }catch(error){setReservationMessage(error instanceof Error?error.message:"No pudimos preparar el checkout")}
   finally{setPreparingPayment(false)}
+ }
+ async function reconcilePayment(){
+  if(reconciling)return
+  setReconciling(true);setReservationMessage("")
+  try{
+   const {data:{session}}=await supabase.auth.getSession()
+   if(!session?.access_token)throw Error("Iniciá sesión para continuar")
+   const response=await fetch("/api/temporarios/payments/reconcile",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({matchId:match.id,paymentId:paymentOperation.trim()})})
+   const data:{ok?:boolean;error?:string}=await response.json()
+   if(!response.ok||!data.ok)throw Error(data.error||"No se pudo verificar el pago")
+   setReservationMessage("Pago de prueba verificado con Mercado Pago y registrado en VERLO. No se bloquearon fechas.")
+   onRefresh()
+  }catch(error){setReservationMessage(error instanceof Error?error.message:"No pudimos verificar el pago")}
+  finally{setReconciling(false)}
  }
  async function acceptTerms(){
   if(accepting)return
@@ -122,6 +138,12 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
          style={{border:0,borderRadius:99,background:"#050002",color:"#fff",padding:"12px 20px",fontWeight:850,cursor:"pointer"}}>
          {preparingPayment?"Preparando...":preferenceId?"Recuperar checkout de prueba":"Preparar checkout de prueba"}
         </button>
+        <div style={{marginTop:16,padding:14,borderRadius:12,background:"#fbf4f5"}}>
+         <label htmlFor={"payment-operation-"+match.id} style={{display:"block",fontSize:13,fontWeight:800,marginBottom:7}}>¿Ya pagaste en Mercado Pago Sandbox?</label>
+         <p style={{fontSize:12,color:"#6c6266",margin:"0 0 10px"}}>Ingresá el número de operación que figura en el comprobante para verificar el pago directamente con Mercado Pago.</p>
+         <input id={"payment-operation-"+match.id} inputMode="numeric" pattern="[0-9]*" placeholder="Número de operación de prueba" value={paymentOperation} onChange={event=>setPaymentOperation(event.target.value.replace(/[^0-9]/g,"").slice(0,32))} style={{padding:11,border:"1px solid #dacbd0",borderRadius:9,maxWidth:"100%",width:300}}/>
+         <button type="button" disabled={reconciling||!paymentOperation} onClick={()=>void reconcilePayment()} style={{marginLeft:8,padding:"11px 15px",border:0,borderRadius:99,color:"#fff",background:"#050002",fontWeight:800}}>{reconciling?"Verificando...":"Verificar pago"}</button>
+        </div>
         {checkoutUrl&&<p style={{fontSize:13,marginTop:12}}><a href={checkoutUrl} target="_blank" rel="noopener noreferrer" style={{fontWeight:850,color:"#050002",textDecoration:"underline"}}>Abrir Mercado Pago (prueba)</a></p>}
         <p style={{fontSize:12,color:"#73666d"}}>Usá exclusivamente una cuenta compradora y tarjetas de prueba de Mercado Pago. No pagues con una cuenta real.</p>
        </div>}
