@@ -7,7 +7,7 @@ export const dynamic="force-dynamic"
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const reply=(status:number,data:object)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}})
 const FEE=29900
-type Preference={id?:string;init_point?:string;message?:string}
+type Preference={id?:string;init_point?:string;sandbox_init_point?:string;external_reference?:string;message?:string}
 
 export async function POST(request:Request){
  const auth=await authorizeTemporaryWrite(request,"tenant")
@@ -54,8 +54,11 @@ export async function POST(request:Request){
  if(attempt.mp_preference_id){
   const lookup=await fetch("https://api.mercadopago.com/checkout/preferences/"+encodeURIComponent(attempt.mp_preference_id),{headers:{Authorization:"Bearer "+mpToken},cache:"no-store"}).catch(()=>null)
   const existing=lookup?.ok?await lookup.json().catch(()=>null) as Preference|null:null
-  if(!existing?.init_point)return reply(502,{ok:false,error:"No pudimos recuperar el checkout de prueba"})
-  return reply(200,{ok:true,prepared:true,preferenceId:attempt.mp_preference_id,checkoutUrl:existing.init_point})
+  if(!lookup?.ok)return reply(502,{ok:false,error:"Mercado Pago no pudo consultar la preferencia existente",providerStatus:lookup?.status||0})
+  if(existing?.id!==attempt.mp_preference_id||existing?.external_reference!==attempt.id)return reply(409,{ok:false,error:"La preferencia recuperada no coincide con el intento de pago"})
+  const checkoutUrl=existing.sandbox_init_point||existing.init_point
+  if(!checkoutUrl)return reply(502,{ok:false,error:"La preferencia no tiene enlace de Checkout Pro"})
+  return reply(200,{ok:true,prepared:true,preferenceId:attempt.mp_preference_id,checkoutUrl})
  }
  const base=new URL(request.url).origin
  // Preview-only environment, branch-scoped credential from test-credentials page, fixed fee and stable external_reference.
@@ -76,11 +79,11 @@ export async function POST(request:Request){
  }).catch(()=>null)
  if(!mp?.ok)return reply(502,{ok:false,error:"Mercado Pago no pudo preparar el pago de prueba"})
  const preference=await mp.json().catch(()=>null) as Preference|null
- if(!preference?.id||!preference.init_point)return reply(502,{ok:false,error:"Mercado Pago no devolvió un checkout de prueba"})
+ if(!preference?.id||!(preference.sandbox_init_point||preference.init_point))return reply(502,{ok:false,error:"Mercado Pago no devolvió un checkout de prueba"})
  const saved=await db.from("temporary_payment_attempts")
   .update({mp_preference_id:preference.id,updated_at:new Date().toISOString()})
   .eq("id",attempt.id).eq("status","pending").is("mp_preference_id",null)
  if(saved.error)return reply(503,{ok:false,error:"No pudimos guardar la preferencia"})
  // No checkout URL returned to browser yet: webhook + payment verification are a separate QA gate.
- return reply(200,{ok:true,prepared:true,preferenceId:preference.id,checkoutUrl:preference.init_point})
+ return reply(200,{ok:true,prepared:true,preferenceId:preference.id,checkoutUrl:preference.sandbox_init_point||preference.init_point})
 }
