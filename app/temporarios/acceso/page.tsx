@@ -141,7 +141,7 @@ export default function TemporaryAccess() {
       <section style={panel}>
         <h1 style={{...heading,fontSize:"clamp(42px,7vw,68px)"}}>Entrá a <em style={script}>Temporarios.</em></h1>
         {signedIn ? <>
-          <p>{finishing ? "Guardando tu formulario..." : "Sesión iniciada: {activeEmail || "Cuenta verificada"}. Podés continuar con tu publicación o búsqueda."}</p>
+          <p>{finishing ? "Guardando tu formulario..." : <>Sesión iniciada: <strong>{activeEmail || "Cuenta verificada"}</strong>. Podés continuar con tu publicación o búsqueda.</>}</p>
           {message && <p role="status">{message}</p>}
           <button style={button} disabled={finishing || loading} type="button" onClick={() => router.push(destination())}>Continuar en Temporarios</button>
           <button style={{...button,marginTop:12,background:"#fff",color:"#050002",border:"1px solid #050002"}} disabled={finishing || loading} type="button" onClick={() => void switchAccount()}>Cerrar sesión / Cambiar cuenta</button>
