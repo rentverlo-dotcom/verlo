@@ -147,6 +147,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
         {checkoutUrl&&<p style={{fontSize:13,marginTop:12}}><a href={checkoutUrl} target="_blank" rel="noopener noreferrer" style={{fontWeight:850,color:"#050002",textDecoration:"underline"}}>Abrir Mercado Pago (prueba)</a></p>}
         <p style={{fontSize:12,color:"#73666d"}}>Usá exclusivamente una cuenta compradora y tarjetas de prueba de Mercado Pago. No pagues con una cuenta real.</p>
        </div>}
+       <a href={"/temporarios/contrato?matchId="+encodeURIComponent(match.id)} style={{display:"inline-flex",marginTop:18,padding:"12px 20px",background:"#050002",color:"#fff",borderRadius:99,textDecoration:"none",fontWeight:850}}>Ver contrato digital</a>
        <p style={{fontSize:12,color:"#73666d",marginBottom:0}}>Aceptar condiciones no implica reservar fechas. No envíes dinero por esta pantalla.</p>
       </section>}
       {reservationMessage&&<p role="status" style={{fontSize:14,margin:"12px 0 0"}}>{reservationMessage}</p>}
