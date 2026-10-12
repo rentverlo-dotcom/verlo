@@ -49,9 +49,9 @@ export async function GET(request: Request) {
     media=listing.data||[]
   }
   const matchIds=Array.from(new Set([...(ownerMatches.data||[]),...(tenantMatches.data||[])].map(m=>m.id)))
-  let reservations:Array<{id:string;match_id:string;status:string;agreed_terms_owner_at:string|null;agreed_terms_tenant_at:string|null}>=[]
+  let reservations:Array<{id:string;match_id:string;status:string;agreed_terms_owner_at:string|null;agreed_terms_tenant_at:string|null;confirmed_by_owner_at:string|null;confirmed_by_tenant_at:string|null}>=[]
   if(matchIds.length){
-    const rows=await db.from("temporary_reservations").select("id,match_id,status,agreed_terms_owner_at,agreed_terms_tenant_at").in("match_id",matchIds).limit(100)
+    const rows=await db.from("temporary_reservations").select("id,match_id,status,agreed_terms_owner_at,agreed_terms_tenant_at,confirmed_by_owner_at,confirmed_by_tenant_at").in("match_id",matchIds).limit(100)
     if(rows.error)return answer(503,{ok:false,error:"No pudimos consultar las reservas"})
     reservations=rows.data||[]
   }
