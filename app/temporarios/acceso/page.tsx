@@ -23,16 +23,17 @@ export default function TemporaryAccess() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [signedIn, setSignedIn] = useState(false)
+  const [activeEmail, setActiveEmail] = useState("")
   const [finishing, setFinishing] = useState(false)
   const processing = useRef(false)
 
   useEffect(() => {
     let active = true
     void supabase.auth.getSession().then(({ data }) => {
-      if (active) setSignedIn(Boolean(data.session))
+      if (active) { setSignedIn(Boolean(data.session)); setActiveEmail(data.session?.user.email || "") }
     }).catch(() => {})
     const {data: {subscription}} = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) setSignedIn(Boolean(session))
+      if (active) { setSignedIn(Boolean(session)); setActiveEmail(session?.user.email || "") }
     })
     return () => { active = false; subscription.unsubscribe() }
   }, [])
@@ -96,6 +97,23 @@ export default function TemporaryAccess() {
     })()
   }, [signedIn, router])
 
+  async function switchAccount() {
+    if (finishing || loading) return
+    setLoading(true)
+    setMessage("")
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      setSignedIn(false)
+      setActiveEmail("")
+      setEmail("")
+      processing.current = false
+      setMessage("Sesión cerrada. Ingresá con el correo de la cuenta que querés utilizar.")
+    } catch {
+      setMessage("No se pudo cerrar la sesión. Intentá nuevamente.")
+    } finally { setLoading(false) }
+  }
+
   async function sendLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (loading) return
@@ -123,9 +141,10 @@ export default function TemporaryAccess() {
       <section style={panel}>
         <h1 style={{...heading,fontSize:"clamp(42px,7vw,68px)"}}>Entrá a <em style={script}>Temporarios.</em></h1>
         {signedIn ? <>
-          <p>{finishing ? "Guardando tu formulario..." : "Tu sesión ya está iniciada. Podés continuar con tu publicación o búsqueda."}</p>
+          <p>{finishing ? "Guardando tu formulario..." : "Sesión iniciada: {activeEmail || "Cuenta verificada"}. Podés continuar con tu publicación o búsqueda."}</p>
           {message && <p role="status">{message}</p>}
-          <button style={button} disabled={finishing} type="button" onClick={() => router.push(destination())}>Continuar en Temporarios</button>
+          <button style={button} disabled={finishing || loading} type="button" onClick={() => router.push(destination())}>Continuar en Temporarios</button>
+          <button style={{...button,marginTop:12,background:"#fff",color:"#050002",border:"1px solid #050002"}} disabled={finishing || loading} type="button" onClick={() => void switchAccount()}>Cerrar sesión / Cambiar cuenta</button>
         </> : <>
           <p>Usamos la misma cuenta de VERLO. Si todavía no tenés una, el enlace permitirá crearla con tu email.</p>
           <form onSubmit={sendLink} style={{display:"grid",gap:18,marginTop:22}}>
