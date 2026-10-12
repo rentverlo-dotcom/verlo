@@ -80,7 +80,7 @@ export async function POST(request:Request){
    "Este documento no acredita por sí mismo el bloqueo definitivo del calendario."
   ].join("\n\n")
   const docHash=hash(text)
-  const payload={reservation_id:r.id,status:"ready",version:1,document_text:text,document_sha256:docHash,legal_data:{owner,tenant,houseRules:rules},ready_at:new Date().toISOString(),updated_at:new Date().toISOString()}
+  const payload={reservation_id:r.id,check_in:c.match.check_in,check_out:c.match.check_out,total_price_ars:c.match.agreed_total_ars,contract_content:text,status:"ready",version:1,document_text:text,document_sha256:docHash,legal_data:{owner,tenant,houseRules:rules},ready_at:new Date().toISOString(),updated_at:new Date().toISOString()}
   if(current)return reply(409,{ok:false,error:"Ya existe un expediente: no se sobrescribirá automáticamente"})
   const created=await c.db.from("temporary_contracts").insert(payload).select("id").single()
   if(created.error)return reply(409,{ok:false,error:"No se pudo emitir el contrato; verificá si ya existe"})
