@@ -58,7 +58,7 @@ export async function POST(request:Request){
   method:"POST",
   headers:{Authorization:"Bearer "+mpToken,"Content-Type":"application/json","X-Idempotency-Key":attempt.id+(attempt.mp_preference_id?"-link-recovery":"")},
   body:JSON.stringify({
-   items:[{id:"verlo-temporarios-fee",title:"VERLO Temporarios · Gestión de reserva",quantity:1,unit_price:FEE,currency_id:"ARS"}],
+   items:[{id:"verlo-temporarios-fee",title:"VERLO Temporarios · Contrato digital",quantity:1,unit_price:FEE,currency_id:"ARS"}],
    external_reference:attempt.id,
    back_urls:{
     success:base+"/temporarios/mi-verlo",
