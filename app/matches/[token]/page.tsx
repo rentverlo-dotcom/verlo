@@ -11,6 +11,7 @@ import {
 } from "next/navigation"
 
 import VerloBrand from "@/components/VerloBrand"
+import PushSubscribeByTokenButton from "@/components/PushSubscribeByTokenButton"
 import { trackPostHog } from "@/lib/posthog-client"
 
 type MediaItem = {
@@ -727,6 +728,22 @@ export default function MatchesPage() {
             <VerloBrand />
           </div>
         </header>
+
+        <div style={{ maxWidth: 1160, margin: "18px auto 0", padding: "0 20px" }}>
+          <div style={{
+            display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center",
+            justifyContent: "space-between", padding: "16px 20px",
+            borderRadius: 16, background: "#ffffff", border: "1px solid rgba(5,0,2,0.12)"
+          }}>
+            <div>
+              <strong>Recibí las novedades en tu dispositivo</strong>
+              <p style={{ margin: "4px 0 0", fontSize: 14 }}>
+                Activá las notificaciones para enterarte cuando haya novedades en tus coincidencias.
+              </p>
+            </div>
+            <PushSubscribeByTokenButton token={token} role="tenant" />
+          </div>
+        </div>
 
         <section className="intro">
           <span className="eyebrow">
