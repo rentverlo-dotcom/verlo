@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { trackPostHog } from '@/lib/posthog-client'
 
 type Props = {
   token: string
@@ -58,6 +59,7 @@ export default function PushSubscribeByTokenButton({
   async function activatePush() {
     try {
       setStatus('loading')
+      trackPostHog('push_activation_requested', { role })
 
       if (
         !('serviceWorker' in navigator)
@@ -151,6 +153,7 @@ export default function PushSubscribeByTokenButton({
       }
 
       setStatus('success')
+      trackPostHog('push_activation_succeeded', { role })
     } catch (error) {
       console.error(
         'Push activation error',
@@ -158,6 +161,7 @@ export default function PushSubscribeByTokenButton({
       )
 
       setStatus('error')
+      trackPostHog('push_activation_failed', { role })
     }
   }
 
