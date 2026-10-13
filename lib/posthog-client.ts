@@ -34,6 +34,25 @@ function getPostHog() {
   return posthog
 }
 
+export function safeAnalyticsPath(path: string): string {
+  return path
+    .replace(/\\/(matches|candidatos|cierre|activar|final|propiedad|tenant\\/validacion)\\/[^/?#]+/gi, "/$1/[private]")
+    .replace(/\\/contracts\\/[^/?#]+/gi, "/contracts/[private]")
+}
+
+function sanitizeAnalyticsValue(value: unknown): unknown {
+  if (typeof value === "string") {
+    if (/^https?:\\/\\//i.test(value)) {
+      try {
+        const url = new URL(value)
+        return url.origin + safeAnalyticsPath(url.pathname)
+      } catch { return "[redacted]" }
+    }
+    if (value.startsWith("/")) return safeAnalyticsPath(value.split("?")[0].split("#")[0])
+  }
+  return value
+}
+
 function getTrackingContext() {
   if (
     typeof window ===
@@ -65,13 +84,13 @@ function getTrackingContext() {
 
   return {
     page_path:
-      window.location.pathname,
+      safeAnalyticsPath(window.location.pathname),
 
     page_url:
-      window.location.href,
+      window.location.origin + safeAnalyticsPath(window.location.pathname),
 
     referrer:
-      document.referrer ||
+      sanitizeAnalyticsValue(document.referrer) ||
       null,
 
     device,
@@ -129,7 +148,11 @@ export function trackPostHog(
       event,
       {
         ...getTrackingContext(),
-        ...(properties || {}),
+        ...Object.fromEntries(
+          Object.entries(properties || {}).filter(([key]) =>
+            !/token|secret|password|dni|email|phone|document|signature|address|name|url/i.test(key)
+          ).map(([key, value]) => [key, sanitizeAnalyticsValue(value)])
+        ),
       }
     )
   } catch (
