@@ -168,4 +168,56 @@ async function recipients(): Promise<
 
   const rows = (matches || []) as Match[]
 
-  // CORREGIDO:
+  const ids = Array.from(new Set(rows.flatMap((x) => [
+    x.owner_lead_id, x.tenant_lead_id,
+  ])))
+  if (!ids.length) return []
+  const { data: leads, error: leadError } = await supabaseAdmin
+    .from("lead_intake").select("id,email,phone_normalized").in("id", ids)
+  if (leadError) throw leadError
+  const byId = new Map((leads || []).map((lead) => [lead.id, lead as Lead]))
+  const grouped = new Map<string, Recipient>()
+  for (const match of rows) {
+    const owner = byId.get(match.owner_lead_id)
+    const tenant = byId.get(match.tenant_lead_id)
+    if (!owner || !tenant) continue
+    if ([owner, tenant].some((lead) => (lead.email || "").toLowerCase().endsWith("@example.com"))) continue
+    const participants: Array<{ role: Role; lead: Lead }> = [
+      { role: "owner", lead: owner },
+      { role: "tenant", lead: tenant },
+    ]
+    for (const { role, lead } of participants) {
+      if (!lead.email && !lead.phone_normalized) continue
+      const key = `${role}:${identity(lead)}`
+      if (!grouped.has(key)) grouped.set(key, {
+        role, leadId: lead.id, identity: key, matches: new Set<string>(),
+      })
+      grouped.get(key)!.matches.add(match.id)
+    }
+  }
+  return Array.from(grouped.values()).sort((a, b) =>
+    b.matches.size - a.matches.size || a.identity.localeCompare(b.identity)
+  )
+}
+
+// Read-only preview until delivery validation is complete.
+export async function GET(request: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 })
+  }
+  try {
+    const candidates = await recipients()
+    return NextResponse.json({
+      ok: true,
+      mode: "dry_run",
+      recipients: candidates.length,
+      owners: candidates.filter((r) => r.role === "owner").length,
+      tenants: candidates.filter((r) => r.role === "tenant").length,
+      messages_sent: 0,
+    })
+  } catch (error) {
+    console.error("backfill preview error", error)
+    return NextResponse.json({ ok: false, error: "preview_failed" }, { status: 500 })
+  }
+}
