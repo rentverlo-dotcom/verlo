@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/match-digest",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/tradicionales-historical-backfill",
+      "schedule": "15 21 * * *"
     }
   ]
 }
