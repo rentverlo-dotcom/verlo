@@ -36,19 +36,23 @@ function getPostHog() {
 
 export function safeAnalyticsPath(path: string): string {
   return path
-    .replace(/\\/(matches|candidatos|cierre|activar|final|propiedad|tenant\\/validacion)\\/[^/?#]+/gi, "/$1/[private]")
-    .replace(/\\/contracts\\/[^/?#]+/gi, "/contracts/[private]")
+    .replace(/\/(matches|candidatos|cierre|activar|final|propiedad|tenant\/validacion)\/[^/?#]+/gi, "/$1/[private]")
+    .replace(/\/contracts\/[^/?#]+/gi, "/contracts/[private]")
 }
 
 function sanitizeAnalyticsValue(value: unknown): unknown {
   if (typeof value === "string") {
-    if (/^https?:\\/\\//i.test(value)) {
+    if (/^https?:\/\//i.test(value)) {
       try {
         const url = new URL(value)
         return url.origin + safeAnalyticsPath(url.pathname)
-      } catch { return "[redacted]" }
+      } catch {
+        return "[redacted]"
+      }
     }
-    if (value.startsWith("/")) return safeAnalyticsPath(value.split("?")[0].split("#")[0])
+    if (value.startsWith("/")) {
+      return safeAnalyticsPath(value.split("?")[0].split("#")[0])
+    }
   }
   return value
 }
