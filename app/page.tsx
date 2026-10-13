@@ -2134,6 +2134,10 @@ export default function PageDePrueba() {
   function choosePath(
     nextPath: Path
   ) {
+    trackPostHog("customer_path_selected", {
+      product: "tradicionales",
+      selected_role: nextPath,
+    })
     setPath(nextPath)
     setError("")
     setSuccess("")
@@ -2234,6 +2238,10 @@ export default function PageDePrueba() {
   ) {
     e.preventDefault()
 
+    trackPostHog("customer_form_submission_started", {
+      product: "tradicionales",
+      selected_role: path,
+    })
     setLoading(true)
     setError("")
     setSuccess("")
