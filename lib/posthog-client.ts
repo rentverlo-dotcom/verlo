@@ -38,6 +38,7 @@ export function safeAnalyticsPath(path: string): string {
   return path
     .replace(/\/(matches|candidatos|cierre|activar|final|propiedad|tenant\/validacion)\/[^/?#]+/gi, "/$1/[private]")
     .replace(/\/contracts\/[^/?#]+/gi, "/contracts/[private]")
+    .replace(/\/tenant\/validacion\/[^/?#]+/gi, "/tenant/validacion/[private]")
 }
 
 function sanitizeAnalyticsValue(value: unknown): unknown {
@@ -197,7 +198,11 @@ export function identifyPostHog(
 
     posthog.identify(
       cleanId,
-      properties
+      Object.fromEntries(
+        Object.entries(properties || {}).filter(([key]) =>
+          !/token|secret|password|dni|email|phone|document|signature|address|name|url/i.test(key)
+        ).map(([key, value]) => [key, sanitizeAnalyticsValue(value)])
+      )
     )
   } catch (
     error
