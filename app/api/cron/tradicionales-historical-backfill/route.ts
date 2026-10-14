@@ -39,6 +39,7 @@ type Recipient = {
   leadId: string
   identity: string
   matches: Set<string>
+  recovery?: boolean
 }
 
 function digest(value: string): string {
@@ -269,36 +270,35 @@ async function dailyUsage(today: string) {
 
 async function pendingRecipients(
   all: Recipient[],
-  used: Set<string>
+  used: Set<string>,
+  today: string
 ): Promise<Recipient[]> {
   const pending: Recipient[] = []
-
   for (const recipient of all) {
     const hash = digest(recipient.identity)
-
     if (used.has(hash)) continue
-
-    const eventKey = `historic:${CAMPAIGN}:${hash}`
-
-    const {
-      data: existing,
-      error,
-    } = await supabaseAdmin
+    const { data: attempts, error } = await supabaseAdmin
       .from("lead_notification_events")
-      .select("id,status")
-      .eq("event_key", eventKey)
-      .maybeSingle()
-
+      .select("event_key,status,created_at")
+      .like("event_key", `historic:${CAMPAIGN}:%${hash}`)
+      .order("created_at", { ascending: false })
+      .limit(5)
     if (error) throw error
-
-    // Un evento histórico existente no se reenvía
-    // automáticamente. Los fallos se auditan aparte.
-    if (existing) continue
-
-    pending.push(recipient)
+    if (!attempts?.length) {
+      pending.push(recipient)
+      continue
+    }
+    // Maximo tres intentos y nunca dos al mismo destinatario en un dia.
+    if (attempts.length >= 3 || attempts[0].status !== "failed") continue
+    const lastDay = new Date(
+      new Date(attempts[0].created_at).getTime() - 10800000
+    ).toISOString().slice(0, 10)
+    if (lastDay >= today) continue
+    pending.push({ ...recipient, recovery: true })
   }
-
-  return pending
+  return pending.sort((a, b) =>
+    Number(Boolean(b.recovery)) - Number(Boolean(a.recovery))
+  )
 }
 
 export async function GET(request: NextRequest) {
@@ -330,7 +330,8 @@ export async function GET(request: NextRequest) {
 
     const pending = await pendingRecipients(
       all,
-      used
+      used,
+      today
     )
 
     const enabled =
@@ -438,7 +439,7 @@ export async function GET(request: NextRequest) {
 
         const result = await notifyLeadOnce({
           eventKey:
-            `historic:${CAMPAIGN}:${recipientHash}`,
+            recipient.recovery ? `historic:${CAMPAIGN}:retry:${today}:${recipientHash}` : `historic:${CAMPAIGN}:${recipientHash}`,
 
           eventType:
             recipient.role === "owner"
@@ -462,7 +463,7 @@ export async function GET(request: NextRequest) {
 
           url,
 
-          skipWhatsApp: false, // Meta templates pending approval: email and push only
+          skipWhatsApp: false, // Existing GHL digest workflow manages commercial channels
         })
 
         if (!result.ok) {

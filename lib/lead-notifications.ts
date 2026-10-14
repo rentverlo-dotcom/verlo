@@ -2085,20 +2085,51 @@ export async function notifyLeadOnce(
     // Email NO depende de skipWhatsApp.
     // Los canales comerciales nunca modifican el resultado
     // del evento principal ni pueden romper el flujo de Verlo.
-    const [
-      pushResult,
-    ] =
-      await Promise.all([
-        deliverEvent(
-          insertedEvent as
-            NotificationEventRow
-        ),
+    const [pushResult, emailResult, whatsappResult] = await Promise.all([
+      deliverEvent(insertedEvent as NotificationEventRow),
+      emailPromise,
+      whatsappPromise,
+    ])
 
-        emailPromise,
+    const isDigest = eventType === "owner_match_digest" || eventType === "match_digest_tenant"
+    console.log("NOTIFICATION CHANNEL RESULTS", {
+      eventKey, eventType, leadId, push: pushResult,
+      email: emailResult, ghl: whatsappResult,
+    })
 
-        whatsappPromise,
-      ])
-
+    if (isDigest) {
+      if (whatsappResult?.success) {
+        const now = new Date().toISOString()
+        const { error: updateError } = await supabaseAdmin
+          .from("lead_notification_events")
+          .update({
+            status: "sent",
+            sent_at: now,
+            last_error: pushResult.ok ? null : "Push unavailable; GHL accepted",
+            updated_at: now,
+          })
+          .eq("id", insertedEvent.id)
+          .in("status", ["pending", "failed"])
+        if (updateError) throw updateError
+        return { ...pushResult, ok: true, ghl_accepted: true }
+      }
+      const failure = whatsappResult?.error || "GHL digest not accepted"
+      const { error: updateError } = await supabaseAdmin
+        .from("lead_notification_events")
+        .update({
+          status: "failed",
+          last_error: failure,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", insertedEvent.id)
+      if (updateError) throw updateError
+      return {
+        ...pushResult,
+        ok: false,
+        ghl_accepted: false,
+        error: failure,
+      }
+    }
     return pushResult
   }
 
