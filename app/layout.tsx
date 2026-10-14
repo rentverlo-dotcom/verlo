@@ -100,7 +100,7 @@ export default function RootLayout({
                           before_send: function (event) {
                             if (!event || !event.properties) return event;
                             var properties = event.properties;
-                            var privateRoute = /\/(matches|candidatos|cierre|activar|final|propiedad|contracts)\/[^/?#]+/gi;
+                            var privateRoute = new RegExp('/(matches|candidatos|cierre|activar|final|propiedad|contracts)/[^/?#]+', 'gi');
                             Object.keys(properties).forEach(function (key) {
                               var value = properties[key];
                               if (typeof value !== 'string') return;
@@ -108,7 +108,7 @@ export default function RootLayout({
                                 delete properties[key];
                                 return;
                               }
-                              if (/url|href|referrer|pathname|path|host|link/i.test(key) && (/^https?:\/\//i.test(value) || value.charAt(0) === '/')) {
+                              if (/url|href|referrer|pathname|path|host|link/i.test(key) && (value.indexOf('http') === 0 || value.charAt(0) === '/')) {
                                 try {
                                   var parsed = new URL(value, window.location.origin);
                                   properties[key] = parsed.origin + parsed.pathname.replace(privateRoute, '/$1/[private]');
