@@ -2099,6 +2099,9 @@ export async function notifyLeadOnce(
         whatsappPromise,
       ])
 
+    if (eventType === "owner_match_digest" || eventType === "match_digest_tenant") {
+      console.log("DIGEST DELIVERY ATTEMPT", { eventKey, eventType, leadId, pushResult })
+    }
     return pushResult
   }
 
