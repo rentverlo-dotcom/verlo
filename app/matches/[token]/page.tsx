@@ -328,6 +328,11 @@ export default function MatchesPage() {
 
       setData(json)
       if (json?.tenant?.id) identifyPostHog(String(json.tenant.id), { role: "tenant" })
+      trackPostHog("customer_private_page_opened", {
+        role: "tenant",
+        lead_id: json?.tenant?.id || null,
+        area: "matches",
+      })
       trackPostHog("tenant_matches_opened", {
         tenant_lead_id: json?.tenant?.id || null,
         match_count: Array.isArray(json?.matches) ? json.matches.length : 0,
