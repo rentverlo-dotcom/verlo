@@ -97,6 +97,28 @@ export default function RootLayout({
                         ${JSON.stringify(POSTHOG_KEY)},
                         {
                           api_host: ${JSON.stringify(POSTHOG_HOST)},
+                          before_send: function (event) {
+                            if (!event || !event.properties) return event;
+                            var properties = event.properties;
+                            var privateRoute = /\/(matches|candidatos|cierre|activar|final|propiedad|contracts)\/[^/?#]+/gi;
+                            Object.keys(properties).forEach(function (key) {
+                              var value = properties[key];
+                              if (typeof value !== 'string') return;
+                              if (/token|secret|password|signature|email|phone|dni/i.test(key)) {
+                                delete properties[key];
+                                return;
+                              }
+                              if (/url|href|referrer|pathname|path|host|link/i.test(key) && (/^https?:\/\//i.test(value) || value.charAt(0) === '/')) {
+                                try {
+                                  var parsed = new URL(value, window.location.origin);
+                                  properties[key] = parsed.origin + parsed.pathname.replace(privateRoute, '/$1/[private]');
+                                } catch (_) {
+                                  properties[key] = '[redacted]';
+                                }
+                              }
+                            });
+                            return event;
+                          },
                           autocapture: true,
                           capture_pageview: true,
                           capture_pageleave: true,
