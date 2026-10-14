@@ -517,6 +517,12 @@ export default function CandidatesPage() {
         )
       }
 
+      trackPostHog("customer_private_page_opened", {
+        role: "owner",
+        lead_id: json?.owner?.id || null,
+        area: "candidatos",
+      })
+
       trackPostHog(
         "owner_candidates_opened",
         {
