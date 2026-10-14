@@ -39,6 +39,7 @@ type Recipient = {
   leadId: string
   identity: string
   matches: Set<string>
+  recovery?: boolean
 }
 
 function digest(value: string): string {
@@ -285,7 +286,7 @@ async function pendingRecipients(
       error,
     } = await supabaseAdmin
       .from("lead_notification_events")
-      .select("id,status")
+      .select("id,status,created_at")
       .eq("event_key", eventKey)
       .maybeSingle()
 
@@ -293,12 +294,19 @@ async function pendingRecipients(
 
     // Un evento histórico existente no se reenvía
     // automáticamente. Los fallos se auditan aparte.
-    if (existing) continue
-
-    pending.push(recipient)
+    if (!existing) {
+      pending.push(recipient)
+      continue
+    }
+    const originalDay = new Date(new Date(existing.created_at).getTime() - 10800000).toISOString().slice(0, 10)
+    if (existing.status !== "failed" || originalDay !== "2026-10-13") continue
+    const recoveryKey = `historic:${CAMPAIGN}:recovery_20261013:${hash}`
+    const { data: recovered, error: recoveryError } = await supabaseAdmin.from("lead_notification_events").select("id").eq("event_key", recoveryKey).maybeSingle()
+    if (recoveryError) throw recoveryError
+    if (!recovered) pending.push({ ...recipient, recovery: true })
   }
 
-  return pending
+  return pending.sort((a,b) => Number(Boolean(b.recovery)) - Number(Boolean(a.recovery)))
 }
 
 export async function GET(request: NextRequest) {
@@ -438,7 +446,7 @@ export async function GET(request: NextRequest) {
 
         const result = await notifyLeadOnce({
           eventKey:
-            `historic:${CAMPAIGN}:${recipientHash}`,
+            recipient.recovery ? `historic:${CAMPAIGN}:recovery_20261013:${recipientHash}` : `historic:${CAMPAIGN}:${recipientHash}`,
 
           eventType:
             recipient.role === "owner"
