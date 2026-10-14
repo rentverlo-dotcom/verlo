@@ -117,62 +117,49 @@ async function privateUrl(
 }
 
 async function recipients(): Promise<Recipient[]> {
-  const {
-    data: staged,
-    error: stagedError,
-  } = await supabaseAdmin
-    .from("traditional_historical_backfill_matches")
-    .select("match_id")
-    .eq("campaign", CAMPAIGN)
-    .eq("state", "staged")
-    .limit(500)
+  const staged: Array<{ match_id: string }> = []
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await supabaseAdmin
+      .from("traditional_historical_backfill_matches")
+      .select("match_id")
+      .eq("campaign", CAMPAIGN)
+      .eq("state", "staged")
+      .order("match_id", { ascending: true })
+      .range(offset, offset + 499)
+    if (error) throw error
+    staged.push(...(data || []))
+    if (!data || data.length < 500) break
+  }
+  if (!staged.length) return []
 
-  if (stagedError) throw stagedError
+  const rows: Match[] = []
+  for (let offset = 0; offset < staged.length; offset += 200) {
+    const ids = staged.slice(offset, offset + 200).map(row => row.match_id)
+    const { data, error } = await supabaseAdmin
+      .from("lead_matches")
+      .select("id,tenant_lead_id,owner_lead_id")
+      .in("id", ids)
+      .lt("created_at", CUTOFF)
+      .gte("score", 80)
+      .in("status", ACTIVE)
+    if (error) throw error
+    rows.push(...((data || []) as Match[]))
+  }
 
-  if (!staged?.length) return []
-
-  const {
-    data: matches,
-    error: matchError,
-  } = await supabaseAdmin
-    .from("lead_matches")
-    .select("id,tenant_lead_id,owner_lead_id")
-    .in("id", staged.map((row) => row.match_id))
-    .lt("created_at", CUTOFF)
-    .gte("score", 80)
-    .in("status", ACTIVE)
-
-  if (matchError) throw matchError
-
-  const rows = (matches || []) as Match[]
-
-  const ids = Array.from(
-    new Set(
-      rows.flatMap((row) => [
-        row.owner_lead_id,
-        row.tenant_lead_id,
-      ])
-    )
-  )
-
+  const ids = Array.from(new Set(rows.flatMap(row => [
+    row.owner_lead_id, row.tenant_lead_id,
+  ])))
   if (!ids.length) return []
 
-  const {
-    data: leads,
-    error: leadError,
-  } = await supabaseAdmin
-    .from("lead_intake")
-    .select("id,email,phone_normalized")
-    .in("id", ids)
-
-  if (leadError) throw leadError
-
-  const byId = new Map(
-    (leads || []).map((lead) => [
-      lead.id,
-      lead as Lead,
-    ])
-  )
+  const byId = new Map<string, Lead>()
+  for (let offset = 0; offset < ids.length; offset += 200) {
+    const { data, error } = await supabaseAdmin
+      .from("lead_intake")
+      .select("id,email,phone_normalized")
+      .in("id", ids.slice(offset, offset + 200))
+    if (error) throw error
+    for (const lead of data || []) byId.set(lead.id, lead as Lead)
+  }
 
   const grouped = new Map<string, Recipient>()
 
