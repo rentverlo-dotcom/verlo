@@ -12,7 +12,7 @@ import {
 
 import VerloBrand from "@/components/VerloBrand"
 import PushSubscribeByTokenButton from "@/components/PushSubscribeByTokenButton"
-import { trackPostHog } from "@/lib/posthog-client"
+import { identifyPostHog, trackPostHog } from "@/lib/posthog-client"
 
 type MediaItem = {
   id: string
@@ -327,6 +327,7 @@ export default function MatchesPage() {
       }
 
       setData(json)
+      if (json?.tenant?.id) identifyPostHog(String(json.tenant.id), { role: "tenant" })
       setError("")
 
       return json as MatchesData
