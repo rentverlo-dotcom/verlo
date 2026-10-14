@@ -462,7 +462,7 @@ export async function GET(request: NextRequest) {
 
           url,
 
-          skipWhatsApp: false, // Meta templates pending approval: email and push only
+          skipWhatsApp: false, // Existing GHL digest workflow manages commercial channels
         })
 
         if (!result.ok) {
