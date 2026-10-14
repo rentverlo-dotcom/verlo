@@ -2113,11 +2113,21 @@ export async function notifyLeadOnce(
         if (updateError) throw updateError
         return { ...pushResult, ok: true, ghl_accepted: true }
       }
+      const failure = whatsappResult?.error || "GHL digest not accepted"
+      const { error: updateError } = await supabaseAdmin
+        .from("lead_notification_events")
+        .update({
+          status: "failed",
+          last_error: failure,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", insertedEvent.id)
+      if (updateError) throw updateError
       return {
         ...pushResult,
         ok: false,
         ghl_accepted: false,
-        error: whatsappResult?.error || "GHL digest not accepted",
+        error: failure,
       }
     }
     return pushResult
