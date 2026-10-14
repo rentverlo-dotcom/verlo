@@ -462,7 +462,7 @@ export async function GET(request: NextRequest) {
 
           url,
 
-          skipWhatsApp: true, // Meta templates pending approval: email and push only
+          skipWhatsApp: false, // Meta templates pending approval: email and push only
         })
 
         if (!result.ok) {
