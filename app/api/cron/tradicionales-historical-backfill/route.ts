@@ -283,13 +283,8 @@ async function pendingRecipients(
     if (lastDay >= today) continue
     pending.push({ ...recipient, recovery: true })
   }
-  // Historical recovery: reserve capacity for owners before tenant backlog.
-  // Existing sent events and same-day reservations remain excluded above.
   return pending.sort((a, b) =>
-    (a.role === "owner" ? 0 : 1) - (b.role === "owner" ? 0 : 1) ||
-    Number(Boolean(b.recovery)) - Number(Boolean(a.recovery)) ||
-    b.matches.size - a.matches.size ||
-    a.identity.localeCompare(b.identity)
+    Number(Boolean(b.recovery)) - Number(Boolean(a.recovery))
   )
 }
 
