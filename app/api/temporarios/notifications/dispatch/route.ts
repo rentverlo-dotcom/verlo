@@ -33,7 +33,7 @@ async function handler(request: NextRequest, delivery: boolean) {
 
   // A dedicated Temporarios webhook must be configured; legacy VERLO workflows
   // are intentionally never called by this dispatcher.
-  const endpoint = process.env.TEMPORARY_NOTIFICATION_WEBHOOK_URL
+  const endpoint = process.env.TEMPORARY_RESERVATION_CONFIRMED_WEBHOOK_URL
   const token = process.env.TEMPORARY_NOTIFICATION_WEBHOOK_TOKEN
   if (!endpoint || !token || !endpoint.startsWith("https://"))
     return reply(503, { ok: false, error: "Temporarios delivery provider not configured" })
