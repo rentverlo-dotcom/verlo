@@ -286,7 +286,7 @@ async function handler(request: NextRequest, delivery: boolean) {
           verlo_temp_check_out: formatDate(checkOut),
 
           verlo_temp_action_text:
-            eventType === "action_required"
+            eventType === "temporary_action_required"
               ? actionText
               : null,
 
