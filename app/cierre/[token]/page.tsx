@@ -3138,10 +3138,6 @@ if (
                   <div className="contract-copy">
                     {data.contract.content}
                   </div>
-
-                  <div className="document-footer">
-                    Documento generado en Verlo
-                  </div>
                 </article>
               </div>
             </section>
@@ -5273,10 +5269,6 @@ if (
                               .contract
                               .content
                           }
-                        </div>
-
-                        <div className="document-footer">
-                          Documento generado en Verlo
                         </div>
                       </article>
                     </div>
@@ -7661,7 +7653,7 @@ function Styles() {
 
       @page {
         size: A4;
-        margin: 18mm;
+        margin: 0;
       }
 
       @media print {
@@ -7695,7 +7687,7 @@ function Styles() {
           width: 100% !important;
           min-height: auto !important;
           margin: 0 !important;
-          padding: 0 !important;
+          padding: 18mm !important;
         }
 
         .no-print {
