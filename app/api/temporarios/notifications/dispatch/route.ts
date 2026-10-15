@@ -34,8 +34,7 @@ async function handler(request: NextRequest, delivery: boolean) {
   // A dedicated Temporarios webhook must be configured; legacy VERLO workflows
   // are intentionally never called by this dispatcher.
   const endpoint = process.env.TEMPORARY_RESERVATION_CONFIRMED_WEBHOOK_URL
-  const token = process.env.TEMPORARY_NOTIFICATION_WEBHOOK_TOKEN
-  if (!endpoint || !token || !endpoint.startsWith("https://"))
+  if (!endpoint || !endpoint.startsWith("https://services.leadconnectorhq.com/hooks/"))
     return reply(503, { ok: false, error: "Temporarios delivery provider not configured" })
   const { data, error } = await db.rpc("temporary_claim_notifications", { p_limit: 10 })
   if (error) return reply(503, { ok: false, error: "Notification claim RPC unavailable" })
@@ -44,20 +43,43 @@ async function handler(request: NextRequest, delivery: boolean) {
     let delivered = false
     let reason = "Unknown delivery failure"
     try {
+      if (event.event_type !== "reservation_confirmed") throw new Error("Unsupported event type")
       const user = await db.auth.admin.getUserById(event.recipient_user_id)
       if (user.error || !user.data.user?.email) throw new Error("Recipient email unavailable")
+      const matchId = event.payload?.match_id
+      if (!matchId) throw new Error("Reservation match missing")
+      const { data: match, error: matchError } = await db.from("temporary_matches").select("property_id,demand_id").eq("id", matchId).single()
+      if (matchError || !match) throw new Error("Reservation match unavailable")
+      const owner = event.recipient_role === "owner"
+      if (!owner && event.recipient_role !== "tenant") throw new Error("Invalid role")
+      const table = owner ? "temporary_properties" : "temporary_demands"
+      const rowId = owner ? match.property_id : match.demand_id
+      const nameField = owner ? "owner_full_name" : "tenant_full_name"
+      const phoneField = owner ? "owner_phone" : "tenant_phone"
+      const { data: record, error: contactError } = await db.from(table).select(`${nameField},${phoneField}`).eq("id", rowId).single()
+      if (contactError || !record) throw new Error("Recipient contact unavailable")
+      const fields = record as Record<string, unknown>
+      const fullName = String(fields[nameField] || "").trim()
+      const phone = String(fields[phoneField] || "").replace(/\D/g, "")
+      const checkIn = String(event.payload?.check_in || "")
+      const checkOut = String(event.payload?.check_out || "")
+      if (!fullName || !phone || !checkIn || !checkOut) throw new Error("Required notification fields unavailable")
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
           "Idempotency-Key": event.event_key,
         },
         body: JSON.stringify({
-          source: "verlo_temporarios", eventKey: event.event_key,
-          eventType: event.event_type, role: event.recipient_role,
-          email: user.data.user.email, payload: event.payload,
-          destination: "/temporarios/mi-verlo",
+          source: "verlo_temporarios", product: "temporarios", channel: "whatsapp",
+          event_type: "reservation_confirmed", event_key: event.event_key,
+          user_id: event.recipient_user_id, full_name: fullName,
+          first_name: fullName.split(/\s+/)[0], email: user.data.user.email,
+          phone, role: event.recipient_role, verlo_temp_role: event.recipient_role,
+          verlo_temp_check_in: checkIn, verlo_temp_check_out: checkOut,
+          verlo_temp_reservation_id: event.reservation_id,
+          verlo_temp_url: "https://verlo.lat/temporarios/mi-verlo",
+          url: "https://verlo.lat/temporarios/mi-verlo",
         }),
         cache: "no-store",
         signal: AbortSignal.timeout(10000),
