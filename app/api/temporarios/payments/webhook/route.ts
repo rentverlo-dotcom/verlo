@@ -45,11 +45,11 @@ export async function POST(request:NextRequest){
  if(!attempt.data)return reply(200,{ok:true,ignored:true})
  // Compare payment account data against our pending sandbox preference.
  if(!attempt.data.mp_preference_id)return reply(409,{ok:false,error:"Preferencia no registrada"})
- if(Number(payment?.id)!==Number(id)||Number(payment?.transaction_amount)!==29900||payment?.currency_id!=="ARS")return reply(409,{ok:false,error:"Pago no coincide"})
+ if(Number(payment?.id)!==Number(id)||Number(payment?.transaction_amount)!==49900||payment?.currency_id!=="ARS")return reply(409,{ok:false,error:"Pago no coincide"})
  const status=payment?.status
  if(typeof status!=="string"||!["approved","rejected","cancelled","pending","in_process"].includes(status))return reply(200,{ok:true,ignored:true})
  const result=await db.rpc("temporary_register_verified_payment",{
-  p_attempt_id:attemptId,p_mp_payment_id:id,p_amount:29900,p_currency:"ARS",p_mp_status:status
+  p_attempt_id:attemptId,p_mp_payment_id:id,p_amount:49900,p_currency:"ARS",p_mp_status:status
  })
  if(result.error)return reply(503,{ok:false,error:"No se pudo registrar la verificación"})
  return reply(200,{ok:true,status,verified:true})

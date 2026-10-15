@@ -6,7 +6,7 @@ export const runtime="nodejs"
 export const dynamic="force-dynamic"
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const reply=(status:number,data:object)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}})
-const FEE=29900
+const FEE=49900
 type Preference={id?:string;init_point?:string;sandbox_init_point?:string;external_reference?:string;message?:string}
 
 export async function POST(request:Request){
@@ -58,7 +58,7 @@ export async function POST(request:Request){
   method:"POST",
   headers:{Authorization:"Bearer "+mpToken,"Content-Type":"application/json","X-Idempotency-Key":attempt.id+(attempt.mp_preference_id?"-link-recovery":"")},
   body:JSON.stringify({
-   items:[{id:"verlo-temporarios-fee",title:"VERLO Temporarios · Contrato digital",quantity:1,unit_price:FEE,currency_id:"ARS"}],
+   items:[{id:"verlo-temporarios-fee",title:"VERLO Temporarios · Contrato y validación",quantity:1,unit_price:FEE,currency_id:"ARS"}],
    external_reference:attempt.id,
    back_urls:{
     success:base+"/temporarios/mi-verlo",

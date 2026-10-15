@@ -27,9 +27,9 @@ export async function POST(request:Request){
  const mp=await fetch("https://api.mercadopago.com/v1/payments/"+body.paymentId,{headers:{Authorization:"Bearer "+token},cache:"no-store"}).catch(()=>null)
  if(!mp?.ok)return reply(502,{ok:false,error:"Mercado Pago no pudo verificar esta operación",providerStatus:mp?.status||0})
  const payment=await mp.json().catch(()=>null) as {id?:number|string;status?:string;external_reference?:string;transaction_amount?:number;currency_id?:string}|null
- if(String(payment?.id)!==body.paymentId||payment?.external_reference!==attempt.id||Number(payment?.transaction_amount)!==29900||payment?.currency_id!=="ARS")return reply(409,{ok:false,error:"La operación no corresponde a esta reserva"})
+ if(String(payment?.id)!==body.paymentId||payment?.external_reference!==attempt.id||Number(payment?.transaction_amount)!==49900||payment?.currency_id!=="ARS")return reply(409,{ok:false,error:"La operación no corresponde a esta reserva"})
  if(payment?.status!=="approved")return reply(409,{ok:false,error:"Mercado Pago todavía no confirma el pago",paymentStatus:payment?.status||"desconocido"})
- const stored=await db.rpc("temporary_register_verified_payment",{p_attempt_id:attempt.id,p_mp_payment_id:body.paymentId,p_amount:29900,p_currency:"ARS",p_mp_status:"approved"})
+ const stored=await db.rpc("temporary_register_verified_payment",{p_attempt_id:attempt.id,p_mp_payment_id:body.paymentId,p_amount:49900,p_currency:"ARS",p_mp_status:"approved"})
  if(stored.error)return reply(503,{ok:false,error:"El pago fue verificado pero no se pudo registrar"})
  return reply(200,{ok:true,verified:true,reservation:stored.data})
 }
