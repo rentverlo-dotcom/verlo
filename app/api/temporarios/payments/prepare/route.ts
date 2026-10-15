@@ -36,21 +36,22 @@ export async function POST(request:Request){
  if(!r||r.status!=="terms_accepted"||!r.agreed_terms_owner_at||!r.agreed_terms_tenant_at)
   return reply(409,{ok:false,error:"Ambas partes deben aceptar las condiciones antes del pago"})
  const previous=await db.from("temporary_payment_attempts")
-  .select("id,mp_preference_id,mp_checkout_url").eq("reservation_id",r.id).eq("status","pending").maybeSingle()
+  .select("id,mp_preference_id,mp_checkout_url,amount_ars").eq("reservation_id",r.id).eq("status","pending").maybeSingle()
  if(previous.error)return reply(503,{ok:false,error:"No pudimos consultar el intento de pago"})
  let attempt=previous.data
  if(!attempt){
   const inserted=await db.from("temporary_payment_attempts")
    .insert({reservation_id:r.id,tenant_user_id:auth.userId,amount_ars:FEE,currency:"ARS",status:"pending"})
-   .select("id,mp_preference_id,mp_checkout_url").single()
+   .select("id,mp_preference_id,mp_checkout_url,amount_ars").single()
   if(inserted.error||!inserted.data){
    // If concurrent requests created the same pending row, use the unique winner.
    const winner=await db.from("temporary_payment_attempts")
-    .select("id,mp_preference_id,mp_checkout_url").eq("reservation_id",r.id).eq("status","pending").maybeSingle()
+    .select("id,mp_preference_id,mp_checkout_url,amount_ars").eq("reservation_id",r.id).eq("status","pending").maybeSingle()
    if(winner.error||!winner.data)return reply(503,{ok:false,error:"No pudimos preparar el pago"})
    attempt=winner.data
   }else attempt=inserted.data
  }
+ if(Number(attempt.amount_ars)!==FEE)return reply(409,{ok:false,error:"Existe un intento de pago anterior con un importe distinto. Hay que cerrarlo antes de generar un checkout nuevo."})
  if(attempt.mp_checkout_url)return reply(200,{ok:true,prepared:true,preferenceId:attempt.mp_preference_id,checkoutUrl:attempt.mp_checkout_url})
  const base=new URL(request.url).origin
  // Preview-only environment, branch-scoped credential from test-credentials page, fixed fee and stable external_reference.
