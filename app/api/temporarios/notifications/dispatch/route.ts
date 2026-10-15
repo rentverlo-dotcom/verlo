@@ -92,12 +92,12 @@ async function handler(request: NextRequest, delivery: boolean) {
   const endpoints: Record<string, string> = {
     reservation_confirmed:
       process.env.TEMPORARY_RESERVATION_CONFIRMED_WEBHOOK_URL || "",
-    action_required:
+    temporary_action_required:
       process.env.TEMPORARY_ACTION_REQUIRED_WEBHOOK_URL || "",
   }
 
   // Validar configuracion antes de reclamar eventos de la cola.
-  const requiredEvents = ["reservation_confirmed", "action_required"]
+  const requiredEvents = ["reservation_confirmed", "temporary_action_required"]
 
   const { data: queued, error: queueError } = await db
     .from("temporary_notification_outbox")
@@ -250,7 +250,7 @@ async function handler(request: NextRequest, delivery: boolean) {
       }
 
       if (
-        eventType === "action_required" &&
+        eventType === "temporary_action_required" &&
         (!actionText || actionText.length > 500)
       ) {
         throw new Error("Action text unavailable")
