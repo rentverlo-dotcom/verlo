@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/cron/tradicionales-historical-backfill",
-      "schedule": "15 17 * * *"
+      "schedule": "30 22 * * *"
     }
   ]
 }
