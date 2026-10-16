@@ -10,7 +10,7 @@ export const maxDuration = 240
 
 const CUTOFF = "2026-10-09T13:45:00.000Z"
 const CAMPAIGN = "oct2026_recovery"
-const MAX_PER_RUN = 10
+const MAX_PER_RUN = 50
 const MAX_PER_DAY = 50
 
 const ACTIVE = [
