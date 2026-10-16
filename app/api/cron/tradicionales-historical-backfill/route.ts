@@ -299,7 +299,7 @@ function planPairedBatch(
   const byIdentity = new Map(all.map(r => [r.identity, r]))
   const byMatch = new Map<string, { owner?: string; tenant?: string }>()
   for (const recipient of all) {
-    for (const matchId of recipient.matches) {
+    for (const matchId of Array.from(recipient.matches)) {
       const pair = byMatch.get(matchId) || {}
       pair[recipient.role] = recipient.identity
       byMatch.set(matchId, pair)
