@@ -10,7 +10,7 @@ export const maxDuration = 240
 
 const CUTOFF = "2026-10-09T13:45:00.000Z"
 const CAMPAIGN = "oct2026_recovery"
-const MAX_PER_RUN = 10
+const MAX_PER_RUN = 50
 const MAX_PER_DAY = 50
 
 const ACTIVE = [
@@ -288,6 +288,47 @@ async function pendingRecipients(
   )
 }
 
+// Select complete real match pairs, not unrelated recipients.
+// A recipient already notified in this historical campaign is not sent again.
+function planPairedBatch(
+  all: Recipient[],
+  pending: Recipient[],
+  capacity: number
+): { selected: Recipient[]; matchedPairs: number } {
+  const pendingKeys = new Set(pending.map(r => r.identity))
+  const byIdentity = new Map(all.map(r => [r.identity, r]))
+  const byMatch = new Map<string, { owner?: string; tenant?: string }>()
+  for (const recipient of all) {
+    for (const matchId of Array.from(recipient.matches)) {
+      const pair = byMatch.get(matchId) || {}
+      pair[recipient.role] = recipient.identity
+      byMatch.set(matchId, pair)
+    }
+  }
+  const selectedKeys = new Set<string>()
+  let matchedPairs = 0
+  for (const matchId of Array.from(byMatch.keys()).sort()) {
+    const pair = byMatch.get(matchId)!
+    if (!pair.owner || !pair.tenant) continue
+    const needed = [pair.owner, pair.tenant].filter(
+      key => pendingKeys.has(key) && !selectedKeys.has(key)
+    )
+    if (!needed.length) continue
+    if (selectedKeys.size + needed.length > capacity) continue
+    for (const key of needed) selectedKeys.add(key)
+    matchedPairs++
+    if (selectedKeys.size >= capacity) break
+  }
+  return {
+    selected: Array.from(selectedKeys).map(key => {
+      const recipient = pending.find(r => r.identity === key)
+      if (!recipient || !byIdentity.has(key)) throw new Error("Invalid pair batch")
+      return recipient
+    }),
+    matchedPairs,
+  }
+}
+
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
 
@@ -341,6 +382,8 @@ export async function GET(request: NextRequest) {
       availableToday,
       pending.length
     )
+    const plan = planPairedBatch(all, pending, maxThisRun)
+    const selected = plan.selected
 
     const ownersPending = pending.filter(
       (recipient) => recipient.role === "owner"
@@ -363,13 +406,15 @@ export async function GET(request: NextRequest) {
         reservedToday: reservedCount,
         availableToday,
         maxThisRun,
+        plannedRecipients: selected.length,
+        matchedPairs: plan.matchedPairs,
         attempted: 0,
         failed: 0,
       })
     }
 
     // Sin pendientes o sin cupos: terminación normal.
-    if (maxThisRun === 0) {
+    if (selected.length === 0) {
       return NextResponse.json({
         ok: true,
         mode: "send",
@@ -389,7 +434,7 @@ export async function GET(request: NextRequest) {
     let failed = 0
     let blocked = 0
 
-    for (const recipient of pending) {
+    for (const recipient of selected) {
       if (attempted >= maxThisRun) break
 
       const recipientHash = digest(
@@ -487,6 +532,8 @@ export async function GET(request: NextRequest) {
       attempted,
       failed,
       blocked,
+      selectedPairs: plan.matchedPairs,
+      selectedRecipients: selected.length,
       remaining: Math.max(
         0,
         pending.length - attempted
