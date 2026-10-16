@@ -183,13 +183,7 @@ async function destination(
 
           token,
 
-          expires_at:
-            new Date(
-              Date.now() +
-              30 *
-              86400000
-            )
-              .toISOString(),
+          expires_at: null,
         })
 
     if (
