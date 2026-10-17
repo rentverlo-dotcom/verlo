@@ -684,20 +684,10 @@ export async function GET(req: NextRequest) {
               match.owner_lead_id
             ) || []
 
-          const photoMedia =
-            ownerMedia.filter(
-              (item) =>
-                item.media_type ===
-                "photo"
-            )
+          // Keep historical matches visible while the owner completes media.
+          // The property card handles missing images with a placeholder.
 
-          if (
-            photoMedia.length === 0
-          ) {
-            return []
-          }
-
-          return [
+return [
             {
               id:
                 match.id,
