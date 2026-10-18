@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase/client"
 
 import VerloBrand from "@/components/VerloBrand"
+import { trackPostHog } from "@/lib/posthog-client"
 
 import PushSubscribeButton from "@/components/PushSubscribeButton"
 
@@ -2406,6 +2407,9 @@ export default function MiVerloPage() {
           setData(
             result as DashboardData
           )
+          trackPostHog("customer_private_page_opened", {
+            area: "mi-verlo",
+          })
         } catch (
           error
         ) {
