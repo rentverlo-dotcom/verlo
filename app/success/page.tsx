@@ -1215,7 +1215,9 @@ export default function SuccessPage() {
                 </h1>
 
                 <p className="success-copy">
-                  Hacé estos 3 pasos para no perderte ningún match.
+                  {deviceChecked && isIos
+                    ? "¡Importante! Revisá tu email, incluida la carpeta Spam. Ahí recibirás los avisos sobre tus coincidencias y novedades."
+                    : "¡Importante! Revisá tu email (también Spam) y activá las notificaciones para no perderte coincidencias."}
                 </p>
 
                 <p className="success-status">
@@ -1230,47 +1232,66 @@ export default function SuccessPage() {
 
               <div className="actions">
 
-                <article className="action-card notifications">
-
-                  <div className="action-top">
-
-                    <div className="action-icon">
-                      <BellIcon />
-                    </div>
-
-                    <div className="action-content">
-                      <h2>
-                        ACTIVÁ LAS NOTIFICACIONES
-                      </h2>
-
-                      <p>
-                        Te avisamos cuando aparezcan nuevos matches o tengas algo pendiente.
-                      </p>
-                    </div>
-
-                  </div>
-
-                  <div className="action-control">
-                    {leadId ? (
-                      <div className="push-wrap">
-                        <PushSubscribeButton
-                          leadId={
-                            leadId
-                          }
-                          role={
-                            role
-                          }
-                        />
+                {deviceChecked && isIos && (
+                  <article className="action-card notifications">
+                    <div className="action-top">
+                      <div className="action-icon">
+                        <BellIcon />
                       </div>
-                    ) : (
-                      <p className="message error">
-                        No encontramos tu registro para activar las notificaciones.
-                      </p>
-                    )}
+                      <div className="action-content">
+                        <h2>📩 REVISÁ TU EMAIL: ES FUNDAMENTAL</h2>
+                        <p>
+                          En iPhone, VERLO te avisa por correo cuando haya coincidencias o novedades.
+                          Revisá la bandeja de entrada y también Spam para no perder oportunidades.
+                        </p>
+                      </div>
+                    </div>
+                  </article>
+                )}
 
-                  </div>
-
-                </article>
+                {deviceChecked && !isIos && (
+                  <article className="action-card notifications">
+  
+                    <div className="action-top">
+  
+                      <div className="action-icon">
+                        <BellIcon />
+                      </div>
+  
+                      <div className="action-content">
+                        <h2>
+                          ACTIVÁ LAS NOTIFICACIONES
+                        </h2>
+  
+                        <p>
+                          Te avisamos cuando aparezcan nuevos matches o tengas algo pendiente.
+                        </p>
+                      </div>
+  
+                    </div>
+  
+                    <div className="action-control">
+                      {leadId ? (
+                        <div className="push-wrap">
+                          <PushSubscribeButton
+                            leadId={
+                              leadId
+                            }
+                            role={
+                              role
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <p className="message error">
+                          No encontramos tu registro para activar las notificaciones.
+                        </p>
+                      )}
+  
+                    </div>
+  
+                  </article>
+                )}
 
                 <article className="action-card access">
 
@@ -1329,7 +1350,9 @@ export default function SuccessPage() {
               </div>
 
               <div className="important-note">
-                Activá las notificaciones para que Verlo pueda avisarte cuando aparezca una nueva coincidencia.
+                {deviceChecked && isIos
+                  ? "Revisá tu email y también Spam: es el canal de avisos de VERLO en tu iPhone."
+                  : "Revisá siempre tu email (incluida la carpeta Spam) y activá las notificaciones para enterarte de nuevas coincidencias."}
               </div>
 
             </section>
