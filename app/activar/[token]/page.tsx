@@ -1132,21 +1132,6 @@ export default function ActivationPage() {
                     />
                   </div>
 
-                  <button
-                    type="button"
-                    className="install-button"
-                    onClick={
-                      installApp
-                    }
-                    disabled={
-                      installed
-                    }
-                  >
-                    {installed
-                      ? "Verlo ya está instalado"
-                      : "Instalar Verlo"}
-                  </button>
-
                   <a
                     href="/"
                     className="continue-button"
