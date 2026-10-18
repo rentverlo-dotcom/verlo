@@ -118,66 +118,6 @@ export default function PwaRegister() {
           }
 
           if (
-            isStandaloneMode()
-          ) {
-            try {
-              const resumeUrl =
-                window
-                  .localStorage
-                  .getItem(
-                    PWA_RESUME_URL_STORAGE_KEY
-                  )
-                  ?.trim() ||
-                ''
-
-              // Only restore the saved page when the app starts at its
-              // home screen. A push deep link must keep its own target.
-              if (
-                resumeUrl &&
-                window.location.pathname === '/' &&
-                !window.location.search
-              ) {
-                const currentUrl =
-                  `${window.location.pathname}${window.location.search}`
-
-                if (
-                  currentUrl !==
-                  resumeUrl
-                ) {
-                  window.localStorage
-                    .removeItem(
-                      PWA_RESUME_URL_STORAGE_KEY
-                    )
-
-                  window.location
-                    .replace(
-                      resumeUrl
-                    )
-
-                  return
-                }
-
-                window.localStorage
-                  .removeItem(
-                    PWA_RESUME_URL_STORAGE_KEY
-                  )
-              } else if (resumeUrl) {
-                window.localStorage
-                  .removeItem(
-                    PWA_RESUME_URL_STORAGE_KEY
-                  )
-              }
-            } catch (
-              error
-            ) {
-              console.error(
-                'PWA resume error:',
-                error
-              )
-            }
-          }
-
-          if (
             !(
               'Notification'
               in window
