@@ -593,27 +593,17 @@ export async function GET(
       )
     }
 
-    if (!profile) {
+    // The authenticated, verified email is the identity for traditional leads.
+    // Legacy users may have auth.users but no user_profiles record.
+    const identityEmail = clean(user.email).toLowerCase()
+    if (!identityEmail) {
       return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "User profile not found",
-        },
-        {
-          status: 404,
-        }
+        { ok: false, error: "La cuenta no tiene un email verificado." },
+        { status: 403 }
       )
     }
 
-    const leadId =
-      profile.lead_id
-
-    const identityEmail =
-      clean(
-        user.email ||
-        profile.email
-      ).toLowerCase()
+    const leadId = profile?.lead_id || null
 
     // =========================================================
     // 3. TODAS LAS PROPIEDADES / BÚSQUEDAS DEL USUARIO
@@ -698,6 +688,37 @@ export async function GET(
           status: 404,
         }
       )
+    }
+
+    // Repair missing/stale user_profiles only AFTER matching the verified
+    // Auth email with an existing lead. Never trust client-provided lead IDs.
+    if (!profile || profile.lead_id !== lead.id) {
+      const { data: existingLink, error: linkCheckError } = await supabaseAdmin
+        .from("user_profiles")
+        .select("user_id")
+        .eq("lead_id", lead.id)
+        .maybeSingle()
+
+      if (linkCheckError) throw new Error(linkCheckError.message)
+      if (existingLink && existingLink.user_id !== user.id) {
+        return NextResponse.json(
+          { ok: false, error: "Este registro está vinculado a otra cuenta. Contactá a soporte." },
+          { status: 409 }
+        )
+      }
+
+      const { error: linkError } = await supabaseAdmin
+        .from("user_profiles")
+        .upsert({
+          user_id: user.id,
+          lead_id: lead.id,
+          email: identityEmail,
+          full_name: clean(lead.full_name) || null,
+          phone: clean(lead.phone_normalized || lead.phone) || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" })
+
+      if (linkError) throw new Error(linkError.message)
     }
 
     const leadIds =
