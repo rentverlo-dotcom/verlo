@@ -1251,8 +1251,7 @@ export default function SuccessPage() {
                   </div>
 
                   <div className="action-control">
-
-leadId ? (
+                    {leadId ? (
                       <div className="push-wrap">
                         <PushSubscribeButton
                           leadId={
