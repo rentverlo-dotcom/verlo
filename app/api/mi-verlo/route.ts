@@ -1785,15 +1785,15 @@ export async function GET(
 
         email:
           user.email ||
-          profile.email ||
+          profile?.email ||
           lead.email,
 
         full_name:
-          profile.full_name ||
+          profile?.full_name ||
           lead.full_name,
 
         lead_id:
-          leadId,
+          lead.id,
 
         role:
           lead.role,
