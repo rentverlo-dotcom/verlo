@@ -132,6 +132,27 @@ function getTrackingContext() {
   }
 }
 
+function withPostHogReady(
+  action: (posthog: NonNullable<ReturnType<typeof getPostHog>>) => void,
+  attempt = 0
+) {
+  if (typeof window === "undefined") return
+
+  const posthog = getPostHog()
+  // The Next.js script loads asynchronously. Do not silently lose an
+  // event if the private page API responds before PostHog initializes.
+  if (posthog && (posthog as typeof posthog & { __loaded?: boolean }).__loaded !== false) {
+    if (typeof posthog.capture === "function" && typeof posthog.identify === "function") {
+      action(posthog)
+      return
+    }
+  }
+
+  if (attempt < 40) {
+    window.setTimeout(() => withPostHogReady(action, attempt + 1), 250)
+  }
+}
+
 export function trackPostHog(
   event: string,
   properties?: Record<
@@ -140,26 +161,18 @@ export function trackPostHog(
   >
 ) {
   try {
-    const posthog =
-      getPostHog()
-
-    if (
-      !posthog?.capture
-    ) {
-      return
-    }
-
-    posthog.capture(
-      event,
-      {
-        ...getTrackingContext(),
-        ...Object.fromEntries(
-          Object.entries(properties || {}).filter(([key]) =>
-            !/token|secret|password|dni|email|phone|document|signature|address|name|url/i.test(key)
-          ).map(([key, value]) => [key, sanitizeAnalyticsValue(value)])
-        ),
-      }
+    const sanitizedProperties = Object.fromEntries(
+      Object.entries(properties || {}).filter(([key]) =>
+        !/token|secret|password|dni|email|phone|document|signature|address|name|url/i.test(key)
+      ).map(([key, value]) => [key, sanitizeAnalyticsValue(value)])
     )
+
+    withPostHogReady((posthog) => {
+      posthog.capture?.(event, {
+        ...getTrackingContext(),
+        ...sanitizedProperties,
+      })
+    })
   } catch (
     error
   ) {
@@ -187,23 +200,15 @@ export function identifyPostHog(
       return
     }
 
-    const posthog =
-      getPostHog()
-
-    if (
-      !posthog?.identify
-    ) {
-      return
-    }
-
-    posthog.identify(
-      cleanId,
-      Object.fromEntries(
-        Object.entries(properties || {}).filter(([key]) =>
-          !/token|secret|password|dni|email|phone|document|signature|address|name|url/i.test(key)
-        ).map(([key, value]) => [key, sanitizeAnalyticsValue(value)])
-      )
+    const sanitizedProperties = Object.fromEntries(
+      Object.entries(properties || {}).filter(([key]) =>
+        !/token|secret|password|dni|email|phone|document|signature|address|name|url/i.test(key)
+      ).map(([key, value]) => [key, sanitizeAnalyticsValue(value)])
     )
+
+    withPostHogReady((posthog) => {
+      posthog.identify?.(cleanId, sanitizedProperties)
+    })
   } catch (
     error
   ) {
