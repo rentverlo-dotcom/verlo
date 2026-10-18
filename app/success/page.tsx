@@ -1252,23 +1252,7 @@ export default function SuccessPage() {
 
                   <div className="action-control">
 
-                    {iosNeedsInstall ? (
-                      <>
-                        <button
-                          type="button"
-                          className="action-button"
-                          onClick={
-                            installApp
-                          }
-                        >
-                          PRIMERO INSTALÁ VERLO
-                        </button>
-
-                        <p className="message error">
-                          En iPhone primero agregá Verlo a Inicio. Después abrilo desde el ícono y activá las notificaciones.
-                        </p>
-                      </>
-                    ) : leadId ? (
+leadId ? (
                       <div className="push-wrap">
                         <PushSubscribeButton
                           leadId={
@@ -1284,49 +1268,6 @@ export default function SuccessPage() {
                         No encontramos tu registro para activar las notificaciones.
                       </p>
                     )}
-
-                  </div>
-
-                </article>
-
-                <article className="action-card install">
-
-                  <div className="action-top">
-
-                    <div className="action-icon">
-                      <DownloadIcon />
-                    </div>
-
-                    <div className="action-content">
-                      <h2>
-                        DESCARGÁ ACCESO DIRECTO
-                      </h2>
-
-                      <p>
-                        Tené Verlo siempre a mano desde el ícono de tu dispositivo.
-                      </p>
-                    </div>
-
-                  </div>
-
-                  <div className="action-control">
-
-                    <button
-                      type="button"
-                      className="action-button secondary-button"
-                      onClick={
-                        installApp
-                      }
-                      disabled={
-                        installed
-                      }
-                    >
-                      {installed
-                        ? "VERLO YA ESTÁ INSTALADO"
-                        : isIos
-                          ? "AGREGAR VERLO A INICIO"
-                          : "INSTALAR VERLO"}
-                    </button>
 
                   </div>
 
