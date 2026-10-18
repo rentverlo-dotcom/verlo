@@ -4568,7 +4568,7 @@ export default function PageDePrueba() {
                   <strong>🔔 Activá las notificaciones</strong> al terminar el formulario, si tu dispositivo lo permite.
                 </span>
                 <span>
-                  Si no ves nuestros avisos, podés perder una oportunidad de alquiler.
+                  Si no ves nuestros avisos, podés perder muchas oportunidaddes de alquiler.
                 </span>
               </div>
 
