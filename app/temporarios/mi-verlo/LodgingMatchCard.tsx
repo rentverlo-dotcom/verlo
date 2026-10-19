@@ -1,6 +1,7 @@
 "use client"
 import {useState} from "react"
 import PropertyGallery from "./PropertyGallery"
+import {trackPostHog} from "@/lib/posthog-client"
 import {supabase} from "@/lib/supabase/client"
 
 export type LodgingMatch={
@@ -33,12 +34,14 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
  async function startReservation(){
   if(starting)return
   setStarting(true);setReservationMessage("")
+  trackPostHog("temporary_reservation_started",{product:"temporary",role})
   try{
    const {data:{session}}=await supabase.auth.getSession()
    if(!session?.access_token)throw Error("Iniciá sesión para continuar")
    const response=await fetch("/api/temporarios/reservations/start",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({matchId:match.id})})
    const data:{ok?:boolean;error?:string;reservation?:{id:string;status:string;reused?:boolean}}=await response.json()
    if(!response.ok||!data.ok||!data.reservation)throw Error(data.error||"No se pudo iniciar la reserva")
+   trackPostHog("temporary_reservation_created",{product:"temporary",role})
    setReservationId(data.reservation.id)
    onRefresh()
    setReservationMessage("Reserva en borrador creada. Las fechas aún no están bloqueadas ni se realizó ningún pago.")
@@ -48,6 +51,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
  async function preparePayment(){
   if(preparingPayment)return
   setPreparingPayment(true);setReservationMessage("")
+  trackPostHog("temporary_checkout_started",{product:"temporary",role})
   try{
    const {data:{session}}=await supabase.auth.getSession()
    if(!session?.access_token)throw Error("Iniciá sesión para continuar")
@@ -57,6 +61,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
    })
    const data:{ok?:boolean;error?:string;preferenceId?:string;checkoutUrl?:string}=await response.json()
    if(!response.ok||!data.ok||!data.preferenceId||!data.checkoutUrl)throw Error(data.error||"No se pudo preparar el checkout")
+   trackPostHog("temporary_checkout_prepared",{product:"temporary",role})
    setPreferenceId(data.preferenceId)
    setCheckoutUrl(data.checkoutUrl)
    setReservationMessage("Checkout de prueba preparado correctamente. No se realizó ningún cobro ni se bloquearon fechas.")
@@ -72,6 +77,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
    const response=await fetch("/api/temporarios/payments/reconcile",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({matchId:match.id,paymentId:paymentOperation.trim()})})
    const data:{ok?:boolean;error?:string}=await response.json()
    if(!response.ok||!data.ok)throw Error(data.error||"No se pudo verificar el pago")
+   trackPostHog("temporary_payment_verified",{product:"temporary",role})
    setReservationMessage("Pago de prueba verificado con Mercado Pago y registrado en VERLO. No se bloquearon fechas.")
    onRefresh()
   }catch(error){setReservationMessage(error instanceof Error?error.message:"No pudimos verificar el pago")}
@@ -86,6 +92,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
    const response=await fetch("/api/temporarios/reservations/accept-terms",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({matchId:match.id,role})})
    const data:{ok?:boolean;error?:string;reservation?:{status:string;ownerAccepted:boolean;tenantAccepted:boolean}}=await response.json()
    if(!response.ok||!data.ok||!data.reservation)throw Error(data.error||"No se pudieron aceptar las condiciones")
+   trackPostHog("temporary_terms_accepted",{product:"temporary",role})
    setAcceptedLocally(true)
    setOtherAcceptedLocally(role==="owner"?data.reservation.tenantAccepted:data.reservation.ownerAccepted)
    setReservationMessage(data.reservation.ownerAccepted&&data.reservation.tenantAccepted?"Ambas partes aceptaron las condiciones. Todavía no hay reserva confirmada ni fechas bloqueadas.":"Guardamos tu aceptación. Falta que la otra parte acepte las condiciones.")
@@ -106,6 +113,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
    })
    const data:{ok?:boolean;error?:string;reservation?:{status:string}}=await response.json()
    if(!response.ok||!data.ok)throw Error(data.error||"No se pudo confirmar la reserva")
+   trackPostHog("temporary_reservation_confirmation",{product:"temporary",role,status:data.reservation?.status||"pending"})
    setReservationMessage(data.reservation?.status==="confirmed"
     ?"Reserva confirmada. Las fechas quedaron bloqueadas."
     :"Confirmación registrada. Falta la aprobación de la otra parte.")
@@ -128,7 +136,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
    <h3 style={{fontSize:24,margin:"8px 0 6px",letterSpacing:"-.035em"}}>{p?.title||kind(p?.property_type||"")} · {p?.locality_label||"Alojamiento compatible"}</h3>
    <p style={{color:"#6c6266",margin:"5px 0"}}>{date(match.check_in)} al {date(match.check_out)} · {nights} noches</p>
    <p style={{fontSize:23,fontWeight:900,margin:"10px 0 16px"}}>{money(match.agreed_total_ars)} <span style={{fontSize:13,fontWeight:500,color:"#6c6266"}}>total de la estadía</span></p>
-   <button type="button" aria-expanded={open} onClick={()=>setOpen(x=>!x)} style={{border:"1px solid #050002",borderRadius:99,background:open?"#fff":"#050002",color:open?"#050002":"#fff",padding:"13px 24px",fontWeight:850,cursor:"pointer"}}>{open?"Cerrar detalles":"Ver alojamiento y detalles"}</button>
+   <button type="button" aria-expanded={open} onClick={()=>{if(!open)trackPostHog("temporary_match_details_opened",{product:"temporary",role});setOpen(x=>!x)}} style={{border:"1px solid #050002",borderRadius:99,background:open?"#fff":"#050002",color:open?"#050002":"#fff",padding:"13px 24px",fontWeight:850,cursor:"pointer"}}>{open?"Cerrar detalles":"Ver alojamiento y detalles"}</button>
    {open&&<div style={{paddingTop:22,marginTop:20,borderTop:"1px solid #e9dfe2"}}>
      <h4 style={{fontSize:19,margin:"0 0 12px"}}>Tu estadía</h4>
      <p><strong>Entrada:</strong> {date(match.check_in)} · <strong>Salida:</strong> {date(match.check_out)}</p>
