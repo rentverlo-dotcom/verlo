@@ -61,6 +61,7 @@ export async function POST(request:Request){
   body:JSON.stringify({
    items:[{id:"verlo-temporarios-fee",title:"VERLO Temporarios · Contrato y validación",quantity:1,unit_price:FEE,currency_id:"ARS"}],
    external_reference:attempt.id,
+   notification_url:base+"/api/temporarios/payments/webhook",
    back_urls:{
     success:base+"/temporarios/mi-verlo",
     failure:base+"/temporarios/mi-verlo",
@@ -77,6 +78,6 @@ export async function POST(request:Request){
   .update({mp_preference_id:preference.id,mp_checkout_url:preference.sandbox_init_point||preference.init_point,updated_at:new Date().toISOString()})
   .eq("id",attempt.id).eq("status","pending")
  if(saved.error)return reply(503,{ok:false,error:"No pudimos guardar la preferencia"})
- // No checkout URL returned to browser yet: webhook + payment verification are a separate QA gate.
+ // The webhook independently verifies payment with Mercado Pago before updating the reservation.
  return reply(200,{ok:true,prepared:true,preferenceId:preference.id,checkoutUrl:preference.sandbox_init_point||preference.init_point})
 }
