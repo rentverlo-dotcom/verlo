@@ -7,6 +7,7 @@ import { getTemporaryRequestKey, clearTemporaryRequestKey } from "@/lib/temporar
 import { useRouter } from "next/navigation"
 import { ownerDraftFromForm } from "@/lib/temporarios/form-mapping"
 import TemporaryMediaPicker from "./TemporaryMediaPicker"
+import {trackPostHog} from "@/lib/posthog-client"
 import {rememberOwnerFiles,uploadOwnerFiles} from "@/lib/temporarios/owner-media-upload"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import { panel, field, fieldLabel, button } from "../brand"
@@ -24,6 +25,7 @@ export default function TemporaryOwnerDraft() {
   const router = useRouter()
   async function save(form: HTMLFormElement) {
     if (saving) return
+    trackPostHog("temporary_owner_form_submitted",{product:"temporary",role:"owner"})
     const formData = new FormData(form)
     if (String(formData.get("website") || "").trim()) return
     const parsed = ownerDraftFromForm(formData)
@@ -65,6 +67,7 @@ export default function TemporaryOwnerDraft() {
           return
         }
       }
+      trackPostHog("temporary_owner_registration_completed",{product:"temporary",role:"owner"})
       clearTemporaryRequestKey("owner")
       router.push("/temporarios/success/propietario?registro=" + encodeURIComponent(data.id))
     } catch { setResult("Error de conexión. No se guardó la publicación.") }
