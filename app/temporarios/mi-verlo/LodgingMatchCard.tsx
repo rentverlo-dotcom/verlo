@@ -148,7 +148,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
       </div>}
       {hasDraft&&myTermsAccepted&&otherTermsAccepted&&<section aria-label="Próximos pasos de la reserva" style={{marginTop:18,padding:"18px 16px",borderRadius:16,background:"#fff",border:"1px solid #ecdde2"}}>
        <strong style={{fontSize:18}}>Condiciones aceptadas por ambas partes</strong>
-       <p style={{fontSize:13,lineHeight:1.55,color:"#63565d"}}>El importe de la estadía es {money(match.agreed_total_ars)} y se acuerda entre las partes. VERLO cobra {money(29900)} una sola vez al inquilino por el contrato digital y los servicios asociados, incluyendo validación de identidad, testigo digital y acceso al panel. No es un cargo por reservar ni forma parte del alquiler.</p>
+       <p style={{fontSize:13,lineHeight:1.55,color:"#63565d"}}>El importe de la estadía es {money(match.agreed_total_ars)} y se acuerda entre las partes. VERLO cobra {money(49999)} una sola vez al inquilino por el contrato digital y los servicios asociados, incluyendo validación de identidad, testigo digital y acceso al panel. No es un cargo por reservar ni forma parte del alquiler.</p>
        <div style={{display:"grid",gap:10,fontSize:14,lineHeight:1.5}}>
         <div><strong>1. Condiciones</strong> · Aceptadas por ambas partes.</div>
         <div><strong>2. Pago de VERLO</strong> · {reservation?.status==="fee_paid"||reservation?.status==="deposit_pending"||reservation?.status==="ready_to_block"||reservation?.status==="confirmed"?"Estado registrado en el sistema.":"Pendiente. El cobro todavía no está habilitado en esta prueba."}</div>
