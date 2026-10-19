@@ -6,7 +6,7 @@ import { shell, container, nav, navInner, hero, heading, script, subtitle, butto
 
 export const metadata: Metadata = {
   title: "Alquileres temporarios | VERLO",
-  description: "Alquileres temporarios de 1 a 90 noches. Próximamente en VERLO.",
+  description: "Alquileres temporarios de 1 a 90 noches en VERLO.",
   robots: { index: false, follow: false },
 }
 export default function TemporariosPage() {
@@ -26,8 +26,8 @@ export default function TemporariosPage() {
         <p>Publicás una sola vez y administrás la disponibilidad de tu propiedad.</p>
         <p>La seña es opcional y se transfiere directamente al propietario, nunca a VERLO.</p>
         <p><strong>Las fechas solo se bloquean cuando ambas partes lo aceptan expresamente</strong>, después de completar la reserva y la seña, si corresponde. El match, el pago a VERLO o el comprobante no bloquean fechas.</p>
-        <p><strong>Inquilinos: $29.900 por contrato temporario. Propietarios: gratis.</strong></p>
-        <p style={{ fontSize: 14 }}>Módulo en preparación. Formularios sin envíos ni pagos habilitados.</p>
+        <p><strong>Inquilinos: $49.999 por contrato temporario. Propietarios: gratis.</strong></p>
+        <p style={{ fontSize: 14 }}>Módulo en preparación para su lanzamiento. Las operaciones se habilitarán próximamente.</p>
       </section>
     </div>
   </main>
