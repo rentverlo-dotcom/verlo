@@ -76,7 +76,7 @@ export default function TemporaryTenantDraft() {
       <label style={fieldLabel}>Teléfono de contacto
         <input name="phone" type="tel" style={field} maxLength={30} required autoComplete="tel" placeholder="Ej.: +54 11 5555 5555" />
       </label>
-      <p style={{ margin: 0, fontSize: 14 }}>El presupuesto es por toda la estadía, no por noche. La tarifa de VERLO es $29.900 al habilitar el cierre.</p>
+      <p style={{ margin: 0, fontSize: 14 }}>El presupuesto es por toda la estadía, no por noche. La tarifa de VERLO es $49.999 al habilitar el cierre.</p>
       <button type="submit" disabled={saving} style={{...button,opacity:saving?0.6:1}}>{saving ? "Procesando..." : "Registrar mi búsqueda"}</button>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
     </form>
