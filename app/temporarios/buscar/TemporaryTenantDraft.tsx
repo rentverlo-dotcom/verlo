@@ -5,6 +5,7 @@ import { savePendingTemporaryDraft } from "@/lib/temporarios/pending-draft"
 import { getTemporaryRequestKey, clearTemporaryRequestKey } from "@/lib/temporarios/request-key"
 import { useRouter } from "next/navigation"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
+import {trackPostHog} from "@/lib/posthog-client"
 import { tenantDraftFromForm } from "@/lib/temporarios/form-mapping"
 import { panel, field, fieldLabel, button } from "../brand"
 export default function TemporaryTenantDraft() {
@@ -13,6 +14,7 @@ export default function TemporaryTenantDraft() {
   const router = useRouter()
   async function save(form: HTMLFormElement) {
     if (saving) return
+    trackPostHog("temporary_tenant_form_submitted",{product:"temporary",role:"tenant"})
     const payload = new FormData(form)
     if (String(payload.get("website") || "").trim()) return
     const parsed = tenantDraftFromForm(payload)
@@ -42,6 +44,7 @@ export default function TemporaryTenantDraft() {
           : data.error || "No se pudo guardar la búsqueda.")
         return
       }
+      trackPostHog("temporary_tenant_registration_completed",{product:"temporary",role:"tenant"})
       clearTemporaryRequestKey("tenant")
       router.push("/temporarios/success/inquilino?registro=" + encodeURIComponent(data.id))
     } catch { setResult("Error de conexión. No se guardó la búsqueda.") }
