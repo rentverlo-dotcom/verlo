@@ -6,7 +6,7 @@ export const runtime="nodejs"
 export const dynamic="force-dynamic"
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const reply=(status:number,data:object)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}})
-const FEE=49900
+const FEE=49999
 type Preference={id?:string;init_point?:string;sandbox_init_point?:string;external_reference?:string;message?:string}
 
 export async function POST(request:Request){
