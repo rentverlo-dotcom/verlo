@@ -8,8 +8,11 @@ export async function GET(request: Request) {
   const answer = (status: number, data: object) => NextResponse.json(data, {
     status, headers: { "Cache-Control": "no-store" },
   })
-  if (process.env.VERCEL_ENV !== "preview" ||
-      process.env.VERCEL_GIT_COMMIT_REF !== "feature/temporarios")
+  const isPreview = process.env.VERCEL_ENV === "preview" &&
+    process.env.VERCEL_GIT_COMMIT_REF === "feature/temporarios"
+  const isProduction = process.env.VERCEL_ENV === "production" &&
+    process.env.TEMPORARY_PUBLIC_ENABLED === "true"
+  if (!isPreview && !isProduction)
     return answer(404, {ok:false,error:"Not available"})
   const bearer = request.headers.get("authorization") || ""
   if (!bearer.startsWith("Bearer ") || bearer.length > 4096)
