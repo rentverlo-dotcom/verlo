@@ -19,7 +19,9 @@ function validSignature(request:NextRequest,id:string,secret:string){
  return received.length===expected.length&&timingSafeEqual(expected,received)
 }
 export async function POST(request:NextRequest){
- if(process.env.VERCEL_ENV!=="preview"||process.env.VERCEL_GIT_COMMIT_REF!=="feature/temporarios")return reply(404,{ok:false})
+ const isPreview=process.env.VERCEL_ENV==="preview"&&process.env.VERCEL_GIT_COMMIT_REF==="feature/temporarios"
+ const isProduction=process.env.VERCEL_ENV==="production"&&process.env.TEMPORARY_PUBLIC_ENABLED==="true"&&process.env.TEMPORARY_DB_WRITES_ENABLED==="true"
+ if(!isPreview&&!isProduction)return reply(404,{ok:false})
  const secret=process.env.TEMPORARY_MP_WEBHOOK_SECRET
  const token=process.env.TEMPORARY_MP_ACCESS_TOKEN
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL,service=process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -45,11 +47,11 @@ export async function POST(request:NextRequest){
  if(!attempt.data)return reply(200,{ok:true,ignored:true})
  // Compare payment account data against our pending sandbox preference.
  if(!attempt.data.mp_preference_id)return reply(409,{ok:false,error:"Preferencia no registrada"})
- if(Number(payment?.id)!==Number(id)||Number(payment?.transaction_amount)!==49900||payment?.currency_id!=="ARS")return reply(409,{ok:false,error:"Pago no coincide"})
+ if(Number(payment?.id)!==Number(id)||Number(payment?.transaction_amount)!==49999||payment?.currency_id!=="ARS")return reply(409,{ok:false,error:"Pago no coincide"})
  const status=payment?.status
  if(typeof status!=="string"||!["approved","rejected","cancelled","pending","in_process"].includes(status))return reply(200,{ok:true,ignored:true})
  const result=await db.rpc("temporary_register_verified_payment",{
-  p_attempt_id:attemptId,p_mp_payment_id:id,p_amount:49900,p_currency:"ARS",p_mp_status:status
+  p_attempt_id:attemptId,p_mp_payment_id:id,p_amount:49999,p_currency:"ARS",p_mp_status:status
  })
  if(result.error)return reply(503,{ok:false,error:"No se pudo registrar la verificación"})
  return reply(200,{ok:true,status,verified:true})
