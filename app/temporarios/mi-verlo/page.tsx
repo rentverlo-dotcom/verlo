@@ -7,6 +7,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase/client"
 import VerloBrand from "@/components/VerloBrand"
+import {trackPostHog} from "@/lib/posthog-client"
 import { shell, container, nav, navInner, panel, button } from "../brand"
 
 const typeName=(value:string)=>({casa:"Casa",departamento:"Departamento",cabana:"Cabaña",habitacion:"Habitación"} as Record<string,string>)[value]||"Alojamiento"
@@ -29,14 +30,16 @@ export default function MyTemporaries() {
     if(deciding)return
     setDeciding(key)
     setDecisionError("")
+    trackPostHog("temporary_match_decision_started",{product:"temporary",role,decision})
     try{
       const {data:{session}}=await supabase.auth.getSession()
       if(!session?.access_token)throw new Error("Iniciá sesión para continuar")
       const response=await fetch("/api/temporarios/matches/decide",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({matchId,role,decision})})
       const data:{ok?:boolean;error?:string;match?:{status:string;ownerDecision:string;tenantDecision:string}}=await response.json()
       if(!response.ok||!data.ok||!data.match)throw new Error(data.error||"No se pudo guardar tu respuesta")
+      trackPostHog("temporary_match_decision_completed",{product:"temporary",role,decision})
       setResult(old=>old?.ok ? {...old,ownerMatches:old.ownerMatches.map(m=>m.id===matchId?{...m,status:data.match!.status,owner_decision:data.match!.ownerDecision,tenant_decision:data.match!.tenantDecision}:m),tenantMatches:old.tenantMatches.map(m=>m.id===matchId?{...m,status:data.match!.status,owner_decision:data.match!.ownerDecision,tenant_decision:data.match!.tenantDecision}:m)} : old)
-    }catch(error){setDecisionError(error instanceof Error?error.message:"Error de conexión")}
+    }catch(error){trackPostHog("temporary_match_decision_failed",{product:"temporary",role,decision});setDecisionError(error instanceof Error?error.message:"Error de conexión")}
     finally{setDeciding("")}
   }
   useEffect(()=>{
@@ -50,6 +53,7 @@ export default function MyTemporaries() {
           cache:"no-store",
         })
         const data:Mine = await response.json()
+        if(active&&data.ok)trackPostHog("temporary_dashboard_opened",{product:"temporary",properties_count:data.properties.length,demands_count:data.demands.length,owner_matches_count:data.ownerMatches.length,tenant_matches_count:data.tenantMatches.length})
         if(active){setResult(data);setLoading(false)}
       } catch {if(active){setResult({ok:false,error:"No pudimos consultar tus registros."});setLoading(false)}}
     }
