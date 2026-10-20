@@ -28,6 +28,14 @@ export default function ContractScreen(){
   await load()
   setMessage(action==="generate"?"Contrato emitido. Ambas partes deben revisarlo y aceptarlo.":"Tu aceptación quedó registrada.")
  }catch(e){setMessage(e instanceof Error?e.message:"No se pudo completar la acción")}finally{setBusy(false)}}
+ async function downloadPdf(){setBusy(true);setMessage("");try{
+  const {data:{session}}=await supabase.auth.getSession()
+  if(!session?.access_token)throw Error("Iniciá sesión para continuar")
+  const response=await fetch("/api/temporarios/contracts/pdf?matchId="+encodeURIComponent(matchId),{headers:{Authorization:"Bearer "+session.access_token},cache:"no-store"})
+  if(!response.ok){const body=await response.json().catch(()=>({error:"No se pudo descargar el PDF"}));throw Error(body.error||"No se pudo descargar el PDF")}
+  const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement("a")
+  a.href=url;a.download="verlo-temporarios-contrato.pdf";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)
+ }catch(e){setMessage(e instanceof Error?e.message:"No se pudo descargar el PDF")}finally{setBusy(false)}}
  const contract=data?.contract
  const ready=["fee_paid","deposit_pending","ready_to_block","confirmed"].includes(data?.reservationStatus||"")
  const fields=(title:string,value:Party,onChange:(p:Party)=>void)=><fieldset style={{border:"1px solid #e8dce0",padding:16,borderRadius:16,display:"grid",gap:12}}>
@@ -56,7 +64,7 @@ export default function ContractScreen(){
  {contract&&<div style={{marginTop:26,display:"grid",gap:16}}>
  <h2>Documento · Versión 1</h2>
  <div style={{whiteSpace:"pre-wrap",background:"#fff",padding:24,borderRadius:18,border:"1px solid #ecdee2",fontSize:14,lineHeight:1.65}}>{contract.document_text}</div>
- <p style={{fontSize:12,color:"#6e646a",overflowWrap:"anywhere"}}>Huella de integridad SHA-256: {contract.document_sha256}</p>
+ <button style={button} disabled={busy} onClick={()=>void downloadPdf()}>{busy?"Preparando PDF...":"Descargar contrato PDF (sin firma digital)"}</button>\n <p style={{fontSize:12,color:"#6e646a",overflowWrap:"anywhere"}}>Huella de integridad SHA-256: {contract.document_sha256}</p>
  <p><strong>Propietario:</strong> {contract.owner_agreed_at?"Aceptado":"Pendiente"} · <strong>Inquilino:</strong> {contract.tenant_agreed_at?"Aceptado":"Pendiente"}</p>
  {contract.status!=="agreed"&&!(data?.role==="owner"?contract.owner_agreed_at:contract.tenant_agreed_at)&&<button style={button} disabled={busy} onClick={()=>void submit("accept")}>{busy?"Guardando...":"Leí y acepto este contrato"}</button>}
  {contract.status==="agreed"&&<strong>Ambas partes aceptaron el documento. El bloqueo de fechas sigue siendo una operación separada.</strong>}
