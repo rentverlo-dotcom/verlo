@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const matchId = new URL(request.url).searchParams.get("matchId") || ""
   if (!uuid.test(matchId)) return fail(400, "Coincidencia inválida")
   const auth = await authorizeTemporaryWrite(request, "owner")
-  if (!auth.ok) return fail(auth.status, auth.error)
+  if ("status" in auth) return fail(auth.status, auth.error)
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return fail(503, "Servicio no disponible")
