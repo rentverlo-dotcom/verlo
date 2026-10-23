@@ -68,10 +68,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Identik record lookup failed" }, { status: 503 })
   }
 
+  const { data: payments, error: paymentError } = await db
+    .from("lead_payments")
+    .select("id, amount, currency, approved_at")
+    .eq("lead_contract_id", contract.id)
+    .eq("lead_match_id", match.id)
+    .eq("tenant_lead_id", contract.tenant_lead_id)
+    .eq("status", "approved")
+    .order("approved_at", { ascending: false })
+    .limit(1)
+
+  if (paymentError) {
+    return NextResponse.json({ ok: false, error: "Payment verification unavailable" }, { status: 503 })
+  }
+  const verifiedPayment = (payments ?? []).some(
+    payment => Number(payment.amount) === 89000 &&
+      payment.currency === "ARS" && Boolean(payment.approved_at),
+  )
+
   const reasons: string[] = []
   if (!contract.content?.trim()) reasons.push("contract_missing")
   if (!contract.tenant_agreed_at || !contract.owner_agreed_at) reasons.push("acceptance_pending")
-  if (!match.tenant_paid_at) reasons.push("payment_pending")
+  if (!match.tenant_paid_at || !verifiedPayment) reasons.push("payment_pending")
   if (doc) reasons.push("identik_document_already_recorded")
 
   return NextResponse.json(
