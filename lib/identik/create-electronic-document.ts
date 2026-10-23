@@ -17,7 +17,16 @@ export async function createIdentikElectronicDocument(params: {
   ownerEmail: string
   tenantEmail: string
 }) {
-  // Explicit QA switch: this helper cannot consume sandbox credits accidentally.\n  if (process.env.IDENTIK_ENABLE_CREATE !== "true") {\n    throw new Error("Identik document creation disabled")\n  }\n  if ((process.env.IDENTIK_ELECTRONIC_API_BASE_URL || "https://sandbox-electronica.identik.me/api/v2").includes("sandbox-electronica.identik.me") === false) {\n    throw new Error("Identik QA creation must target sandbox")\n  }\n  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  // Prevent accidental billable creation during QA.
+  if (process.env.IDENTIK_ENABLE_CREATE !== "true") {
+    throw new Error("Identik document creation disabled")
+  }
+  const providerBase = process.env.IDENTIK_ELECTRONIC_API_BASE_URL ||
+    "https://sandbox-electronica.identik.me/api/v2"
+  if (providerBase !== "https://sandbox-electronica.identik.me/api/v2") {
+    throw new Error("Identik QA creation must target sandbox")
+  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) throw new Error("Supabase backend not configured")
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.contractId)) {
