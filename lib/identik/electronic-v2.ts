@@ -5,7 +5,7 @@
  */
 import "server-only"
 
-const DEFAULT_BASE = "https://electronica.identik.me/api/v2"
+const DEFAULT_BASE = "https://sandbox-electronica.identik.me/api/v2"
 
 export class IdentikApiError extends Error {
   readonly status: number
@@ -55,13 +55,13 @@ export function makeIdentikElectronicClient(options?: {
   fetcher?: Fetcher
 }) {
   const token = options?.token ?? process.env.IDENTIK_ELECTRONIC_API_TOKEN
-  const baseUrl = options?.baseUrl ?? DEFAULT_BASE
+  const baseUrl = options?.baseUrl ?? process.env.IDENTIK_ELECTRONIC_API_BASE_URL ?? DEFAULT_BASE
   const fetcher = options?.fetcher ?? fetch
 
   if (!token) throw new Error("IDENTIK_ELECTRONIC_API_TOKEN is not configured")
   // Prevent sending the Bearer token to arbitrary hosts.
   const parsedBase = new URL(baseUrl)
-  if (parsedBase.protocol !== "https:" || parsedBase.hostname !== "electronica.identik.me") {
+  if (parsedBase.protocol !== "https:" || !["electronica.identik.me", "sandbox-electronica.identik.me"].includes(parsedBase.hostname) || parsedBase.pathname !== "/api/v2" || parsedBase.search || parsedBase.hash) {
     throw new Error("Invalid Identik electronic API base URL")
   }
 
