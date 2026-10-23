@@ -1,9 +1,9 @@
 -- Identik FIRMA ELECTRONICA v2: isolated persistence.
--- Review against live lead_contracts schema before applying. NOT run automatically.
--- The text reference deliberately avoids assuming lead_contracts.id's database type.
+-- Confirmed against live lead_contracts: id is uuid.
+-- Apply manually in Supabase SQL editor after review; no automatic production migration.
 create table if not exists public.identik_electronic_documents (
   id uuid primary key default gen_random_uuid(),
-  lead_contract_id text not null unique,
+  lead_contract_id uuid not null unique references public.lead_contracts(id) on delete restrict,
   external_id text not null unique,
   identik_document_id bigint unique,
   status text not null default 'local_pending'
