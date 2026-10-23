@@ -66,7 +66,7 @@ export function makeIdentikElectronicClient(options?: {
   }
 
   async function request(path: string, init: RequestInit = {}): Promise<Response> {
-    const response = await fetcher(`${baseUrl.replace(/\\/$/, "")}${path}`, {
+    const response = await fetcher(`${baseUrl.replace(/\/$/, "")}${path}`, {
       ...init,
       headers: {
         Authorization: `Bearer ${token}`,
