@@ -16,7 +16,11 @@ async function check(p) {
   let matches=[...new Map(exact.map(i=>[String(i.municipio.id)+":"+String(i.id),i])).values()];
   if(matches.length>1){const names=expected[p.slug]||[normalize(p.name)];const by=matches.filter(i=>names.includes(normalize(String(i.municipio.nombre||""))));if(by.length>0)matches=by;}
   if(matches.length>1){const mids=new Set(matches.map(i=>String(i.municipio.id)));const len=Math.max(...matches.map(i=>String(i.id).length));const larger=matches.filter(i=>String(i.id).length===len);const shorter=matches.filter(i=>String(i.id).length<len);if(mids.size===1&&larger.length===1&&shorter.length>0&&shorter.every(i=>String(larger[0].id).startsWith(String(i.id))))matches=larger;}
-  if(matches.length!==1)return {...p,status:"FAIL",reason:matches.length?"Ambiguous":"No exact match",candidates:matches.map(i=>({id:i.id,municipio:i.municipio?.nombre}))};
+  if(matches.length!==1) {
+    const candidates=(data.localidades||[]).map(i=>({id:i.id,name:i.nombre,municipioId:i.municipio?.id||null,municipio:i.municipio?.nombre||null,provincia:i.provincia?.id||null}));
+    console.log("DIAGNOSTIC",p.slug,JSON.stringify({returned:data.localidades?.length||0,candidates}));
+    return {...p,status:"FAIL",reason:matches.length?"Ambiguous":"No exact match",candidates};
+  }
   const item=matches[0], municipalityId=String(item.municipio.id), localityId=String(item.id);
   const [municipalities,localities]=await Promise.all([get("municipios",{provincia:p.province,max:500}),get("localidades",{municipio:municipalityId,max:500})]);
   const municipalityFound=(municipalities.municipios||[]).some(i=>String(i.id)===municipalityId);
