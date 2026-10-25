@@ -52,3 +52,43 @@ test("Georef official SEO endpoint resolves known cities", async ({ request }) =
     expect(data.location?.key, slug).toMatch(/^ar:/)
   }
 })
+
+
+test("Lead intake honeypot rejects both roles without creating data", async ({ request }) => {
+  for (const role of ["tenant", "owner"]) {
+    const response = await request.post("/api/lead-intake", {
+      data: {
+        website: "automated-check-no-write",
+        role,
+        intent: role === "tenant" ? "tenant_search" : "owner_new_listing",
+        metadata: { georef: JSON.stringify([georefOlivos.location]) },
+      },
+    })
+    expect(response.status(), role).toBe(200)
+    const result = await response.json()
+    expect(result.bot_filtered, role).toBe(true)
+    expect(result.lead_id, role).toBeUndefined()
+  }
+})
+
+test("Department-backed selector renders and keeps canonical location", async ({ page }) => {
+  const location = {
+    ...georefOlivos.location,
+    provinceId: "78", provinceName: "Santa Cruz",
+    municipalityId: "dept:78021", municipalityName: "Güer Aike",
+    localityId: "78021040", localityName: "Río Gallegos",
+    key: "ar:78:dept:78021:78021040",
+    label: "Río Gallegos, Güer Aike, Santa Cruz",
+  }
+  await page.route("**/api/georef/seo-location?*", async route => route.fulfill({ json: {ok:true, location} }))
+  await page.route("**/api/georef/municipios?*", async route => route.fulfill({ json: {municipios:[{id:location.municipalityId,nombre:location.municipalityName}]} }))
+  await page.route("**/api/georef/localidades?*", async route => route.fulfill({ json: {localidades:[{id:location.localityId,nombre:location.localityName}]} }))
+  await page.goto("/?zona=rio-gallegos#sumate", {waitUntil:"domcontentloaded"})
+  const form = page.locator("form").filter({has:page.locator('input[name="tenant_georef"]')}).first()
+  const input = form.locator('input[name="tenant_georef"]')
+  await expect.poll(async () => JSON.parse(await input.inputValue())[0]?.key, {timeout:20000}).toBe(location.key)
+  const select = form.locator("select.select")
+  await expect(select.nth(0)).toHaveValue("78")
+  await expect(select.nth(1)).toHaveValue(location.municipalityId, {timeout:20000})
+  await expect(select.nth(2)).toHaveValue(location.localityId, {timeout:20000})
+})
