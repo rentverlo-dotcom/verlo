@@ -13,19 +13,19 @@ async function check(p) {
  const provinceId = provinces[p.province]; if(!provinceId)return {...p,status:"FAIL",reason:"Province not mapped"};
  if(provinceId==="02")return {...p,status:"PASS",reason:"CABA client uses dedicated barrio list"};
  try {
-  const data=await get("localidades",{nombre:officialNames[p.slug]||p.name,provincia:provinceId,max:100,campos:"id,nombre,municipio,provincia,centroide"});
-  const exact=(data.localidades||[]).filter(i=>normalize(String(i.nombre||""))===normalize(officialNames[p.slug]||p.name)&&String(i.provincia?.id||provinceId)===provinceId&&i.municipio?.id&&i.id);
-  let matches=[...new Map(exact.map(i=>[String(i.municipio.id)+":"+String(i.id),i])).values()];
-  if(matches.length>1){const names=officialMunicipalities[p.slug]?[officialMunicipalities[p.slug]]:(expected[p.slug]||[normalize(p.name)]);const by=matches.filter(i=>names.includes(normalize(String(i.municipio.nombre||""))));if(by.length>0)matches=by;}
-  if(matches.length>1){const mids=new Set(matches.map(i=>String(i.municipio.id)));const len=Math.max(...matches.map(i=>String(i.id).length));const larger=matches.filter(i=>String(i.id).length===len);const shorter=matches.filter(i=>String(i.id).length<len);if(mids.size===1&&larger.length===1&&shorter.length>0&&shorter.every(i=>String(larger[0].id).startsWith(String(i.id))))matches=larger;}
+  const data=await get("localidades",{nombre:officialNames[p.slug]||p.name,provincia:provinceId,max:100,campos:"id,nombre,municipio,departamento,provincia,centroide"});
+  const exact=(data.localidades||[]).filter(i=>normalize(String(i.nombre||""))===normalize(officialNames[p.slug]||p.name)&&String(i.provincia?.id||provinceId)===provinceId&&(i.municipio?.id||i.departamento?.id)&&i.id);
+  let matches=[...new Map(exact.map(i=>[String(i.municipio?.id||`dept:${i.departamento?.id}`)+":"+String(i.id),i])).values()];
+  if(matches.length>1){const names=officialMunicipalities[p.slug]?[officialMunicipalities[p.slug]]:(expected[p.slug]||[normalize(p.name)]);const by=matches.filter(i=>names.includes(normalize(String(i.municipio?.nombre||i.departamento?.nombre||""))));if(by.length>0)matches=by;}
+  if(matches.length>1){const mids=new Set(matches.map(i=>String(i.municipio?.id||`dept:${i.departamento?.id}`)));const len=Math.max(...matches.map(i=>String(i.id).length));const larger=matches.filter(i=>String(i.id).length===len);const shorter=matches.filter(i=>String(i.id).length<len);if(mids.size===1&&larger.length===1&&shorter.length>0&&shorter.every(i=>String(larger[0].id).startsWith(String(i.id))))matches=larger;}
   if(matches.length!==1) {
     const candidates=(data.localidades||[]).map(i=>({id:i.id,name:i.nombre,municipioId:i.municipio?.id||null,municipio:i.municipio?.nombre||null,provincia:i.provincia?.id||null}));
     console.log("DIAGNOSTIC",p.slug,JSON.stringify({returned:data.localidades?.length||0,candidates}));
     return {...p,status:"FAIL",reason:matches.length?"Ambiguous":"No exact match",candidates};
   }
-  const item=matches[0], municipalityId=String(item.municipio.id), localityId=String(item.id);
-  const [municipalities,localities]=await Promise.all([get("municipios",{provincia:p.province,max:500}),get("localidades",{municipio:municipalityId,max:500})]);
-  const municipalityFound=(municipalities.municipios||[]).some(i=>String(i.id)===municipalityId);
+  const item=matches[0], municipalityId=item.municipio?.id?String(item.municipio.id):`dept:${item.departamento.id}`, localityId=String(item.id);
+  const [municipalities,localities]=await Promise.all([get(municipalityId.startsWith("dept:")?"departamentos":"municipios",{provincia:p.province,max:500}),get("localidades",{[municipalityId.startsWith("dept:")?"departamento":"municipio"]:municipalityId.replace(/^dept:/,""),max:500})]);
+  const municipalityFound=(municipalityId.startsWith("dept:")?municipalities.departamentos:municipalities.municipios||[]).some(i=>(municipalityId.startsWith("dept:")?"dept:":"")+String(i.id)===municipalityId);
   const localityFound=(localities.localidades||[]).some(i=>String(i.id)===localityId);
   return {...p,status:municipalityFound&&localityFound?"PASS":"FAIL",reason:!municipalityFound?"Municipality missing in selector":!localityFound?"Locality ID missing in selector":"Both IDs present",provinceId,municipalityId,localityId,geoKey:`ar:${provinceId}:${municipalityId}:${localityId}`};
  }catch(e){return {...p,status:"ERROR",reason:String(e.message||e)};}
