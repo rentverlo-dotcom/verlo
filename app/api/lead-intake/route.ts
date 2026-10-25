@@ -4021,7 +4021,32 @@ if (
     ) {
       console.error(
         "lead neighborhoods error:",
-        neighborhoodResult
+        {
+          lead_id: leadRecord.id,
+          result: neighborhoodResult,
+        }
+      )
+
+      // Fail closed: never match, notify or attribute a lead with an
+      // incomplete location. Compensate for the already-inserted lead.
+      const { error: cleanupError } = await supabaseAdmin
+        .from("lead_intake")
+        .delete()
+        .eq("id", leadRecord.id)
+
+      if (cleanupError) {
+        console.error("CRITICAL: orphan lead cleanup failed", {
+          lead_id: leadRecord.id,
+          error: cleanupError,
+        })
+      }
+
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "No pudimos guardar la ubicación. Intentá nuevamente.",
+        },
+        { status: 500 }
       )
     }
 
