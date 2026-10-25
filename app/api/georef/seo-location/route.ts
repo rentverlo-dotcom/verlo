@@ -69,22 +69,22 @@ export async function GET(request: NextRequest) {
     api.searchParams.set("nombre",GEOREF_NAMES[slug] || location.name)
     api.searchParams.set("provincia",provinceId)
     api.searchParams.set("max","100")
-    api.searchParams.set("campos","id,nombre,municipio,provincia,centroide")
+    api.searchParams.set("campos","id,nombre,municipio,departamento,provincia,centroide")
     const upstream = await fetch(api.toString(),{next:{revalidate:86400},signal:AbortSignal.timeout(8000)})
     if (!upstream.ok) return response({ok:false,error:"Georef no disponible"},503)
     const data = await upstream.json()
     const exact = (Array.isArray(data?.localidades)?data.localidades:[]).filter((item: any) =>
       normalize(String(item?.nombre||"")) === normalize(GEOREF_NAMES[slug] || location.name) &&
       String(item?.provincia?.id || provinceId) === provinceId &&
-      item?.municipio?.id && item?.id
+      (item?.municipio?.id || item?.departamento?.id) && item?.id
     )
     // Never silently point a rental search to an ambiguous town with the same name.
-    const identities = new Map<string,any>(exact.map((item:any)=>[String(item.municipio.id)+":"+String(item.id),item]))
+    const identities = new Map<string,any>(exact.map((item:any)=>[String(item.municipio?.id || item.departamento?.id)+":"+String(item.id),item]))
     let matches = Array.from(identities.values())
     if (matches.length > 1) {
       const expected = (GEOREF_MUNICIPALITIES[slug] ? [GEOREF_MUNICIPALITIES[slug]] : EXPECTED_MUNICIPALITIES[slug]) || [normalize(location.name)]
       const byMunicipality = matches.filter((item: any) =>
-        expected.includes(normalize(String(item.municipio.nombre || "")))
+        expected.includes(normalize(String(item.municipio?.nombre || item.departamento?.nombre || "")))
       )
       if (byMunicipality.length > 0) matches = byMunicipality
     }
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     // Prefer the unique 10-digit child only for this documented parent/child
     // ambiguity; never guess between different municipalities or censal areas.
     if (matches.length > 1) {
-      const mids = new Set(matches.map((item: any) => String(item.municipio.id)))
+      const mids = new Set(matches.map((item: any) => String(item.municipio?.id || item.departamento?.id)))
       const longest = Math.max(...matches.map((item: any) => String(item.id).length))
       const granular = matches.filter((item: any) => String(item.id).length === longest)
       const others = matches.filter((item: any) => String(item.id).length < longest)
@@ -110,14 +110,17 @@ export async function GET(request: NextRequest) {
       },422)
     }
     const item = matches[0]
-    const municipalityId=String(item.municipio.id), localityId=String(item.id)
+    const administrativeUnit = item.municipio || item.departamento
+    const departmentFallback = !item.municipio?.id && Boolean(item.departamento?.id)
+    const municipalityId=departmentFallback ? `dept:${administrativeUnit.id}` : String(administrativeUnit.id)
+    const localityId=String(item.id)
     const latitude=typeof item?.centroide?.lat==="number"?item.centroide.lat:null
     const longitude=typeof item?.centroide?.lon==="number"?item.centroide.lon:null
     return response({ok:true,location:{
-      provinceId,provinceName:location.province,municipalityId,municipalityName:String(item.municipio.nombre),
+      provinceId,provinceName:location.province,municipalityId,municipalityName:String(administrativeUnit.nombre),
       localityId,localityName:String(item.nombre),latitude,longitude,
       key:`ar:${provinceId}:${municipalityId}:${localityId}`,
-      label:`${item.nombre}, ${item.municipio.nombre}, ${location.province}`,
+      label:`${item.nombre}, ${administrativeUnit.nombre}, ${location.province}`,
     }})
   } catch {
     return response({ok:false,error:"No pudimos resolver la ubicación. Elegila manualmente."},503)
