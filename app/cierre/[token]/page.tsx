@@ -2501,7 +2501,7 @@ export default function ClosingPage() {
             data.contract.id,
 
           amount:
-            89000,
+            119000,
 
           currency:
             "ARS",
@@ -2564,7 +2564,7 @@ export default function ClosingPage() {
               data.contract.id,
 
             amount:
-              89000,
+              119000,
 
             currency:
               "ARS",
@@ -2600,7 +2600,7 @@ export default function ClosingPage() {
             data.contract.id,
 
           amount:
-            89000,
+            119000,
 
           currency:
             "ARS",
@@ -5295,7 +5295,7 @@ if (
                               .match
                               .tenant_paid_at
                               ? "Tu pago ya está acreditado. Podés avanzar con la aceptación del contrato."
-                              : "Con un único pago de $89.000 accedés a todo lo que necesitás para cerrar y gestionar tu alquiler con Verlo."}
+                              : "Con un único pago de $119.000 accedés a todo lo que necesitás para cerrar y gestionar tu alquiler con Verlo."}
                           </p>
 
                           {!data
