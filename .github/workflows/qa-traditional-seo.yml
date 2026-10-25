@@ -20,7 +20,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Test preview without creating leads or sending messages
         env:
-          PLAYWRIGHT_BASE_URL: https://verlopunto0-pejzlayz5-verlos-projects-b9e9c595.vercel.app
+          PLAYWRIGHT_BASE_URL: https://verlopunto0-3w7fbb459-verlos-projects-b9e9c595.vercel.app
         run: npx playwright test tests/seo-regression.spec.ts --workers=1 --reporter=line
       - name: Store evidence
         if: always()
