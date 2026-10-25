@@ -1,0 +1,28 @@
+name: QA Georef national catalog
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/seo-georef-qa-20261025
+    paths:
+      - scripts/qa-georef-catalog.mjs
+      - lib/seo/argentina-locations.ts
+      - .github/workflows/qa-georef.yml
+jobs:
+  georef:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify official identifiers and selector lists
+        run: node scripts/qa-georef-catalog.mjs
+      - name: Publish full report even when checks fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: georef-qa-report
+          path: georef-qa-report.json
+          if-no-files-found: warn
