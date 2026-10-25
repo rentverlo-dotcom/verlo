@@ -22,8 +22,8 @@ export default function AlquileresOlivos() {
         <div className="container nav-inner">
           <VerloBrand width={112} />
           <nav className="nav-links" aria-label="Navegación principal">
-            <Link href="/#sumate">Alquilar</Link>
-            <Link href="/propietarios">Publicar</Link>
+            <Link href={`/?zona=${"olivos"}#sumate`}>Alquilar</Link>
+            <Link href={`/propietarios?zona=${"olivos"}#cargar`}>Publicar</Link>
             <Link href="/login" className="nav-cta">Ingresar</Link>
           </nav>
         </div>
@@ -39,8 +39,8 @@ export default function AlquileresOlivos() {
               VERLO conecta búsquedas con propiedades compatibles, sin comisión inmobiliaria.
             </p>
             <div className="actions">
-              <Link className="button primary" href="/#sumate">Busco alquilar en Olivos</Link>
-              <Link className="button secondary" href="/propietarios">Tengo una propiedad</Link>
+              <Link className="button primary" href={`/?zona=${"olivos"}#sumate`}>Busco alquilar en Olivos</Link>
+              <Link className="button secondary" href={`/propietarios?zona=${"olivos"}#cargar`}>Tengo una propiedad</Link>
             </div>
             <p className="microcopy">
               El propietario publica gratis. El inquilino paga una sola vez $119.000 al cerrar,
@@ -82,7 +82,7 @@ export default function AlquileresOlivos() {
               <h2>¿Tenés una propiedad en Olivos?</h2>
               <p>Publicala gratis y recibí candidatos compatibles, sin pagarle a VERLO.</p>
             </div>
-            <Link className="button primary" href="/propietarios">Publicar gratis</Link>
+            <Link className="button primary" href={`/propietarios?zona=${"olivos"}#cargar`}>Publicar gratis</Link>
           </div>
         </div>
       </section>
