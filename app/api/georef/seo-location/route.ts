@@ -71,17 +71,28 @@ export async function GET(request: NextRequest) {
     const identities = new Map<string,any>(exact.map((item:any)=>[String(item.municipio.id)+":"+String(item.id),item]))
     let matches = Array.from(identities.values())
     if (matches.length > 1) {
-      const expected = EXPECTED_MUNICIPALITIES[slug] ||
-        [normalize(location.name)]
+      const expected = EXPECTED_MUNICIPALITIES[slug] || [normalize(location.name)]
       const byMunicipality = matches.filter((item: any) =>
         expected.includes(normalize(String(item.municipio.nombre || "")))
       )
-      if (byMunicipality.length === 1) matches = byMunicipality
+      if (byMunicipality.length > 0) matches = byMunicipality
+    }
+    // Georef includes both an 8-digit urban locality and a 10-digit censal
+    // locality with identical names and municipalities. The existing VERLO
+    // form stores IDs returned by /localidades, including the 10-digit unit.
+    // Prefer the unique 10-digit child only for this documented parent/child
+    // ambiguity; never guess between different municipalities or censal areas.
+    if (matches.length > 1) {
+      const mids = new Set(matches.map((item: any) => String(item.municipio.id)))
+      const longest = Math.max(...matches.map((item: any) => String(item.id).length))
+      const granular = matches.filter((item: any) => String(item.id).length === longest)
+      const others = matches.filter((item: any) => String(item.id).length < longest)
+      if (mids.size === 1 && granular.length === 1 && others.length > 0 &&
+          others.every((item: any) => String(granular[0].id).startsWith(String(item.id)))) {
+        matches = granular
+      }
     }
     if (matches.length !== 1) {
-      if (process.env.VERCEL_ENV === "preview" && request.nextUrl.searchParams.get("debug") === "1") {
-        return response({ok:false, slug, matches: matches.map((item: any) => ({id:item.id,municipio:item.municipio?.nombre,municipioId:item.municipio?.id,localidad:item.nombre})), allExact:exact.length},422)
-      }
       return response({
         ok:false,
         error: matches.length ? "Localidad ambigua: seleccioná el municipio manualmente" : "Localidad no encontrada: seleccionala manualmente",
