@@ -10,7 +10,7 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  v_lead_id uuid;
+  v_lead_id uuid := gen_random_uuid();
   v_count integer;
 BEGIN
   IF jsonb_typeof(p_lead) IS DISTINCT FROM 'object'
@@ -19,7 +19,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.lead_intake
-  SELECT (jsonb_populate_record(NULL::public.lead_intake, p_lead)).*
+  SELECT (jsonb_populate_record(NULL::public.lead_intake, p_lead || jsonb_build_object('id', v_lead_id))).*
   RETURNING id INTO v_lead_id;
 
   SELECT count(*) INTO v_count FROM jsonb_array_elements(p_neighborhoods);
