@@ -11,6 +11,28 @@ const PROVINCE_IDS: Record<string, string> = {
   "Tucumán":"90", "Tierra del Fuego":"94",
 }
 
+// Where a place name is shared by more than one Georef locality, prefer a
+// municipality that is explicitly and unambiguously associated with the landing.
+// Never guess a locality ID or silently change the visitor's selected city.
+const EXPECTED_MUNICIPALITIES: Record<string, string[]> = {
+  "bariloche": ["bariloche"],
+  "cordoba": ["cordoba"],
+  "mar-del-plata": ["general-pueyrredon"],
+  "pinamar": ["pinamar"],
+  "tigre": ["tigre"],
+  "villa-gesell": ["villa-gesell"],
+  "vicente-lopez": ["vicente-lopez"],
+  "san-isidro": ["san-isidro"],
+  "nordelta": ["tigre"],
+  "carilo": ["pinamar"],
+  "la-plata": ["la-plata"],
+  "san-fernando": ["san-fernando"],
+  "pilar": ["pilar"],
+  "escobar": ["escobar"],
+  "bahia-blanca": ["bahia-blanca"],
+  "necochea": ["necochea"],
+}
+
 const response = (body: object, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control":"public, max-age=300, s-maxage=3600" } })
 
 export async function GET(request: NextRequest) {
@@ -47,8 +69,22 @@ export async function GET(request: NextRequest) {
     )
     // Never silently point a rental search to an ambiguous town with the same name.
     const identities = new Map<string,any>(exact.map((item:any)=>[String(item.municipio.id)+":"+String(item.id),item]))
-    if (identities.size !== 1) return response({ok:false,error: identities.size ? "Localidad ambigua: elegí el municipio" : "Seleccioná la localidad manualmente" },422)
-    const item = exact[0]
+    let matches = Array.from(identities.values())
+    if (matches.length > 1) {
+      const expected = EXPECTED_MUNICIPALITIES[slug] ||
+        [normalize(location.name)]
+      const byMunicipality = matches.filter((item: any) =>
+        expected.includes(normalize(String(item.municipio.nombre || "")))
+      )
+      if (byMunicipality.length === 1) matches = byMunicipality
+    }
+    if (matches.length !== 1) {
+      return response({
+        ok:false,
+        error: matches.length ? "Localidad ambigua: seleccioná el municipio manualmente" : "Localidad no encontrada: seleccionala manualmente",
+      },422)
+    }
+    const item = matches[0]
     const municipalityId=String(item.municipio.id), localityId=String(item.id)
     const latitude=typeof item?.centroide?.lat==="number"?item.centroide.lat:null
     const longitude=typeof item?.centroide?.lon==="number"?item.centroide.lon:null
