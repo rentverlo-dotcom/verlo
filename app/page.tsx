@@ -3131,7 +3131,7 @@ export default function PageDePrueba() {
       letterSpacing: "-0.055em",
     }}
   >
-    INQUILINO $89.000
+    INQUILINO $119.000
   </span>
 
   <span
