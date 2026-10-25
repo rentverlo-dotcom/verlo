@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     // Never silently point a rental search to an ambiguous town with the same name.
     const identities = new Map<string,any>(exact.map((item:any)=>[String(item.municipio.id)+":"+String(item.id),item]))
     if (identities.size !== 1) return response({ok:false,error: identities.size ? "Localidad ambigua: elegí el municipio" : "Seleccioná la localidad manualmente" },422)
-    const item = [...identities.values()][0]
+    const item = exact[0]
     const municipalityId=String(item.municipio.id), localityId=String(item.id)
     const latitude=typeof item?.centroide?.lat==="number"?item.centroide.lat:null
     const longitude=typeof item?.centroide?.lon==="number"?item.centroide.lon:null
