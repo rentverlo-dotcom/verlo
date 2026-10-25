@@ -7,8 +7,9 @@ const ogImageUrl = 'https://verlo.lat/logo-verlo.png'
 const appIconUrl = '/logo-verlo.png?v=20261008'
 
 export const metadata = {
-  title: 'VERLO',
-  description: 'Alquiler directo, seguro y sin comisión.',
+  metadataBase: new URL('https://verlo.lat'),
+  title: 'VERLO | Alquileres directos con dueños en Argentina',
+  description: 'Buscá alquileres directamente con propietarios en Argentina. Encontrá coincidencias, coordiná visitas y avanzá hacia tu contrato. Publicar es gratis para dueños.',
   icons: {
     icon: [
       {
@@ -20,8 +21,8 @@ export const metadata = {
     apple: appIconUrl,
   },
   openGraph: {
-    title: 'VERLO',
-    description: 'Alquiler directo, seguro y sin comisión.',
+    title: 'VERLO | Alquileres directos con dueños en Argentina',
+    description: 'Encontrá alquileres y propietarios compatibles en Argentina. Publicar es gratis para dueños.',
     url: 'https://verlo.lat',
     siteName: 'VERLO',
     images: [
@@ -37,8 +38,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'VERLO',
-    description: 'Alquiler directo, seguro y sin comisión.',
+    title: 'VERLO | Alquileres directos con dueños en Argentina',
+    description: 'Encontrá alquileres y propietarios compatibles en Argentina. Publicar es gratis para dueños.',
     images: [ogImageUrl],
   },
 }
