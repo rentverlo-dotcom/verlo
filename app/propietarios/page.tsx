@@ -578,6 +578,12 @@ function OwnerMediaPreview({
 }
 
 export default function PropietariosPage() {
+  const [seoZone, setSeoZone] = useState("")
+  useEffect(() => {
+    const zone = new URLSearchParams(window.location.search).get("zona") || ""
+    if (/^[a-z0-9-]{2,90}$/.test(zone)) setSeoZone(zone)
+  }, [])
+
   const [
     status,
     setStatus,
@@ -1478,6 +1484,7 @@ export default function PropietariosPage() {
                 labelName="neighborhood_label"
                 keyName="neighborhood_slug"
                 dataName="owner_georef"
+                initialSeoSlug={seoZone}
               />
             </label>
 
