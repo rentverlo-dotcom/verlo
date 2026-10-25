@@ -33,6 +33,17 @@ const EXPECTED_MUNICIPALITIES: Record<string, string[]> = {
   "necochea": ["necochea"],
 }
 
+// Verified official Georef names for SEO labels that differ from the geographic record.
+const GEOREF_NAMES: Record<string, string> = {
+  "acassuso": "Acasusso",
+  "san-lorenzo-salta": "Villa San Lorenzo",
+  "yerba-buena": "Yerba Buena - Marcos Paz",
+  "barreal": "Barreal - Villa Pituil",
+}
+const GEOREF_MUNICIPALITIES: Record<string, string> = {
+  "san-bernardo": "la-costa",
+}
+
 const response = (body: object, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control":"public, max-age=300, s-maxage=3600" } })
 
 export async function GET(request: NextRequest) {
@@ -55,7 +66,7 @@ export async function GET(request: NextRequest) {
   try {
     // Resolve the landing's human-readable name to the exact locality and municipality IDs used by matching.
     const api = new URL("https://apis.datos.gob.ar/georef/api/localidades")
-    api.searchParams.set("nombre",location.name)
+    api.searchParams.set("nombre",GEOREF_NAMES[slug] || location.name)
     api.searchParams.set("provincia",provinceId)
     api.searchParams.set("max","100")
     api.searchParams.set("campos","id,nombre,municipio,provincia,centroide")
@@ -63,7 +74,7 @@ export async function GET(request: NextRequest) {
     if (!upstream.ok) return response({ok:false,error:"Georef no disponible"},503)
     const data = await upstream.json()
     const exact = (Array.isArray(data?.localidades)?data.localidades:[]).filter((item: any) =>
-      normalize(String(item?.nombre||"")) === normalize(location.name) &&
+      normalize(String(item?.nombre||"")) === normalize(GEOREF_NAMES[slug] || location.name) &&
       String(item?.provincia?.id || provinceId) === provinceId &&
       item?.municipio?.id && item?.id
     )
@@ -71,7 +82,7 @@ export async function GET(request: NextRequest) {
     const identities = new Map<string,any>(exact.map((item:any)=>[String(item.municipio.id)+":"+String(item.id),item]))
     let matches = Array.from(identities.values())
     if (matches.length > 1) {
-      const expected = EXPECTED_MUNICIPALITIES[slug] || [normalize(location.name)]
+      const expected = (GEOREF_MUNICIPALITIES[slug] ? [GEOREF_MUNICIPALITIES[slug]] : EXPECTED_MUNICIPALITIES[slug]) || [normalize(location.name)]
       const byMunicipality = matches.filter((item: any) =>
         expected.includes(normalize(String(item.municipio.nombre || "")))
       )
