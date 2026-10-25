@@ -44,8 +44,8 @@ export default function AlquileresZona({ params }: Props) {
         <div className="container nav-inner">
           <VerloBrand width={112} />
           <nav className="nav-links" aria-label="Navegación principal">
-            <Link href="/#sumate">Alquilar</Link>
-            <Link href="/propietarios">Publicar</Link>
+            <Link href={`/?zona=${location.slug}#sumate`}>Alquilar</Link>
+            <Link href={`/propietarios?zona=${location.slug}#cargar`}>Publicar</Link>
             <Link href="/login" className="nav-cta">Ingresar</Link>
           </nav>
         </div>
@@ -61,8 +61,8 @@ export default function AlquileresZona({ params }: Props) {
               En VERLO cargás tu búsqueda y conectás con propietarios compatibles cuando hay publicaciones disponibles.
             </p>
             <div className="actions">
-              <Link className="button primary" href="/#sumate">Busco alquilar</Link>
-              <Link className="button secondary" href="/propietarios">Tengo una propiedad</Link>
+              <Link className="button primary" href={`/?zona=${location.slug}#sumate`}>Busco alquilar</Link>
+              <Link className="button secondary" href={`/propietarios?zona=${location.slug}#cargar`}>Tengo una propiedad</Link>
             </div>
             <p className="microcopy">
               Cargar una búsqueda es gratis. El propietario publica gratis.
@@ -106,7 +106,7 @@ export default function AlquileresZona({ params }: Props) {
               <h2>¿Tenés una propiedad en {location.name}?</h2>
               <p>Publicala gratis en VERLO y recibí candidatos compatibles.</p>
             </div>
-            <Link className="button primary" href="/propietarios">Publicar gratis</Link>
+            <Link className="button primary" href={`/propietarios?zona=${location.slug}#cargar`}>Publicar gratis</Link>
           </div>
         </div>
       </section>
