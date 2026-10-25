@@ -2069,6 +2069,12 @@ function MiniPhone({
 }
 
 export default function PageDePrueba() {
+  const [seoZone, setSeoZone] = useState("")
+  useEffect(() => {
+    const zone = new URLSearchParams(window.location.search).get("zona") || ""
+    if (/^[a-z0-9-]{2,90}$/.test(zone)) setSeoZone(zone)
+  }, [])
+
   const [
     path,
     setPath,
@@ -2688,6 +2694,7 @@ export default function PageDePrueba() {
 
         page:
           "verlo_home",
+        seo_landing_slug: seoZone || null,
 
         tenant_neighborhoods:
           tenantNeighborhoods,
@@ -3811,6 +3818,7 @@ export default function PageDePrueba() {
                       labelName="tenant_neighborhoods"
                       keyName="tenant_neighborhood_slugs"
                       dataName="tenant_georef"
+                      initialSeoSlug={seoZone}
                     />
                   </div>
 
