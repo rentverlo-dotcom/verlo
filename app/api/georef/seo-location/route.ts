@@ -79,6 +79,9 @@ export async function GET(request: NextRequest) {
       if (byMunicipality.length === 1) matches = byMunicipality
     }
     if (matches.length !== 1) {
+      if (process.env.VERCEL_ENV === "preview" && request.nextUrl.searchParams.get("debug") === "1") {
+        return response({ok:false, slug, matches: matches.map((item: any) => ({id:item.id,municipio:item.municipio?.nombre,municipioId:item.municipio?.id,localidad:item.nombre})), allExact:exact.length},422)
+      }
       return response({
         ok:false,
         error: matches.length ? "Localidad ambigua: seleccioná el municipio manualmente" : "Localidad no encontrada: seleccionala manualmente",
