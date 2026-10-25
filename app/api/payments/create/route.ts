@@ -14,7 +14,7 @@ export const dynamic =
   "force-dynamic"
 
 const VERLO_FEE_ARS =
-  89000
+  119000
 
 function clean(
   value: unknown
