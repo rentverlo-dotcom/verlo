@@ -125,11 +125,13 @@ export default function ArgentinaLocationSelector({
         const item = data.location as LocationItem
         if (!item.provinceId || !item.municipalityId || !item.localityId || !item.key) return
         setSeoLocation(item)
+        // Keep the canonical location in hidden fields while the existing
+        // province/municipality/locality controls load asynchronously.
         setSelected([item])
         setProvinceId(item.provinceId)
       })
       .catch(() => {
-        // Unknown/ambiguous Georef resolution: keep the existing manual selection.
+        // If Georef cannot resolve it unambiguously, require manual selection.
       })
     return () => { cancelled = true }
   }, [initialSeoSlug])
@@ -259,13 +261,15 @@ export default function ArgentinaLocationSelector({
 
   useEffect(() => {
     if (mode !== "single") return
+    // Do not erase a verified SEO area while its dependent selects are loading.
+    if (seoLocation) return
     const item = buildCurrentLocation()
     if (!item) {
       setSelected([])
       return
     }
     setSelected([item])
-  }, [mode, provinceId, municipalityId, localityId, province, municipality, locality])
+  }, [mode, seoLocation, provinceId, municipalityId, localityId, province, municipality, locality])
 
   return (
     <div className={className}>
@@ -273,7 +277,7 @@ export default function ArgentinaLocationSelector({
         <select
           className="select"
           value={provinceId}
-          onChange={(event) => setProvinceId(event.target.value)}
+          onChange={(event) => { setSeoLocation(null); setSelected([]); setProvinceId(event.target.value) }}
           required
         >
           <option value="">Provincia</option>
@@ -287,7 +291,7 @@ export default function ArgentinaLocationSelector({
         <select
           className="select"
           value={municipalityId}
-          onChange={(event) => setMunicipalityId(event.target.value)}
+          onChange={(event) => { setSeoLocation(null); setSelected([]); setMunicipalityId(event.target.value) }}
           disabled={!provinceId || loadingMunicipalities}
           required
         >
@@ -306,7 +310,7 @@ export default function ArgentinaLocationSelector({
         <select
           className="select"
           value={localityId}
-          onChange={(event) => setLocalityId(event.target.value)}
+          onChange={(event) => { setSeoLocation(null); setSelected([]); setLocalityId(event.target.value) }}
           disabled={!municipalityId || loadingLocalities}
           required
         >
