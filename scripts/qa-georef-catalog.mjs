@@ -34,6 +34,22 @@ const results=[];let index=0;
 async function worker(){while(index<places.length){const p=places[index++];const result=await check(p);results.push(result);console.log(result.status.padEnd(5),p.slug,result.reason);}}
 await Promise.all(Array.from({length:3},worker));
 results.sort((a,b)=>places.findIndex(p=>p.slug===a.slug)-places.findIndex(p=>p.slug===b.slug));
+
+// For catalogue gaps, expose the official alternatives rather than guessing a locality ID.
+async function probeMissing() {
+ for (const [slug, provinceId] of [["nordelta","06"],["tolhuin","94"]]) {
+   for (const category of ["localidades","localidades-censales","asentamientos","municipios","gobiernos-locales"]) {
+     try {
+       const result=await get(category,{nombre:slug,provincia:provinceId,max:100});
+       const field=category.replace(/-/g,"_");
+       const rows=Array.isArray(result[field])?result[field]:[];
+       console.log("OFFICIAL_PROBE",slug,category,JSON.stringify(rows.map(x=>({id:x.id,nombre:x.nombre,municipio:x.municipio,departamento:x.departamento,provincia:x.provincia,localidad_censal:x.localidad_censal}))));
+     } catch(e) {console.log("OFFICIAL_PROBE_ERROR",slug,category,String(e));}
+   }
+ }
+}
+await probeMissing();
+
 const totals=Object.fromEntries(["PASS","FAIL","ERROR"].map(k=>[k,results.filter(x=>x.status===k).length]));
 writeFileSync("georef-qa-report.json",JSON.stringify({date:new Date().toISOString(),totals,results},null,2));
 console.log("TOTAL",JSON.stringify(totals));
