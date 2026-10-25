@@ -4613,6 +4613,10 @@ export default function PageDePrueba() {
           </div>
 
           <nav className="footer-links">
+            <a href="/alquileres">
+              Alquileres por ciudad
+            </a>
+
             <a href="/terminos">
               Términos y condiciones
             </a>
