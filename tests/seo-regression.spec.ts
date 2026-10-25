@@ -92,3 +92,21 @@ test("Department-backed selector renders and keeps canonical location", async ({
   await expect(select.nth(1)).toHaveValue(location.municipalityId, {timeout:20000})
   await expect(select.nth(2)).toHaveValue(location.localityId, {timeout:20000})
 })
+
+
+test("Regression: failed neighborhood persistence must abort before matching and notifications", async () => {
+  // Source-level invariant: deliberately avoids POSTing to shared Supabase.
+  const { readFileSync } = await import("node:fs")
+  const source = readFileSync("app/api/lead-intake/route.ts", "utf8")
+  const guardStart = source.indexOf("if (\n      !neighborhoodResult.ok\n    )")
+  const matchStart = source.indexOf("const matchResult =", guardStart)
+  expect(guardStart).toBeGreaterThan(-1)
+  expect(matchStart).toBeGreaterThan(guardStart)
+  const guard = source.slice(guardStart, matchStart)
+  expect(guard).toContain('.from("lead_intake")')
+  expect(guard).toContain('.delete()')
+  expect(guard).toContain('.eq("id", leadRecord.id)')
+  expect(guard).toMatch(/return NextResponse\\.json\\([\\s\\S]*?status: 500/)
+  expect(guard).not.toContain("createLeadMatches(")
+  expect(guard).not.toContain("postInternal(")
+})
