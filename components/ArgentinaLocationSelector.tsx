@@ -23,6 +23,7 @@ type Props = {
   keyName: string
   dataName?: string
   className?: string
+  initialSeoSlug?: string
 }
 
 const ARG_PROVINCES = [
@@ -85,7 +86,9 @@ export default function ArgentinaLocationSelector({
   keyName,
   dataName,
   className = "",
+  initialSeoSlug,
 }: Props) {
+  const [seoLocation, setSeoLocation] = useState<LocationItem | null>(null)
   const [provinceId, setProvinceId] = useState("")
   const [municipalityId, setMunicipalityId] = useState("")
   const [localityId, setLocalityId] = useState("")
@@ -109,6 +112,42 @@ export default function ArgentinaLocationSelector({
     () => localities.find((item) => String(item.id) === String(localityId)) || null,
     [localities, localityId]
   )
+
+  // Resolve SEO location to the same canonical Georef key that is written to lead_neighborhoods.
+  // No lead is submitted before the visitor confirms the existing form.
+  useEffect(() => {
+    if (!initialSeoSlug) return
+    let cancelled = false
+    fetch(`/api/georef/seo-location?zona=${encodeURIComponent(initialSeoSlug)}`)
+      .then(async response => response.ok ? response.json() : null)
+      .then(data => {
+        if (cancelled || !data?.ok || !data.location) return
+        const item = data.location as LocationItem
+        if (!item.provinceId || !item.municipalityId || !item.localityId || !item.key) return
+        setSeoLocation(item)
+        setSelected([item])
+        setProvinceId(item.provinceId)
+      })
+      .catch(() => {
+        // Unknown/ambiguous Georef resolution: keep the existing manual selection.
+      })
+    return () => { cancelled = true }
+  }, [initialSeoSlug])
+
+  useEffect(() => {
+    if (!seoLocation || provinceId !== seoLocation.provinceId) return
+    if (municipalities.some(item => String(item.id) === seoLocation.municipalityId)) {
+      setMunicipalityId(seoLocation.municipalityId)
+    }
+  }, [seoLocation, provinceId, municipalities])
+
+  useEffect(() => {
+    if (!seoLocation || municipalityId !== seoLocation.municipalityId) return
+    if (localities.some(item => String(item.id) === seoLocation.localityId)) {
+      setLocalityId(seoLocation.localityId)
+      setSeoLocation(null)
+    }
+  }, [seoLocation, municipalityId, localities])
 
   useEffect(() => {
     setMunicipalityId("")
