@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Payment verification unavailable" }, { status: 503 })
   }
   const verifiedPayment = (payments ?? []).some(
-    payment => Number(payment.amount) === 89000 &&
+    payment => Number(payment.amount) === 119000 &&
       payment.currency === "ARS" && Boolean(payment.approved_at),
   )
 
