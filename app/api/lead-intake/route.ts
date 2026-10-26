@@ -4589,7 +4589,7 @@ for (
       "https://verlo.lat"
 
     const meta = isolatedQaIntake
-      ? { ok: true, skipped: true, reason: "isolated_preview_qa" }
+      ? { ok: true, skipped: true, reason: "isolated_preview_qa", error: undefined as string | undefined }
       : await sendMetaCapiLead({
         eventId,
 
