@@ -4634,8 +4634,18 @@ for (
   )
 }
 
+const qaGeoResult = isolatedQaIntake && leadRecord
+  ? await supabaseAdmin.from("lead_neighborhoods")
+      .select("province_id,municipality_id,locality_id,geo_key")
+      .eq("lead_id", leadRecord.id)
+  : null
+if (qaGeoResult?.error) {
+  console.error("QA persisted georef lookup failed", qaGeoResult.error)
+  return NextResponse.json({ ok: false, error: "QA georef verification failed" }, { status: 500 })
+}
 return NextResponse.json({
   ok: true,
+  ...(isolatedQaIntake ? { qa_persisted_georef: qaGeoResult?.data || [] } : {}),
 
   meta,
 
