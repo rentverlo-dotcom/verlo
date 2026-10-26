@@ -1,3 +1,14 @@
 .temporary-georef .row { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:12px; }
 .temporary-georef .select { width:100%; min-height:49px; border:1px solid rgba(5,0,2,.16); border-radius:12px; padding:11px 14px; font-size:16px; color:#050002; background:#fff; font-family:inherit; }
 .temporary-georef .select:disabled { opacity:.6; cursor:not-allowed; }
+
+
+/* Same footer language and layout as VERLO's main landing. */
+.temporarios-footer{padding:54px 24px;border-top:1px solid rgba(5,0,2,.1);background:rgba(255,255,255,.34)}
+.temporarios-footer-inner{max-width:1120px;margin:0 auto;display:flex;justify-content:space-between;gap:32px;align-items:flex-start;color:rgba(5,0,2,.58);font-size:14px}
+.temporarios-footer-brand{display:grid;gap:12px}
+.temporarios-footer-brand p{margin:0;max-width:280px;line-height:1.45;color:rgba(5,0,2,.62);font-weight:700}
+.temporarios-footer-links{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:16px 22px;max-width:690px}
+.temporarios-footer-links a{color:rgba(5,0,2,.66);text-decoration:none;font-weight:800}
+.temporarios-footer-links a:hover{text-decoration:underline}
+@media(max-width:720px){.temporarios-footer-inner{flex-direction:column}.temporarios-footer-links{justify-content:flex-start}}
