@@ -4153,6 +4153,11 @@ if (
       )
     }
 
+const isolatedQaIntake =
+  process.env.VERCEL_ENV === "preview" &&
+  process.env.ATOMIC_LEAD_INTAKE_ENABLED === "true" &&
+  isAutomatedTestEmail(email)
+
 const pushEvents = {
   intake:
     null as unknown,
@@ -4161,7 +4166,7 @@ const pushEvents = {
     [] as unknown[],
 }
 
-try {
+if (!isolatedQaIntake) try {
   pushEvents.intake =
     await postInternal(
       req,
@@ -4483,7 +4488,7 @@ if (
 
 for (
   const matchId
-  of notificationMatchIds
+  of (isolatedQaIntake ? [] : notificationMatchIds)
 ) {
   try {
     const result =
@@ -4583,8 +4588,9 @@ for (
       ) ||
       "https://verlo.lat"
 
-    const meta =
-      await sendMetaCapiLead({
+    const meta = isolatedQaIntake
+      ? { ok: true, skipped: true, reason: "isolated_preview_qa" }
+      : await sendMetaCapiLead({
         eventId,
 
         eventSourceUrl,
