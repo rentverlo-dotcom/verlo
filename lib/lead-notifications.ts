@@ -1993,88 +1993,10 @@ export async function notifyLeadOnce(
           }
         )
 
-    const whatsappPromise =
-      input.skipWhatsApp
-        ? Promise.resolve(null)
-        : sendWhatsApp({
-        to:
-          phone ||
-          undefined,
+    // MVP: WhatsApp is disabled. Keep push and GHL email delivery active.
+    const whatsappPromise = Promise.resolve(null)
 
-        role:
-          leadRole,
-
-        matchCount:
-          matchSummary
-            ?.verlo_match_count ??
-          0,
-
-        matchesUrl:
-          matchesUrl ||
-          url,
-
-        legacyPayload:
-          legacyGhlPayload,
-
-        template:
-          eventType,
-
-        eventKey,
-        eventType,
-        leadId,
-        title,
-        body,
-        url,
-
-        context: {
-          entity_type:
-            entityType,
-
-          entity_id:
-            entityId,
-        },
-      })
-        .then(
-          (
-            result
-          ) => {
-            if (
-              !result.success &&
-              !result.skipped
-            ) {
-              console.error(
-                "whatsapp notification delivery error:",
-                {
-                  eventKey,
-                  leadId,
-                  result,
-                }
-              )
-            }
-
-            return result
-          }
-        )
-        .catch(
-          (
-            whatsappError
-          ) => {
-            console.error(
-              "whatsapp notification unexpected error:",
-              {
-                eventKey,
-                leadId,
-                error:
-                  whatsappError,
-              }
-            )
-
-            return null
-          }
-        )
-
-    // Push, Email y WhatsApp salen en paralelo.
-    // Email NO depende de skipWhatsApp.
+    // Push and email run in parallel. No WhatsApp delivery.
     // Los canales comerciales nunca modifican el resultado
     // del evento principal ni pueden romper el flujo de Verlo.
     const [pushResult, emailResult, whatsappResult] = await Promise.all([
@@ -2090,36 +2012,30 @@ export async function notifyLeadOnce(
     })
 
     if (isDigest) {
-      if (whatsappResult?.success) {
-        const now = new Date().toISOString()
-        const { error: updateError } = await supabaseAdmin
-          .from("lead_notification_events")
-          .update({
-            status: "sent",
-            sent_at: now,
-            last_error: pushResult.ok ? null : "Push unavailable; GHL accepted",
-            updated_at: now,
-          })
-          .eq("id", insertedEvent.id)
-          .in("status", ["pending", "failed"])
-        if (updateError) throw updateError
-        return { ...pushResult, ok: true, ghl_accepted: true }
-      }
-      const failure = whatsappResult?.error || "GHL digest not accepted"
+      // A daily summary is optional; success depends exclusively on
+      // push and GHL email acceptance, never on a disabled channel.
+      const emailAccepted = emailResult?.success === true
+      const anyAccepted = pushResult.ok || emailAccepted
+      const now = new Date().toISOString()
+      const failure = anyAccepted
+        ? null
+        : "Neither push nor GHL email accepted the digest"
       const { error: updateError } = await supabaseAdmin
         .from("lead_notification_events")
         .update({
-          status: "failed",
+          status: anyAccepted ? "sent" : "failed",
+          ...(anyAccepted ? { sent_at: now } : {}),
           last_error: failure,
-          updated_at: new Date().toISOString(),
+          updated_at: now,
         })
         .eq("id", insertedEvent.id)
+        .in("status", ["pending", "failed"])
       if (updateError) throw updateError
       return {
         ...pushResult,
-        ok: false,
-        ghl_accepted: false,
-        error: failure,
+        ok: anyAccepted,
+        ghl_email_accepted: emailAccepted,
+        ...(failure ? { error: failure } : {}),
       }
     }
     return pushResult

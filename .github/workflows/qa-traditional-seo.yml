@@ -1,0 +1,33 @@
+name: QA Traditional SEO Playwright
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/seo-georef-qa-20261025
+    paths:
+      - tests/seo-regression.spec.ts
+      - .github/workflows/qa-traditional-seo.yml
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Test preview without creating leads or sending messages
+        env:
+          PLAYWRIGHT_BASE_URL: https://verlopunto0-3w7fbb459-verlos-projects-b9e9c595.vercel.app
+        run: npx playwright test tests/seo-regression.spec.ts --workers=1 --reporter=line
+      - name: Store evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traditional-seo-playwright
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore

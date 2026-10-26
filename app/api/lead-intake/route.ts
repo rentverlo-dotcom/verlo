@@ -1086,8 +1086,7 @@ async function upsertLeadMatches({
   }
 }
 
-async function insertLeadNeighborhoods({
-  supabaseAdmin,
+function buildLeadNeighborhoodRows({
   leadId,
   intent,
   neighborhoodLabels,
@@ -1096,8 +1095,6 @@ async function insertLeadNeighborhoods({
   zone,
   locationItems,
 }: {
-  supabaseAdmin:
-    SupabaseAdminClient
   leadId:
     string
   intent:
@@ -1238,6 +1235,33 @@ async function insertLeadNeighborhoods({
           ]
         : []
 
+
+  return rows
+}
+
+async function insertLeadNeighborhoods({
+  supabaseAdmin,
+  leadId,
+  intent,
+  neighborhoodLabels,
+  neighborhoodSlugs,
+  neighborhoodSlug,
+  zone,
+  locationItems,
+}: {
+  supabaseAdmin: SupabaseAdminClient
+  leadId: string
+  intent: string
+  neighborhoodLabels: string[]
+  neighborhoodSlugs: string[]
+  neighborhoodSlug: string | null
+  zone: string | null
+  locationItems: ReturnType<typeof parseLocationItems>
+}) {
+  const rows = buildLeadNeighborhoodRows({
+    leadId, intent, neighborhoodLabels, neighborhoodSlugs,
+    neighborhoodSlug, zone, locationItems,
+  })
   if (
     rows.length ===
     0
@@ -3951,9 +3975,47 @@ const leadPayload = {
 }
 
 
+// The transactional RPC is opt-in until its database migration is verified.
+// Never fall back to separate inserts if an enabled RPC fails.
+const useAtomicIntake = process.env.ATOMIC_LEAD_INTAKE_ENABLED === "true"
+let leadRecord: { id: string } | null = null
+if (useAtomicIntake) {
+  const neighborhoodRows = buildLeadNeighborhoodRows({
+    leadId: "00000000-0000-0000-0000-000000000000",
+    intent, neighborhoodLabels: neighborhood_labels,
+    neighborhoodSlugs: neighborhood_slugs, neighborhoodSlug: neighborhood_slug,
+    zone, locationItems: location_items,
+  }).map(({ lead_id, ...row }) => row)
+  if (
+    (intent === "tenant_search" || intent === "owner_new_listing") &&
+    (neighborhoodRows.length === 0 ||
+      neighborhoodRows.some(row =>
+        !row.geo_key || !row.province_id ||
+        !row.municipality_id || !row.locality_id
+      ))
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "Seleccioná una ubicación válida." },
+      { status: 400 }
+    )
+  }
+  const { data: atomicLeadId, error: atomicError } = await supabaseAdmin
+    .rpc("create_lead_with_neighborhoods", {
+      p_lead: leadPayload,
+      p_neighborhoods: neighborhoodRows,
+    })
+  if (atomicError || !atomicLeadId) {
+    console.error("atomic lead intake failed:", atomicError)
+    return NextResponse.json(
+      { ok: false, error: "No pudimos guardar tus datos y ubicación. Intentá nuevamente." },
+      { status: 500 }
+    )
+  }
+  leadRecord = { id: atomicLeadId as string }
+} else {
 const {
   data:
-    leadRecord,
+    insertedLeadRecord,
 
   error:
     leadWriteError,
@@ -3972,7 +4034,7 @@ const {
 
 if (
   leadWriteError ||
-  !leadRecord
+  !insertedLeadRecord
 ) {
   console.error(
     "lead intake write error:",
@@ -3992,12 +4054,13 @@ if (
 }
 
 
+    leadRecord = { id: insertedLeadRecord.id }
     const neighborhoodResult =
       await insertLeadNeighborhoods({
         supabaseAdmin,
 
         leadId:
-          leadRecord.id,
+          insertedLeadRecord.id,
 
         intent,
 
@@ -4021,10 +4084,37 @@ if (
     ) {
       console.error(
         "lead neighborhoods error:",
-        neighborhoodResult
+        {
+          lead_id: insertedLeadRecord.id,
+          result: neighborhoodResult,
+        }
+      )
+
+      // Fail closed: never match, notify or attribute a lead with an
+      // incomplete location. Compensate for the already-inserted lead.
+      const { error: cleanupError } = await supabaseAdmin
+        .from("lead_intake")
+        .delete()
+        .eq("id", insertedLeadRecord.id)
+
+      if (cleanupError) {
+        console.error("CRITICAL: orphan lead cleanup failed", {
+          lead_id: insertedLeadRecord.id,
+          error: cleanupError,
+        })
+      }
+
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "No pudimos guardar la ubicación. Intentá nuevamente.",
+        },
+        { status: 500 }
       )
     }
 
+
+}
     const matchResult =
       await createLeadMatches({
         supabaseAdmin,
@@ -4076,6 +4166,11 @@ if (
       )
     }
 
+const isolatedQaIntake =
+  process.env.VERCEL_ENV === "preview" &&
+  process.env.ATOMIC_LEAD_INTAKE_ENABLED === "true" &&
+  isAutomatedTestEmail(email)
+
 const pushEvents = {
   intake:
     null as unknown,
@@ -4084,7 +4179,7 @@ const pushEvents = {
     [] as unknown[],
 }
 
-try {
+if (!isolatedQaIntake) try {
   pushEvents.intake =
     await postInternal(
       req,
@@ -4406,7 +4501,7 @@ if (
 
 for (
   const matchId
-  of notificationMatchIds
+  of (isolatedQaIntake ? [] : notificationMatchIds)
 ) {
   try {
     const result =
@@ -4506,8 +4601,9 @@ for (
       ) ||
       "https://verlo.lat"
 
-    const meta =
-      await sendMetaCapiLead({
+    const meta = isolatedQaIntake
+      ? { ok: true, skipped: true, reason: "isolated_preview_qa", error: undefined as string | undefined }
+      : await sendMetaCapiLead({
         eventId,
 
         eventSourceUrl,
@@ -4538,8 +4634,18 @@ for (
   )
 }
 
+const qaGeoResult = isolatedQaIntake && leadRecord
+  ? await supabaseAdmin.from("lead_neighborhoods")
+      .select("province_id,municipality_id,locality_id,geo_key")
+      .eq("lead_id", leadRecord.id)
+  : null
+if (qaGeoResult?.error) {
+  console.error("QA persisted georef lookup failed", qaGeoResult.error)
+  return NextResponse.json({ ok: false, error: "QA georef verification failed" }, { status: 500 })
+}
 return NextResponse.json({
   ok: true,
+  ...(isolatedQaIntake ? { qa_persisted_georef: qaGeoResult?.data || [] } : {}),
 
   meta,
 

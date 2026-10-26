@@ -1,22 +1,12 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from "next/server"
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const municipio = searchParams.get('municipio')
+  const municipio = new URL(req.url).searchParams.get("municipio")
+  if (!municipio) return NextResponse.json({ error: "municipio requerido" }, { status: 400 })
 
-  if (!municipio) {
-    return NextResponse.json(
-      { error: 'municipio requerido' },
-      { status: 400 }
-    )
-  }
-
-  const res = await fetch(
-    `https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(
-      municipio
-    )}&max=500`
-  )
-
-  const data = await res.json()
-  return NextResponse.json(data)
+  const isDepartment = /^dept:\\d+$/.test(municipio)
+  const query = new URLSearchParams({ [isDepartment ? "departamento" : "municipio"]: isDepartment ? municipio.slice(5) : municipio, max: "500" })
+  const upstream = await fetch("https://apis.datos.gob.ar/georef/api/localidades?" + query, { signal: AbortSignal.timeout(10000) })
+  if (!upstream.ok) return NextResponse.json({ error: "Georef no disponible" }, { status: 503 })
+  return NextResponse.json(await upstream.json())
 }
