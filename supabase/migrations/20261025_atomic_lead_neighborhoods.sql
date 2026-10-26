@@ -12,10 +12,16 @@ AS $$
 DECLARE
   v_lead_id uuid := gen_random_uuid();
   v_count integer;
+  v_intent text := p_lead->>'intent';
 BEGIN
   IF jsonb_typeof(p_lead) IS DISTINCT FROM 'object'
      OR jsonb_typeof(p_neighborhoods) IS DISTINCT FROM 'array' THEN
     RAISE EXCEPTION 'Invalid lead payload';
+  END IF;
+
+  SELECT count(*) INTO v_count FROM jsonb_array_elements(p_neighborhoods);
+  IF v_intent IN ('tenant_search', 'owner_new_listing') AND v_count = 0 THEN
+    RAISE EXCEPTION 'Location required for lead intent %', v_intent;
   END IF;
 
   INSERT INTO public.lead_intake
