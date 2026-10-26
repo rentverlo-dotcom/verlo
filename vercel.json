@@ -1,4 +1,3 @@
-
 {
   "crons": [
     {
@@ -8,6 +7,10 @@
     {
       "path": "/api/cron/tradicionales-historical-backfill",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/temporarios-dispatch",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
