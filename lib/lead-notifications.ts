@@ -1993,88 +1993,10 @@ export async function notifyLeadOnce(
           }
         )
 
-    const whatsappPromise =
-      input.skipWhatsApp
-        ? Promise.resolve(null)
-        : sendWhatsApp({
-        to:
-          phone ||
-          undefined,
+    // MVP: WhatsApp is disabled. Keep push and GHL email delivery active.
+    const whatsappPromise = Promise.resolve(null)
 
-        role:
-          leadRole,
-
-        matchCount:
-          matchSummary
-            ?.verlo_match_count ??
-          0,
-
-        matchesUrl:
-          matchesUrl ||
-          url,
-
-        legacyPayload:
-          legacyGhlPayload,
-
-        template:
-          eventType,
-
-        eventKey,
-        eventType,
-        leadId,
-        title,
-        body,
-        url,
-
-        context: {
-          entity_type:
-            entityType,
-
-          entity_id:
-            entityId,
-        },
-      })
-        .then(
-          (
-            result
-          ) => {
-            if (
-              !result.success &&
-              !result.skipped
-            ) {
-              console.error(
-                "whatsapp notification delivery error:",
-                {
-                  eventKey,
-                  leadId,
-                  result,
-                }
-              )
-            }
-
-            return result
-          }
-        )
-        .catch(
-          (
-            whatsappError
-          ) => {
-            console.error(
-              "whatsapp notification unexpected error:",
-              {
-                eventKey,
-                leadId,
-                error:
-                  whatsappError,
-              }
-            )
-
-            return null
-          }
-        )
-
-    // Push, Email y WhatsApp salen en paralelo.
-    // Email NO depende de skipWhatsApp.
+    // Push and email run in parallel. No WhatsApp delivery.
     // Los canales comerciales nunca modifican el resultado
     // del evento principal ni pueden romper el flujo de Verlo.
     const [pushResult, emailResult, whatsappResult] = await Promise.all([
