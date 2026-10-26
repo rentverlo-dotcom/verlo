@@ -1,7 +1,6 @@
 import './globals.css'
 import Script from 'next/script'
 import PwaRegister from './pwa-register'
-import WhatsAppSupportBubble from '@/components/WhatsAppSupportBubble'
 
 const ogImageUrl = 'https://verlo.lat/logo-verlo.png'
 const appIconUrl = '/logo-verlo.png?v=20261008'
@@ -168,7 +167,6 @@ export default function RootLayout({
         </noscript>
 
         {children}
-        <WhatsAppSupportBubble />
       </body>
     </html>
   )
