@@ -1339,7 +1339,7 @@ function CandidateCard({
             Encontramos una persona compatible con tu propiedad. La otra parte está completando su proceso en Verlo y te vamos a avisar apenas haya una novedad importante.
             <br />
             <br />
-            Mantenete atento a las notificaciones de Verlo, tu email y WhatsApp: por ahí te vamos a avisar cuándo haya algo para revisar o decidir.
+            Mantenete atento a las notificaciones de Verlo, tu correo electrónico: por ahí te vamos a avisar cuándo haya algo para revisar o decidir.
           </span>
         </div>
       )}
