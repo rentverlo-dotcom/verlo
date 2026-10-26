@@ -29,7 +29,10 @@ const formatDate = (value: string) =>
     : value
 
 async function handler(request: NextRequest, delivery: boolean) {
-if (!dispatchAllowed()) return reply(404, { ok: false })
+if (!dispatchAllowed() && !(request.method === "GET" &&
+    process.env.VERCEL_ENV === "production" &&
+    process.env.TEMPORARY_PUBLIC_ENABLED === "true"))
+    return reply(404, { ok: false })
   
   const secret = process.env.TEMPORARY_NOTIFICATIONS_CRON_SECRET
 
