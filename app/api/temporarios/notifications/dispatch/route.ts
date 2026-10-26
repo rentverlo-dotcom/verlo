@@ -12,9 +12,17 @@ const reply = (status: number, body: object) =>
   })
 
 // Se mantiene restringido a Preview hasta completar el pase a main.
-const preview = () =>
-  process.env.VERCEL_ENV === "preview" &&
-  process.env.VERCEL_GIT_COMMIT_REF === "feature/temporarios"
+const dispatchAllowed = () =>
+  (
+    process.env.VERCEL_ENV === "preview" &&
+    process.env.VERCEL_GIT_COMMIT_REF === "feature/temporarios"
+  ) ||
+  (
+    process.env.VERCEL_ENV === "production" &&
+    process.env.TEMPORARY_PUBLIC_ENABLED === "true" &&
+    process.env.TEMPORARY_DB_WRITES_ENABLED === "true" &&
+    process.env.TEMPORARY_NOTIFICATION_DELIVERY_ENABLED === "true"
+  )
 
 const formatDate = (value: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -22,8 +30,8 @@ const formatDate = (value: string) =>
     : value
 
 async function handler(request: NextRequest, delivery: boolean) {
-  if (!preview()) return reply(404, { ok: false })
-
+if (!dispatchAllowed()) return reply(404, { ok: false })
+  
   const secret = process.env.TEMPORARY_NOTIFICATIONS_CRON_SECRET
 
   if (
