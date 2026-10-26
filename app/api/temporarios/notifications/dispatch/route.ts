@@ -246,7 +246,7 @@ if (!dispatchAllowed()) return reply(404, { ok: false })
         event.payload?.action_text || ""
       ).trim()
 
-      if (!fullName || !phone) {
+      if (!fullName) {
         throw new Error("Recipient fields unavailable")
       }
 
