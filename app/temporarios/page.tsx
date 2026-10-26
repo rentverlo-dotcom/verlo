@@ -6,8 +6,9 @@ import { shell, container, nav, navInner, hero, heading, script, subtitle, butto
 
 export const metadata: Metadata = {
   title: "Alquileres temporarios | VERLO",
-  description: "Alquileres temporarios de 1 a 90 noches en VERLO.",
-  robots: { index: false, follow: false },
+  description: "Alquileres temporarios de 1 a 90 noches directamente con propietarios. Buscá alojamiento o publicá gratis con VERLO.",
+  alternates: { canonical: "https://verlo.lat/temporarios" },
+  robots: { index: true, follow: true },
 }
 export default function TemporariosPage() {
   return <main style={shell}>
