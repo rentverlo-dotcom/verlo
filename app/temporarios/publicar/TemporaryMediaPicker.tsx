@@ -1,0 +1,50 @@
+"use client"
+
+import { useEffect, useState, type ChangeEvent } from "react"
+import { validateTemporaryMedia } from "@/lib/temporarios/media-validation"
+
+type Preview = { id: string; url: string; name: string; type: string }
+
+export default function TemporaryMediaPicker({onFiles}:{onFiles:(files:File[])=>void}) {
+  const [items, setItems] = useState<Preview[]>([])
+  const [error, setError] = useState("")
+
+  function onSelect(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || [])
+    const validation = validateTemporaryMedia(files)
+    if ("message" in validation) { setError(validation.message); return }
+    setError("")
+    onFiles(files)
+    const next = files.map(file => ({
+        id: crypto.randomUUID(),
+        url: URL.createObjectURL(file),
+        name: file.name,
+        type: file.type,
+      }))
+    setItems(previous => {
+      for (const item of previous) URL.revokeObjectURL(item.url)
+      return next
+    })
+  }
+  useEffect(() => () => {
+    items.forEach(item => URL.revokeObjectURL(item.url))
+  }, [items])
+
+  return <div style={{ display: "grid", gap: 12 }}>
+    <label style={{ display: "grid", gap: 8, fontWeight: 850, fontSize: 14 }}>
+      Fotos y videos de la propiedad
+      <input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.mp4" onChange={onSelect}
+        style={{ border: "1px dashed rgba(5,0,2,.3)", borderRadius: 14, padding: 18, background: "white" }} />
+    </label>
+    {error && <p role="alert" style={{ margin: 0, color: "#a21d36", fontWeight: 700 }}>{error}</p>}
+    <p style={{margin:0,fontSize:13,color:"#63575b"}}>Elegí hasta 12 fotos para acompañar tu publicación.</p>
+    {items.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(145px,1fr))", gap: 12 }}>
+      {items.map(item => <div key={item.id} style={{ borderRadius: 14, overflow: "hidden", background: "white", border: "1px solid #ded4d8" }}>
+        {item.type.startsWith("video/") ?
+          <video src={item.url} controls style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover" }} /> :
+          <img src={item.url} alt={item.name} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover" }} />}
+        <div style={{ padding: 8, fontSize: 12, overflowWrap: "anywhere" }}>{item.name}</div>
+      </div>)}
+    </div>}
+  </div>
+}
