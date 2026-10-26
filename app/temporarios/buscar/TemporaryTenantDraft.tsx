@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import { savePendingTemporaryDraft } from "@/lib/temporarios/pending-draft"
 import { getTemporaryRequestKey, clearTemporaryRequestKey } from "@/lib/temporarios/request-key"
@@ -9,6 +9,8 @@ import {trackPostHog} from "@/lib/posthog-client"
 import { tenantDraftFromForm } from "@/lib/temporarios/form-mapping"
 import { panel, field, fieldLabel, button } from "../brand"
 export default function TemporaryTenantDraft() {
+  const [seoZone,setSeoZone]=useState("")
+  useEffect(()=>{const zona=new URLSearchParams(window.location.search).get("zona")||"";if(/^[a-z0-9-]{2,90}$/.test(zona))setSeoZone(zona)},[])
   const [result, setResult] = useState("")
   const [saving, setSaving] = useState(false)
   const router = useRouter()
@@ -64,7 +66,7 @@ export default function TemporaryTenantDraft() {
         </select>
       </label>
       <div style={fieldLabel}>Zonas donde buscás (Georef)
-        <ArgentinaLocationSelector mode="multi" className="temporary-georef" labelName="temporary_locations_labels" keyName="temporary_locations_keys" dataName="temporary_locations_data" />
+        <ArgentinaLocationSelector mode="multi" className="temporary-georef" labelName="temporary_locations_labels" keyName="temporary_locations_keys" dataName="temporary_locations_data" initialSeoSlug={seoZone} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16 }}>
         <label style={fieldLabel}>Fecha de entrada<input type="date" name="checkIn" style={field} required /></label>
