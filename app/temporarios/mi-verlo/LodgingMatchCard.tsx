@@ -62,7 +62,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
    trackPostHog("temporary_checkout_prepared",{product:"temporary",role})
    setPreferenceId(data.preferenceId)
    setCheckoutUrl(data.checkoutUrl)
-   setReservationMessage("Checkout de prueba preparado correctamente. No se realizó ningún cobro ni se bloquearon fechas.")
+   setReservationMessage("Enlace de pago preparado. Las fechas todavía no están bloqueadas.")
   }catch(error){setReservationMessage(error instanceof Error?error.message:"No pudimos preparar el checkout")}
   finally{setPreparingPayment(false)}
  }
@@ -145,18 +145,18 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
        <p style={{fontSize:13,lineHeight:1.55,color:"#63565d"}}>El importe de la estadía es {money(match.agreed_total_ars)} y se acuerda entre las partes. VERLO cobra {money(49999)} una sola vez al inquilino por el contrato digital y los servicios asociados, incluyendo validación de identidad, testigo digital y acceso al panel. No es un cargo por reservar ni forma parte del alquiler.</p>
        <div style={{display:"grid",gap:10,fontSize:14,lineHeight:1.5}}>
         <div><strong>1. Condiciones</strong> · Aceptadas por ambas partes.</div>
-        <div><strong>2. Pago de VERLO</strong> · {reservation?.status==="fee_paid"||reservation?.status==="deposit_pending"||reservation?.status==="ready_to_block"||reservation?.status==="confirmed"?"Estado registrado en el sistema.":"Pendiente. El cobro todavía no está habilitado en esta prueba."}</div>
+        <div><strong>2. Pago de VERLO</strong> · {reservation?.status==="fee_paid"||reservation?.status==="deposit_pending"||reservation?.status==="ready_to_block"||reservation?.status==="confirmed"?"Estado registrado en el sistema.":"Pendiente de pago."}</div>
         <div><strong>3. Confirmación de fechas</strong> · {reservation?.status==="confirmed"?"Reserva confirmada.":"Pendiente. Ambas partes deberán aprobar expresamente el bloqueo."}</div>
        </div>
        {role==="tenant"&&reservation?.status==="terms_accepted"&&<div style={{marginTop:14}}>
         <button type="button" disabled={preparingPayment} onClick={()=>void preparePayment()}
          style={{border:0,borderRadius:99,background:"#050002",color:"#fff",padding:"12px 20px",fontWeight:850,cursor:"pointer"}}>
-         {preparingPayment?"Preparando...":preferenceId?"Recuperar checkout de prueba":"Preparar checkout de prueba"}
+         {preparingPayment?"Preparando...":preferenceId?"Pagar":"Pagar"}
         </button>
         <p style={{fontSize:13,marginTop:14}}>Mercado Pago comunica el resultado directamente a VERLO. No necesitás ingresar números de operación.</p>
          <button type="button" onClick={onRefresh} style={{padding:"11px 15px",border:"1px solid #ddd",borderRadius:99,background:"#fff",fontWeight:800}}>Actualizar estado del pago</button>
-         {checkoutUrl&&<p style={{fontSize:13,marginTop:12}}><a href={checkoutUrl} target="_blank" rel="noopener noreferrer" style={{fontWeight:850,color:"#050002",textDecoration:"underline"}}>Abrir Mercado Pago (prueba)</a></p>}
-        <p style={{fontSize:12,color:"#73666d"}}>Usá exclusivamente una cuenta compradora y tarjetas de prueba de Mercado Pago. No pagues con una cuenta real.</p>
+         {checkoutUrl&&<p style={{fontSize:13,marginTop:12}}><a href={checkoutUrl} target="_blank" rel="noopener noreferrer" style={{fontWeight:850,color:"#050002",textDecoration:"underline"}}>Pagar</a></p>}
+        <p style={{fontSize:12,color:"#73666d"}}>Pagá con tarjeta de débito o crédito. El importe de la estadía se acuerda y paga directamente al propietario.</p>
        </div>}
        {(reservation?.status==="fee_paid"||reservation?.status==="ready_to_block"||reservation?.status==="confirmed")&&<div style={{marginTop:18,padding:14,borderRadius:12,background:"#fbf4f5"}}>
         <strong>Confirmación definitiva de fechas</strong>
