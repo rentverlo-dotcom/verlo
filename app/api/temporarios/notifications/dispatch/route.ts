@@ -276,7 +276,7 @@ if (!dispatchAllowed()) return reply(404, { ok: false })
         body: JSON.stringify({
           source: "verlo_temporarios",
           product: "temporarios",
-          channel: "whatsapp",
+          channel: "email",
 
           event_type: eventType,
           event_key: event.event_key,
@@ -312,6 +312,7 @@ if (!dispatchAllowed()) return reply(404, { ok: false })
         )
       }
 
+      // HTTP 2xx confirms GHL accepted the event; not inbox delivery.
       delivered = true
     } catch (error) {
       reason =
@@ -345,7 +346,7 @@ if (!dispatchAllowed()) return reply(404, { ok: false })
   return reply(200, {
     ok: true,
     processed: results.length,
-    sent: results.filter(x => x.delivered).length,
+    accepted_by_ghl: results.filter(x => x.delivered).length,
     failed: results.filter(x => !x.delivered).length,
   })
 }
