@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
 
     if (!phone || !isValidPhone(phone)) {
       return NextResponse.json(
-        { ok: false, error: "WhatsApp inválido" },
+        { ok: false, error: "Teléfono inválido" },
         { status: 400 }
       )
     }
