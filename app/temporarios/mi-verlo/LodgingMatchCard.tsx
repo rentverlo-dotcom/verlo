@@ -21,8 +21,6 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
  const [open,setOpen]=useState(false)
  const [starting,setStarting]=useState(false)
  const [preparingPayment,setPreparingPayment]=useState(false)
- const [preferenceId,setPreferenceId]=useState("")
- const [checkoutUrl,setCheckoutUrl]=useState("")
  const [accepting,setAccepting]=useState(false)
  const [confirming,setConfirming]=useState(false)
  const [acceptedLocally,setAcceptedLocally]=useState(false)
@@ -60,9 +58,7 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
    const data:{ok?:boolean;error?:string;preferenceId?:string;checkoutUrl?:string}=await response.json()
    if(!response.ok||!data.ok||!data.preferenceId||!data.checkoutUrl)throw Error(data.error||"No se pudo preparar el checkout")
    trackPostHog("temporary_checkout_prepared",{product:"temporary",role})
-   setPreferenceId(data.preferenceId)
-   setCheckoutUrl(data.checkoutUrl)
-   setReservationMessage("Enlace de pago preparado. Las fechas todavía no están bloqueadas.")
+   window.location.assign(data.checkoutUrl)
   }catch(error){setReservationMessage(error instanceof Error?error.message:"No pudimos preparar el checkout")}
   finally{setPreparingPayment(false)}
  }
@@ -151,11 +147,10 @@ export default function LodgingMatchCard({match,photos,role,onDecision,disabled,
        {role==="tenant"&&reservation?.status==="terms_accepted"&&<div style={{marginTop:14}}>
         <button type="button" disabled={preparingPayment} onClick={()=>void preparePayment()}
          style={{border:0,borderRadius:99,background:"#050002",color:"#fff",padding:"12px 20px",fontWeight:850,cursor:"pointer"}}>
-         {preparingPayment?"Preparando...":preferenceId?"Pagar":"Pagar"}
+         {preparingPayment?"Preparando pago...":"Pagar"}
         </button>
-        <p style={{fontSize:13,marginTop:14}}>Mercado Pago comunica el resultado directamente a VERLO. No necesitás ingresar números de operación.</p>
+        <p style={{fontSize:13,marginTop:14}}>El resultado de tu pago se registra automáticamente. No necesitás ingresar números de operación.</p>
          <button type="button" onClick={onRefresh} style={{padding:"11px 15px",border:"1px solid #ddd",borderRadius:99,background:"#fff",fontWeight:800}}>Actualizar estado del pago</button>
-         {checkoutUrl&&<p style={{fontSize:13,marginTop:12}}><a href={checkoutUrl} target="_blank" rel="noopener noreferrer" style={{fontWeight:850,color:"#050002",textDecoration:"underline"}}>Pagar</a></p>}
         <p style={{fontSize:12,color:"#73666d"}}>Pagá con tarjeta de débito o crédito. El importe de la estadía se acuerda y paga directamente al propietario.</p>
        </div>}
        {(reservation?.status==="fee_paid"||reservation?.status==="ready_to_block"||reservation?.status==="confirmed")&&<div style={{marginTop:18,padding:14,borderRadius:12,background:"#fbf4f5"}}>
