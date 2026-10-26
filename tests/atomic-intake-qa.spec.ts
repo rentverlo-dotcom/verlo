@@ -21,7 +21,7 @@ test("atomic QA owner intake persists lead without external effects", async ({re
       provinceId:"06",provinceName:"Buenos Aires",
       municipalityId:"060756",municipalityName:"Vicente López",
       localityId:"06075610",localityName:"Olivos",
-      key:"ar:06:060756:06075610",latitude:-34.51,longitude:-58.49
+      key:"ar:06:060756:06075610",label:"Olivos, Vicente López, Buenos Aires",latitude:-34.51,longitude:-58.49
     }]}
   }})
   const body = await response.json()
