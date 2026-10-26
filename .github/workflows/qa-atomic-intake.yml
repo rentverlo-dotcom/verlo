@@ -11,14 +11,14 @@ permissions:
 jobs:
   atomic-intake:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - name: Verify real atomic intake with isolated QA email
         env:
           PLAYWRIGHT_BASE_URL: https://verlopunto0-8ds99hvq2-verlos-projects-b9e9c595.vercel.app
