@@ -802,7 +802,7 @@ metadata: {
                 ¿Qué querés hacer con <em>Verlo?</em>
               </h2>
               <p className="section-copy">
-                Dejanos tus datos y te contactamos por WhatsApp cuando haya una oportunidad
+                Dejanos tus datos y te contactamos por correo electrónico cuando haya una oportunidad
                 compatible con tu caso.
               </p>
             </div>
@@ -848,7 +848,7 @@ metadata: {
                   <input
                     className="input"
                     name="phone"
-                    placeholder="WhatsApp con característica. Ej: 11 3361 4865"
+                    placeholder="Teléfono con característica. Ej: 11 3361 4865"
                     inputMode="tel"
                     required
                   />
