@@ -1456,7 +1456,7 @@ export default function PropietariosPage() {
             </label>
 
             <label>
-              WhatsApp
+              Teléfono
 
               <input
                 name="phone"
