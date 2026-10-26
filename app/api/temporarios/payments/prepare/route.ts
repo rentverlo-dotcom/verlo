@@ -17,7 +17,8 @@ export async function POST(request:Request){
  try{body=await request.json()}catch{return reply(400,{ok:false,error:"Solicitud inválida"})}
  if(!body||typeof body.matchId!=="string"||!uuid.test(body.matchId))return reply(400,{ok:false,error:"Coincidencia inválida"})
  const mpToken=process.env.TEMPORARY_MP_ACCESS_TOKEN
- if(!mpToken||!(mpToken.startsWith("APP_USR-")||mpToken.startsWith("TEST-")))return reply(503,{ok:false,error:"Mercado Pago de prueba no está configurado"})
+ const production=process.env.VERCEL_ENV==="production"
+ if(!mpToken||(production?!mpToken.startsWith("APP_USR-"):!(mpToken.startsWith("APP_USR-")||mpToken.startsWith("TEST-"))))return reply(503,{ok:false,error:"Mercado Pago no está configurado para este entorno"})
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY
  if(!url||!key)return reply(503,{ok:false,error:"Servicio no disponible"})
@@ -52,9 +53,12 @@ export async function POST(request:Request){
   }else attempt=inserted.data
  }
  if(Number(attempt.amount_ars)!==FEE)return reply(409,{ok:false,error:"Existe un intento de pago anterior con un importe distinto. Hay que cerrarlo antes de generar un checkout nuevo."})
- if(attempt.mp_checkout_url)return reply(200,{ok:true,prepared:true,preferenceId:attempt.mp_preference_id,checkoutUrl:attempt.mp_checkout_url})
+ if(attempt.mp_checkout_url){
+  if(production&&!attempt.mp_checkout_url.startsWith("https://www.mercadopago.com"))return reply(409,{ok:false,error:"Existe un checkout anterior de prueba. No puede reutilizarse en producción."})
+  return reply(200,{ok:true,prepared:true,preferenceId:attempt.mp_preference_id,checkoutUrl:attempt.mp_checkout_url})
+ }
  const base=new URL(request.url).origin
- // Preview-only environment, branch-scoped credential from test-credentials page, fixed fee and stable external_reference.
+ // Same fixed fee and stable external reference; production checkout never uses sandbox URL.
  const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{
   method:"POST",
   headers:{Authorization:"Bearer "+mpToken,"Content-Type":"application/json","X-Idempotency-Key":attempt.id+(attempt.mp_preference_id?"-link-recovery":"")},
@@ -71,13 +75,14 @@ export async function POST(request:Request){
    statement_descriptor:"VERLO"
   }),cache:"no-store"
  }).catch(()=>null)
- if(!mp?.ok)return reply(502,{ok:false,error:"Mercado Pago no pudo preparar el pago de prueba"})
+ if(!mp?.ok)return reply(502,{ok:false,error:"Mercado Pago no pudo preparar el pago"})
  const preference=await mp.json().catch(()=>null) as Preference|null
- if(!preference?.id||!(preference.sandbox_init_point||preference.init_point))return reply(502,{ok:false,error:"Mercado Pago no devolvió un checkout de prueba"})
+ const checkoutUrl=production?preference?.init_point:(preference?.sandbox_init_point||preference?.init_point)
+ if(!preference?.id||!checkoutUrl)return reply(502,{ok:false,error:"Mercado Pago no devolvió un checkout válido"})
  const saved=await db.from("temporary_payment_attempts")
-  .update({mp_preference_id:preference.id,mp_checkout_url:preference.sandbox_init_point||preference.init_point,updated_at:new Date().toISOString()})
+  .update({mp_preference_id:preference.id,mp_checkout_url:checkoutUrl,updated_at:new Date().toISOString()})
   .eq("id",attempt.id).eq("status","pending")
  if(saved.error)return reply(503,{ok:false,error:"No pudimos guardar la preferencia"})
  // The webhook independently verifies payment with Mercado Pago before updating the reservation.
- return reply(200,{ok:true,prepared:true,preferenceId:preference.id,checkoutUrl:preference.sandbox_init_point||preference.init_point})
+ return reply(200,{ok:true,prepared:true,preferenceId:preference.id,checkoutUrl})
 }
