@@ -2012,36 +2012,30 @@ export async function notifyLeadOnce(
     })
 
     if (isDigest) {
-      if (whatsappResult?.success) {
-        const now = new Date().toISOString()
-        const { error: updateError } = await supabaseAdmin
-          .from("lead_notification_events")
-          .update({
-            status: "sent",
-            sent_at: now,
-            last_error: pushResult.ok ? null : "Push unavailable; GHL accepted",
-            updated_at: now,
-          })
-          .eq("id", insertedEvent.id)
-          .in("status", ["pending", "failed"])
-        if (updateError) throw updateError
-        return { ...pushResult, ok: true, ghl_accepted: true }
-      }
-      const failure = whatsappResult?.error || "GHL digest not accepted"
+      // A daily summary is optional; success depends exclusively on
+      // push and GHL email acceptance, never on a disabled channel.
+      const emailAccepted = emailResult?.success === true
+      const anyAccepted = pushResult.ok || emailAccepted
+      const now = new Date().toISOString()
+      const failure = anyAccepted
+        ? null
+        : "Neither push nor GHL email accepted the digest"
       const { error: updateError } = await supabaseAdmin
         .from("lead_notification_events")
         .update({
-          status: "failed",
+          status: anyAccepted ? "sent" : "failed",
+          ...(anyAccepted ? { sent_at: now } : {}),
           last_error: failure,
-          updated_at: new Date().toISOString(),
+          updated_at: now,
         })
         .eq("id", insertedEvent.id)
+        .in("status", ["pending", "failed"])
       if (updateError) throw updateError
       return {
         ...pushResult,
-        ok: false,
-        ghl_accepted: false,
-        error: failure,
+        ok: anyAccepted,
+        ghl_email_accepted: emailAccepted,
+        ...(failure ? { error: failure } : {}),
       }
     }
     return pushResult
