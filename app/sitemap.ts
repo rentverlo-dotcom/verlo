@@ -19,6 +19,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${origin}/propietarios`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${origin}/alquileres`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${origin}/temporarios`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${origin}/permanentes`, changeFrequency: "weekly", priority: 0.9 },
+    ...locations.filter(location => location.featured && Boolean(location.highlight)).map(location => ({url: `${origin}/temporarios/${location.slug}`, changeFrequency: "weekly" as const, priority: 0.7})),
     { url: `${origin}/alquileres/olivos`, changeFrequency: "weekly", priority: 0.8 },
     ...featured,
   ]
