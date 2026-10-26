@@ -23,6 +23,6 @@ test("QA identity isolation is enforced for both matching directions", () => {
   expect(exclusions.length).toBeGreaterThanOrEqual(2)
 
   // Both directions must retain production lead-quality checks.
-  const qualityChecks = matcher.match(/lead_quality !==/g) || []
+  const qualityChecks = matcher.match(/lead_quality\s*!==/g) || []
   expect(qualityChecks.length).toBeGreaterThanOrEqual(4)
 })
