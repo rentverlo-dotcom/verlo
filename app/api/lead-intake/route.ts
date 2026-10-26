@@ -3986,6 +3986,19 @@ if (useAtomicIntake) {
     neighborhoodSlugs: neighborhood_slugs, neighborhoodSlug: neighborhood_slug,
     zone, locationItems: location_items,
   }).map(({ lead_id, ...row }) => row)
+  if (
+    (intent === "tenant_search" || intent === "owner_new_listing") &&
+    (neighborhoodRows.length === 0 ||
+      neighborhoodRows.some(row =>
+        !row.geo_key || !row.province_id ||
+        !row.municipality_id || !row.locality_id
+      ))
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "Seleccioná una ubicación válida." },
+      { status: 400 }
+    )
+  }
   const { data: atomicLeadId, error: atomicError } = await supabaseAdmin
     .rpc("create_lead_with_neighborhoods", {
       p_lead: leadPayload,
