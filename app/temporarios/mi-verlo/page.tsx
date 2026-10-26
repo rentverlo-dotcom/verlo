@@ -1,5 +1,6 @@
 "use client"
 import BrandHeader from "@/app/temporarios/BrandHeader"
+import TemporariosPushButton from "./TemporariosPushButton"
 import PropertyPhotoUpload from "./PropertyPhotoUpload"
 import PropertyGallery from "./PropertyGallery"
 import LodgingMatchCard from "./LodgingMatchCard"
@@ -83,6 +84,7 @@ export default function MyTemporaries() {
           <p role="status">{result.error}</p>
           <Link href="/temporarios/acceso?next=/temporarios/mi-verlo" style={{...button,display:"inline-flex"}}>Ingresar a VERLO</Link>
         </> : result && result.ok ? <>
+          <div style={{marginBottom:24}}><TemporariosPushButton/></div>
           <h2>Mis propiedades ({result.properties.length})</h2>
           {result.properties.length ? result.properties.map(p=><article key={p.id} style={{padding:18,marginBottom:12,background:"#fff",borderRadius:16}}>
             <PropertyGallery photos={result.media.filter(x=>x.property_id===p.id)}/>
