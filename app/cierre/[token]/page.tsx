@@ -3304,7 +3304,7 @@ if (
                 />
 
                 <Info
-                  label="WhatsApp"
+                  label="Teléfono"
                   value={
                     counterpart.phone ||
                     "—"
