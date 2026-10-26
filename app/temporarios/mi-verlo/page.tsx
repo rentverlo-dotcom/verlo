@@ -42,6 +42,19 @@ export default function MyTemporaries() {
     }catch(error){trackPostHog("temporary_match_decision_failed",{product:"temporary",role,decision});setDecisionError(error instanceof Error?error.message:"Error de conexión")}
     finally{setDeciding("")}
   }
+  // Refresh after returning from Mercado Pago (same tab or external checkout tab).
+  // Only reads the reservation state; the webhook alone records approved payments.
+  useEffect(()=>{
+    const refreshOnReturn=()=>{
+      if(document.visibilityState==="visible")setRefresh(v=>v+1)
+    }
+    window.addEventListener("focus",refreshOnReturn)
+    document.addEventListener("visibilitychange",refreshOnReturn)
+    return ()=>{
+      window.removeEventListener("focus",refreshOnReturn)
+      document.removeEventListener("visibilitychange",refreshOnReturn)
+    }
+  },[])
   useEffect(()=>{
     let active = true
     async function load() {
