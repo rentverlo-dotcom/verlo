@@ -1086,8 +1086,7 @@ async function upsertLeadMatches({
   }
 }
 
-async function insertLeadNeighborhoods({
-  supabaseAdmin,
+function buildLeadNeighborhoodRows({
   leadId,
   intent,
   neighborhoodLabels,
@@ -1096,8 +1095,6 @@ async function insertLeadNeighborhoods({
   zone,
   locationItems,
 }: {
-  supabaseAdmin:
-    SupabaseAdminClient
   leadId:
     string
   intent:
@@ -1238,6 +1235,33 @@ async function insertLeadNeighborhoods({
           ]
         : []
 
+
+  return rows
+}
+
+async function insertLeadNeighborhoods({
+  supabaseAdmin,
+  leadId,
+  intent,
+  neighborhoodLabels,
+  neighborhoodSlugs,
+  neighborhoodSlug,
+  zone,
+  locationItems,
+}: {
+  supabaseAdmin: SupabaseAdminClient
+  leadId: string
+  intent: string
+  neighborhoodLabels: string[]
+  neighborhoodSlugs: string[]
+  neighborhoodSlug: string | null
+  zone: string | null
+  locationItems: ReturnType<typeof parseLocationItems>
+}) {
+  const rows = buildLeadNeighborhoodRows({
+    leadId, intent, neighborhoodLabels, neighborhoodSlugs,
+    neighborhoodSlug, zone, locationItems,
+  })
   if (
     rows.length ===
     0
@@ -3951,9 +3975,34 @@ const leadPayload = {
 }
 
 
+// The transactional RPC is opt-in until its database migration is verified.
+// Never fall back to separate inserts if an enabled RPC fails.
+const useAtomicIntake = process.env.ATOMIC_LEAD_INTAKE_ENABLED === "true"
+let leadRecord: { id: string } | null = null
+if (useAtomicIntake) {
+  const neighborhoodRows = buildLeadNeighborhoodRows({
+    leadId: "00000000-0000-0000-0000-000000000000",
+    intent, neighborhoodLabels: neighborhood_labels,
+    neighborhoodSlugs: neighborhood_slugs, neighborhoodSlug: neighborhood_slug,
+    zone, locationItems: location_items,
+  }).map(({ lead_id, ...row }) => row)
+  const { data: atomicLeadId, error: atomicError } = await supabaseAdmin
+    .rpc("create_lead_with_neighborhoods", {
+      p_lead: leadPayload,
+      p_neighborhoods: neighborhoodRows,
+    })
+  if (atomicError || !atomicLeadId) {
+    console.error("atomic lead intake failed:", atomicError)
+    return NextResponse.json(
+      { ok: false, error: "No pudimos guardar tus datos y ubicación. Intentá nuevamente." },
+      { status: 500 }
+    )
+  }
+  leadRecord = { id: atomicLeadId as string }
+} else {
 const {
   data:
-    leadRecord,
+    insertedLeadRecord,
 
   error:
     leadWriteError,
@@ -3972,7 +4021,7 @@ const {
 
 if (
   leadWriteError ||
-  !leadRecord
+  !insertedLeadRecord
 ) {
   console.error(
     "lead intake write error:",
@@ -3992,12 +4041,13 @@ if (
 }
 
 
+    leadRecord = { id: insertedLeadRecord.id }
     const neighborhoodResult =
       await insertLeadNeighborhoods({
         supabaseAdmin,
 
         leadId:
-          leadRecord.id,
+          insertedLeadRecord.id,
 
         intent,
 
@@ -4022,7 +4072,7 @@ if (
       console.error(
         "lead neighborhoods error:",
         {
-          lead_id: leadRecord.id,
+          lead_id: insertedLeadRecord.id,
           result: neighborhoodResult,
         }
       )
@@ -4032,11 +4082,11 @@ if (
       const { error: cleanupError } = await supabaseAdmin
         .from("lead_intake")
         .delete()
-        .eq("id", leadRecord.id)
+        .eq("id", insertedLeadRecord.id)
 
       if (cleanupError) {
         console.error("CRITICAL: orphan lead cleanup failed", {
-          lead_id: leadRecord.id,
+          lead_id: insertedLeadRecord.id,
           error: cleanupError,
         })
       }
@@ -4050,6 +4100,8 @@ if (
       )
     }
 
+
+}
     const matchResult =
       await createLeadMatches({
         supabaseAdmin,
