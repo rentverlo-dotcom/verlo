@@ -32,6 +32,10 @@ test("atomic QA owner intake persists lead without external effects", async ({re
   expect(body.push_events?.intake).toBeNull()
   expect(body.push_events?.matches || []).toEqual([])
   expect(body.meta?.skipped).toBe(true)
+  expect(body.qa_persisted_georef).toEqual([expect.objectContaining({
+    province_id:"06", municipality_id:"060756",
+    locality_id:"06075610", geo_key:"ar:06:060756:06075610",
+  })])
   console.log("QA_ATOMIC_LEAD_ID",body.lead_id)
   console.log("QA_ATOMIC_EMAIL",email)
 })
