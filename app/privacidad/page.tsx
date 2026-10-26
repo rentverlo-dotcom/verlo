@@ -170,7 +170,7 @@ export default function PrivacidadPage() {
               <ul style={list}>
                 <li>Registrar solicitudes de propietarios, inquilinos o personas interesadas.</li>
                 <li>Clasificar leads por tipo de necesidad, zona, intención y estado.</li>
-                <li>Contactar al usuario por email, WhatsApp u otros canales informados.</li>
+                <li>Contactar al usuario por correo electrónico a través de hola@verlo.lat y enviar notificaciones de la plataforma.</li>
                 <li>Enviar enlaces mágicos para confirmar cuenta o acceso.</li>
                 <li>Facilitar coincidencias entre búsquedas, propiedades o renovaciones.</li>
                 <li>Gestionar oportunidades, seguimiento comercial y atención al usuario.</li>
@@ -211,7 +211,7 @@ export default function PrivacidadPage() {
             </section>
 
             <section id="crm" style={section}>
-              <h2 style={h2}>8. CRM, WhatsApp, email y seguimiento comercial</h2>
+              <h2 style={h2}>8. CRM, correo electrónico y seguimiento comercial</h2>
               <p style={p}>
                 Cuando una persona completa un formulario, Verlo puede enviar esos datos a
                 herramientas internas o externas de gestión comercial, automatización, mensajería y
