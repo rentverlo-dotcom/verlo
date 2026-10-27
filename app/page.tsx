@@ -15,7 +15,7 @@ export default function Home(){
   return <main style={{minHeight:"100vh",background:"#f2ebec",color:"#050002",fontFamily:"Inter,system-ui,sans-serif"}}>
     <header style={{padding:"26px max(24px,calc((100vw - 1150px)/2))",background:"#f2ebec",borderBottom:"1px solid rgba(5,0,2,.09)",color:"#050002"}}><Link href="/" aria-label="VERLO inicio"><VerloBrand width={112}/></Link></header>
     <section style={{maxWidth:1120,margin:"0 auto",padding:"clamp(55px,8vw,105px) 24px 90px"}}>
-      <p style={{fontSize:13,fontWeight:900,letterSpacing:".16em"}}>ALQUILÁ DIRECTO CON DUEÑOS</p>
+      <p style={{fontSize:13,fontWeight:900,letterSpacing:".16em"}}>PARA QUIENES BUSCAN Y OFRECEN ALQUILERES</p>
       <h1 style={{fontSize:"clamp(37px,6vw,70px)",letterSpacing:"-.06em",lineHeight:1.08,maxWidth:850}}>¿Qué tipo de alquiler buscás u ofrecés?</h1>
       <p style={{fontSize:19,color:"#61575c",marginBottom:36}}>Elegí una opción para continuar en VERLO.</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,310px),1fr))",gap:20}}>
