@@ -1,3 +1,4 @@
+import { signCaucionLead } from "@/lib/powermarket/lead-token"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { sendMetaCapiLead } from "@/lib/meta/capi"
@@ -4674,6 +4675,9 @@ return NextResponse.json({
   lead_id:
     leadRecord?.id ||
     null,
+  ...(role === "tenant" && body?.request_caucion === true && leadRecord?.id
+    ? { caucion_access_token: signCaucionLead(leadRecord.id) }
+    : {}),
 })
   } catch (err) {
     console.error(
