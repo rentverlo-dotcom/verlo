@@ -135,11 +135,11 @@ export async function GET(request: NextRequest) {
     const applications = (data || []) as unknown as ApplicationRow[]
 
     // Recuperar la identidad y contacto de cada interesado.
-    const leadIds = [
-      ...new Set(
-        applications.map((row) => row.tenant_lead_id)
-      ),
-    ]
+  const leadIds = Array.from(
+  new Set<string>(
+    applications.map((row) => row.tenant_lead_id)
+  )
+)
 
     let leads: TenantLead[] = []
 
