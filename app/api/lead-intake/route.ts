@@ -3284,6 +3284,12 @@ export async function POST(
         )
       )
 
+    const expensesRaw = body.expenses_amount ?? metadata.expenses_amount;
+    const expenses_amount = expensesRaw === "" || expensesRaw == null ? null : Number(expensesRaw);
+    if (expenses_amount !== null && (!Number.isFinite(expenses_amount) || expenses_amount < 0)) {
+      return NextResponse.json({ok:false,error:"Expensas inválidas"}, {status:400});
+    }
+
     const desired_property_type =
       clean(
         body.verlo_property_type ||
@@ -3877,6 +3883,7 @@ export async function POST(
 
         budget_max,
         approx_price_number,
+        expenses_amount,
 
         income_proof_type,
         income_range,
