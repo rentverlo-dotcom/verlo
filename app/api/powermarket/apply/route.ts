@@ -20,7 +20,7 @@ export async function POST(req:NextRequest){
   if(leadError||lead?.role!=="tenant"||lead?.intent!=="tenant_search")return NextResponse.json({error:"Solicitud no autorizada"},{status:403})
   const {data:existing,error:lookupError}=await db.from("caucion_applications").select("id").eq("tenant_lead_id",leadId).limit(1)
   if(lookupError)throw lookupError
-  if(existing?.length)return NextResponse.json({ok:true,already_submitted:true})
+  if(existing?.length)return NextResponse.json({ok:true,already_submitted:true,application_id:existing[0].id})
   const {data,error}=await db.from("caucion_applications").insert({
    tenant_lead_id:leadId,requested_rent_ars:rent,estimated_expenses_ars:expenses,duration_months:months,monthly_income_ars:income,
    employment_type:employment,has_co_tenant:hasCo,co_tenant_income_ars:hasCo?coIncome:null,
