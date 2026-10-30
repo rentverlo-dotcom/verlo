@@ -2561,6 +2561,8 @@ export default function PageDePrueba() {
       approx_price_number:
         ownerPriceNumber,
 
+      expenses_amount: String(formData.get("expenses_amount") || "").trim(),
+
       desired_property_type:
         String(
           formData.get(
@@ -4194,6 +4196,11 @@ export default function PageDePrueba() {
                       )}
                     </select>
                   </div>
+
+                  <label className="owner-expenses-field">
+                    Expensas mensuales estimadas (ARS; dejar vacío si no se conocen)
+                    <input className="input" type="number" min="0" step="1" name="expenses_amount" placeholder="Ej: 120000" />
+                  </label>
 
                   <select
                     className="select"
