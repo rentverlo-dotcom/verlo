@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@supabase/supabase-js"
+import VerloBrand from "@/components/VerloBrand"
 
 type Application = {
  id:string;tenant_lead_id:string;status:string;requested_rent_ars:number;estimated_expenses_ars:number;monthly_income_ars:number;
@@ -47,10 +48,10 @@ export default function PowerMarketDashboard(){
  }
  async function viewDocuments(id:string){const access=await token();if(!access)return;const res=await fetch(`/api/powermarket/partner-documents?application_id=${encodeURIComponent(id)}`,{headers:{Authorization:`Bearer ${access}`},cache:"no-store"});const data=await res.json().catch(()=>({}));if(!res.ok){setError(data.error||"No se pudieron consultar documentos");return}setDocs(v=>({...v,[id]:data.documents||[]}))}
  async function openDocument(applicationId:string,documentId:string){const access=await token();if(!access)return;const res=await fetch("/api/powermarket/partner-documents",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({application_id:applicationId,document_id:documentId})});const data=await res.json().catch(()=>({}));if(res.ok&&data.url){window.open(data.url,"_blank","noopener,noreferrer")}else setError(data.error||"No se pudo abrir el archivo")}
- const base:React.CSSProperties={fontFamily:"system-ui,sans-serif",maxWidth:1100,margin:"36px auto",padding:"0 20px",color:"#162335"}
+ const base:React.CSSProperties={fontFamily:"system-ui,sans-serif",maxWidth:1100,margin:"36px auto",padding:"0 20px",color:"#050002"}
  const field:React.CSSProperties={padding:"10px 12px",border:"1px solid #ccd4df",borderRadius:8,width:"100%",boxSizing:"border-box"}
- const btn:React.CSSProperties={padding:"9px 12px",border:0,borderRadius:8,background:"#30292d",color:"#fff",cursor:"pointer"}
- return <main style={base}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,padding:"20px 0 24px",marginBottom:24,borderBottom:"1px solid #ded8d8",background:"transparent"}}><div style={{minWidth:0}}><div style={{fontSize:13,letterSpacing:"0.1em",fontWeight:700,color:"#8a5562",marginBottom:8}}>VERLO · SOCIOS</div><div style={{fontSize:30,lineHeight:1.2,fontWeight:750,letterSpacing:"-0.025em",color:"#272225",margin:0}}>PowerMarket</div><div style={{fontSize:15,lineHeight:1.5,color:"#665e62",marginTop:7}}>Gestión de cauciones y precalificaciones</div></div>{logged&&<button style={btn} onClick={async()=>{await supabase.auth.signOut();setLogged(false);setItems([])}}>Cerrar sesión</button>}</div>
+ const btn:React.CSSProperties={padding:"9px 12px",border:0,borderRadius:8,background:"#050002",color:"#fff",cursor:"pointer"}
+ return <main style={base}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,padding:"12px 0 22px",marginBottom:24,borderBottom:"1px solid rgba(5,0,2,0.12)",background:"transparent"}}><div style={{minWidth:0}}><VerloBrand width={42}/><div style={{fontSize:14,fontWeight:650,color:"#050002",marginTop:12}}>PowerMarket · Gestión de cauciones</div></div>{logged&&<button style={btn} onClick={async()=>{await supabase.auth.signOut();setLogged(false);setItems([])}}>Cerrar sesión</button>}</div>
  {error&&<p role="alert" style={{color:"#a52727"}}>{error}</p>}
  {!logged&&!loading&&<form onSubmit={login} style={{maxWidth:380,display:"grid",gap:12,marginTop:30}}><label>Email<input style={field} type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Contraseña<input style={field} type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button style={btn}>Ingresar</button><small>El acceso requiere autorización previa de VERLO.</small></form>}
  {loading&&<p>Cargando…</p>}
