@@ -1,72 +1,124 @@
 "use client"
-
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { createClient } from "@supabase/supabase-js"
 import VerloBrand from "@/components/VerloBrand"
 
 type Application = {
  id:string;tenant_lead_id:string;status:string;requested_rent_ars:number;estimated_expenses_ars:number;monthly_income_ars:number;
  duration_months:number;employment_type:string;has_co_tenant:boolean;co_tenant_income_ars:number|null;
- approved_max_total_ars:number|null;approved_max_rent_ars:number|null;created_at:string;tenant?:{full_name:string|null;email:string|null;phone:string|null}|null
+ approved_max_total_ars:number|null;approved_max_rent_ars:number|null;decision_expires_at:string|null;created_at:string;
+ tenant?:{full_name:string|null;email:string|null;phone:string|null}|null
 }
-const url=process.env.NEXT_PUBLIC_SUPABASE_URL!
-const anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase=createClient(url,anon)
-const money=(value:number|null)=>value==null?"—":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(value)
+type DocumentRow={id:string;kind:string;original_filename:string|null}
+const supabase=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+const money=(n:number|null|undefined)=>n==null?"—":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n)
+const labels:Record<string,string>={submitted:"Nueva",under_review:"En evaluación",more_info_required:"Documentación pendiente",prequalified:"Precalificada",not_eligible:"Rechazada",alternative_offered:"Monto alternativo",expired:"Vencida",withdrawn:"Retirada"}
+const actions=[["under_review","En evaluación"],["more_info_required","Pedir documentación"],["prequalified","Precalificar"],["alternative_offered","Ofrecer otro monto"],["not_eligible","Rechazar"]]
 export default function PowerMarketDashboard(){
- const [items,setItems]=useState<Application[]>([])
- const [error,setError]=useState("")
- const [loading,setLoading]=useState(true)
- const [email,setEmail]=useState("")
- const [password,setPassword]=useState("")
- const [logged,setLogged]=useState(false)
- const [busy,setBusy]=useState("")
- const [amounts,setAmounts]=useState<Record<string,string>>({})
- const [notes,setNotes]=useState<Record<string,string>>({})
- const [docs,setDocs]=useState<Record<string,{id:string;kind:string;original_filename:string|null}[]>>({})
+ const [items,setItems]=useState<Application[]>([]),[selected,setSelected]=useState<string|null>(null)
+ const [error,setError]=useState(""),[loading,setLoading]=useState(true),[email,setEmail]=useState(""),[password,setPassword]=useState("")
+ const [logged,setLogged]=useState(false),[busy,setBusy]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState("")
+ const [amount,setAmount]=useState(""),[note,setNote]=useState(""),[docs,setDocs]=useState<DocumentRow[]|null>(null)
+ const current=items.find(item=>item.id===selected)||null
+ const visible=useMemo(()=>items.filter(item=>(filter==="all"||item.status===filter)&&(!search||[item.tenant?.full_name,item.tenant?.email,item.tenant?.phone,item.id].some(v=>String(v||"").toLowerCase().includes(search.toLowerCase())))),[items,filter,search])
+ const counts={new:items.filter(i=>i.status==="submitted").length,review:items.filter(i=>["under_review","more_info_required"].includes(i.status)).length,approved:items.filter(i=>["prequalified","alternative_offered"].includes(i.status)).length}
  async function token(){return (await supabase.auth.getSession()).data.session?.access_token}
  async function refresh(){
   const access=await token()
   if(!access){setLogged(false);setLoading(false);return}
-  setLogged(true)
   const res=await fetch("/api/powermarket/applications",{headers:{Authorization:`Bearer ${access}`},cache:"no-store"})
-  const data=await res.json().catch(()=>({}))
-  if(!res.ok){setError(data.error||"No se pudo cargar");setItems([])}
-  else {setError("");setItems(data.applications||[])}
+  const json=await res.json().catch(()=>({}))
+  if(!res.ok){setError(json.error||"Acceso denegado");setItems([]);setLogged(false)}
+  else{setError("");setItems(json.applications||[]);setLogged(true)}
   setLoading(false)
  }
  useEffect(()=>{void refresh()},[])
- async function magicLink(){setError("");const address=email.trim();if(!address){setError("Ingresá tu email primero");return}const {error:err}=await supabase.auth.signInWithOtp({email:address,options:{emailRedirectTo:window.location.origin+"/powermarket"}});setError(err?err.message:"Te enviamos un enlace de acceso al correo. Abrilo en este navegador.")}
- async function login(e:React.FormEvent){e.preventDefault();setError("");const {error:err}=await supabase.auth.signInWithPassword({email,password});if(err){setError("Credenciales incorrectas");return}setPassword("");setLoading(true);await refresh()}
- async function decide(id:string,status:string){
-  if(busy)return
-  setBusy(id);setError("")
+ function select(item:Application){setSelected(item.id);setDocs(null);setNote("");setAmount(String(item.approved_max_total_ars??""))}
+ async function login(e:React.FormEvent){e.preventDefault();setError("");setBusy(true);const {error:err}=await supabase.auth.signInWithPassword({email,password});setBusy(false);if(err){setError("Credenciales incorrectas");return}setPassword("");setLoading(true);await refresh()}
+ async function decide(status:string){
+  if(!current||busy)return
+  setBusy(true);setError("")
   const access=await token()
-  const res=await fetch("/api/powermarket/applications",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({id,status,approved_max_total_ars:amounts[id]||null,note:notes[id]||""})})
+  const res=await fetch("/api/powermarket/applications",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({id:current.id,status,approved_max_total_ars:amount===""?null:Number(amount),note})})
   const data=await res.json().catch(()=>({}))
   if(!res.ok)setError(data.error||"No se pudo guardar")
-  await refresh();setBusy("")
+  await refresh();setBusy(false)
  }
- async function viewDocuments(id:string){const access=await token();if(!access)return;const res=await fetch(`/api/powermarket/partner-documents?application_id=${encodeURIComponent(id)}`,{headers:{Authorization:`Bearer ${access}`},cache:"no-store"});const data=await res.json().catch(()=>({}));if(!res.ok){setError(data.error||"No se pudieron consultar documentos");return}setDocs(v=>({...v,[id]:data.documents||[]}))}
- async function openDocument(applicationId:string,documentId:string){const access=await token();if(!access)return;const res=await fetch("/api/powermarket/partner-documents",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({application_id:applicationId,document_id:documentId})});const data=await res.json().catch(()=>({}));if(res.ok&&data.url){window.open(data.url,"_blank","noopener,noreferrer")}else setError(data.error||"No se pudo abrir el archivo")}
- const base:React.CSSProperties={fontFamily:"system-ui,sans-serif",maxWidth:1100,margin:"36px auto",padding:"0 20px",color:"#050002"}
- const field:React.CSSProperties={padding:"10px 12px",border:"1px solid #ccd4df",borderRadius:8,width:"100%",boxSizing:"border-box"}
- const btn:React.CSSProperties={padding:"9px 12px",border:0,borderRadius:8,background:"#050002",color:"#fff",cursor:"pointer"}
- return <main style={base}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,padding:"12px 0 22px",marginBottom:24,borderBottom:"1px solid rgba(5,0,2,0.12)",background:"transparent"}}><div style={{minWidth:0}}><VerloBrand width={42}/><div style={{fontSize:14,fontWeight:650,color:"#050002",marginTop:12}}>PowerMarket · Gestión de cauciones</div></div>{logged&&<button style={btn} onClick={async()=>{await supabase.auth.signOut();setLogged(false);setItems([])}}>Cerrar sesión</button>}</div>
- {error&&<p role="alert" style={{color:"#a52727"}}>{error}</p>}
- {!logged&&!loading&&<form onSubmit={login} style={{maxWidth:380,display:"grid",gap:12,marginTop:30}}><label>Email<input style={field} type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Contraseña<input style={field} type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button style={btn}>Ingresar con contraseña</button><button type="button" style={{...btn,background:"#f2a8a9",color:"#050002"}} onClick={magicLink}>Enviar enlace de acceso por email</button><small>El acceso requiere autorización previa de VERLO.</small></form>}
- {loading&&<p>Cargando…</p>}
- {logged&&!loading&&<><p><strong>{items.length}</strong> solicitudes visibles (últimas 100)</p>
- <div style={{display:"grid",gap:16}}>{items.map(item=><article key={item.id} style={{border:"1px solid #dce2e8",borderRadius:12,padding:20}}>
- <div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong>Solicitud {item.id.slice(0,8)}</strong><span>{item.status}</span></div>
- <p>Alquiler: <b>{money(item.requested_rent_ars)}</b> · Expensas: <b>{money(item.estimated_expenses_ars)}</b> · Ingresos: <b>{money(item.monthly_income_ars)}</b></p>
- <p>Plazo: {item.duration_months} meses · Ingresos: {item.employment_type} · Co-inquilino: {item.has_co_tenant?"Sí":"No"} {item.has_co_tenant?(`(${money(item.co_tenant_income_ars)})`):""}</p>
- <p><strong>Interesado: {item.tenant?.full_name||"Sin nombre"}</strong><br/>Email: {item.tenant?.email||"No informado"} · Teléfono: {item.tenant?.phone||"No informado"}</p>
- <p style={{fontSize:13,color:"#64748b"}}>Solicitud: {new Date(item.created_at).toLocaleString("es-AR")} · ID inquilino: {item.tenant_lead_id}</p>
- <div style={{marginBottom:16}}><button style={btn} onClick={()=>viewDocuments(item.id)}>Ver documentación</button>{docs[item.id]&&<ul>{docs[item.id].length===0?<li>Sin comprobantes cargados</li>:docs[item.id].map(doc=><li key={doc.id}><button style={{...btn,marginTop:6}} onClick={()=>openDocument(item.id,doc.id)}>Abrir: {doc.original_filename||doc.kind}</button></li>)}</ul>}</div>
- <label style={{display:"block",maxWidth:340}}>Límite aprobado total (alquiler + expensas), ARS<input style={field} type="number" min="0" value={amounts[item.id]??String(item.approved_max_total_ars??"")} onChange={e=>setAmounts(v=>({...v,[item.id]:e.target.value}))}/></label>
- <label style={{display:"block",marginTop:10}}>Observación<textarea style={{...field,minHeight:65}} value={notes[item.id]||""} onChange={e=>setNotes(v=>({...v,[item.id]:e.target.value}))}/></label>
- <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}>{[["under_review","En evaluación"],["more_info_required","Pedir información"],["prequalified","Precalificar"],["alternative_offered","Ofrecer monto menor"],["not_eligible","Rechazar"]].map(([status,label])=><button key={status} style={btn} disabled={busy===item.id} onClick={()=>decide(item.id,status)}>{label}</button>)}</div>
- </article>)}</div>{items.length===0&&<p>No hay solicitudes presentadas todavía.</p>}</>}
- </main>
+ async function documents(){
+  if(!current)return
+  const access=await token()
+  const res=await fetch(`/api/powermarket/partner-documents?application_id=${encodeURIComponent(current.id)}`,{headers:{Authorization:`Bearer ${access}`},cache:"no-store"})
+  const data=await res.json().catch(()=>({}))
+  if(!res.ok)setError(data.error||"No se pudo consultar");else setDocs(data.documents||[])
+ }
+ async function openDoc(id:string){
+  if(!current)return
+  const access=await token()
+  const win=window.open("","_blank")
+  const res=await fetch("/api/powermarket/partner-documents",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({application_id:current.id,document_id:id})})
+  const data=await res.json().catch(()=>({}))
+  if(res.ok&&data.url){if(win)win.location.href=data.url;else setError("Permití ventanas emergentes para abrir el comprobante")}
+  else{win?.close();setError(data.error||"No se pudo abrir el archivo")}
+ }
+ const control:React.CSSProperties={background:"#fff",color:"#050002",border:"1px solid #ddd5d7",borderRadius:12,padding:"11px 13px",width:"100%",fontSize:14}
+ const button:React.CSSProperties={background:"#050002",color:"#fff",border:0,borderRadius:999,padding:"11px 17px",fontWeight:700,cursor:"pointer",fontSize:13}
+ const cell:React.CSSProperties={padding:"14px 12px",borderBottom:"1px solid #eee6e8",verticalAlign:"middle",fontSize:13,textAlign:"left"}
+ return <main style={{background:"#f2ebec",minHeight:"100vh",padding:"26px 20px 80px",color:"#050002",fontFamily:"Inter,system-ui,sans-serif",fontSize:14}}>
+ <div style={{maxWidth:1180,margin:"0 auto"}}>
+  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,background:"#f2ebec",borderBottom:"1px solid #dfd2d6",padding:"0 0 20px",position:"relative",top:"auto",backdropFilter:"none"}}>
+   <div><VerloBrand width={42}/><div style={{fontSize:14,fontWeight:750,marginTop:11}}>PowerMarket · Gestión de cauciones</div></div>
+   {logged&&<button style={button} onClick={async()=>{await supabase.auth.signOut();setLogged(false);setItems([]);setSelected(null)}}>Cerrar sesión</button>}
+  </div>
+  {error&&<p role="alert" style={{background:"#fff",border:"1px solid #c37986",borderRadius:10,padding:12,color:"#892b40"}}>{error}</p>}
+  {loading?<p style={{marginTop:28}}>Cargando…</p>:!logged?
+   <form onSubmit={login} style={{background:"#fff",maxWidth:420,padding:28,borderRadius:20,marginTop:32,display:"grid",gap:15}}>
+    <h1 style={{fontSize:24,lineHeight:1.2,margin:0}}>Acceso privado</h1>
+    <label>Email<input type="email" style={{...control,display:"block",marginTop:6}} required value={email} onChange={e=>setEmail(e.target.value)}/></label>
+    <label>Contraseña<input type="password" style={{...control,display:"block",marginTop:6}} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+    <button style={button} disabled={busy}>Ingresar</button>
+    <small>Acceso exclusivo para operadores autorizados por VERLO.</small>
+   </form>:
+   <div style={{paddingTop:28}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:8,marginBottom:18}}>
+     <h1 style={{fontSize:27,lineHeight:1.2,margin:0}}>Solicitudes de caución</h1><span style={{color:"#66565b"}}>{items.length} registros · últimas 100 solicitudes</span>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12,marginBottom:20}}>
+     {[[counts.new,"Nuevas"],[counts.review,"En evaluación"],[counts.approved,"Precalificadas"]].map(([count,label])=><div key={label} style={{background:"#fff",border:"1px solid #e7dde0",borderRadius:16,padding:18}}><div style={{fontSize:29,fontWeight:800}}>{count}</div><div style={{color:"#66565b"}}>{label}</div></div>)}
+    </div>
+    <div style={{background:"#fff",border:"1px solid #e7dde0",borderRadius:18,overflow:"hidden"}}>
+     <div style={{padding:16,display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+      <input aria-label="Buscar interesado" placeholder="Buscar nombre, email o teléfono" value={search} onChange={e=>setSearch(e.target.value)} style={{...control,maxWidth:340}}/>
+      <select aria-label="Filtrar estado" value={filter} onChange={e=>setFilter(e.target.value)} style={{...control,maxWidth:230}}><option value="all">Todos los estados</option>{Object.entries(labels).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select>
+      <button onClick={()=>void refresh()} style={{...button,marginLeft:"auto"}}>Actualizar</button>
+     </div>
+     <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",minWidth:760}}>
+      <thead><tr style={{background:"#f8f4f5"}}>{["Interesado","Alquiler + expensas","Ingresos","Estado","Fecha",""].map(t=><th key={t} style={{...cell,fontWeight:750}}>{t}</th>)}</tr></thead>
+      <tbody>{visible.map(item=><tr key={item.id}>
+       <td style={cell}><strong>{item.tenant?.full_name||"Sin nombre"}</strong><div style={{color:"#66565b",fontSize:12}}>{item.tenant?.email||"Sin email"}</div></td>
+       <td style={cell}>{money(Number(item.requested_rent_ars)+Number(item.estimated_expenses_ars))}</td><td style={cell}>{money(item.monthly_income_ars)}</td>
+       <td style={cell}>{labels[item.status]||item.status}</td><td style={cell}>{new Date(item.created_at).toLocaleDateString("es-AR")}</td>
+       <td style={cell}><button style={button} onClick={()=>select(item)}>Ver ficha</button></td>
+      </tr>)}</tbody>
+     </table>{visible.length===0&&<p style={{padding:"12px 20px",color:"#66565b"}}>No hay solicitudes para mostrar.</p>}</div>
+    </div>
+    {current&&<section style={{background:"#fff",marginTop:18,padding:"22px",borderRadius:18,border:"1px solid #e7dde0"}}>
+     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}><h2 style={{fontSize:21,margin:0}}>Ficha · {current.tenant?.full_name||"Interesado"}</h2><button style={button} onClick={()=>setSelected(null)}>Cerrar ficha</button></div>
+     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:18,marginTop:20}}>
+      <div><strong>Contacto</strong><p>Email: {current.tenant?.email||"No informado"}<br/>Teléfono: {current.tenant?.phone||"No informado"}</p><p>Estado: {labels[current.status]||current.status}</p></div>
+      <div><strong>Solicitud</strong><p>Alquiler: {money(current.requested_rent_ars)}<br/>Expensas: {money(current.estimated_expenses_ars)}<br/>Plazo: {current.duration_months} meses</p></div>
+      <div><strong>Ingresos</strong><p>Declarados: {money(current.monthly_income_ars)}<br/>Tipo: {current.employment_type}<br/>Co-inquilino: {current.has_co_tenant?money(current.co_tenant_income_ars):"No"}</p></div>
+     </div>
+     <div style={{borderTop:"1px solid #eee6e8",paddingTop:17,marginTop:8}}>
+      <button style={button} onClick={()=>void documents()}>Consultar comprobantes</button>
+      {docs&&<div style={{marginTop:12}}>{docs.length===0?"No hay comprobantes cargados.":docs.map(doc=><div key={doc.id} style={{marginBottom:9}}><button style={{...button,background:"#f2ebec",color:"#050002"}} onClick={()=>void openDoc(doc.id)}>Abrir {doc.original_filename||doc.kind}</button></div>)}</div>}
+     </div>
+     <div style={{borderTop:"1px solid #eee6e8",paddingTop:18,marginTop:18}}>
+      <h3 style={{fontSize:17,margin:"0 0 14px"}}>Decisión de PowerMarket</h3>
+      <label style={{display:"block",maxWidth:380}}>Límite precalificado, alquiler + expensas (ARS)<input type="number" min="0" style={{...control,display:"block",marginTop:7}} value={amount} onChange={e=>setAmount(e.target.value)}/></label>
+      <label style={{display:"block",marginTop:12}}>Observaciones<textarea value={note} onChange={e=>setNote(e.target.value)} style={{...control,display:"block",marginTop:7,minHeight:75}}/></label>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:15}}>{actions.map(([status,label])=><button disabled={busy} key={status} style={button} onClick={()=>void decide(status)}>{label}</button>)}</div>
+     </div>
+    </section>}
+   </div>}
+ </div></main>
 }
