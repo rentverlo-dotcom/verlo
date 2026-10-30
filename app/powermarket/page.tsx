@@ -36,6 +36,7 @@ export default function PowerMarketDashboard(){
   setLoading(false)
  }
  useEffect(()=>{void refresh()},[])
+ async function magicLink(){setError("");const address=email.trim();if(!address){setError("Ingresá tu email primero");return}const {error:err}=await supabase.auth.signInWithOtp({email:address,options:{emailRedirectTo:window.location.origin+"/powermarket"}});setError(err?err.message:"Te enviamos un enlace de acceso al correo. Abrilo en este navegador.")}
  async function login(e:React.FormEvent){e.preventDefault();setError("");const {error:err}=await supabase.auth.signInWithPassword({email,password});if(err){setError("Credenciales incorrectas");return}setPassword("");setLoading(true);await refresh()}
  async function decide(id:string,status:string){
   if(busy)return
@@ -53,7 +54,7 @@ export default function PowerMarketDashboard(){
  const btn:React.CSSProperties={padding:"9px 12px",border:0,borderRadius:8,background:"#050002",color:"#fff",cursor:"pointer"}
  return <main style={base}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,padding:"12px 0 22px",marginBottom:24,borderBottom:"1px solid rgba(5,0,2,0.12)",background:"transparent"}}><div style={{minWidth:0}}><VerloBrand width={42}/><div style={{fontSize:14,fontWeight:650,color:"#050002",marginTop:12}}>PowerMarket · Gestión de cauciones</div></div>{logged&&<button style={btn} onClick={async()=>{await supabase.auth.signOut();setLogged(false);setItems([])}}>Cerrar sesión</button>}</div>
  {error&&<p role="alert" style={{color:"#a52727"}}>{error}</p>}
- {!logged&&!loading&&<form onSubmit={login} style={{maxWidth:380,display:"grid",gap:12,marginTop:30}}><label>Email<input style={field} type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Contraseña<input style={field} type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button style={btn}>Ingresar</button><small>El acceso requiere autorización previa de VERLO.</small></form>}
+ {!logged&&!loading&&<form onSubmit={login} style={{maxWidth:380,display:"grid",gap:12,marginTop:30}}><label>Email<input style={field} type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Contraseña<input style={field} type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><button style={btn}>Ingresar con contraseña</button><button type="button" style={{...btn,background:"#f2a8a9",color:"#050002"}} onClick={magicLink}>Enviar enlace de acceso por email</button><small>El acceso requiere autorización previa de VERLO.</small></form>}
  {loading&&<p>Cargando…</p>}
  {logged&&!loading&&<><p><strong>{items.length}</strong> solicitudes visibles (últimas 100)</p>
  <div style={{display:"grid",gap:16}}>{items.map(item=><article key={item.id} style={{border:"1px solid #dce2e8",borderRadius:12,padding:20}}>
