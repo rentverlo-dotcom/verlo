@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js"
 type Application = {
  id:string;tenant_lead_id:string;status:string;requested_rent_ars:number;estimated_expenses_ars:number;monthly_income_ars:number;
  duration_months:number;employment_type:string;has_co_tenant:boolean;co_tenant_income_ars:number|null;
- approved_max_total_ars:number|null;approved_max_rent_ars:number|null;created_at:string
+ approved_max_total_ars:number|null;approved_max_rent_ars:number|null;created_at:string;tenant?:{full_name:string|null;email:string|null;phone:string|null}|null
 }
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL!
 const anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -59,6 +59,7 @@ export default function PowerMarketDashboard(){
  <div style={{display:"flex",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><strong>Solicitud {item.id.slice(0,8)}</strong><span>{item.status}</span></div>
  <p>Alquiler: <b>{money(item.requested_rent_ars)}</b> · Expensas: <b>{money(item.estimated_expenses_ars)}</b> · Ingresos: <b>{money(item.monthly_income_ars)}</b></p>
  <p>Plazo: {item.duration_months} meses · Ingresos: {item.employment_type} · Co-inquilino: {item.has_co_tenant?"Sí":"No"} {item.has_co_tenant?(`(${money(item.co_tenant_income_ars)})`):""}</p>
+ <p><strong>Interesado: {item.tenant?.full_name||"Sin nombre"}</strong><br/>Email: {item.tenant?.email||"No informado"} · Teléfono: {item.tenant?.phone||"No informado"}</p>
  <p style={{fontSize:13,color:"#64748b"}}>Solicitud: {new Date(item.created_at).toLocaleString("es-AR")} · ID inquilino: {item.tenant_lead_id}</p>
  <div style={{marginBottom:16}}><button style={btn} onClick={()=>viewDocuments(item.id)}>Ver documentación</button>{docs[item.id]&&<ul>{docs[item.id].length===0?<li>Sin comprobantes cargados</li>:docs[item.id].map(doc=><li key={doc.id}><button style={{...btn,marginTop:6}} onClick={()=>openDocument(item.id,doc.id)}>Abrir: {doc.original_filename||doc.kind}</button></li>)}</ul>}</div>
  <label style={{display:"block",maxWidth:340}}>Límite aprobado total (alquiler + expensas), ARS<input style={field} type="number" min="0" value={amounts[item.id]??String(item.approved_max_total_ars??"")} onChange={e=>setAmounts(v=>({...v,[item.id]:e.target.value}))}/></label>
