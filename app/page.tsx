@@ -6,6 +6,7 @@ import {trackPostHog} from "@/lib/posthog-client"
 export default function Home(){
   useEffect(()=>{
     const {search,hash}=window.location
+    if(hash.includes("access_token=")&&hash.includes("type=recovery")){window.location.replace("/reset-password"+hash);return}
     // Keep all historic Meta Ads and SEO deep links pointing at the existing form.
     if(search||hash==="#sumate"||hash==="#cargar") window.location.replace("/permanentes"+search+hash)
   },[])
