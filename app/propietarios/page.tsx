@@ -796,8 +796,8 @@ export default function PropietariosPage() {
 
     const ownerPriceOption = PRICE_OPTIONS.find((item) => item.value === approxPrice)
     if (!ownerPriceOption) {
-      setError("Seleccioná un rango de alquiler válido")
-      setLoading(false)
+      setStatus("error")
+      setMessage("Seleccioná un rango de alquiler válido")
       return
     }
 
