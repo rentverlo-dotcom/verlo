@@ -22,6 +22,7 @@ export default function PowerMarketDashboard(){
  const [busy,setBusy]=useState("")
  const [amounts,setAmounts]=useState<Record<string,string>>({})
  const [notes,setNotes]=useState<Record<string,string>>({})
+ const [docs,setDocs]=useState<Record<string,{id:string;kind:string;original_filename:string|null}[]>>({})
  async function token(){return (await supabase.auth.getSession()).data.session?.access_token}
  async function refresh(){
   const access=await token()
@@ -44,6 +45,8 @@ export default function PowerMarketDashboard(){
   if(!res.ok)setError(data.error||"No se pudo guardar")
   await refresh();setBusy("")
  }
+ async function viewDocuments(id:string){const access=await token();if(!access)return;const res=await fetch(`/api/powermarket/partner-documents?application_id=${encodeURIComponent(id)}`,{headers:{Authorization:`Bearer ${access}`},cache:"no-store"});const data=await res.json().catch(()=>({}));if(!res.ok){setError(data.error||"No se pudieron consultar documentos");return}setDocs(v=>({...v,[id]:data.documents||[]}))}
+ async function openDocument(applicationId:string,documentId:string){const access=await token();if(!access)return;const res=await fetch("/api/powermarket/partner-documents",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({application_id:applicationId,document_id:documentId})});const data=await res.json().catch(()=>({}));if(res.ok&&data.url){window.open(data.url,"_blank","noopener,noreferrer")}else setError(data.error||"No se pudo abrir el archivo")}
  const base:React.CSSProperties={fontFamily:"system-ui,sans-serif",maxWidth:1100,margin:"36px auto",padding:"0 20px",color:"#162335"}
  const field:React.CSSProperties={padding:"10px 12px",border:"1px solid #ccd4df",borderRadius:8,width:"100%",boxSizing:"border-box"}
  const btn:React.CSSProperties={padding:"9px 12px",border:0,borderRadius:8,background:"#173c65",color:"#fff",cursor:"pointer"}
@@ -57,6 +60,7 @@ export default function PowerMarketDashboard(){
  <p>Alquiler: <b>{money(item.requested_rent_ars)}</b> · Expensas: <b>{money(item.estimated_expenses_ars)}</b> · Ingresos: <b>{money(item.monthly_income_ars)}</b></p>
  <p>Plazo: {item.duration_months} meses · Ingresos: {item.employment_type} · Co-inquilino: {item.has_co_tenant?"Sí":"No"} {item.has_co_tenant?(`(${money(item.co_tenant_income_ars)})`):""}</p>
  <p style={{fontSize:13,color:"#64748b"}}>Solicitud: {new Date(item.created_at).toLocaleString("es-AR")} · ID inquilino: {item.tenant_lead_id}</p>
+ <div style={{marginBottom:16}}><button style={btn} onClick={()=>viewDocuments(item.id)}>Ver documentación</button>{docs[item.id]&&<ul>{docs[item.id].length===0?<li>Sin comprobantes cargados</li>:docs[item.id].map(doc=><li key={doc.id}><button style={{...btn,marginTop:6}} onClick={()=>openDocument(item.id,doc.id)}>Abrir: {doc.original_filename||doc.kind}</button></li>)}</ul>}</div>
  <label style={{display:"block",maxWidth:340}}>Límite aprobado total (alquiler + expensas), ARS<input style={field} type="number" min="0" value={amounts[item.id]??String(item.approved_max_total_ars??"")} onChange={e=>setAmounts(v=>({...v,[item.id]:e.target.value}))}/></label>
  <label style={{display:"block",marginTop:10}}>Observación<textarea style={{...field,minHeight:65}} value={notes[item.id]||""} onChange={e=>setNotes(v=>({...v,[item.id]:e.target.value}))}/></label>
  <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}>{[["under_review","En evaluación"],["more_info_required","Pedir información"],["prequalified","Precalificar"],["alternative_offered","Ofrecer monto menor"],["not_eligible","Rechazar"]].map(([status,label])=><button key={status} style={btn} disabled={busy===item.id} onClick={()=>decide(item.id,status)}>{label}</button>)}</div>
