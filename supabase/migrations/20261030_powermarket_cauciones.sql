@@ -4,9 +4,12 @@ begin;
 
 alter table public.lead_intake
   add column if not exists expenses_amount numeric(14,2);
-alter table public.lead_intake
-  add constraint lead_intake_expenses_nonnegative
-  check (expenses_amount is null or expenses_amount >= 0) not valid;
+do $ begin
+  if not exists (select 1 from pg_constraint where conname = 'lead_intake_expenses_nonnegative' and conrelid = 'public.lead_intake'::regclass) then
+    alter table public.lead_intake add constraint lead_intake_expenses_nonnegative
+      check (expenses_amount is null or expenses_amount >= 0) not valid;
+  end if;
+end $;
 
 create table if not exists public.caucion_partner_users (
   user_id uuid primary key references auth.users(id) on delete cascade,
