@@ -3950,6 +3950,7 @@ const leadPayload = {
 
   approx_price,
   approx_price_number,
+  ...(role === "owner" ? { expenses_amount } : {}),
 
   desired_property_type,
   desired_rooms,
