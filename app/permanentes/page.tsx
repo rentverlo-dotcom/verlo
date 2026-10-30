@@ -2610,6 +2610,8 @@ export default function PageDePrueba() {
       guarantee_types:
         tenantGuaranteeTypes,
 
+      request_caucion: path === "tenant" && formData.get("request_caucion") === "yes",
+
       accepted_income_proof_types:
         acceptedIncomeProofTypes,
 
@@ -2957,6 +2959,11 @@ export default function PageDePrueba() {
             intent:
               payload.intent,
           })
+
+        if (payload.role === "tenant" && payload.request_caucion && data?.caucion_access_token) {
+          window.location.href = `/caucion/solicitar?access=${encodeURIComponent(data.caucion_access_token)}`
+          return
+        }
 
         window.location.href =
           `/success?${successParams.toString()}`
@@ -4047,6 +4054,11 @@ export default function PageDePrueba() {
                         />
 
                         Seguro de caución
+                      </label>
+
+                      <label className="check-pill">
+                        <input type="checkbox" name="request_caucion" value="yes" />
+                        Quiero solicitar precalificación de caución con PowerMarket (opcional)
                       </label>
 
                       <label className="check-pill">
