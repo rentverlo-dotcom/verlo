@@ -423,63 +423,14 @@ const ROOM_OPTIONS = [
 ]
 
 const PRICE_OPTIONS = [
-  {
-    label: "$300.000",
-    value: "300000",
-  },
-  {
-    label: "$400.000",
-    value: "400000",
-  },
-  {
-    label: "$500.000",
-    value: "500000",
-  },
-  {
-    label: "$600.000",
-    value: "600000",
-  },
-  {
-    label: "$700.000",
-    value: "700000",
-  },
-  {
-    label: "$800.000",
-    value: "800000",
-  },
-  {
-    label: "$900.000",
-    value: "900000",
-  },
-  {
-    label: "$1.000.000",
-    value: "1000000",
-  },
-  {
-    label: "$1.100.000",
-    value: "1100000",
-  },
-  {
-    label: "$1.200.000",
-    value: "1200000",
-  },
-  {
-    label: "$1.300.000",
-    value: "1300000",
-  },
-  {
-    label: "$1.500.000",
-    value: "1500000",
-  },
-  {
-    label: "$1.800.000",
-    value: "1800000",
-  },
-  {
-    label: "$2.000.000+",
-    value: "2000000",
-  },
-]
+  { label: "Hasta $500.000", value: "hasta-500000", max: 500000 },
+  { label: "$500.001 a $700.000", value: "500001-700000", max: 700000 },
+  { label: "$700.001 a $900.000", value: "700001-900000", max: 900000 },
+  { label: "$900.001 a $1.200.000", value: "900001-1200000", max: 1200000 },
+  { label: "$1.200.001 a $1.500.000", value: "1200001-1500000", max: 1500000 },
+  { label: "$1.500.001 a $2.000.000", value: "1500001-2000000", max: 2000000 },
+  { label: "Más de $2.000.000", value: "2000000-plus", max: 999999999 },
+] as const
 
 const AVAILABILITY_OPTIONS = [
   "Ahora",
@@ -843,6 +794,13 @@ export default function PropietariosPage() {
         ) || ""
       ).trim()
 
+    const ownerPriceOption = PRICE_OPTIONS.find((item) => item.value === approxPrice)
+    if (!ownerPriceOption) {
+      setError("Seleccioná un rango de alquiler válido")
+      setLoading(false)
+      return
+    }
+
     const availabilityStatus =
       String(
         formData.get(
@@ -897,6 +855,8 @@ export default function PropietariosPage() {
 
       approx_price:
         approxPrice,
+
+      approx_price_number: ownerPriceOption.max,
 
       availability_status:
         availabilityStatus,
