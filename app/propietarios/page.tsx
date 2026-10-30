@@ -911,6 +911,8 @@ export default function PropietariosPage() {
         owner_notes:
           notes,
 
+        expenses_amount: String(formData.get("expenses_amount") || "").trim(),
+
         property_rooms:
           propertyRooms,
 
@@ -1596,6 +1598,11 @@ export default function PropietariosPage() {
                   )
                 )}
               </select>
+            </label>
+
+            <label>
+              Expensas mensuales estimadas (ARS)
+              <input type="number" name="expenses_amount" min="0" step="1" placeholder="Dejar vacío si no se conocen" />
             </label>
 
             <label>
