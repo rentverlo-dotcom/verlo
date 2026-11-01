@@ -10,7 +10,7 @@ export async function POST(req:NextRequest){
   // Internal administrative publication only. Never exposed to the partner or a public lead token.
   const configured=process.env.POWERMARKET_REVIEW_PUBLISH_SECRET
   const supplied=req.headers.get("x-powermarket-publish-secret")
-  if(!configured||!supplied||supplied.length!==configured.length||
+  if(!configured||configured.length<32||!supplied||supplied.length!==configured.length||
    !requireSafeEqual(supplied,configured))return NextResponse.json({error:"No autorizado"},{status:403})
   const body=await req.json().catch(()=>null)
   const applicationId=String(body?.application_id||""),contractId=String(body?.lead_contract_id||"")
