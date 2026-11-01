@@ -22,6 +22,7 @@ export default function PowerMarketDashboard(){
  const [logged,setLogged]=useState(false),[busy,setBusy]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState("")
  const [amount,setAmount]=useState(""),[note,setNote]=useState(""),[docs,setDocs]=useState<DocumentRow[]|null>(null)
  const [reviews,setReviews]=useState<ContractReview[]|null>(null)
+ const [openedReviewIds,setOpenedReviewIds]=useState<string[]>([])
  const current=items.find(item=>item.id===selected)||null
  const visible=useMemo(()=>items.filter(item=>(filter==="all"||item.status===filter)&&(!search||[item.tenant?.full_name,item.tenant?.email,item.tenant?.phone,item.id].some(v=>String(v||"").toLowerCase().includes(search.toLowerCase())))),[items,filter,search])
  const counts={new:items.filter(i=>i.status==="submitted").length,review:items.filter(i=>["under_review","more_info_required"].includes(i.status)).length,approved:items.filter(i=>["prequalified","alternative_offered"].includes(i.status)).length}
@@ -36,7 +37,7 @@ export default function PowerMarketDashboard(){
   setLoading(false)
  }
  useEffect(()=>{void refresh()},[])
- function select(item:Application){setSelected(item.id);setDocs(null);setReviews(null);setNote("");setAmount(String(item.approved_max_total_ars??""))}
+ function select(item:Application){setSelected(item.id);setDocs(null);setReviews(null);setOpenedReviewIds([]);setNote("");setAmount(String(item.approved_max_total_ars??""))}
  async function login(e:React.FormEvent){e.preventDefault();setError("");setBusy(true);const {error:err}=await supabase.auth.signInWithPassword({email,password});setBusy(false);if(err){setError("Credenciales incorrectas");return}setPassword("");setLoading(true);await refresh()}
  async function decide(status:string){
   if(!current||busy)return
@@ -55,8 +56,17 @@ export default function PowerMarketDashboard(){
   if(!res.ok)setError(json.error||"No se pudieron consultar los contratos")
   else setReviews(json.reviews||[])
  }
+ async function openReviewPdf(review:ContractReview){
+  const access=await token()
+  const win=window.open("","_blank")
+  const res=await fetch("/api/powermarket/contract-reviews/pdf",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({review_id:review.id})})
+  const json=await res.json().catch(()=>({}))
+  if(!res.ok||!json.url){win?.close();setError(json.error||"No se pudo abrir el PDF");return}
+  if(win){win.location.href=json.url;setOpenedReviewIds(prev=>prev.includes(review.id)?prev:[...prev,review.id])}
+  else setError("Permití ventanas emergentes para visualizar el PDF")
+ }
  async function reviewDecision(review:ContractReview,decision:"approved"|"changes_requested"){
-  if(busy)return
+  if(busy||!openedReviewIds.includes(review.id))return
   const detail=decision==="changes_requested"?window.prompt("Explicá qué debe corregirse en el contrato:",""):window.confirm("¿Aprobar esta versión exacta del contrato?")
   if(detail===null||detail===false||(decision==="changes_requested"&&!String(detail).trim()))return
   setBusy(true);setError("")
@@ -139,9 +149,10 @@ export default function PowerMarketDashboard(){
          <strong>Contrato · versión {r.version}</strong>
          <p>Estado: {r.status} · SHA-256: {r.pdf_sha256.slice(0,16)}…</p>
          {r.partner_note&&<p>Observación: {r.partner_note}</p>}
+         <button style={{...button,marginBottom:10}} disabled={busy} onClick={()=>void openReviewPdf(r)}>Abrir PDF privado</button>
          {r.status==="pending"||r.status==="changes_requested"?<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <button style={button} disabled={busy} onClick={()=>void reviewDecision(r,"approved")}>Aprobar esta versión</button>
-          <button style={{...button,background:"#fff",color:"#050002",border:"1px solid #ddd5d7"}} disabled={busy} onClick={()=>void reviewDecision(r,"changes_requested")}>Solicitar correcciones</button>
+          <button style={button} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"approved")}>Aprobar esta versión</button>
+          <button style={{...button,background:"#fff",color:"#050002",border:"1px solid #ddd5d7"}} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"changes_requested")}>Solicitar correcciones</button>
          </div>:null}
        </div>))}
       </div><button style={button} onClick={()=>void documents()}>Consultar comprobantes</button>
