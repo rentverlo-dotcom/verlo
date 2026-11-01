@@ -319,82 +319,36 @@ export async function PATCH(request: NextRequest) {
       .slice(0, 1500)
       .trim()
 
-    const now = new Date().toISOString()
+    // One Postgres transaction: status update and audit event cannot diverge.
+    const { data: changed, error: decisionError } = await ctx.db.rpc(
+      "caucion_record_partner_decision",
+      {
+        p_application_id: id,
+        p_expected_status: current.status,
+        p_new_status: status,
+        p_actor_user_id: ctx.userId,
+        p_approved_max_total_ars: isApproval ? amount : null,
+        p_approved_max_rent_ars: isApproval ? rent : null,
+        p_note: note,
+      }
+    )
 
-    const update = {
-      status,
-      partner_note: note || null,
-      approved_max_total_ars: isApproval
-        ? amount
-        : null,
-      approved_max_rent_ars: isApproval
-        ? rent
-        : null,
-      decided_at: [
-        "prequalified",
-        "alternative_offered",
-        "not_eligible",
-      ].includes(status)
-        ? now
-        : null,
-      updated_at: now,
-    }
-
-    const { data: changed, error: updateError } =
-      await ctx.db
-        .from("caucion_applications")
-        .update(update)
-        .eq("id", id)
-        .eq("status", current.status)
-        .select(
-          "id,status,approved_max_total_ars,approved_max_rent_ars"
+    if (decisionError) {
+      if (decisionError.code === "42883" || decisionError.code === "PGRST202") {
+        return NextResponse.json(
+          { ok: false, error: "Auditoría transaccional no instalada. La decisión no fue guardada." },
+          { status: 503 }
         )
-        .maybeSingle()
-
-    if (updateError) throw updateError
-
-    if (!changed) {
+      }
+      if (decisionError.code === "40001") {
+        return NextResponse.json(
+          { ok: false, error: "Otro operador modificó la solicitud. Actualizá la página." },
+          { status: 409 }
+        )
+      }
+      console.error("PowerMarket atomic decision failed:", decisionError)
       return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "La solicitud fue actualizada por otro operador",
-        },
-        { status: 409 }
-      )
-    }
-
-    const eventKey =
-      `caucion:${id}:${status}:${crypto.randomUUID()}`
-
-    const { error: eventError } = await ctx.db
-      .from("caucion_events")
-      .insert({
-        application_id: id,
-        event_key: eventKey,
-        event_type: "partner_decision",
-        actor_user_id: ctx.userId,
-        payload: {
-          from: current.status,
-          to: status,
-          approved_max_total_ars: amount,
-          approved_max_rent_ars: rent,
-        },
-      })
-
-    if (eventError) {
-      console.error(
-        "PowerMarket audit insert failed:",
-        eventError
-      )
-
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Estado guardado, pero falló el registro de auditoría. Avisar a VERLO.",
-          application: changed,
-        },
+        { ok: false, error: "No se pudo guardar la decisión y su auditoría." },
         { status: 500 }
       )
     }
