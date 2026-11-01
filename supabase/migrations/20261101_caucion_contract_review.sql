@@ -65,8 +65,12 @@ begin
  end if;
  select * into r from public.caucion_contract_reviews where id=p_review_id for update;
  if not found then raise exception 'not_found' using errcode='P0002'; end if;
- if r.status is distinct from p_expected_status or r.status not in ('pending','changes_requested') then
+ if r.status is distinct from p_expected_status or r.status <> 'pending' then
   raise exception 'status_conflict' using errcode='40001';
+ end if;
+ if not exists(select 1 from public.lead_contracts c where c.id=r.lead_contract_id and
+  encode(digest(convert_to(c.content,'UTF8'),'sha256'),'hex')=r.contract_content_sha256) then
+  raise exception 'contract_changed' using errcode='40001';
  end if;
  -- Una aprobación solo tiene sentido si la caución sigue siendo evaluable.
  if not exists(select 1 from public.caucion_applications where id=r.application_id
