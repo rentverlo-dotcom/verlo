@@ -150,7 +150,7 @@ export default function PowerMarketDashboard(){
          <p>Estado: {r.status} · SHA-256: {r.pdf_sha256.slice(0,16)}…</p>
          {r.partner_note&&<p>Observación: {r.partner_note}</p>}
          <button style={{...button,marginBottom:10}} disabled={busy} onClick={()=>void openReviewPdf(r)}>Abrir PDF privado</button>
-         {r.status==="pending"||r.status==="changes_requested"?<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+         {r.status==="pending"?<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <button style={button} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"approved")}>Aprobar esta versión</button>
           <button style={{...button,background:"#fff",color:"#050002",border:"1px solid #ddd5d7"}} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"changes_requested")}>Solicitar correcciones</button>
          </div>:null}
