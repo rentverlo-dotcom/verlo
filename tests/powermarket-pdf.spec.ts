@@ -30,6 +30,14 @@ test("PowerMarket PDF contains complete Spanish contractual clauses with WinAnsi
   expect(pdf.length).toBeGreaterThan(900)
 })
 
+test("PowerMarket PDF keeps repeated spaces and explicit line breaks", () => {
+  const text = "DNI: 12  345   678\\nDOMICILIO: Calle 123\\n\\nImporte: $  100.000"
+  const pdf = pdfOf(text).toString("latin1")
+  expect(pdf).toContain("DNI: 12  345   678")
+  expect(pdf).toContain("DOMICILIO: Calle 123")
+  expect(pdf).toContain("Importe: $  100.000")
+})
+
 test("PowerMarket PDF fails closed for unsupported characters rather than changing legal text", () => {
   expect(() => pdfOf("Contrato con carácter no WinAnsi: 漢")).toThrow(/no representable/)
 })
