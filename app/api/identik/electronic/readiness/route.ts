@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { checkPowerMarketSigningApproval } from "@/lib/powermarket/signing-approval"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -91,6 +92,16 @@ export async function GET(request: NextRequest) {
   if (!contract.tenant_agreed_at || !contract.owner_agreed_at) reasons.push("acceptance_pending")
   if (!match.tenant_paid_at || !verifiedPayment) reasons.push("payment_pending")
   if (doc) reasons.push("identik_document_already_recorded")
+  // A submitted VERLO caucion application is the explicit opt-in.
+  // No application means standard rental: no PowerMarket dependency.
+  if (contract.content?.trim()) {
+    const pm = await checkPowerMarketSigningApproval(db, {
+      contractId: contract.id,
+      tenantLeadId: contract.tenant_lead_id,
+      contractContent: contract.content,
+    })
+    if (!pm.allowed) reasons.push(`powermarket_${pm.reason}`)
+  }
 
   return NextResponse.json(
     {
