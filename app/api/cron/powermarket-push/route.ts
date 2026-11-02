@@ -31,7 +31,7 @@ export async function POST(req:NextRequest){
  const secret=process.env.CRON_SECRET
  if(!secret||req.headers.get("authorization")!==`Bearer ${secret}`) return NextResponse.json({ok:false,error:"Unauthorized"},{status:401})
  if(process.env.POWERMARKET_PUSH_ENABLED!=="true") return NextResponse.json({ok:true,enabled:false,dry_run:true})
- const live=req.nextUrl.searchParams.get("live")==="true" && process.env.POWERMARKET_PUSH_LIVE_ENABLED==="true"
+ const live=(req.nextUrl.searchParams.get("live")==="true" || req.method==="GET") && process.env.POWERMARKET_PUSH_LIVE_ENABLED==="true"
  if(!live){
   const {data,error}=await supabaseAdmin.from("caucion_push_deliveries").select("id,recipient_role,event_id,status").in("status",["pending","failed"]).limit(20)
   if(error)return NextResponse.json({ok:false,error:"Queue unavailable"},{status:503})
@@ -69,3 +69,6 @@ export async function POST(req:NextRequest){
  }
  return NextResponse.json({ok:true,dry_run:false,results})
 }
+
+// Vercel Cron invokes GET. Keep both explicit environment switches mandatory.
+export const GET = POST
