@@ -80,6 +80,9 @@ export async function PATCH(req: NextRequest) {
     })
     if (error) {
       if (error.code === "40001") return NextResponse.json({ error: "La revisión cambió. Actualizá la ficha." }, { status: 409 })
+      if (error.code === "23514") return NextResponse.json({ error: "La solicitud ya no admite la aprobación del contrato." }, { status: 409 })
+      if (error.code === "42501") return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+      if (error.code === "22023") return NextResponse.json({ error: "La decisión o el comentario no son válidos." }, { status: 400 })
       if (error.code === "42883" || error.code === "PGRST202") return NextResponse.json({ error: "Falta instalar la migración de revisión contractual" }, { status: 503 })
       console.error("PowerMarket contract review PATCH failed", error)
       return NextResponse.json({ error: "No se pudo registrar la revisión" }, { status: 500 })
