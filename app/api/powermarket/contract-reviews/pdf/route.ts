@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createHash } from "node:crypto"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export async function POST(req:NextRequest){
@@ -17,10 +18,17 @@ export async function POST(req:NextRequest){
   const body=await req.json().catch(()=>null)
   const reviewId=String(body?.review_id||"")
   if(!/^[a-f0-9-]{36}$/i.test(reviewId))return NextResponse.json({error:"Revisión inválida"},{status:400})
-  const {data:r,error:e}=await db.from("caucion_contract_reviews").select("id,application_id,private_pdf_key,storage_provider").eq("id",reviewId).single()
+  const {data:r,error:e}=await db.from("caucion_contract_reviews").select("id,application_id,lead_contract_id,contract_content_sha256,private_pdf_key,storage_provider,status").eq("id",reviewId).single()
   if(e||!r)return NextResponse.json({error:"Revisión inexistente"},{status:404})
   if(r.storage_provider!=="supabase"||!r.private_pdf_key.startsWith(`powermarket/contracts/${r.application_id}/`)||!r.private_pdf_key.endsWith(".pdf"))
    return NextResponse.json({error:"Ruta de PDF inválida"},{status:409})
+  if(r.status==="superseded")return NextResponse.json({error:"Esta versión ya fue reemplazada"},{status:409})
+  const {data:contract,error:contractError}=await db.from("lead_contracts").select("content").eq("id",r.lead_contract_id).single()
+  if(contractError||typeof contract?.content!=="string")
+   return NextResponse.json({error:"Contrato no disponible"},{status:409})
+  const currentHash=createHash("sha256").update(contract.content,"utf8").digest("hex")
+  if(currentHash!==r.contract_content_sha256)
+   return NextResponse.json({error:"El contrato cambió. Se necesita publicar una nueva versión"},{status:409})
   const {data:b,error:be}=await db.storage.getBucket("tenant-documents")
   if(be||!b||b.public)return NextResponse.json({error:"Almacenamiento privado no disponible"},{status:503})
   const {data:s,error:se}=await db.storage.from("tenant-documents").createSignedUrl(r.private_pdf_key,60)
