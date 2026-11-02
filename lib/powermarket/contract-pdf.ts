@@ -1,18 +1,30 @@
 // Generador PDF autocontenido: conserva el texto y crea espacios de firma.
 // No constituye una firma digital ni modifica el documento contractual.
-// Nunca reemplazar silenciosamente cláusulas, símbolos o signos legales.
-const clean = (value: string) => {
-  const unsupported = Array.from(value).find(char => {
-    const code = char.codePointAt(0) ?? 0
-    return code > 255 || (code < 32 && char !== "\t") || (code >= 127 && code <= 159)
-  })
-  if (unsupported) {
-    throw new Error("El PDF de revisión no puede representar íntegramente el texto contractual. Se requiere un generador Unicode.")
-  }
-  return value
+// PDF WinAnsiEncoding: encode supported Unicode characters without altering legal wording.
+// Any character outside Windows-1252 is rejected; never silently substitute "?".
+const winAnsiSpecial: Record<number, number> = {
+  0x20ac:0x80,0x201a:0x82,0x0192:0x83,0x201e:0x84,0x2026:0x85,
+  0x2020:0x86,0x2021:0x87,0x02c6:0x88,0x2030:0x89,0x0160:0x8a,
+  0x2039:0x8b,0x0152:0x8c,0x017d:0x8e,0x2018:0x91,0x2019:0x92,
+  0x201c:0x93,0x201d:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,
+  0x02dc:0x98,0x2122:0x99,0x0161:0x9a,0x203a:0x9b,0x0153:0x9c,
+  0x017e:0x9e,0x0178:0x9f,
 }
-
-const literal = (s: string) => "(" + clean(s).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)") + ")"
+function encodeWinAnsi(input: string): string {
+  let result = ""
+  for (const char of Array.from(input)) {
+    const cp = char.codePointAt(0) ?? 0
+    const byte = (cp >= 32 && cp <= 126) || (cp >= 160 && cp <= 255)
+      ? cp : winAnsiSpecial[cp]
+    if (byte === undefined) {
+      throw new Error(`Caracter Unicode no representable en PDF: U+${cp.toString(16).toUpperCase()}`)
+    }
+    result += String.fromCharCode(byte)
+  }
+  return result
+}
+const literal = (value: string) => "(" + encodeWinAnsi(value)
+  .replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)") + ")"
 
 function wrap(paragraph: string, limit = 88): string[] {
   const lines: string[] = []
