@@ -27,29 +27,20 @@ const literal = (value: string) => "(" + encodeWinAnsi(value)
   .replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)") + ")"
 
 function wrap(paragraph: string, limit = 50): string[] {
-  // Helvetica 10pt: even the widest printable glyphs fit within the 499pt text area.
-  // Split abnormally long tokens rather than drawing text beyond the right margin.
+  // Preserve contractual spaces and explicit line breaks. Do not collapse
+  // whitespace with split(/\\s+/), which changes names, clauses and amounts.
+  // Only visual wrapping is introduced when the line exceeds the page width.
   const lines: string[] = []
-  let line = ""
-  for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-    const chars = Array.from(word)
-    for (let offset = 0; offset < chars.length; offset += limit) {
-      const part = chars.slice(offset, offset + limit).join("")
-      const candidate = line ? line + " " + part : part
-      if (candidate.length > limit && line) {
-        lines.push(line)
-        line = part
-      } else {
-        line = candidate
-      }
-      if (offset + limit < chars.length) {
-        lines.push(line)
-        line = ""
-      }
+  for (const original of paragraph.replace(/\\r\\n?/g, "\\n").split("\\n")) {
+    if (!original.length) {
+      lines.push("")
+      continue
     }
+    const chars = Array.from(original)
+    for (let pos = 0; pos < chars.length; pos += limit)
+      lines.push(chars.slice(pos, pos + limit).join(""))
   }
-  if (line) lines.push(line)
-  return lines.length ? lines : [""]
+  return lines
 }
 
 export function createCaucionContractPdf(args: {
@@ -58,7 +49,7 @@ export function createCaucionContractPdf(args: {
   sha256: string
   contractId: string
 }): Buffer {
-  const paragraphs = args.documentText.split(/\n\s*\n/)
+  const paragraphs = args.documentText.replace(/\r\n?/g, "\n").split("\n\n")
   const pages: string[][] = [[]]
   let count = 0
   for (const p of paragraphs) {
