@@ -101,11 +101,34 @@ export async function PATCH(req: NextRequest) {
     if (!isUuid(id) || !["final_review", "payment_pending"].includes(next))
       return NextResponse.json({ error: "Estado inválido. No se permite declarar pagos ni emisiones desde esta API." }, { status: 400 })
     const { data: policy, error: lookupError } = await ctx.db.from("caucion_policies")
-      .select("id,status,application_id,lead_contract_id").eq("id", id).maybeSingle()
+      .select("id,status,application_id,lead_contract_id,quote_id").eq("id", id).maybeSingle()
     if (lookupError || !policy) return NextResponse.json({ error: "Registro inexistente" }, { status: 404 })
     const allowed = (policy.status === "pending" && next === "final_review") ||
       (policy.status === "final_review" && next === "payment_pending")
     if (!allowed) return NextResponse.json({ error: "Transición de estado no permitida" }, { status: 409 })
+    // A policy must not progress after the approved contract or quote became stale.
+    const { data: contract, error: contractError } = await ctx.db.from("lead_contracts")
+      .select("id,tenant_lead_id,content").eq("id", policy.lead_contract_id).maybeSingle()
+    const { data: application, error: appError } = await ctx.db.from("caucion_applications")
+      .select("tenant_lead_id,status").eq("id", policy.application_id).maybeSingle()
+    if (contractError || appError || !contract || !application ||
+        typeof contract.content !== "string" ||
+        contract.tenant_lead_id !== application.tenant_lead_id) {
+      return NextResponse.json({ error: "El contrato o la solicitud ya no son válidos" }, { status: 409 })
+    }
+    const approval = await checkPowerMarketSigningApproval(ctx.db, {
+      contractId: policy.lead_contract_id,
+      tenantLeadId: application.tenant_lead_id,
+      contractContent: contract.content,
+    })
+    if (!approval.allowed || !approval.reviewId)
+      return NextResponse.json({ error: "La aprobación contractual ya no está vigente" }, { status: 409 })
+    const { data: acceptedQuote, error: quoteError } = await ctx.db.from("caucion_quotes")
+      .select("status,valid_until").eq("id", policy.quote_id).maybeSingle()
+    if (quoteError || !acceptedQuote || acceptedQuote.status !== "accepted" ||
+        !acceptedQuote.valid_until || Date.parse(acceptedQuote.valid_until) <= Date.now())
+      return NextResponse.json({ error: "La cotización aceptada ya no está vigente" }, { status: 409 })
+
     const { data: updated, error } = await ctx.db.from("caucion_policies")
       .update({ status: next, updated_at: new Date().toISOString() })
       .eq("id", id).eq("status", policy.status).select("id,status").maybeSingle()
