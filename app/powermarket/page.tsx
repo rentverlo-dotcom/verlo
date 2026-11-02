@@ -9,6 +9,7 @@ type Application = {
  approved_max_total_ars:number|null;approved_max_rent_ars:number|null;decision_expires_at:string|null;created_at:string;
  tenant?:{full_name:string|null;email:string|null;phone:string|null}|null
 }
+type QuoteRow={id:string;status:string;premium_ars:number|null;coverage_total_ars:number|null;valid_until:string|null}
 type DocumentRow={id:string;kind:string;original_filename:string|null}
 type ContractReview={id:string;lead_contract_id:string;version:number;status:string;pdf_sha256:string;partner_note:string|null;reviewed_at:string|null;current:boolean}
 
@@ -22,6 +23,7 @@ export default function PowerMarketDashboard(){
  const [logged,setLogged]=useState(false),[busy,setBusy]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState("")
  const [amount,setAmount]=useState(""),[note,setNote]=useState(""),[docs,setDocs]=useState<DocumentRow[]|null>(null)
  const [reviews,setReviews]=useState<ContractReview[]|null>(null)
+ const [quotes,setQuotes]=useState<QuoteRow[]|null>(null)
  const [openedReviewIds,setOpenedReviewIds]=useState<string[]>([])
  const current=items.find(item=>item.id===selected)||null
  const visible=useMemo(()=>items.filter(item=>(filter==="all"||item.status===filter)&&(!search||[item.tenant?.full_name,item.tenant?.email,item.tenant?.phone,item.id].some(v=>String(v||"").toLowerCase().includes(search.toLowerCase())))),[items,filter,search])
@@ -37,7 +39,7 @@ export default function PowerMarketDashboard(){
   setLoading(false)
  }
  useEffect(()=>{void refresh()},[])
- function select(item:Application){setSelected(item.id);setDocs(null);setReviews(null);setOpenedReviewIds([]);setNote("");setAmount(String(item.approved_max_total_ars??""))}
+ function select(item:Application){setSelected(item.id);setDocs(null);setReviews(null);setQuotes(null);setOpenedReviewIds([]);setNote("");setAmount(String(item.approved_max_total_ars??""))}
  async function login(e:React.FormEvent){e.preventDefault();setError("");setBusy(true);const {error:err}=await supabase.auth.signInWithPassword({email,password});setBusy(false);if(err){setError("Credenciales incorrectas");return}setPassword("");setLoading(true);await refresh()}
  async function decide(status:string){
   if(!current||busy)return
@@ -75,6 +77,24 @@ export default function PowerMarketDashboard(){
   const json=await res.json().catch(()=>({}))
   if(!res.ok)setError(json.error||"No se pudo registrar la revisión")
   await loadReviews();setBusy(false)
+ }
+ async function loadQuotes(){
+  if(!current)return
+  const access=await token()
+  const res=await fetch(`/api/powermarket/quotes?application_id=${encodeURIComponent(current.id)}`,{headers:{Authorization:`Bearer ${access}`},cache:"no-store"})
+  const data=await res.json().catch(()=>({}))
+  if(!res.ok)setError(data.error||"No se pudieron consultar las cotizaciones")
+  else setQuotes(data.quotes||[])
+ }
+ async function offerQuote(quote:QuoteRow){
+  if(!current||busy||quote.status!=="draft")return
+  if(!window.confirm("¿Publicar esta cotización para que el inquilino pueda aceptarla?"))return
+  setBusy(true);setError("")
+  const access=await token()
+  const res=await fetch("/api/powermarket/quotes",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({quote_id:quote.id,action:"offer"})})
+  const data=await res.json().catch(()=>({}))
+  if(!res.ok)setError(data.error||"No se pudo publicar la cotización")
+  await loadQuotes();setBusy(false)
  }
  async function documents(){
   if(!current)return
@@ -139,6 +159,16 @@ export default function PowerMarketDashboard(){
       <div><strong>Contacto</strong><p>Email: {current.tenant?.email||"No informado"}<br/>Teléfono: {current.tenant?.phone||"No informado"}</p><p>Estado: {labels[current.status]||current.status}</p></div>
       <div><strong>Solicitud</strong><p>Alquiler: {money(current.requested_rent_ars)}<br/>Expensas: {money(current.estimated_expenses_ars)}<br/>Plazo: {current.duration_months} meses</p></div>
       <div><strong>Ingresos</strong><p>Declarados: {money(current.monthly_income_ars)}<br/>Tipo: {current.employment_type}<br/>Co-inquilino: {current.has_co_tenant?money(current.co_tenant_income_ars):"No"}</p></div>
+     </div>
+     <div style={{borderTop:"1px solid #eee6e8",paddingTop:17,marginTop:8}}>
+      <strong>Cotizaciones de caución</strong>
+      <p style={{color:"#66565b",fontSize:12}}>La cotización publicada aparece en Mi VERLO del inquilino.</p>
+      <button style={button} disabled={busy} onClick={()=>void loadQuotes()}>Consultar cotizaciones</button>
+      {quotes!==null&&(quotes.length===0?<p>No hay cotizaciones registradas.</p>:quotes.map(q=><div key={q.id} style={{padding:"12px 0",borderBottom:"1px solid #eee6e8"}}>
+       <strong>{q.status}</strong><p>Prima: {money(q.premium_ars)} · Cobertura: {money(q.coverage_total_ars)}</p>
+       {q.valid_until&&<p>Vence: {new Date(q.valid_until).toLocaleDateString("es-AR")}</p>}
+       {q.status==="draft"&&<button style={button} disabled={busy} onClick={()=>void offerQuote(q)}>Publicar oferta</button>}
+      </div>))}
      </div>
      <div style={{borderTop:"1px solid #eee6e8",paddingTop:17,marginTop:8}}>
       <div style={{margin:"18px 0",padding:16,border:"1px solid #e7dde0",borderRadius:14}}>
