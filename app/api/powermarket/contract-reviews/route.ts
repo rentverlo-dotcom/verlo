@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createHash } from "node:crypto"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -36,10 +37,23 @@ export async function GET(req: NextRequest) {
     const applicationId = req.nextUrl.searchParams.get("application_id") || ""
     if (!isUuid(applicationId)) return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 })
     const { data, error } = await ctx.db.from("caucion_contract_reviews")
-      .select("id,application_id,lead_contract_id,pdf_sha256,version,status,partner_note,reviewed_at,created_at")
+      .select("id,application_id,lead_contract_id,pdf_sha256,contract_content_sha256,version,status,partner_note,reviewed_at,created_at")
       .eq("application_id", applicationId).order("version", { ascending: false }).limit(50)
     if (error) throw error
-    return NextResponse.json({ ok: true, reviews: data || [] }, { headers: { "Cache-Control": "no-store" } })
+    const contracts = Array.from(new Set((data || []).map(row => row.lead_contract_id)))
+    const { data: currentContracts, error: contractError } = contracts.length
+      ? await ctx.db.from("lead_contracts").select("id,content").in("id", contracts)
+      : { data: [], error: null }
+    if (contractError) throw contractError
+    const currentHashes = new Map((currentContracts || []).map(contract =>
+      [contract.id, typeof contract.content === "string"
+        ? createHash("sha256").update(contract.content, "utf8").digest("hex") : null]))
+    const reviews = (data || []).map(({contract_content_sha256, ...review}) => ({
+      ...review,
+      current: review.status !== "superseded" &&
+        currentHashes.get(review.lead_contract_id) === contract_content_sha256
+    }))
+    return NextResponse.json({ ok: true, reviews }, { headers: { "Cache-Control": "no-store" } })
   } catch (e) {
     console.error("PowerMarket contract review GET failed", e)
     return NextResponse.json({ error: "No se pudieron consultar las revisiones" }, { status: 500 })
@@ -55,7 +69,7 @@ export async function PATCH(req: NextRequest) {
     const expected = String(body?.expected_status || "")
     const decision = String(body?.decision || "")
     const note = String(body?.note || "").trim().slice(0, 1500)
-    if (!isUuid(id) || !["pending","changes_requested"].includes(expected) ||
+    if (!isUuid(id) || expected !== "pending" ||
       !["approved","changes_requested"].includes(decision) ||
       (decision === "changes_requested" && !note)) {
       return NextResponse.json({ error: "Decisión inválida" }, { status: 400 })
