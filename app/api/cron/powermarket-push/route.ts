@@ -65,7 +65,7 @@ export async function POST(req:NextRequest){
    sent=result.sent;failed=result.failed
    status=sent>0?"sent":failed>0?"failed":"unavailable"
    if(failed>0)lastError="Some device deliveries failed"
-  }catch(err){lastError=err instanceof Error?err.message:"Delivery failed"}
+  }catch(err){lastError=err instanceof Error?err.message:"Delivery failed";if(lastError==="Legacy application excluded from PowerMarket Push")status="unavailable"}
   const {error:updateError}=await supabaseAdmin.from("caucion_push_deliveries").update({status,sent_devices:sent,failed_devices:failed,last_error:lastError,updated_at:new Date().toISOString()}).eq("id",d.id).eq("status","processing")
   results.push({status,updated:!updateError})
  }
