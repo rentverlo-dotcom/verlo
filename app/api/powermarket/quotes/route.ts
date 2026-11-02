@@ -74,3 +74,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No se pudo guardar la cotización" }, { status: 500 })
   }
 }
+
+/** Operator publishes a previously saved quote; never records tenant acceptance. */
+export async function PATCH(request: NextRequest) {
+  try {
+    const ctx = await partner(request)
+    if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    const body = await request.json().catch(() => null)
+    const quoteId = String(body?.quote_id || "")
+    if (!uuid(quoteId) || body?.action !== "offer")
+      return NextResponse.json({ error: "Acción inválida" }, { status: 400 })
+
+    const { data: quote, error: quoteError } = await ctx.db.from("caucion_quotes")
+      .select("id,application_id,status,premium_ars,coverage_total_ars,valid_until")
+      .eq("id", quoteId).single()
+    if (quoteError || !quote) return NextResponse.json({ error: "Cotización inexistente" }, { status: 404 })
+    if (quote.status !== "draft" || !quote.valid_until ||
+        Date.parse(quote.valid_until) <= Date.now() ||
+        !(Number(quote.premium_ars) > 0) || !(Number(quote.coverage_total_ars) > 0))
+      return NextResponse.json({ error: "La cotización no puede ofrecerse" }, { status: 409 })
+
+    const { data: app, error: applicationError } = await ctx.db.from("caucion_applications")
+      .select("status").eq("id", quote.application_id).single()
+    if (applicationError || !app ||
+        !["prequalified", "alternative_offered"].includes(app.status))
+      return NextResponse.json({ error: "La solicitud no admite ofertas" }, { status: 409 })
+
+    const { data: offered, error: updateError } = await ctx.db.from("caucion_quotes")
+      .update({ status: "offered" }).eq("id", quoteId).eq("status", "draft")
+      .select("id,status").maybeSingle()
+    if (updateError) throw updateError
+    if (!offered) return NextResponse.json({ error: "La cotización cambió. Actualizá la ficha." }, { status: 409 })
+    return NextResponse.json({ ok: true, quote: offered }, { headers: { "Cache-Control": "no-store" } })
+  } catch (error) {
+    console.error("PowerMarket quote PATCH failed", error)
+    return NextResponse.json({ error: "No se pudo publicar la cotización" }, { status: 500 })
+  }
+}
