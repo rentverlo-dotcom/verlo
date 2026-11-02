@@ -19,6 +19,7 @@ import { trackPostHog } from "@/lib/posthog-client"
 
 import PushSubscribeButton from "@/components/PushSubscribeButton"
 import MyCaucionStatus from "@/components/powermarket/MyCaucionStatus"
+import OwnerCaucionStatus from "@/components/powermarket/OwnerCaucionStatus"
 
 type Role =
   | "tenant"
@@ -2747,6 +2748,7 @@ export default function MiVerloPage() {
             </section>
 
             <MyCaucionStatus />
+            <OwnerCaucionStatus />
             <section className="mv-section">
               <div className="mv-section-heading">
                 <div>
