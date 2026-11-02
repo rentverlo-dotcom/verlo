@@ -5,7 +5,7 @@ import { test, expect } from "@playwright/test"
  * no payment calls, no delivery endpoint invocation and no historical users.
  * Screenshots are written to test-results/ for review.
  */
-const origin = process.env.POWERMARKET_QA_ORIGIN || "http://127.0.0.1:3000"
+const origin = process.env.POWERMARKET_QA_ORIGIN || "https://verlo.lat"
 const paths = ["/", "/caucion/solicitar", "/powermarket", "/mi-verlo"]
 for (const viewport of [
  {name:"desktop",width:1440,height:900},
@@ -28,7 +28,7 @@ for (const viewport of [
    })
    const res=await page.goto(origin+path,{waitUntil:"domcontentloaded",timeout:30000})
    expect(res?.status()).toBeLessThan(500)
-   await page.screenshot({path:`test-results/powermarket-${viewport.name}-${path.replace(/\\W+/g,"-")||"home"}.png`,fullPage:true})
+   await page.screenshot({path:`test-results/powermarket-${viewport.name}-${path.replace(/[^a-z0-9]+/gi,"-")||"home"}.png`,fullPage:true})
    if(path==="/caucion/solicitar"){
     await expect(page.getByRole("link",{name:"Verlo"})).toBeVisible()
     await expect(page.getByRole("link",{name:"Mi VERLO"})).toBeVisible()
