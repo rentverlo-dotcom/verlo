@@ -1,11 +1,16 @@
 // Generador PDF autocontenido: conserva el texto y crea espacios de firma.
 // No constituye una firma digital ni modifica el documento contractual.
-const clean = (s: string) => s
-  .replace(/[\u2018\u2019]/g, "'")
-  .replace(/[\u201C\u201D]/g, '"')
-  .replace(/[\u2013\u2014]/g, "-")
-  .replace(/\u2022/g, "-")
-  .replace(/[^\x20-\x7e\xa0-\xff]/g, "?")
+// Nunca reemplazar silenciosamente cláusulas, símbolos o signos legales.
+const clean = (value: string) => {
+  const unsupported = [...value].find(char => {
+    const code = char.codePointAt(0) ?? 0
+    return code > 255 || (code < 32 && char !== "\t")
+  })
+  if (unsupported) {
+    throw new Error("El PDF de revisión no puede representar íntegramente el texto contractual. Se requiere un generador Unicode.")
+  }
+  return value
+}
 
 const literal = (s: string) => "(" + clean(s).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)") + ")"
 
