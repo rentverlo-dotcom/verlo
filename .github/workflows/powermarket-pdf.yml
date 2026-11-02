@@ -1,0 +1,23 @@
+name: PowerMarket PDF QA
+on:
+  push:
+    branches:
+      - feature/powermarket-integracion-main-20261030
+    paths:
+      - 'lib/powermarket/contract-pdf.ts'
+      - 'tests/powermarket-pdf.spec.ts'
+      - '.github/workflows/powermarket-pdf.yml'
+  workflow_dispatch:
+jobs:
+  pdf-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: PDF generator tests only (no network, DB or browser)
+        run: npx playwright test tests/powermarket-pdf.spec.ts --workers=1 --reporter=line
