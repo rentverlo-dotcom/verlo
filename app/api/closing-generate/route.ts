@@ -10,6 +10,7 @@ import {
 import {
   notifyLeadOnce,
 } from "@/lib/lead-notifications"
+import { autoPublishPowerMarketReview } from "@/lib/powermarket/auto-publish-review"
 
 export const runtime =
   "nodejs"
@@ -2611,6 +2612,20 @@ El presente documento fue generado en Verlo a partir de los datos y condiciones 
           ?.message ||
           "Could not generate contract"
       )
+    }
+
+    // For opt-in caucion applications only; never interrupt traditional closure.
+    try {
+      const review = await autoPublishPowerMarketReview(supabase, {
+        tenantLeadId: contract.tenant_lead_id,
+        contractId: contract.id,
+        contractContent: content,
+      })
+      if (review.status === "failed") {
+        console.error("Caucion contract review not published", review.detail)
+      }
+    } catch (error) {
+      console.error("Optional caucion contract review failed", error)
     }
 
     // =========================================================

@@ -18,6 +18,7 @@ import VerloBrand from "@/components/VerloBrand"
 import { trackPostHog } from "@/lib/posthog-client"
 
 import PushSubscribeButton from "@/components/PushSubscribeButton"
+import MyCaucionStatus from "@/components/powermarket/MyCaucionStatus"
 
 type Role =
   | "tenant"
@@ -2745,6 +2746,7 @@ export default function MiVerloPage() {
               </div>
             </section>
 
+            <MyCaucionStatus />
             <section className="mv-section">
               <div className="mv-section-heading">
                 <div>
