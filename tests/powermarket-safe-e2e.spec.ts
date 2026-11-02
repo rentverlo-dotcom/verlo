@@ -17,6 +17,8 @@ for (const viewport of [
    const page = await context.newPage()
    const errors:string[]=[]
    page.on("pageerror",e=>errors.push(e.message))
+   const hydrationDiagnostics:string[]=[]
+   page.on("console",msg=>{if(msg.type()==="error")hydrationDiagnostics.push(msg.text())})
    // Prevent any accidental writes from client-side effects in this read-only suite.
    await page.route("**/*", async route => {
     const request=route.request()
@@ -36,6 +38,9 @@ for (const viewport of [
    }
    if(path==="/powermarket"){
     await expect(page.getByRole("link",{name:"Verlo",exact:true})).toBeVisible()
+   }
+   if(errors.length){
+    console.log("HYDRATION_DIAGNOSTIC",JSON.stringify({viewport:viewport.name,path,errors,console:hydrationDiagnostics,finalUrl:page.url(),html:await page.locator("body").innerHTML().then(v=>v.slice(0,1500))}))
    }
    expect(errors).toEqual([])
    await context.close()
