@@ -1,4 +1,6 @@
 import "server-only"
+import { createHash } from "node:crypto"
+import { checkPowerMarketSigningApproval } from "@/lib/powermarket/signing-approval"
 import { createClient } from "@supabase/supabase-js"
 import { IdentikApiError, makeIdentikElectronicClient, type IdentikCreatePayload } from "./electronic-v2"
 
@@ -43,6 +45,24 @@ export async function createIdentikElectronicDocument(params: {
   }
 
   const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+  // Re-check the current contract and PowerMarket approval immediately before
+  // the first billable Identik creation. Never trust a previous UI readiness check.
+  const { data: contract, error: contractError } = await db.from("lead_contracts")
+    .select("id,tenant_lead_id,content").eq("id", params.contractId).single()
+  if (contractError || !contract || typeof contract.content !== "string")
+    throw new Error("Contract unavailable for signature")
+  const approval = await checkPowerMarketSigningApproval(db, {
+    contractId: params.contractId, tenantLeadId: contract.tenant_lead_id,
+    contractContent: contract.content,
+  })
+  if (!approval.allowed)
+    throw new Error(`PowerMarket signing blocked: ${approval.reason}`)
+  if (approval.pdfSha256) {
+    const providedSha256 = createHash("sha256").update(Buffer.from(await params.pdf.arrayBuffer())).digest("hex")
+    if (providedSha256 !== approval.pdfSha256)
+      throw new Error("PDF differs from PowerMarket-approved document")
+  }
+
   const externalId = `verlo-electronic-${params.contractId}`
 
   // Exactly one worker should acquire the contract. A duplicate request is not
