@@ -47,8 +47,10 @@ export async function POST(req:NextRequest){
    if(eventError||!event)throw new Error("Event unavailable")
    const message=copy[event.event_type]
    if(!message)throw new Error("Unsupported event")
-   const {data:application,error:applicationError}=await supabaseAdmin.from("caucion_applications").select("tenant_lead_id").eq("id",event.application_id).single()
+   const {data:application,error:applicationError}=await supabaseAdmin.from("caucion_applications").select("tenant_lead_id,submitted_at").eq("id",event.application_id).single()
    if(applicationError||!application)throw new Error("Application unavailable")
+   // Never backfill legacy applications or send a historical audience digest.
+   if(!application.submitted_at||new Date(application.submitted_at).getTime()<Date.parse("2026-11-02T03:00:00Z")){status="unavailable";lastError="Legacy application excluded from PowerMarket Push";throw new Error(lastError)}
    if(d.recipient_role==="tenant"&&application.tenant_lead_id!==d.recipient_lead_id)throw new Error("Recipient mismatch")
    if(d.recipient_role==="owner"){
     const table=event.payload?.source_table==="caucion_contract_reviews"?"caucion_contract_reviews":event.payload?.source_table==="caucion_policies"?"caucion_policies":null
