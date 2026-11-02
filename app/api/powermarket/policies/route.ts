@@ -89,3 +89,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No se pudo iniciar el registro de póliza" }, { status: 500 })
   }
 }
+
+/** Only the partner can advance internal workflow. No payment/emission claims here. */
+export async function PATCH(req: NextRequest) {
+  try {
+    const ctx = await authorize(req)
+    if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    const body = await req.json().catch(() => null)
+    const id = String(body?.policy_id || "")
+    const next = String(body?.status || "")
+    if (!isUuid(id) || !["final_review", "payment_pending"].includes(next))
+      return NextResponse.json({ error: "Estado inválido. No se permite declarar pagos ni emisiones desde esta API." }, { status: 400 })
+    const { data: policy, error: lookupError } = await ctx.db.from("caucion_policies")
+      .select("id,status,application_id,lead_contract_id").eq("id", id).maybeSingle()
+    if (lookupError || !policy) return NextResponse.json({ error: "Registro inexistente" }, { status: 404 })
+    const allowed = (policy.status === "pending" && next === "final_review") ||
+      (policy.status === "final_review" && next === "payment_pending")
+    if (!allowed) return NextResponse.json({ error: "Transición de estado no permitida" }, { status: 409 })
+    const { data: updated, error } = await ctx.db.from("caucion_policies")
+      .update({ status: next, updated_at: new Date().toISOString() })
+      .eq("id", id).eq("status", policy.status).select("id,status").maybeSingle()
+    if (error) throw error
+    if (!updated) return NextResponse.json({ error: "El registro cambió. Volvé a consultar." }, { status: 409 })
+    return NextResponse.json({ ok: true, policy: updated, paid: false, emitted: false },
+      { headers: { "Cache-Control": "no-store" } })
+  } catch (error) {
+    console.error("PowerMarket policy status failed", error)
+    return NextResponse.json({ error: "No se pudo actualizar el registro" }, { status: 500 })
+  }
+}
