@@ -2,7 +2,7 @@
 // No constituye una firma digital ni modifica el documento contractual.
 // Nunca reemplazar silenciosamente cláusulas, símbolos o signos legales.
 const clean = (value: string) => {
-  const unsupported = [...value].find(char => {
+  const unsupported = Array.from(value).find(char => {
     const code = char.codePointAt(0) ?? 0
     return code > 255 || (code < 32 && char !== "\t") || (code >= 127 && code <= 159)
   })
