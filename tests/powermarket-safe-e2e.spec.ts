@@ -30,12 +30,12 @@ for (const viewport of [
    expect(res?.status()).toBeLessThan(500)
    await page.screenshot({path:`test-results/powermarket-${viewport.name}-${path.replace(/[^a-z0-9]+/gi,"-")||"home"}.png`,fullPage:true})
    if(path==="/caucion/solicitar"){
-    await expect(page.getByRole("link",{name:"Verlo"})).toBeVisible()
-    await expect(page.getByRole("link",{name:"Mi VERLO"})).toBeVisible()
+    await expect(page.getByRole("link",{name:"Verlo",exact:true})).toBeVisible()
+    await expect(page.getByRole("link",{name:"Mi VERLO",exact:true})).toBeVisible()
     await expect(page.getByRole("heading",{name:/Precalificá tu seguro de caución/i})).toBeVisible()
    }
    if(path==="/powermarket"){
-    await expect(page.getByRole("link",{name:"Verlo"})).toBeVisible()
+    await expect(page.getByRole("link",{name:"Verlo",exact:true})).toBeVisible()
    }
    expect(errors).toEqual([])
    await context.close()
