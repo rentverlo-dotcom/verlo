@@ -26,15 +26,26 @@ function encodeWinAnsi(input: string): string {
 const literal = (value: string) => "(" + encodeWinAnsi(value)
   .replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)") + ")"
 
-function wrap(paragraph: string, limit = 88): string[] {
+function wrap(paragraph: string, limit = 50): string[] {
+  // Helvetica 10pt: even the widest printable glyphs fit within the 499pt text area.
+  // Split abnormally long tokens rather than drawing text beyond the right margin.
   const lines: string[] = []
   let line = ""
   for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-    if (line && (line + " " + word).length > limit) {
-      lines.push(line)
-      line = word
-    } else {
-      line += (line ? " " : "") + word
+    const chars = Array.from(word)
+    for (let offset = 0; offset < chars.length; offset += limit) {
+      const part = chars.slice(offset, offset + limit).join("")
+      const candidate = line ? line + " " + part : part
+      if (candidate.length > limit && line) {
+        lines.push(line)
+        line = part
+      } else {
+        line = candidate
+      }
+      if (offset + limit < chars.length) {
+        lines.push(line)
+        line = ""
+      }
     }
   }
   if (line) lines.push(line)
