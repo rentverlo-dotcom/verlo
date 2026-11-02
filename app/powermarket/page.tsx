@@ -10,7 +10,7 @@ type Application = {
  tenant?:{full_name:string|null;email:string|null;phone:string|null}|null
 }
 type DocumentRow={id:string;kind:string;original_filename:string|null}
-type ContractReview={id:string;lead_contract_id:string;version:number;status:string;pdf_sha256:string;partner_note:string|null;reviewed_at:string|null}
+type ContractReview={id:string;lead_contract_id:string;version:number;status:string;pdf_sha256:string;partner_note:string|null;reviewed_at:string|null;current:boolean}
 
 const supabase=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 const money=(n:number|null|undefined)=>n==null?"—":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n)
@@ -66,7 +66,7 @@ export default function PowerMarketDashboard(){
   else setError("Permití ventanas emergentes para visualizar el PDF")
  }
  async function reviewDecision(review:ContractReview,decision:"approved"|"changes_requested"){
-  if(busy||!openedReviewIds.includes(review.id))return
+  if(busy||!review.current||review.status!=="pending"||!openedReviewIds.includes(review.id))return
   const detail=decision==="changes_requested"?window.prompt("Explicá qué debe corregirse en el contrato:",""):window.confirm("¿Aprobar esta versión exacta del contrato?")
   if(detail===null||detail===false||(decision==="changes_requested"&&!String(detail).trim()))return
   setBusy(true);setError("")
@@ -150,7 +150,8 @@ export default function PowerMarketDashboard(){
          <p>Estado: {r.status} · SHA-256: {r.pdf_sha256.slice(0,16)}…</p>
          {r.partner_note&&<p>Observación: {r.partner_note}</p>}
          <button style={{...button,marginBottom:10}} disabled={busy} onClick={()=>void openReviewPdf(r)}>Abrir PDF privado</button>
-         {r.status==="pending"?<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+         {!r.current&&<p style={{fontWeight:750}}>Contrato modificado o versión reemplazada. No se puede aprobar.</p>}
+         {r.status==="pending"&&r.current?<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <button style={button} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"approved")}>Aprobar esta versión</button>
           <button style={{...button,background:"#fff",color:"#050002",border:"1px solid #ddd5d7"}} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"changes_requested")}>Solicitar correcciones</button>
          </div>:null}
