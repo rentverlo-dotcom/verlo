@@ -43,7 +43,7 @@ export async function POST(req:NextRequest){
  for(const d of (batch||[]) as Item[]){
   let status="failed",sent=0,failed=0,lastError:string|null=null
   try{
-   const {data:event,error:eventError}=await supabaseAdmin.from("caucion_events").select("event_type,application_id").eq("id",d.event_id).single()
+   const {data:event,error:eventError}=await supabaseAdmin.from("caucion_events").select("event_type,application_id,payload").eq("id",d.event_id).single()
    if(eventError||!event)throw new Error("Event unavailable")
    const message=copy[event.event_type]
    if(!message)throw new Error("Unsupported event")
@@ -51,11 +51,12 @@ export async function POST(req:NextRequest){
    if(applicationError||!application)throw new Error("Application unavailable")
    if(d.recipient_role==="tenant"&&application.tenant_lead_id!==d.recipient_lead_id)throw new Error("Recipient mismatch")
    if(d.recipient_role==="owner"){
-    const {data:reviews}=await supabaseAdmin.from("caucion_contract_reviews").select("lead_contract_id").eq("application_id",event.application_id)
-    const {data:policies}=await supabaseAdmin.from("caucion_policies").select("lead_contract_id").eq("application_id",event.application_id)
-    const ids=Array.from(new Set([...(reviews||[]),...(policies||[])].map(x=>x.lead_contract_id).filter(Boolean)))
-    if(!ids.length)throw new Error("Owner not linked to contract")
-    const {data:contracts,error:contractError}=await supabaseAdmin.from("lead_contracts").select("owner_lead_id").in("id",ids).eq("tenant_lead_id",application.tenant_lead_id).eq("owner_lead_id",d.recipient_lead_id).limit(1)
+    const table=event.payload?.source_table==="caucion_contract_reviews"?"caucion_contract_reviews":event.payload?.source_table==="caucion_policies"?"caucion_policies":null
+    const sourceId=String(event.payload?.source_id||"")
+    if(!table||!sourceId)throw new Error("Missing event-specific contract")
+    const {data:source,error:sourceError}=await supabaseAdmin.from(table).select("lead_contract_id").eq("id",sourceId).eq("application_id",event.application_id).maybeSingle()
+    if(sourceError||!source?.lead_contract_id)throw new Error("Event contract unavailable")
+    const {data:contracts,error:contractError}=await supabaseAdmin.from("lead_contracts").select("owner_lead_id").eq("id",source.lead_contract_id).eq("tenant_lead_id",application.tenant_lead_id).eq("owner_lead_id",d.recipient_lead_id).limit(1)
     if(contractError||!contracts?.length)throw new Error("Owner relationship invalid")
    }
    const result=await sendPushToLead(d.recipient_lead_id,{title:message[0],body:message[1],url:"/mi-verlo"})
