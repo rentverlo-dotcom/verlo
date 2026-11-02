@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { checkPowerMarketSigningApproval } from "@/lib/powermarket/signing-approval"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -57,17 +58,21 @@ export async function POST(req: NextRequest) {
     const { data: application, error: appError } = await ctx.db.from("caucion_applications")
       .select("id,tenant_lead_id,status").eq("id", quote.application_id).maybeSingle()
     const { data: contract, error: contractError } = await ctx.db.from("lead_contracts")
-      .select("id,tenant_lead_id").eq("id", contractId).maybeSingle()
+      .select("id,tenant_lead_id,content").eq("id", contractId).maybeSingle()
     if (appError || contractError || !application || !contract ||
         application.tenant_lead_id !== contract.tenant_lead_id ||
         !["prequalified", "alternative_offered"].includes(application.status))
       return NextResponse.json({ error: "La operación no corresponde a la caución aprobada" }, { status: 409 })
 
-    const { data: reviews, error: reviewError } = await ctx.db.from("caucion_contract_reviews")
-      .select("status").eq("application_id", application.id)
-      .eq("lead_contract_id", contractId).eq("status", "approved").limit(1)
-    if (reviewError || !reviews?.length)
-      return NextResponse.json({ error: "Falta la aprobación contractual de PowerMarket" }, { status: 409 })
+    // A previous approval does not authorize a changed contract.
+    // Use the exact same server-side current-version gate as signing.
+    if (typeof contract.content !== "string")
+      return NextResponse.json({ error: "Contrato no disponible" }, { status: 409 })
+    const approval = await checkPowerMarketSigningApproval(ctx.db, {
+      contractId, tenantLeadId: application.tenant_lead_id, contractContent: contract.content
+    })
+    if (!approval.allowed || !approval.reviewId)
+      return NextResponse.json({ error: "Falta una aprobación vigente del contrato de PowerMarket" }, { status: 409 })
 
     const { data: existing, error: existingError } = await ctx.db.from("caucion_policies")
       .select("id").eq("application_id", application.id).eq("lead_contract_id", contractId).limit(1)
