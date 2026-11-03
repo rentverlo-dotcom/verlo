@@ -117,6 +117,19 @@ export default function PowerMarketDashboard(){
   if(!res.ok)setError(data.error||"No se pudo actualizar el registro")
   await loadPolicies();setBusy(false)
  }
+ async function confirmOperation(policy:PolicyRow){
+  if(busy||policy.status!=="payment_pending")return
+  if(!window.confirm("¿Confirmás que PowerMarket ya recibió el pago de esta caución? Esta acción quedará registrada en VERLO. No emite la póliza ni cobra dinero."))return
+  setBusy(true);setError("")
+  try{
+   const access=await token()
+   const res=await fetch("/api/powermarket/confirm-operation",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({policy_id:policy.id,action:"confirm_operation"})})
+   const result=await res.json().catch(()=>({}))
+   if(!res.ok)setError(result.error||"No se pudo confirmar la operación")
+   else await loadPolicies()
+  }catch{setError("No se pudo comunicar con VERLO")}
+  finally{setBusy(false)}
+ }
  async function documents(){
   if(!current)return
   const access=await token()
@@ -187,10 +200,11 @@ export default function PowerMarketDashboard(){
        <p style={{fontSize:12,color:"#66565b"}}>Estados internos. No acreditan cobro ni emisión por la aseguradora.</p>
        <button style={button} disabled={busy} onClick={()=>void loadPolicies()}>Consultar registros</button>
        {policies!==null&&(policies.length===0?<p>Todavía no hay registros de póliza.</p>:policies.map(p=><div key={p.id} style={{borderTop:"1px solid #eee6e8",marginTop:10,paddingTop:10}}>
-        <strong>{p.status==="pending"?"Pendiente":p.status==="final_review"?"Revisión final":p.status==="payment_pending"?"Pago pendiente":p.status}</strong>
+        <strong>{p.status==="pending"?"Pendiente":p.status==="final_review"?"Revisión final":p.status==="payment_pending"?"Pago pendiente":p.status==="payment_confirmed"?"Pago confirmado por PowerMarket":p.status}</strong>
         <p style={{fontSize:12}}>Contrato: {p.lead_contract_id}</p>
         {(p.status==="pending"||p.status==="final_review")&&<button style={button} disabled={busy} onClick={()=>void advancePolicy(p)}>Avanzar al siguiente estado</button>}
-        {p.status==="payment_pending"&&<p>En espera de confirmación de pago y emisión por canales verificables.</p>}
+        {p.status==="payment_pending"&&<div style={{marginTop:10}}><p>PowerMarket cobra directamente al cliente. Confirmá solo cuando el pago esté acreditado.</p><button type="button" style={button} disabled={busy} onClick={()=>void confirmOperation(p)}>Confirmar operación</button></div>}
+         {p.status==="payment_confirmed"&&<p style={{color:"#226344",fontWeight:650}}>Pago confirmado por PowerMarket. La emisión de la póliza sigue pendiente.</p>}
        </div>))}
       </div>
       <strong>Cotizaciones de caución</strong>
