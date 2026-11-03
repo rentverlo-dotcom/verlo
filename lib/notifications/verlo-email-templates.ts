@@ -65,6 +65,20 @@ const powermarketCopy: Record<string, [string, string]> = {
   policy_rejected: ["Novedad sobre tu caución", "Consultá el estado actualizado de tu solicitud."],
 }
 
+// Partner events sent to owners must never claim the owner paid the premium.
+const powermarketOwnerCopy: Record<string, [string, string]> = {
+  review_pending: ["Contrato en revisión", "PowerMarket está revisando el contrato de tu alquiler."],
+  review_changes_requested: ["Hay observaciones sobre el contrato", "PowerMarket solicitó correcciones al contrato de tu alquiler."],
+  review_approved: ["Revisión contractual aprobada", "PowerMarket aprobó la versión revisada del contrato."],
+  policy_pending: ["Caución del alquiler en trámite", "La caución vinculada a tu alquiler se encuentra en trámite."],
+  policy_final_review: ["Caución del alquiler en revisión final", "La caución vinculada a tu alquiler avanzó a revisión final."],
+  policy_payment_pending: ["Caución del alquiler pendiente de pago", "El pago de la caución del inquilino está pendiente de confirmación por PowerMarket."],
+  policy_payment_confirmed: ["Pago de caución del inquilino confirmado", "PowerMarket confirmó el pago de la caución del inquilino. La póliza todavía no fue emitida."],
+  policy_issued: ["Póliza de caución emitida", "La póliza de caución vinculada a tu alquiler fue emitida."],
+  policy_cancelled: ["Caución del alquiler cancelada", "La caución vinculada a tu alquiler fue cancelada."],
+  policy_rejected: ["Caución del alquiler no emitida", "La caución vinculada a tu alquiler no fue emitida."],
+}
+
 const temporaryCopy: Record<string, [string, string]> = {
   reservation_confirmed: ["Reserva temporaria confirmada", "La reserva fue confirmada. Revisá los detalles en Mi VERLO."],
   temporary_action_required: ["Tenés una acción pendiente", "Hay una novedad en tu alquiler temporario. Revisá Mi VERLO."],
@@ -89,7 +103,8 @@ const traditionalCopy: Record<string, [string, string]> = {
 export function renderVerloEmail(event: VerloEmailEvent): VerloEmailTemplate {
   const catalog = event.area === "powermarket" ? powermarketCopy
     : event.area === "temporarios" ? temporaryCopy : traditionalCopy
-  const copy = catalog[event.type]
+  const copy = event.area === "powermarket" && event.role === "owner"
+    ? powermarketOwnerCopy[event.type] : catalog[event.type]
   if (!copy) throw new Error("Unsupported VERLO email event")
 
   // Provider-created events use allowlisted copy, not user-supplied raw HTML.
