@@ -13,6 +13,7 @@ on:
       - 'app/powermarket/page.tsx'
       - 'components/powermarket/MyCaucionStatus.tsx'
       - 'tests/posthog-funnel.spec.ts'
+      - 'tests/posthog-readonly-live.spec.ts'
       - '.github/workflows/posthog-funnel-qa.yml'
   workflow_dispatch:
 
@@ -31,3 +32,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright test tests/posthog-funnel.spec.ts --reporter=line
+      - run: npx playwright install --with-deps chromium
+      - name: Check all three public funnels without writes or analytics delivery
+        run: npx playwright test tests/posthog-readonly-live.spec.ts --reporter=line
