@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test"
 import { readFileSync } from "node:fs"
+import {safeAnalyticsPath} from "../lib/posthog-client"
 
 const source=(path:string)=>readFileSync(path,"utf8")
 
@@ -46,4 +47,21 @@ test("privacy protection excludes sensitive fields",()=>{
  const analytics=source("lib/posthog-client.ts")
  expect(analytics).toContain("sanitizeAnalyticsValue")
  expect(analytics).toContain("token|secret|password|dni|email|phone|document|signature|address|name|url")
+})
+
+test("private paths and query tokens are redacted before analytics",()=>{
+  for(const [input,expected] of [
+    ["/matches/my-private-token?access=secret","/matches/[private]"],
+    ["/match/token123","/match/[private]"],
+    ["/candidatos/private-token","/candidatos/[private]"],
+    ["/candidato/private-token","/candidato/[private]"],
+    ["/cierre/private-token","/cierre/[private]"],
+    ["/propiedad/private-token","/propiedad/[private]"],
+    ["/propiedades/uuid-123","/propiedades/[private]"],
+    ["/guardadas/uuid-123","/guardadas/[private]"],
+    ["/owner/completar/private-token","/owner/completar/[private]"],
+    ["/propietario/preview/uuid-123","/propietario/preview/[private]"],
+    ["/tenant/validacion/private-token","/tenant/validacion/[private]"],
+    ["/contracts/uuid-123?signature=my-secret","/contracts/[private]"],
+  ]) expect(safeAnalyticsPath(input)).toBe(expected)
 })
