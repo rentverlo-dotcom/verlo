@@ -125,7 +125,7 @@ async function markEmailFailed(
     )
 }
 
-async function sendZohoEmail(
+export async function sendZohoEmail(
   to: string,
   subject: string,
   body: string,
