@@ -21,7 +21,7 @@ export type MailResult = {
 }
 
 const ENDPOINT = "https://cpaas.zoho.com/v1.1/email"
-const FROM_ADDRESS = "hola@verlo.lat"
+const DEFAULT_FROM_ADDRESS = "hola@verlo.lat"
 const FROM_NAME = "VERLO"
 
 export async function sendWithZeptoMail(
@@ -31,6 +31,13 @@ export async function sendWithZeptoMail(
   // Explicit AND gate. Inactive until verification + manual cutover.
   const enabled = options.enabled ?? process.env.VERLO_ZEPTO_EMAIL_LIVE === "true"
   if (!enabled) return { accepted: false, providerId: null, status: null, reason: "disabled" }
+
+  // Configure the verified transactional subdomain only after Zoho authorizes it.
+  // Never infer a Reply-To mailbox: transactional notices are not conversations.
+  const fromAddress = (process.env.VERLO_ZEPTO_FROM_EMAIL || DEFAULT_FROM_ADDRESS).trim()
+  if (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(fromAddress)) {
+    return { accepted: false, providerId: null, status: null, reason: "invalid_sender" }
+  }
 
   const key = options.apiKey ?? process.env.ZOHO_CPAAS_EMAIL_API_KEY
   if (!key) return { accepted: false, providerId: null, status: null, reason: "not_configured" }
@@ -50,7 +57,7 @@ export async function sendWithZeptoMail(
         Authorization: key.startsWith("Zoho-enczapikey ") ? key : `Zoho-enczapikey ${key}`,
       },
       body: JSON.stringify({
-        from: { address: FROM_ADDRESS, name: FROM_NAME },
+        from: { address: fromAddress, name: FROM_NAME },
         to: [{ email_address: { address: message.to } }],
         subject: message.subject,
         htmlbody: message.html,
