@@ -47,6 +47,7 @@ const powermarketCopy: Record<string, [string, string]> = {
   policy_pending: ["Tu caución está en trámite", "Seguimos procesando tu caución."],
   policy_final_review: ["Tu caución está en revisión final", "Revisá el estado en Mi VERLO."],
   policy_payment_pending: ["Hay un pago pendiente de tu caución", "Consultá los siguientes pasos en Mi VERLO. El pago se realiza con PowerMarket."],
+  policy_payment_confirmed: ["PowerMarket confirmó tu pago", "El pago de tu caución fue confirmado. La emisión de la póliza continúa pendiente."],
   policy_issued: ["Tu póliza de caución fue emitida", "Ingresá a Mi VERLO para conocer el estado actualizado."],
   policy_cancelled: ["Novedad sobre tu caución", "El trámite se encuentra cancelado. Revisá Mi VERLO."],
   policy_rejected: ["Novedad sobre tu caución", "Consultá el estado actualizado de tu solicitud."],
