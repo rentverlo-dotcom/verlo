@@ -21,13 +21,16 @@ test.describe("VERLO email migration - no external deliveries", () => {
   }
 
 
-  test("support bubble is present on every page and opens the correct mailbox", () => {
+  test("support bubble opens an in-app form and submits to VERLO support", () => {
     const component = readFileSync("components/SupportEmailBubble.tsx", "utf8")
+    const endpoint = readFileSync("app/api/support/contact/route.ts", "utf8")
     const layout = readFileSync("app/layout.tsx", "utf8")
-    expect(component).toContain("mailto:soporte@verlo.lat?subject=")
-    expect(component).toContain("¿Necesitás ayuda?")
-    expect(component).not.toContain("wa.me/")
-    expect(layout).toContain("import SupportEmailBubble")
+    expect(component).toContain('setOpen(!open)')
+    expect(component).toContain('"/api/support/contact"')
+    expect(component).toContain("Enviar consulta")
+    expect(component).not.toContain("mailto:")
+    expect(endpoint).toContain('const SUPPORT_ADDRESS = "soporte@verlo.lat"')
+    expect(endpoint).toContain("sendZohoEmail(")
     expect(layout).toContain("<SupportEmailBubble />")
   })
 
