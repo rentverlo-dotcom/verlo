@@ -21,6 +21,7 @@ const copy:Record<string,[string,string]>={
  review_changes_requested:["Contrato con observaciones","El contrato necesita correcciones. Revisá Mi VERLO."],
  review_approved:["Contrato aprobado","PowerMarket aprobó la revisión contractual."],
  policy_pending:["Caución en trámite","La póliza sigue en trámite."],
+ policy_payment_confirmed:["Pago de caución confirmado","PowerMarket confirmó la operación. La emisión de la póliza sigue pendiente."],
  policy_final_review:["Caución en revisión final","La póliza avanzó a revisión final."],
  policy_payment_pending:["Pago pendiente en PowerMarket","Revisá los pasos de tu caución en Mi VERLO."],
  policy_issued:["Póliza emitida","Tu póliza de caución está emitida."],
