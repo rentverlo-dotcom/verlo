@@ -7,6 +7,9 @@ type EnqueueInput = {
   eventKey: string
   recipientEmail: string | null | undefined
   recipientRole: VerloEmailRole
+  url?: string
+  title?: string
+  body?: string
 }
 
 /**
@@ -31,6 +34,9 @@ export async function enqueueVerloEmail(input: EnqueueInput): Promise<"disabled"
     event_type: input.eventType,
     recipient_email: email,
     recipient_role: input.recipientRole,
+    destination_url: input.url || null,
+    notification_title: input.title || null,
+    notification_body: input.body || null,
     status: "pending",
   })
 
