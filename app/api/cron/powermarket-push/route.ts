@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { sendPushToLead } from "@/lib/push"
-import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 type Item={id:string;event_id:string;recipient_lead_id:string;recipient_role:"tenant"|"owner";attempts:number}
@@ -61,16 +60,6 @@ export async function POST(req:NextRequest){
     if(sourceError||!source?.lead_contract_id)throw new Error("Event contract unavailable")
     const {data:contracts,error:contractError}=await supabaseAdmin.from("lead_contracts").select("owner_lead_id").eq("id",source.lead_contract_id).eq("tenant_lead_id",application.tenant_lead_id).eq("owner_lead_id",d.recipient_lead_id).limit(1)
     if(contractError||!contracts?.length)throw new Error("Owner relationship invalid")
-   }
-   // Capture only after the tenant/owner relationship has been validated.
-   // Explicitly gated, no send, no backfill; Push behavior is unchanged.
-   if(process.env.VERLO_EMAIL_QUEUE_CAPTURE_ENABLED==="true" && process.env.VERLO_EMAIL_CUTOVER_APPROVED==="true"){
-    const {data:contact,error:contactError}=await supabaseAdmin.from("lead_intake").select("email").eq("id",d.recipient_lead_id).maybeSingle()
-    if(!contactError && contact?.email)await enqueueVerloEmailSafely({
-      area:"powermarket",eventType:event.event_type,
-      eventKey:`caucion:${d.event_id}:${d.recipient_role}`,
-      recipientEmail:contact.email,recipientRole:d.recipient_role,
-    })
    }
    const result=await sendPushToLead(d.recipient_lead_id,{title:message[0],body:message[1],url:"/mi-verlo"})
    sent=result.sent;failed=result.failed
