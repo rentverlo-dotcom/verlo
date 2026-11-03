@@ -237,6 +237,15 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
         throw new Error("Recipient contact unavailable")
       }
 
+      // Confirm the queued recipient actually owns the demand/property linked to this match.
+      const identityColumn = owner ? "owner_user_id" : "tenant_user_id"
+      const { data: linkedRecord, error: linkedError } = await db
+        .from(table).select(identityColumn).eq("id", rowId).maybeSingle()
+      if (linkedError || !linkedRecord ||
+          (linkedRecord as Record<string, unknown>)[identityColumn] !== event.recipient_user_id) {
+        throw new Error("Recipient does not belong to this temporary match")
+      }
+
       const fields = record as Record<string, unknown>
 
       const fullName = String(fields[nameField] || "").trim()
@@ -276,6 +285,11 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
         recipientEmail: user.data.user.email,
         recipientRole: event.recipient_role,
         url: "https://verlo.lat/temporarios/mi-verlo",
+        title: eventType === "reservation_confirmed"
+          ? "Reserva temporaria confirmada" : "Tenés una acción pendiente",
+        body: eventType === "reservation_confirmed"
+          ? `La reserva fue confirmada. Estadía del ${formatDate(checkIn)} al ${formatDate(checkOut)}. Revisá los detalles en VERLO Temporarios.`
+          : `Hay una acción pendiente en tu alquiler temporario: ${actionText}`,
       })
 
       const destination =
