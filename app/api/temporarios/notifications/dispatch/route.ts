@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -265,6 +266,16 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
       ) {
         throw new Error("Action text unavailable")
       }
+
+      // Future native mail capture; no effect until cutover is approved.
+      // Event key is unique in the new outbox; legacy delivery remains unchanged.
+      await enqueueVerloEmailSafely({
+        area: "temporarios",
+        eventType,
+        eventKey: String(event.event_key),
+        recipientEmail: user.data.user.email,
+        recipientRole: event.recipient_role,
+      })
 
       const destination =
         "https://verlo.lat/temporarios/mi-verlo"
