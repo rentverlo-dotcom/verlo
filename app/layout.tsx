@@ -97,7 +97,7 @@ export default function RootLayout({
                           before_send: function (event) {
                             if (!event || !event.properties) return event;
                             var properties = event.properties;
-                            var privateRoute = new RegExp('/(matches|candidatos|cierre|activar|final|propiedad|contracts)/[^/?#]+', 'gi');
+                            var privateRoute = new RegExp('/(matches|match|candidatos|candidato|cierre|activar|final|propiedad|propiedades|guardadas|contracts|tenant/validacion|owner/completar|propietario/preview)/[^/?#]+', 'gi');
                             Object.keys(properties).forEach(function (key) {
                               var value = properties[key];
                               if (typeof value !== 'string') return;
