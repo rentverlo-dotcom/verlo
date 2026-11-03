@@ -1,0 +1,30 @@
+name: VERLO email migration safe QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/notifications/zeptomail.ts'
+      - 'lib/notifications/verlo-email-templates.ts'
+      - 'tests/email-migration.spec.ts'
+      - '.github/workflows/email-migration-safe-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  email-no-send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      VERLO_ZEPTO_EMAIL_LIVE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Test mocked Zoho transport and 3 workflow templates
+        run: npx playwright test tests/email-migration.spec.ts --reporter=line
