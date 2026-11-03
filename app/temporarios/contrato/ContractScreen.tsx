@@ -3,6 +3,7 @@ import {useEffect,useState} from "react"
 import Link from "next/link"
 import {useSearchParams} from "next/navigation"
 import BrandHeader from "@/app/temporarios/BrandHeader"
+import {trackPostHog} from "@/lib/posthog-client"
 import {supabase} from "@/lib/supabase/client"
 import {shell,container,panel,field,fieldLabel,button} from "@/app/temporarios/brand"
 type Party={fullName:string;document:string;address:string}
@@ -25,6 +26,7 @@ export default function ContractScreen(){
  useEffect(()=>{if(matchId)void load()},[matchId])
  async function submit(action:"generate"|"accept"){setBusy(true);setMessage("");try{
   await call("POST",action==="generate"?{action,owner,tenant,houseRules:rules}:{action})
+  trackPostHog(action==="generate"?"temporary_contract_generated":"temporary_contract_accepted",{product:"temporary",role:data?.role||"unknown"})
   await load()
   setMessage(action==="generate"?"Contrato emitido. Ambas partes deben revisarlo y aceptarlo.":"Tu aceptación quedó registrada.")
  }catch(e){setMessage(e instanceof Error?e.message:"No se pudo completar la acción")}finally{setBusy(false)}}
