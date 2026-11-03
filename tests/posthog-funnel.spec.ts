@@ -26,6 +26,9 @@ test("temporary registration decisions already have dedicated events",()=>{
  expect(source("app/temporarios/mi-verlo/page.tsx")).toContain("temporary_match_decision_completed")
  expect(source("app/temporarios/buscar/TemporaryTenantDraft.tsx")).toContain("temporary_tenant_registration_completed")
  expect(source("app/temporarios/publicar/TemporaryOwnerDraft.tsx")).toContain("temporary_owner_registration_completed")
+ const contract=source("app/temporarios/contrato/ContractScreen.tsx")
+ expect(contract).toContain("temporary_contract_generated")
+ expect(contract).toContain("temporary_contract_accepted")
 })
 
 test("PowerMarket tracks only successful state changes and a failed path",()=>{
