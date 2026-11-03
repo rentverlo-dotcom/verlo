@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase/client"
 import VerloBrand from "@/components/VerloBrand"
+import {trackPostHog} from "@/lib/posthog-client"
 
 declare global {
   interface Window {
@@ -339,7 +340,8 @@ export default function PublicarPropiedad() {
   }
 
   function next() {
-    if (!validateStep()) return
+    if (!validateStep()) {trackPostHog("traditional_form_validation_failed",{area:"tradicionales",role:"owner",step});return}
+    trackPostHog("traditional_form_step_completed",{area:"tradicionales",role:"owner",step})
     setStep((s) => Math.min(s + 1, TOTAL_STEPS))
   }
 
@@ -349,7 +351,8 @@ export default function PublicarPropiedad() {
   }
 
   async function publish() {
-    if (!validateStep()) return
+    if (!validateStep()) {trackPostHog("traditional_form_validation_failed",{area:"tradicionales",role:"owner",step});return}
+    trackPostHog("traditional_form_submitted",{area:"tradicionales",role:"owner"})
 
     setIsPublishing(true)
     setErrorMessage(null)
@@ -478,6 +481,7 @@ export default function PublicarPropiedad() {
         return
       }
 
+      trackPostHog("traditional_registration_completed",{area:"tradicionales",role:"owner"})
       localStorage.removeItem("property_draft")
       localStorage.removeItem("property_step")
 
