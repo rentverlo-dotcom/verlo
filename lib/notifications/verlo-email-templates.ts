@@ -11,16 +11,28 @@ export type VerloEmailEvent = {
   type: string
   title?: string
   body?: string
+  url?: string
 }
 
 export type VerloEmailTemplate = {
   subject: string
   html: string
   text: string
-  url: "https://verlo.lat/mi-verlo"
+  url: string
 }
 
 const PORTAL = "https://verlo.lat/mi-verlo" as const
+
+/** Keep action-specific destinations. Never permit other origins or dangerous schemes. */
+export function safeVerloEmailUrl(value?: string): string {
+  if (!value || !value.trim()) return PORTAL
+  try {
+    const candidate = new URL(value.trim(), "https://verlo.lat")
+    if (candidate.protocol !== "https:" || candidate.origin !== "https://verlo.lat" ||
+      candidate.username || candidate.password) return PORTAL
+    return candidate.toString()
+  } catch { return PORTAL }
+}
 const LOGO = "https://verlo.lat/logo-verlo.png"
 
 function htmlEscape(value: string): string {
@@ -83,13 +95,15 @@ export function renderVerloEmail(event: VerloEmailEvent): VerloEmailTemplate {
   // Provider-created events use allowlisted copy, not user-supplied raw HTML.
   const subject = event.title?.trim() || copy[0]
   const body = event.body?.trim() || copy[1]
+  const destination = safeVerloEmailUrl(event.url)
+  const safeDestination = htmlEscape(destination)
   const safeTitle = htmlEscape(subject)
   const safeBody = htmlEscape(body).replace(/\r?\n/g, "<br />")
 
   return {
     subject,
-    url: PORTAL,
-    text: `${subject}\n\n${body}\n\nAbrir Mi VERLO: ${PORTAL}\n\nSi no esperabas este correo, podés ignorarlo.`,
+    url: destination,
+    text: `${subject}\n\n${body}\n\nAbrir VERLO: ${destination}\n\nSi no esperabas este correo, podés ignorarlo.`,
     html: `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="margin:0;background:#f6f5f4;font-family:Arial,Helvetica,sans-serif;color:#050002">
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;margin:30px auto;background:#fff;border-radius:18px">
@@ -100,7 +114,7 @@ export function renderVerloEmail(event: VerloEmailEvent): VerloEmailTemplate {
 <tr><td style="padding:16px 32px 32px">
 <h1 style="font-size:23px;line-height:1.3;margin:0 0 16px">${safeTitle}</h1>
 <p style="font-size:16px;line-height:1.65;margin:0 0 28px">${safeBody}</p>
-<a href="${PORTAL}" style="display:inline-block;border-radius:28px;padding:14px 24px;background:#050002;color:white;text-decoration:none;font-weight:bold">Abrir Mi VERLO</a>
+<a href="${safeDestination}" style="display:inline-block;border-radius:28px;padding:14px 24px;background:#050002;color:white;text-decoration:none;font-weight:bold">Ver novedad en VERLO</a>
 <p style="font-size:12px;color:#777;margin:30px 0 0;line-height:1.5">Este correo es una notificación de VERLO. Si no la esperabas, podés ignorarla.</p>
 </td></tr></table></body></html>`,
   }
