@@ -67,7 +67,7 @@ create or replace function public.verlo_email_finish(
  p_id uuid, p_status text, p_provider_id text default null,
  p_error text default null
 ) returns boolean
-language plpgsql security definer set search_path=public as $
+language plpgsql security definer set search_path=public as $function$
 declare v_count integer;
 begin
   if p_status not in ('accepted','failed','unknown','cancelled') then
