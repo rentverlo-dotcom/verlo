@@ -21,6 +21,30 @@ test.describe("VERLO email migration - no external deliveries", () => {
   }
 
 
+  test("support bubble is present on every page and opens the correct mailbox", () => {
+    const component = readFileSync("components/SupportEmailBubble.tsx", "utf8")
+    const layout = readFileSync("app/layout.tsx", "utf8")
+    expect(component).toContain("mailto:soporte@verlo.lat?subject=")
+    expect(component).toContain("¿Necesitás ayuda?")
+    expect(component).not.toContain("wa.me/")
+    expect(layout).toContain("import SupportEmailBubble")
+    expect(layout).toContain("<SupportEmailBubble />")
+  })
+
+  test("legacy 50-recipient cap must not be carried over to native email queue", () => {
+    const legacy = readFileSync("app/api/cron/match-digest/route.ts", "utf8")
+    const nativeQueue = readFileSync("lib/notifications/verlo-email-outbox.ts", "utf8")
+    expect(legacy).toContain("MAX_DIGEST_PER_DAY = 50")
+    expect(nativeQueue).not.toContain("MAX_DIGEST_PER_DAY")
+    expect(nativeQueue).toContain('error?.code === "23505"')
+  })
+
+  test("all three business lines are included in native email rendering", () => {
+    expect(Object.keys(VERLO_EMAIL_EVENT_TYPES).sort()).toEqual(
+      ["powermarket", "temporarios", "tradicionales"].sort()
+    )
+  })
+
   test("integration remains disabled unless both cutover flags are set", () => {
     const source = readFileSync("lib/notifications/verlo-email-outbox.ts", "utf8")
     expect(source).toContain('VERLO_EMAIL_QUEUE_CAPTURE_ENABLED !== "true"')
