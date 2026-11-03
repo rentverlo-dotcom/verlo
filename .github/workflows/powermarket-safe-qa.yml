@@ -4,6 +4,12 @@ on:
   push:
     paths:
       - "tests/powermarket-safe-e2e.spec.ts"
+      - "app/page.tsx"
+      - "app/mi-verlo/**"
+      - "app/caucion/**"
+      - "app/powermarket/**"
+      - "components/powermarket/**"
+      - "components/VerloBrand.tsx"
       - ".github/workflows/powermarket-safe-qa.yml"
 permissions:
   contents: read
