@@ -2456,9 +2456,7 @@ export default function MiVerloPage() {
   ) {
     return (
       <>
-        <style>
-          {styles}
-        </style>
+        <style dangerouslySetInnerHTML={{ __html: styles }} />
 
         <div className="mv-root">
           <header className="mv-nav">
@@ -2493,9 +2491,7 @@ export default function MiVerloPage() {
 
     return (
       <>
-        <style>
-          {styles}
-        </style>
+        <style dangerouslySetInnerHTML={{ __html: styles }} />
 
         <div className="mv-root">
           <header className="mv-nav">
@@ -2587,9 +2583,7 @@ export default function MiVerloPage() {
 
   return (
     <>
-      <style>
-        {styles}
-      </style>
+      <style dangerouslySetInnerHTML={{ __html: styles }} />
 
       <div className="mv-root">
 
