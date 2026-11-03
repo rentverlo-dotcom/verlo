@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   const key = ip.replace(/[^\w.: -]/g, "").slice(0, 100)
   const now = Date.now()
   if (attempts.size > 2000) {
-    for (const [item, value] of attempts) if (value.until <= now) attempts.delete(item)
+    attempts.forEach((value, item) => { if (value.until <= now) attempts.delete(item) })
   }
   const prior = attempts.get(key)
   const state = prior && prior.until > now ? prior : { count: 0, until: now + WINDOW_MS }
