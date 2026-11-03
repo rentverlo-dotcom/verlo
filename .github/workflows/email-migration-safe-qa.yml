@@ -8,6 +8,11 @@ on:
       - 'lib/notifications/verlo-email-templates.ts'
       - 'tests/email-migration.spec.ts'
       - 'app/api/admin/email-dispatch/route.ts'
+      - 'app/api/admin/powermarket-email-capture/route.ts'
+      - 'lib/notifications/verlo-email-outbox.ts'
+      - 'lib/lead-notifications.ts'
+      - 'app/api/temporarios/notifications/dispatch/route.ts'
+      - 'app/api/cron/powermarket-push/route.ts'
       - 'supabase/migrations/20261103_verlo_email_outbox_preparation.sql'
       - '.github/workflows/email-migration-safe-qa.yml'
   workflow_dispatch:
