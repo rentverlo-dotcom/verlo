@@ -21,6 +21,31 @@ test.describe("VERLO email migration - no external deliveries", () => {
   }
 
 
+  test("PowerMarket emails refer to tenant-paid premium for owners", () => {
+    const tenant = renderVerloEmail({
+      area: "powermarket", role: "tenant", type: "policy_payment_confirmed",
+    })
+    const owner = renderVerloEmail({
+      area: "powermarket", role: "owner", type: "policy_payment_confirmed",
+    })
+    expect(tenant.subject).toBe("PowerMarket confirmó tu pago")
+    expect(owner.subject).toBe("Pago de caución del inquilino confirmado")
+    expect(owner.text).toContain("caución del inquilino")
+    expect(owner.text).not.toContain("tu pago")
+    const push = readFileSync("app/api/cron/powermarket-push/route.ts", "utf8")
+    expect(push).toContain('d.recipient_role==="owner"?ownerCopy')
+    expect(push).toContain("Pago del inquilino confirmado")
+  })
+
+  test("Temporarios queues details for stays and pending actions and validates receiver", () => {
+    const temporary = readFileSync("app/api/temporarios/notifications/dispatch/route.ts", "utf8")
+    expect(temporary).toContain("formatDate(checkIn)")
+    expect(temporary).toContain("formatDate(checkOut)")
+    expect(temporary).toContain("actionText")
+    expect(temporary).toContain("Recipient does not belong to this temporary match")
+    expect(temporary).toContain('owner ? "owner_user_id" : "tenant_user_id"')
+  })
+
   test("support bubble opens an in-app form and submits to VERLO support", () => {
     const component = readFileSync("components/SupportEmailBubble.tsx", "utf8")
     const endpoint = readFileSync("app/api/support/contact/route.ts", "utf8")
