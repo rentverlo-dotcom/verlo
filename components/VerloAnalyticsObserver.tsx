@@ -48,7 +48,8 @@ export default function VerloAnalyticsObserver() {
   useEffect(() => {
     const path = safeAnalyticsPath(pathname || "/")
     const context = classify(path)
-    trackPostHog("verlo_screen_viewed", { ...context, screen: path })
+    // Never export raw paths: dynamic route parameters may be customer or property identifiers.
+    trackPostHog("verlo_screen_viewed", context)
   }, [pathname])
 
   useEffect(() => {
