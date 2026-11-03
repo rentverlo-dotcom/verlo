@@ -1563,6 +1563,7 @@ export async function notifyLeadOnce(
       await enqueueVerloEmailSafely({
         area: "tradicionales", eventType, eventKey,
         recipientEmail: lead.email, recipientRole: leadRole,
+        url, title, body,
       })
     }
 
