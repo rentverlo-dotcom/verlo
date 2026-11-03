@@ -1,20 +1,21 @@
 "use client"
 import {useState} from "react"
 import VerloBrand from "@/components/VerloBrand"
+import {trackPostHog} from "@/lib/posthog-client"
 export default function CaucionApplication(){
  const [rent,setRent]=useState(""),[expenses,setExpenses]=useState(""),[income,setIncome]=useState(""),[months,setMonths]=useState("24")
  const [employment,setEmployment]=useState("salary_receipt"),[hasCo,setHasCo]=useState(false),[coIncome,setCoIncome]=useState("")
  const [applicationId,setApplicationId]=useState(""),[uploadMessage,setUploadMessage]=useState(""),[uploading,setUploading]=useState(false)
  const [consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[done,setDone]=useState(false)
- async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setMessage("")
+ async function submit(e:React.FormEvent){e.preventDefault();trackPostHog("caucion_application_submitted",{area:"powermarket",role:"tenant"});setBusy(true);setMessage("")
   const access=new URLSearchParams(window.location.search).get("access")
   const res=await fetch("/api/powermarket/apply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({access,rent:Number(rent),expenses:Number(expenses),income:Number(income),months:Number(months),employment,hasCo,coIncome:hasCo?Number(coIncome):null,consent})}).catch(()=>null)
   const data=await res?.json().catch(()=>({}))
-  if(res?.ok&&data?.ok){setApplicationId(data.application_id||"");setDone(true)}
-  else setMessage(data?.error||"No pudimos enviar tu solicitud")
+  if(res?.ok&&data?.ok){setApplicationId(data.application_id||"");setDone(true);trackPostHog("caucion_application_completed",{area:"powermarket",role:"tenant"})}
+  else {setMessage(data?.error||"No pudimos enviar tu solicitud");trackPostHog("caucion_application_failed",{area:"powermarket",role:"tenant",http_status:res?.status||0})}
   setBusy(false)
  }
- async function upload(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setUploading(true);setUploadMessage("");const form=e.currentTarget;const data=new FormData(form);data.set("access",new URLSearchParams(window.location.search).get("access")||"");data.set("application_id",applicationId);const res=await fetch("/api/powermarket/documents",{method:"POST",body:data}).catch(()=>null);const result=await res?.json().catch(()=>({}));setUploadMessage(res?.ok?"Comprobante guardado. Podés subir otro.":result?.error||"Error al subir");if(res?.ok)form.reset();setUploading(false)}
+ async function upload(e:React.FormEvent<HTMLFormElement>){e.preventDefault();trackPostHog("caucion_document_upload_started",{area:"powermarket",role:"tenant"});setUploading(true);setUploadMessage("");const form=e.currentTarget;const data=new FormData(form);data.set("access",new URLSearchParams(window.location.search).get("access")||"");data.set("application_id",applicationId);const res=await fetch("/api/powermarket/documents",{method:"POST",body:data}).catch(()=>null);const result=await res?.json().catch(()=>({}));setUploadMessage(res?.ok?"Comprobante guardado. Podés subir otro.":result?.error||"Error al subir");trackPostHog(res?.ok?"caucion_document_upload_completed":"caucion_document_upload_failed",{area:"powermarket",role:"tenant"});if(res?.ok)form.reset();setUploading(false)}
  const input:React.CSSProperties={display:"block",width:"100%",boxSizing:"border-box",padding:12,border:"1px solid #ccd4dc",borderRadius:8,marginTop:6}
  const label:React.CSSProperties={display:"block",marginBottom:16}
  return <main style={{minHeight:"100vh",padding:"0 20px 64px",fontFamily:"Inter,system-ui,sans-serif",color:"#050002",background:"radial-gradient(circle at 8% 4%,rgba(242,168,169,.38),transparent 30%),radial-gradient(circle at 92% 32%,rgba(231,199,118,.18),transparent 25%),#f2ebec"}}>
