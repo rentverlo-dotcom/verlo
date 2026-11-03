@@ -65,8 +65,19 @@ export default function VerloAnalyticsObserver() {
         ...classify(safeAnalyticsPath(window.location.pathname)), action,
       })
     }
+    function handleForm(event: Event) {
+      const target=event.target
+      if (!(target instanceof HTMLFormElement)) return
+      trackPostHog("verlo_form_attempted", {
+        ...classify(safeAnalyticsPath(window.location.pathname)),
+      })
+    }
     document.addEventListener("click", handleClick, { capture: true })
-    return () => document.removeEventListener("click", handleClick, { capture: true })
+    document.addEventListener("submit", handleForm, { capture: true })
+    return () => {
+      document.removeEventListener("click", handleClick, { capture: true })
+      document.removeEventListener("submit", handleForm, { capture: true })
+    }
   }, [])
 
   return null
