@@ -37,5 +37,64 @@ grant select,insert,update on public.verlo_email_outbox to service_role;
 comment on table public.verlo_email_outbox is
   'Future native email delivery. No triggers, no backfill, no live dispatcher. Accepted means provider accepted, not inbox delivered. Unknown outcome is quarantined to prevent accidental duplicates.';
 
--- No RPC / no scheduler until Zoho activates sending and an explicit cutover is approved.
+-- No scheduler, triggers or automatic queue producers until explicit cutover.
+
+-- V2: atomic claim/finish, service-role only. No automatic scheduler.
+-- Only explicitly queued events are eligible; nothing historical is imported.
+create or replace function public.verlo_email_claim(p_limit integer default 10)
+returns setof public.verlo_email_outbox
+language plpgsql security definer set search_path=public as $
+begin
+  return query
+  with selected as (
+    select id from public.verlo_email_outbox
+    where status in ('pending','failed')
+      and attempts < 4
+      and available_at <= now()
+    order by created_at, id
+    for update skip locked
+    limit least(greatest(coalesce(p_limit,10),1),10)
+  )
+  update public.verlo_email_outbox o
+     set status='processing', attempts=o.attempts+1,
+         locked_at=now(), updated_at=now(), last_error=null
+    from selected s where o.id=s.id
+  returning o.*;
+end;
+$;
+
+create or replace function public.verlo_email_finish(
+ p_id uuid, p_status text, p_provider_id text default null,
+ p_error text default null
+) returns boolean
+language plpgsql security definer set search_path=public as $
+declare v_count integer;
+begin
+  if p_status not in ('accepted','failed','unknown','cancelled') then
+    raise exception 'invalid_email_finish_status';
+  end if;
+  update public.verlo_email_outbox
+  set status=p_status,
+      provider=case when p_status='accepted' then 'zeptomail' else provider end,
+      provider_id=case when p_status='accepted' then p_provider_id else provider_id end,
+      accepted_at=case when p_status='accepted' then now() else accepted_at end,
+      available_at=case when p_status='failed'
+         then now()+make_interval(mins=>least(60, (2 ^ least(attempts,5))::integer))
+         else available_at end,
+      last_error=case when p_status='accepted' then null else left(coalesce(p_error,'Email delivery not confirmed'),300) end,
+      locked_at=null, updated_at=now()
+  where id=p_id and status='processing';
+  get diagnostics v_count=row_count;
+  return v_count=1;
+end;
+$;
+
+revoke all on function public.verlo_email_claim(integer) from public, anon, authenticated;
+revoke all on function public.verlo_email_finish(uuid,text,text,text) from public, anon, authenticated;
+grant execute on function public.verlo_email_claim(integer) to service_role;
+grant execute on function public.verlo_email_finish(uuid,text,text,text) to service_role;
+
+-- Deliberately do NOT re-claim stuck 'processing' or 'unknown':
+-- a network timeout could occur after Zoho accepted the request.
+
 commit;
