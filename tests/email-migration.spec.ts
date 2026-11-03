@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test"
 import { renderVerloEmail, VERLO_EMAIL_EVENT_TYPES } from "../lib/notifications/verlo-email-templates"
 import { sendWithZeptoMail } from "../lib/notifications/zeptomail"
+import { readFileSync } from "node:fs"
 
 test.describe("VERLO email migration - no external deliveries", () => {
   for (const [area, types] of Object.entries(VERLO_EMAIL_EVENT_TYPES)) {
@@ -18,6 +19,29 @@ test.describe("VERLO email migration - no external deliveries", () => {
       })
     }
   }
+
+
+  test("integration remains disabled unless both cutover flags are set", () => {
+    const source = readFileSync("lib/notifications/verlo-email-outbox.ts", "utf8")
+    expect(source).toContain('VERLO_EMAIL_QUEUE_CAPTURE_ENABLED !== "true"')
+    expect(source).toContain('VERLO_EMAIL_CUTOVER_APPROVED !== "true"')
+    expect(source).toContain('error?.code === "23505"')
+    const dispatcher = readFileSync("app/api/admin/email-dispatch/route.ts", "utf8")
+    expect(dispatcher).toContain('VERLO_EMAIL_DISPATCH_ENABLED === "true"')
+    expect(dispatcher).toContain('VERLO_ZEPTO_EMAIL_LIVE === "true"')
+    expect(dispatcher).toContain('VERLO_EMAIL_CUTOVER_APPROVED === "true"')
+  })
+
+  test("all three existing flows use gated capture and no automatic email cron exists", () => {
+    for (const filename of [
+      "lib/lead-notifications.ts",
+      "app/api/temporarios/notifications/dispatch/route.ts",
+      "app/api/cron/powermarket-push/route.ts",
+    ]) {
+      expect(readFileSync(filename, "utf8")).toContain("enqueueVerloEmailSafely")
+    }
+    expect(readFileSync("vercel.json", "utf8")).not.toContain("/api/admin/email-dispatch")
+  })
 
   test("dynamic content is HTML escaped", () => {
     const email = renderVerloEmail({
