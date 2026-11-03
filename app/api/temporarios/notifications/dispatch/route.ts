@@ -275,6 +275,7 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
         eventKey: String(event.event_key),
         recipientEmail: user.data.user.email,
         recipientRole: event.recipient_role,
+        url: "https://verlo.lat/temporarios/mi-verlo",
       })
 
       const destination =
