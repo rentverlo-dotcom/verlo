@@ -14,6 +14,8 @@ import {
   sendGhlEmail,
 } from "@/lib/notifications/email"
 
+import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
+
 type NotifyLeadOnceInput = {
   eventKey: string
   eventType: string
@@ -1554,6 +1556,15 @@ export async function notifyLeadOnce(
               LeadRole
           )
         : undefined
+
+    // Capture only newly created notifications after explicit migration approval.
+    // Isolated from GHL and Push, and disabled by default.
+    if (leadRole && lead?.email) {
+      await enqueueVerloEmailSafely({
+        area: "tradicionales", eventType, eventKey,
+        recipientEmail: lead.email, recipientRole: leadRole,
+      })
+    }
 
     const leadIntent =
       clean(
