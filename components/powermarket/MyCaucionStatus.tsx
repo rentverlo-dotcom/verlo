@@ -1,6 +1,7 @@
 "use client"
 import {useEffect,useState} from "react"
 import {supabase} from "@/lib/supabase/client"
+import {trackPostHog} from "@/lib/posthog-client"
 type Quote={id:string;premium_ars:number;coverage_total_ars:number;status:string;valid_until:string|null}
 type Item={id:string;status:string;requested_rent_ars:number;estimated_expenses_ars:number;approved_max_total_ars:number|null;decision_expires_at:string|null;created_at:string}
 const labels:Record<string,string>={submitted:"Solicitud recibida",under_review:"En evaluación",more_info_required:"Documentación pendiente",prequalified:"Precalificada",not_eligible:"No precalificada",alternative_offered:"Oferta de monto alternativo",expired:"Vencida",withdrawn:"Retirada"}
@@ -27,8 +28,8 @@ export default function MyCaucionStatus(){
  const {data}=await supabase.auth.getSession()
  const res=await fetch("/api/powermarket/my-quote",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${data.session?.access_token||""}`},body:JSON.stringify({application_id:item.id,quote_id:quote.id,action:"accept"})}).catch(()=>null)
  const result=await res?.json().catch(()=>({}))
- if(res?.ok&&result?.quote)setQuotes(prev=>({...prev,[item.id]:{...quote,status:"accepted"}}))
- else setError(result?.error||"No se pudo aceptar la cotización")
+ if(res?.ok&&result?.quote){setQuotes(prev=>({...prev,[item.id]:{...quote,status:"accepted"}}));trackPostHog("caucion_quote_accepted",{area:"powermarket",role:"tenant"})}
+ else {setError(result?.error||"No se pudo aceptar la cotización");trackPostHog("caucion_quote_accept_failed",{area:"powermarket",role:"tenant"})}
  setBusy(false)
  }
  if(loading||(!items.length&&!error))return null
