@@ -16,6 +16,9 @@ type QueueItem = {
   recipient_role: VerloEmailRole
   status: "pending" | "failed" | "processing"
   attempts: number
+  destination_url: string | null
+  notification_title: string | null
+  notification_body: string | null
 }
 
 const json = (status: number, data: Record<string, unknown>) =>
@@ -79,6 +82,9 @@ async function handle(request: NextRequest, requestedLive: boolean) {
       } else {
         const rendered = renderVerloEmail({
           area: item.area, role: item.recipient_role, type: item.event_type,
+          url: item.destination_url || undefined,
+          title: item.notification_title || undefined,
+          body: item.notification_body || undefined,
         })
         const result = await sendWithZeptoMail({
           to: item.recipient_email, subject: rendered.subject,
