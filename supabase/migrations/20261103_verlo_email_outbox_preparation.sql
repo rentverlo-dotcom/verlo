@@ -43,7 +43,7 @@ comment on table public.verlo_email_outbox is
 -- Only explicitly queued events are eligible; nothing historical is imported.
 create or replace function public.verlo_email_claim(p_limit integer default 10)
 returns setof public.verlo_email_outbox
-language plpgsql security definer set search_path=public as $
+language plpgsql security definer set search_path=public as $function$
 begin
   return query
   with selected as (
@@ -61,7 +61,7 @@ begin
     from selected s where o.id=s.id
   returning o.*;
 end;
-$;
+$function$;
 
 create or replace function public.verlo_email_finish(
  p_id uuid, p_status text, p_provider_id text default null,
@@ -87,7 +87,7 @@ begin
   get diagnostics v_count=row_count;
   return v_count=1;
 end;
-$;
+$function$;
 
 revoke all on function public.verlo_email_claim(integer) from public, anon, authenticated;
 revoke all on function public.verlo_email_finish(uuid,text,text,text) from public, anon, authenticated;
