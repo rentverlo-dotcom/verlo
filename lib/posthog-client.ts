@@ -34,11 +34,14 @@ function getPostHog() {
   return posthog
 }
 
+/** Preserve funnel route families, never export private entity identifiers or URL query values. */
 export function safeAnalyticsPath(path: string): string {
-  return path
-    .replace(/\/(matches|candidatos|cierre|activar|final|propiedad|tenant\/validacion)\/[^/?#]+/gi, "/$1/[private]")
-    .replace(/\/contracts\/[^/?#]+/gi, "/contracts/[private]")
-    .replace(/\/tenant\/validacion\/[^/?#]+/gi, "/tenant/validacion/[private]")
+  const pathname = path.split("?")[0].split("#")[0] || "/"
+  return pathname
+    .replace(/\/(matches|match|candidatos|candidato|cierre|activar|final|propiedad|propiedades|guardadas|contracts)\/[^/]+/gi, "/$1/[private]")
+    .replace(/\/tenant\/validacion\/[^/]+/gi, "/tenant/validacion/[private]")
+    .replace(/\/owner\/completar\/[^/]+/gi, "/owner/completar/[private]")
+    .replace(/\/propietario\/preview\/[^/]+/gi, "/propietario/preview/[private]")
 }
 
 function sanitizeAnalyticsValue(value: unknown): unknown {
