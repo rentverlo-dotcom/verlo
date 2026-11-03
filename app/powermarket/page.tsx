@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { createClient } from "@supabase/supabase-js"
 import VerloBrand from "@/components/VerloBrand"
+import {trackPostHog} from "@/lib/posthog-client"
 
 type Application = {
  id:string;tenant_lead_id:string;status:string;requested_rent_ars:number;estimated_expenses_ars:number;monthly_income_ars:number;
@@ -41,7 +42,7 @@ export default function PowerMarketDashboard(){
   setLoading(false)
  }
  useEffect(()=>{void refresh()},[])
- function select(item:Application){setSelected(item.id);setDocs(null);setReviews(null);setQuotes(null);setPolicies(null);setOpenedReviewIds([]);setNote("");setAmount(String(item.approved_max_total_ars??""))}
+ function select(item:Application){trackPostHog("powermarket_application_opened",{area:"powermarket",role:"partner",status:item.status});setSelected(item.id);setDocs(null);setReviews(null);setQuotes(null);setPolicies(null);setOpenedReviewIds([]);setNote("");setAmount(String(item.approved_max_total_ars??""))}
  async function login(e:React.FormEvent){e.preventDefault();setError("");setBusy(true);const {error:err}=await supabase.auth.signInWithPassword({email,password});setBusy(false);if(err){setError("Credenciales incorrectas");return}setPassword("");setLoading(true);await refresh()}
  async function decide(status:string){
   if(!current||busy)return
@@ -50,6 +51,7 @@ export default function PowerMarketDashboard(){
   const res=await fetch("/api/powermarket/applications",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({id:current.id,status,approved_max_total_ars:amount===""?null:Number(amount),note})})
   const data=await res.json().catch(()=>({}))
   if(!res.ok)setError(data.error||"No se pudo guardar")
+  trackPostHog(res.ok?"powermarket_application_decision_completed":"powermarket_application_decision_failed",{area:"powermarket",role:"partner",decision:status})
   await refresh();setBusy(false)
  }
  async function loadReviews(){
@@ -78,6 +80,7 @@ export default function PowerMarketDashboard(){
   const res=await fetch("/api/powermarket/contract-reviews",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({id:review.id,expected_status:review.status,decision,note:typeof detail==="string"?detail:""})})
   const json=await res.json().catch(()=>({}))
   if(!res.ok)setError(json.error||"No se pudo registrar la revisión")
+  trackPostHog(res.ok?"powermarket_contract_review_completed":"powermarket_contract_review_failed",{area:"powermarket",role:"partner",decision})
   await loadReviews();setBusy(false)
  }
  async function loadQuotes(){
@@ -96,6 +99,7 @@ export default function PowerMarketDashboard(){
   const res=await fetch("/api/powermarket/quotes",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({quote_id:quote.id,action:"offer"})})
   const data=await res.json().catch(()=>({}))
   if(!res.ok)setError(data.error||"No se pudo publicar la cotización")
+  trackPostHog(res.ok?"powermarket_quote_offered":"powermarket_quote_offer_failed",{area:"powermarket",role:"partner"})
   await loadQuotes();setBusy(false)
  }
  async function loadPolicies(){
@@ -115,6 +119,7 @@ export default function PowerMarketDashboard(){
   const res=await fetch("/api/powermarket/policies",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({policy_id:policy.id,status:next})})
   const data=await res.json().catch(()=>({}))
   if(!res.ok)setError(data.error||"No se pudo actualizar el registro")
+  trackPostHog(res.ok?"powermarket_policy_advanced":"powermarket_policy_advance_failed",{area:"powermarket",role:"partner",next_state:next})
   await loadPolicies();setBusy(false)
  }
  async function confirmOperation(policy:PolicyRow){
@@ -126,7 +131,8 @@ export default function PowerMarketDashboard(){
    const res=await fetch("/api/powermarket/confirm-operation",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({policy_id:policy.id,action:"confirm_operation"})})
    const result=await res.json().catch(()=>({}))
    if(!res.ok)setError(result.error||"No se pudo confirmar la operación")
-   else await loadPolicies()
+   trackPostHog(res.ok?"powermarket_operation_confirmed":"powermarket_operation_confirmation_failed",{area:"powermarket",role:"partner"})
+   if(res.ok) await loadPolicies()
   }catch{setError("No se pudo comunicar con VERLO")}
   finally{setBusy(false)}
  }
