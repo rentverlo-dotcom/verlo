@@ -32,15 +32,24 @@ test.describe("VERLO email migration - no external deliveries", () => {
     expect(dispatcher).toContain('VERLO_EMAIL_CUTOVER_APPROVED === "true"')
   })
 
-  test("all three existing flows use gated capture and no automatic email cron exists", () => {
+  test("powerMarket email capture is independent of Push and still unscheduled", () => {
+    const push = readFileSync("app/api/cron/powermarket-push/route.ts", "utf8")
+    expect(push).not.toContain("enqueueVerloEmailSafely")
+    const capture = readFileSync("app/api/admin/powermarket-email-capture/route.ts", "utf8")
+    expect(capture).toContain("enqueueVerloEmailSafely")
+    expect(capture).toContain('VERLO_EMAIL_CUTOVER_APPROVED === "true"')
+    expect(capture).toContain('VERLO_EMAIL_QUEUE_CAPTURE_ENABLED === "true"')
+    expect(capture).toContain('2026-11-03T12:00:00Z')
+    const cron = readFileSync("vercel.json", "utf8")
+    expect(cron).not.toContain("/api/admin/email-dispatch")
+    expect(cron).not.toContain("/api/admin/powermarket-email-capture")
+  })
+
+  test("traditional and temporary capture remain gated", () => {
     for (const filename of [
       "lib/lead-notifications.ts",
       "app/api/temporarios/notifications/dispatch/route.ts",
-      "app/api/cron/powermarket-push/route.ts",
-    ]) {
-      expect(readFileSync(filename, "utf8")).toContain("enqueueVerloEmailSafely")
-    }
-    expect(readFileSync("vercel.json", "utf8")).not.toContain("/api/admin/email-dispatch")
+    ]) expect(readFileSync(filename, "utf8")).toContain("enqueueVerloEmailSafely")
   })
 
   test("dynamic content is HTML escaped", () => {
