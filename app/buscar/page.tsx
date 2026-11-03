@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import VerloBrand from "@/components/VerloBrand"
+import {trackPostHog} from "@/lib/posthog-client"
 
 type Draft = {
   province_id?: string
@@ -314,7 +315,8 @@ function validateStep() {
 }
 
 function next() {
-  if (!validateStep()) return
+  if (!validateStep()) {trackPostHog("traditional_form_validation_failed",{area:"tradicionales",role:"tenant",step});return}
+  trackPostHog("traditional_form_step_completed",{area:"tradicionales",role:"tenant",step})
   setStep((s) => Math.min(s + 1, 3))
 }
 
@@ -324,7 +326,8 @@ function back() {
 }
 
   async function submitDemand() {
-    if (!validateStep()) return
+    if (!validateStep()) {trackPostHog("traditional_form_validation_failed",{area:"tradicionales",role:"tenant",step});return}
+    trackPostHog("traditional_form_submitted",{area:"tradicionales",role:"tenant"})
 
     setLoading(true)
     setErrorMessage(null)
@@ -375,6 +378,7 @@ function back() {
         return
       }
 
+      trackPostHog("traditional_registration_completed",{area:"tradicionales",role:"tenant"})
       localStorage.removeItem("demand_draft")
       localStorage.removeItem("demand_step")
 
