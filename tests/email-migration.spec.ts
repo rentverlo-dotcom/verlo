@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-import { renderVerloEmail, VERLO_EMAIL_EVENT_TYPES } from "../lib/notifications/verlo-email-templates"
+import { renderVerloEmail, VERLO_EMAIL_EVENT_TYPES, safeVerloEmailUrl } from "../lib/notifications/verlo-email-templates"
 import { sendWithZeptoMail } from "../lib/notifications/zeptomail"
 import { readFileSync } from "node:fs"
 
@@ -46,6 +46,33 @@ test.describe("VERLO email migration - no external deliveries", () => {
     expect(Object.keys(VERLO_EMAIL_EVENT_TYPES).sort()).toEqual(
       ["powermarket", "temporarios", "tradicionales"].sort()
     )
+  })
+
+  test("event-specific links survive renderer and unsafe external links are rejected", () => {
+    const path = "https://verlo.lat/cierre/example-token"
+    const rendered = renderVerloEmail({
+      area: "tradicionales", role: "tenant", type: "double_ok_2", url: path,
+    })
+    expect(rendered.url).toBe(path)
+    expect(rendered.html).toContain(path)
+    expect(safeVerloEmailUrl("javascript:alert(1)")).toBe("https://verlo.lat/mi-verlo")
+    expect(safeVerloEmailUrl("https://other.example/")).toBe("https://verlo.lat/mi-verlo")
+    expect(safeVerloEmailUrl("//other.example/")).toBe("https://verlo.lat/mi-verlo")
+    expect(safeVerloEmailUrl("/matches/my-token")).toBe("https://verlo.lat/matches/my-token")
+  })
+
+  test("native queue carries event URL and copy without changing current provider", () => {
+    const queue = readFileSync("lib/notifications/verlo-email-outbox.ts", "utf8")
+    const dispatcher = readFileSync("app/api/admin/email-dispatch/route.ts", "utf8")
+    const sql = readFileSync("supabase/migrations/20261103_verlo_email_event_destinations.sql", "utf8")
+    expect(queue).toContain("destination_url:")
+    expect(queue).toContain("notification_title:")
+    expect(queue).toContain("notification_body:")
+    expect(dispatcher).toContain("item.destination_url")
+    expect(sql).toContain("add column if not exists destination_url")
+    expect(readFileSync("lib/lead-notifications.ts", "utf8")).toContain("url, title, body,")
+    expect(readFileSync("app/api/temporarios/notifications/dispatch/route.ts", "utf8"))
+      .toContain('url: "https://verlo.lat/temporarios/mi-verlo"')
   })
 
   test("integration remains disabled unless both cutover flags are set", () => {
