@@ -28,6 +28,19 @@ const copy:Record<string,[string,string]>={
  policy_cancelled:["Caución cancelada","Revisá el estado de la caución."],
  policy_rejected:["Caución no emitida","Revisá el estado de la caución."]
 }
+// Owner notices describe the tenant's operation, never a payment made by the owner.
+const ownerCopy:Record<string,[string,string]>={
+ review_pending:["Contrato en revisión","PowerMarket está revisando el contrato de tu alquiler."],
+ review_changes_requested:["Contrato con observaciones","PowerMarket solicitó correcciones al contrato de tu alquiler."],
+ review_approved:["Contrato aprobado","PowerMarket aprobó la revisión contractual."],
+ policy_pending:["Caución del alquiler en trámite","La caución vinculada a tu alquiler está en trámite."],
+ policy_final_review:["Caución en revisión final","La caución vinculada a tu alquiler avanzó a revisión final."],
+ policy_payment_pending:["Caución pendiente de pago","El pago de la caución del inquilino está pendiente."],
+ policy_payment_confirmed:["Pago del inquilino confirmado","PowerMarket confirmó el pago de la caución del inquilino. La póliza sigue pendiente."],
+ policy_issued:["Póliza de caución emitida","La póliza de caución del alquiler fue emitida."],
+ policy_cancelled:["Caución cancelada","La caución vinculada a tu alquiler fue cancelada."],
+ policy_rejected:["Caución no emitida","La caución vinculada a tu alquiler no fue emitida."]
+}
 export async function POST(req:NextRequest){
  const secret=process.env.CRON_SECRET
  if(!secret||req.headers.get("authorization")!==`Bearer ${secret}`) return NextResponse.json({ok:false,error:"Unauthorized"},{status:401})
@@ -46,7 +59,7 @@ export async function POST(req:NextRequest){
   try{
    const {data:event,error:eventError}=await supabaseAdmin.from("caucion_events").select("event_type,application_id,payload").eq("id",d.event_id).single()
    if(eventError||!event)throw new Error("Event unavailable")
-   const message=copy[event.event_type]
+   const message=d.recipient_role==="owner"?ownerCopy[event.event_type]:copy[event.event_type]
    if(!message)throw new Error("Unsupported event")
    const {data:application,error:applicationError}=await supabaseAdmin.from("caucion_applications").select("tenant_lead_id,submitted_at").eq("id",event.application_id).single()
    if(applicationError||!application)throw new Error("Application unavailable")
