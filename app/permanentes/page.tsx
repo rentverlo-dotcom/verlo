@@ -4061,7 +4061,7 @@ export default function PageDePrueba() {
 
                       <label className="check-pill">
                         <input type="checkbox" name="request_caucion" value="yes" />
-                        Quiero solicitar precalificación de caución con PowerMarket (opcional)
+                        Quiero solicitar mi seguro de caución con VERLO (opcional)
                       </label>
 
                       <label className="check-pill">
