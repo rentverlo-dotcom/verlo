@@ -7,6 +7,7 @@ import {trackPostHog} from "@/lib/posthog-client"
 type Application = {
  id:string;tenant_lead_id:string;status:string;requested_rent_ars:number;estimated_expenses_ars:number;monthly_income_ars:number;
  duration_months:number;employment_type:string;has_co_tenant:boolean;co_tenant_income_ars:number|null;
+ simulator_choice?:"solo_caucion"|"caucion_con_contrato"|null;
  approved_max_total_ars:number|null;approved_max_rent_ars:number|null;decision_expires_at:string|null;created_at:string;
  tenant?:{full_name:string|null;email:string|null;phone:string|null}|null
 }
@@ -216,7 +217,7 @@ export default function PowerMarketDashboard(){
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}><h2 style={{fontSize:21,margin:0}}>Ficha · {current.tenant?.full_name||"Interesado"}</h2><button style={button} onClick={()=>setSelected(null)}>Cerrar ficha</button></div>
      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:18,marginTop:20}}>
       <div><strong>Contacto</strong><p>Email: {current.tenant?.email||"No informado"}<br/>Teléfono: {current.tenant?.phone||"No informado"}</p><p>Estado: {labels[current.status]||current.status}</p></div>
-      <div><strong>Solicitud</strong><p>Alquiler: {money(current.requested_rent_ars)}<br/>Expensas: {money(current.estimated_expenses_ars)}<br/>Plazo: {current.duration_months} meses</p></div>
+      <div><strong>Solicitud</strong><p>Alquiler: {money(current.requested_rent_ars)}<br/>Expensas: {money(current.estimated_expenses_ars)}<br/>Plazo: {current.duration_months} meses</p>{current.simulator_choice&&<p style={{fontWeight:750}}>Servicio elegido: {current.simulator_choice==="caucion_con_contrato"?"Caución + contrato digital de alquiler con firma electrónica":"Solo caución"}</p>}</div>
       <div><strong>Ingresos</strong><p>Declarados: {money(current.monthly_income_ars)}<br/>Tipo: {current.employment_type}<br/>Co-inquilino: {current.has_co_tenant?money(current.co_tenant_income_ars):"No"}</p></div>
      </div>
      <div style={{borderTop:"1px solid #eee6e8",paddingTop:17,marginTop:8}}>
