@@ -2,6 +2,7 @@ import { signCaucionLead } from "@/lib/powermarket/lead-token"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { sendMetaCapiLead } from "@/lib/meta/capi"
+import { takeLeadIntakeRateSlot } from "@/lib/security/lead-intake-rate-limit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -3164,6 +3165,24 @@ export async function POST(
         ok: true,
         bot_filtered:
           true,
+      })
+    }
+
+    // Distributed atomic anti-spam protection for tenant, owner and renewal.
+    // Enable only after installing the additive Supabase migration.
+    const intakeLimit = await takeLeadIntakeRateSlot(req)
+    if (!intakeLimit.ok) {
+      return NextResponse.json({
+        ok: false,
+        error: intakeLimit.status === 429
+          ? "Demasiadas solicitudes desde tu conexión. Esperá unos minutos e intentá nuevamente."
+          : "No pudimos verificar el límite de solicitudes. Intentá nuevamente.",
+      }, {
+        status: intakeLimit.status,
+        headers: {
+          "Cache-Control": "no-store",
+          ...(intakeLimit.status === 429 ? { "Retry-After": "600" } : {}),
+        },
       })
     }
 
