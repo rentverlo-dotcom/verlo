@@ -2069,6 +2069,13 @@ function MiniPhone({
 }
 
 export default function PageDePrueba() {
+  // Only the simulator entry auto-selects caucion. All regular visitors keep the existing form.
+  const [fromCaucionSimulator, setFromCaucionSimulator] = useState(false)
+  useEffect(() => {
+    const isSimulator = new URLSearchParams(window.location.search).get("origen") === "simulador_caucion"
+    setFromCaucionSimulator(isSimulator)
+    if (isSimulator) trackPostHog("caucion_simulator_lead_form_opened", { area: "caucion" })
+  }, [])
   const [seoZone, setSeoZone] = useState("")
   useEffect(() => {
     const zone = new URLSearchParams(window.location.search).get("zona") || ""
@@ -2961,6 +2968,7 @@ export default function PageDePrueba() {
           })
 
         if (payload.role === "tenant" && payload.request_caucion && data?.caucion_access_token) {
+          trackPostHog("caucion_application_form_entered", { area: "caucion", source: fromCaucionSimulator ? "simulator" : "traditional" })
           window.location.href = `/caucion/solicitar?access=${encodeURIComponent(data.caucion_access_token)}`
           return
         }
@@ -4054,13 +4062,15 @@ export default function PageDePrueba() {
                           type="checkbox"
                           name="guarantee_types"
                           value="surety_insurance"
+                          key={fromCaucionSimulator ? "simulator-guarantee" : "regular-guarantee"}
+                          defaultChecked={fromCaucionSimulator}
                         />
 
                         Seguro de caución
                       </label>
 
                       <label className="check-pill">
-                        <input type="checkbox" name="request_caucion" value="yes" />
+                        <input type="checkbox" name="request_caucion" value="yes" key={fromCaucionSimulator ? "simulator-caucion" : "regular-caucion"} defaultChecked={fromCaucionSimulator} />
                         Quiero solicitar mi seguro de caución con VERLO (opcional)
                       </label>
 
