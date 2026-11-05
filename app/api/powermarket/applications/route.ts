@@ -67,6 +67,12 @@ async function authorize(request: NextRequest) {
   }
 }
 
+type VerificationRow = {
+  lead_id: string
+  document_number: string | null
+  status: string | null
+}
+
 type TenantLead = {
   id: string
   full_name: string | null
@@ -159,7 +165,56 @@ export async function GET(request: NextRequest) {
       leads.map((lead) => [lead.id, lead])
     )
 
+    // The product choice is stored in the existing caucion event; no schema change.
+    const applicationIds = applications.map((application) => application.id)
+    const choiceByApplication = new Map<string, "solo_caucion" | "caucion_con_contrato">()
+    if (applicationIds.length > 0) {
+      const { data: submissionEvents, error: eventError } = await ctx.db
+        .from("caucion_events")
+        .select("application_id,payload")
+        .eq("event_type", "application_submitted")
+        .in("application_id", applicationIds)
+        .limit(100)
+      if (eventError) throw eventError
+      for (const event of submissionEvents || []) {
+        const choice = event?.payload?.simulator_choice
+        if (choice === "solo_caucion" || choice === "caucion_con_contrato") {
+          choiceByApplication.set(event.application_id, choice)
+        }
+      }
+    }
+
+    // Existing verification identity is linked through the tenant lead.
+    // Only authorized partner accounts reach this query; no identity data is exposed publicly.
+    const identityByLead = new Map<string, { dni: string | null; status: string | null }>()
+    if (leadIds.length > 0) {
+      const { data: verifications, error: verificationError } = await ctx.db
+        .from("tenant_verifications")
+        .select("lead_id,document_number,status")
+        .in("lead_id", leadIds)
+        .order("created_at", { ascending: false })
+        .limit(300)
+      if (verificationError) {
+        console.error("Partner applicant identity lookup failed", verificationError)
+      } else {
+        for (const row of (verifications || []) as VerificationRow[]) {
+          if (!identityByLead.has(row.lead_id)) {
+            identityByLead.set(row.lead_id, {
+              dni: row.document_number?.trim() || null,
+              status: row.status || null,
+            })
+          }
+        }
+      }
+    }
+
     const results = applications.map((application) => ({
+      identity: {
+        dni: identityByLead.get(application.tenant_lead_id)?.dni || null,
+        verification_status: identityByLead.get(application.tenant_lead_id)?.status || "not_available",
+        cuit_cuil: null as string | null,
+      },
+      simulator_choice: choiceByApplication.get(application.id) || null,
       ...application,
       tenant:
         leadsById.get(application.tenant_lead_id) || null,
