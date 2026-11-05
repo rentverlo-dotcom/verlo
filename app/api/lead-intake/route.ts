@@ -2216,11 +2216,7 @@ async function createLeadMatches({
   lead:
     MatchableLead
 }) {
-  if (
-    isAutomatedTestEmail(
-      lead.email
-    )
-  ) {
+  if (isAutomatedTestEmail(lead.email) && process.env.VERCEL_GIT_COMMIT_REF !== 'qa/verlo-e2e') {
     return {
       ok: true,
       created: 0,
@@ -2343,9 +2339,7 @@ async function createLeadMatches({
       ).filter(
         (ownerLead) => {
           return (
-            !isAutomatedTestEmail(
-              ownerLead.email
-            ) &&
+            (process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' ? isAutomatedTestEmail(ownerLead.email) : !isAutomatedTestEmail(ownerLead.email)) &&
             ownerLead
               .lead_quality !==
               "duplicate" &&
@@ -2759,9 +2753,7 @@ async function createLeadMatches({
           tenantLead
         ) => {
           return (
-            !isAutomatedTestEmail(
-              tenantLead.email
-            ) &&
+            (process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' ? isAutomatedTestEmail(tenantLead.email) : !isAutomatedTestEmail(tenantLead.email)) &&
             tenantLead
               .lead_quality !==
               "duplicate" &&
@@ -4195,9 +4187,8 @@ if (
     }
 
 const isolatedQaIntake =
-  process.env.VERCEL_ENV === "preview" &&
-  process.env.ATOMIC_LEAD_INTAKE_ENABLED === "true" &&
-  isAutomatedTestEmail(email)
+  (process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' && process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://anptswspguyotnasoacq.supabase.co' && isAutomatedTestEmail(email)) ||
+  (process.env.VERCEL_ENV === 'preview' && process.env.ATOMIC_LEAD_INTAKE_ENABLED === 'true' && isAutomatedTestEmail(email))
 
 const pushEvents = {
   intake:
