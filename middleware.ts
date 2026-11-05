@@ -7,6 +7,9 @@ export function middleware(request: NextRequest) {
     const database = process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://anptswspguyotnasoacq.supabase.co'
     return NextResponse.json({ ok: branch && database, branch, database }, { status: branch && database ? 200 : 503 })
   }
+  if (request.nextUrl.pathname === '/api/qa/tradicionales/preflight' && request.method === 'GET') {
+    return NextResponse.next()
+  }
   return NextResponse.json({ error: 'QA_API_LOCKED' }, { status: 503 })
 }
 
