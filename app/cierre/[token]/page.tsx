@@ -81,6 +81,14 @@ type ClosingData = {
       string
   }
 
+  contract_pricing: {
+    amount: number
+    original_amount: number
+    discount_ars: number
+    discount_percent: number
+    caucion_policy_id: string | null
+  } | null
+
   contract: {
     id:
       string
@@ -2501,7 +2509,7 @@ export default function ClosingPage() {
             data.contract.id,
 
           amount:
-            119000,
+              data.contract_pricing?.amount ?? 119000,
 
           currency:
             "ARS",
@@ -2564,7 +2572,7 @@ export default function ClosingPage() {
               data.contract.id,
 
             amount:
-              119000,
+              data.contract_pricing?.amount ?? 119000,
 
             currency:
               "ARS",
@@ -2600,7 +2608,7 @@ export default function ClosingPage() {
             data.contract.id,
 
           amount:
-            119000,
+              data.contract_pricing?.amount ?? 119000,
 
           currency:
             "ARS",
@@ -5295,7 +5303,9 @@ if (
                               .match
                               .tenant_paid_at
                               ? "Tu pago ya está acreditado. Podés avanzar con la aceptación del contrato."
-                              : "Con un único pago de $119.000 accedés a todo lo que necesitás para cerrar y gestionar tu alquiler con Verlo."}
+                              : data.contract_pricing?.discount_percent === 50
+                                 ? "Tenés 50% de bonificación por tu caución confirmada en VERLO: el contrato cuesta $59.500 en lugar de $119.000."
+                                 : "Con un único pago de $119.000 accedés a todo lo que necesitás para cerrar y gestionar tu alquiler con Verlo."}
                           </p>
 
                           {!data

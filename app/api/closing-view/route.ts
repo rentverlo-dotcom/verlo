@@ -10,6 +10,7 @@ import {
 import {
   createR2ReadUrl,
 } from "@/lib/r2"
+import { getVerloContractPricing } from "@/lib/payments/caucion-contract-discount"
 
 export const runtime =
   "nodejs"
@@ -1668,8 +1669,15 @@ const reviewAssetsReady =
     // 17. RESPONSE
     // =========================================================
 
+    // Only the validated tenant sees contract pricing; owners never pay the fee.
+    const contractPricing = accessToken.role === "tenant"
+      ? await getVerloContractPricing(supabase, contract.id, contract.tenant_lead_id)
+      : null
+
     return NextResponse.json({
       ok: true,
+
+      contract_pricing: contractPricing,
 
       viewer: {
         role:

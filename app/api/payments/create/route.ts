@@ -6,6 +6,7 @@ import {
 import {
   supabaseAdmin,
 } from "@/lib/supabase/admin"
+import { CONTRACT_FEE_ARS, getVerloContractPricing } from "@/lib/payments/caucion-contract-discount"
 
 export const runtime =
   "nodejs"
@@ -13,8 +14,7 @@ export const runtime =
 export const dynamic =
   "force-dynamic"
 
-const VERLO_FEE_ARS =
-  119000
+const VERLO_FEE_ARS = CONTRACT_FEE_ARS
 
 function clean(
   value: unknown
@@ -337,6 +337,10 @@ export async function POST(
       )
     }
 
+    // Verify the exact contract/tenant relationship before calculating a discount.
+    // A DB lookup failure stops checkout rather than potentially overcharging.
+    const pricing = await getVerloContractPricing(supabaseAdmin, contract.id, contract.tenant_lead_id)
+
     // =========================================================
     // SALDO A FAVOR
     //
@@ -514,7 +518,7 @@ export async function POST(
             "mercadopago",
 
           amount:
-            VERLO_FEE_ARS,
+            pricing.amount,
 
           currency:
             "ARS",
@@ -591,7 +595,7 @@ export async function POST(
                     1,
 
                   unit_price:
-                    VERLO_FEE_ARS,
+                    pricing.amount,
 
                   currency_id:
                     "ARS",
@@ -610,6 +614,9 @@ export async function POST(
                 paymentRow.id,
 
               metadata: {
+                discount_code: pricing.discount_percent === 50 ? "powermarket_caucion_50" : "none",
+                caucion_policy_id: pricing.caucion_policy_id || "",
+                original_amount_ars: pricing.original_amount,
                 verlo_payment_id:
                   paymentRow.id,
 
@@ -761,10 +768,14 @@ export async function POST(
         false,
 
       amount:
-        VERLO_FEE_ARS,
+        pricing.amount,
 
       currency:
         "ARS",
+
+      amount_before_discount: pricing.original_amount,
+      discount_ars: pricing.discount_ars,
+      discount_percent: pricing.discount_percent,
 
       payment_id:
         paymentRow.id,
