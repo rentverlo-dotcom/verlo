@@ -3171,7 +3171,7 @@ export async function POST(
     // Distributed atomic anti-spam protection for tenant, owner and renewal.
     // Enable only after installing the additive Supabase migration.
     const intakeLimit = await takeLeadIntakeRateSlot(req)
-    if (!intakeLimit.ok) {
+    if (intakeLimit.ok === false) {
       return NextResponse.json({
         ok: false,
         error: intakeLimit.status === 429
