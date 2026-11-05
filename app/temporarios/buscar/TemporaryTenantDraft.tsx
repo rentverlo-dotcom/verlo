@@ -8,6 +8,7 @@ import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import {trackPostHog} from "@/lib/posthog-client"
 import { tenantDraftFromForm } from "@/lib/temporarios/form-mapping"
 import { panel, field, fieldLabel, button } from "../brand"
+import NotificationReminder from "../NotificationReminder"
 export default function TemporaryTenantDraft() {
   const [seoZone,setSeoZone]=useState("")
   useEffect(()=>{const zona=new URLSearchParams(window.location.search).get("zona")||"";if(/^[a-z0-9-]{2,90}$/.test(zona))setSeoZone(zona)},[])
@@ -82,6 +83,7 @@ export default function TemporaryTenantDraft() {
         <input name="phone" type="tel" style={field} maxLength={30} required autoComplete="tel" placeholder="Ej.: +54 11 5555 5555" />
       </label>
       <p style={{ margin: 0, fontSize: 14 }}>El presupuesto es por toda la estadía, no por noche. La tarifa de VERLO es $49.999 al habilitar el cierre.</p>
+      <NotificationReminder />
       <button type="submit" disabled={saving} style={{...button,opacity:saving?0.6:1}}>{saving ? "Procesando..." : "Registrar mi búsqueda"}</button>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
     </form>

@@ -11,6 +11,7 @@ import {trackPostHog} from "@/lib/posthog-client"
 import {rememberOwnerFiles,uploadOwnerFiles} from "@/lib/temporarios/owner-media-upload"
 import ArgentinaLocationSelector from "@/components/ArgentinaLocationSelector"
 import { panel, field, fieldLabel, button } from "../brand"
+import NotificationReminder from "../NotificationReminder"
 
 export default function TemporaryOwnerDraft() {
   const [reference, setReference] = useState("")
@@ -128,6 +129,7 @@ export default function TemporaryOwnerDraft() {
         <p style={{ margin: "4px 0" }}>Disponibilidad: {datesValid ? from + " a " + until : "fechas pendientes"}</p>
         <p style={{ margin: "4px 0" }}>Seña: {deposit === "si" ? "opcional, a acordar" : "no solicitada"}</p>
       </div>
+      <NotificationReminder />
       <button type="submit" disabled={saving} style={{...button,opacity:saving?0.6:1}}>{saving ? "Procesando..." : "Publicar mi propiedad"}</button>
       {result && <p role="status" style={{ fontWeight: 800 }}>{result}</p>}
     </div></form>
