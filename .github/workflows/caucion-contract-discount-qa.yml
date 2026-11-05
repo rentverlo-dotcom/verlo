@@ -1,0 +1,28 @@
+name: VERLO caucion contract discount QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/payments/caucion-contract-discount.ts"
+      - "app/api/payments/create/route.ts"
+      - "app/api/webhooks/mercadopago/route.ts"
+      - "app/api/closing-view/route.ts"
+      - "app/cierre/[token]/page.tsx"
+      - "tests/caucion-contract-discount.spec.ts"
+      - ".github/workflows/caucion-contract-discount-qa.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract-discount:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Run simulated contract discount tests, no money or DB changes
+        run: npx playwright test tests/caucion-contract-discount.spec.ts --reporter=line
