@@ -62,7 +62,8 @@ export default function CaucionSimulator() {
 
   return (
     <main style={{ minHeight: "100vh", background: "#f2ebec", color: "#050002", fontFamily: "Inter,system-ui,sans-serif", padding: "0 20px 64px" }}>
-      <header style={{ maxWidth: 1060, margin: "0 auto", minHeight: 88, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(5,0,2,.1)" }}>
+      <style jsx global>{`header.verlo-caucion-simulator-header { background: #f2ebec !important; color: #050002 !important; }`}</style>
+      <header className="verlo-caucion-simulator-header" style={{ maxWidth: 1060, margin: "0 auto", minHeight: 88, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(5,0,2,.1)", background: "#f2ebec", padding: "0 4px" }}>
         <VerloBrand width={44} />
         <a href="/mi-verlo" style={{ color: "#050002", fontSize: 14, fontWeight: 750 }}>Mi VERLO</a>
       </header>
@@ -88,7 +89,7 @@ export default function CaucionSimulator() {
             </label>
             <label style={{ display: "flex", gap: 12, padding: 17, border: choice === "caucion_con_contrato" ? "2px solid #050002" : "1px solid #d7cdd1", borderRadius: 15, background: choice === "caucion_con_contrato" ? "#faf2f3" : "#fff", cursor: "pointer" }}>
               <input type="radio" name="service" checked={choice === "caucion_con_contrato"} onChange={() => { setChoice("caucion_con_contrato"); setShowResult(false) }} />
-              <span><strong>Caución + contrato digital VERLO</strong><small style={{ display: "block", marginTop: 4, color: "#61575c" }}>Contrato regular: {money(119000)}. Con caución confirmada: {money(59500)}.</small></span>
+              <span><strong>Caución + contrato digital de alquiler con firma electrónica</strong><small style={{ display: "block", marginTop: 4, color: "#61575c" }}>Precio regular: {money(119000)}. Con caución confirmada: {money(59500)}.</small></span>
             </label>
           </fieldset>
           {error && <p role="alert" style={{ color: "#a11631" }}>{error}</p>}
