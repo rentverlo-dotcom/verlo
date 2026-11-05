@@ -9,6 +9,7 @@ on:
       - 'tests/qa/**'
       - 'playwright.qa.config.ts'
       - 'middleware.ts'
+      - 'app/api/qa/tradicionales/preflight/route.ts'
   workflow_dispatch:
 
 permissions:
@@ -34,8 +35,8 @@ jobs:
         run: npm ci
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run QA-only isolation tests
-        run: npx playwright test --config=playwright.qa.config.ts tests/qa/isolation.spec.ts
+      - name: Run all QA isolation and traditional preflight tests
+        run: npx playwright test --config=playwright.qa.config.ts
       - name: Upload failure reports
         if: failure()
         uses: actions/upload-artifact@v4
