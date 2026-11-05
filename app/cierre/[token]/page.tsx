@@ -5271,6 +5271,19 @@ if (
 
                         <div className="document-rule" />
 
+                        <div className="no-print" style={{padding:"12px 0",marginTop:12}}>
+                          <button type="button" className="agree-button" onClick={async()=>{
+                            const win=window.open("","_blank")
+                            try{
+                              const res=await fetch(`/api/powermarket/policy-certificate?token=${encodeURIComponent(token)}`,{cache:"no-store"})
+                              const json=await res.json()
+                              if(!res.ok||!json.url)throw Error(json.error||"Certificado no disponible")
+                              if(win)win.location.href=json.url
+                              else setError("Permití abrir ventanas para ver el certificado de caución.")
+                            }catch(e){win?.close();setError(e instanceof Error?e.message:"Certificado no disponible")}
+                          }}>VER CERTIFICADO DE CAUCIÓN (SI FUE EMITIDO)</button>
+                          <p style={{fontSize:12}}>El certificado de la aseguradora se archiva como anexo independiente de este contrato. Su disponibilidad depende de la emisión real.</p>
+                        </div>
                         <div className="contract-copy">
                           {
                             data

@@ -136,6 +136,25 @@ export default function PowerMarketDashboard(){
   }catch{setError("No se pudo comunicar con VERLO")}
   finally{setBusy(false)}
  }
+ async function uploadCertificate(policy:PolicyRow,file:File,insurerName:string,policyNumber:string){
+  if(busy || policy.status!=="payment_confirmed")return
+  if(!window.confirm("¿Este PDF es el certificado oficial de emisión de la aseguradora? Se vinculará al contrato y no podrá reemplazarse desde este formulario."))return
+  setBusy(true);setError("")
+  try{
+   const access=await token()
+   const form=new FormData()
+   form.set("policy_id",policy.id)
+   form.set("insurer_name",insurerName)
+   form.set("policy_number",policyNumber)
+   form.set("certificate",file)
+   const res=await fetch("/api/powermarket/policy-certificate",{method:"POST",headers:{Authorization:`Bearer ${access}`},body:form})
+   const body=await res.json().catch(()=>({}))
+   if(!res.ok)throw Error(body.error||"No se pudo registrar la póliza")
+   trackPostHog("powermarket_certificate_registered",{area:"powermarket",role:"partner"})
+   await loadPolicies()
+  }catch(e){setError(e instanceof Error?e.message:"No se pudo registrar el certificado")}
+  finally{setBusy(false)}
+ }
  async function documents(){
   if(!current)return
   const access=await token()
@@ -210,7 +229,16 @@ export default function PowerMarketDashboard(){
         <p style={{fontSize:12}}>Contrato: {p.lead_contract_id}</p>
         {(p.status==="pending"||p.status==="final_review")&&<button style={button} disabled={busy} onClick={()=>void advancePolicy(p)}>Avanzar al siguiente estado</button>}
         {p.status==="payment_pending"&&<div style={{marginTop:10}}><p>PowerMarket cobra directamente al cliente. Confirmá solo cuando el pago esté acreditado.</p><button type="button" style={button} disabled={busy} onClick={()=>void confirmOperation(p)}>Confirmar operación</button></div>}
-         {p.status==="payment_confirmed"&&<p style={{color:"#226344",fontWeight:650}}>Pago confirmado por PowerMarket. La emisión de la póliza sigue pendiente.</p>}
+         {p.status==="payment_confirmed"&&<div style={{display:"grid",gap:9,marginTop:12,maxWidth:480}}>
+          <strong>Pago confirmado. Falta registrar el certificado oficial de emisión de la aseguradora.</strong>
+          <form onSubmit={e=>{e.preventDefault();const f=new FormData(e.currentTarget);const file=f.get("certificate");if(file instanceof File)void uploadCertificate(p,file,String(f.get("insurer_name")||""),String(f.get("policy_number")||""))}} style={{display:"grid",gap:8}}>
+           <label>Aseguradora<input name="insurer_name" required maxLength={180} style={control}/></label>
+           <label>Número de póliza<input name="policy_number" required maxLength={100} style={control}/></label>
+           <label>Certificado oficial en PDF<input name="certificate" type="file" accept="application/pdf" required style={control}/></label>
+           <button type="submit" style={button} disabled={busy}>Registrar póliza emitida y vincular al contrato</button>
+          </form>
+         </div>}
+         {p.status==="issued"&&<p style={{color:"#226344",fontWeight:700}}>Póliza emitida y certificado archivado como anexo del contrato. Aseguradora: {p.insurer_name} · Póliza Nº {p.policy_number}</p>}
        </div>))}
       </div>
       <strong>Cotizaciones de caución</strong>
