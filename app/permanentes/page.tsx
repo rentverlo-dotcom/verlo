@@ -2035,7 +2035,7 @@ function MiniPhone({
       <PhoneContent
         badge="Renovación"
         title="Renová sin comisión"
-        copy="Digitalizá tu contrato rápido, con firma digital y sin costos de renovación."
+        copy="Prepará tu contrato en VERLO y avanzá con firma electrónica conforme a la Ley 25.506 cuando el servicio esté habilitado."
         button="Renovar"
         rows={[
           {
@@ -3167,8 +3167,7 @@ export default function PageDePrueba() {
     }}
   >
     <strong>Inquilinos:</strong> encontrá propiedades compatibles,
-    coordiná visitas y pagá una sola vez al desbloquear
-    la firma del contrato.
+    coordiná visitas y aboná el contrato al avanzar con el cierre.
   </div>
 
   <div
@@ -3185,8 +3184,12 @@ export default function PageDePrueba() {
 
   <strong style={{ fontSize: "12px" }}>
     Sin comisión inmobiliaria.
-    Solo paga el inquilino al firmar.
+    El inquilino paga al avanzar con el contrato.
   </strong>
+  <div style={{fontSize: "13px", lineHeight: 1.5, maxWidth: "350px", marginTop: "9px", fontWeight: 750}}>
+    ¿Contratás la caución desde VERLO? Cuando se confirma el pago de la caución vinculada a tu operación,
+    tu contrato VERLO tiene 50% de bonificación: $59.500 en lugar de $119.000.
+  </div>
 </div>
 
 

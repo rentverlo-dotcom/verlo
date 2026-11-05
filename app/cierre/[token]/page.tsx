@@ -5398,11 +5398,11 @@ if (
                             >
                               Pago procesado de forma segura.{" "}
                               <a
-                                href="https://wa.me/5491176518603?text=Hola%20Verlo%20%F0%9F%91%8B%20Tengo%20un%20problema%20con%20el%20pago%20de%20mi%20contrato."
+                                href="mailto:soporte@verlo.lat?subject=Ayuda%20con%20el%20pago%20de%20mi%20contrato%20VERLO"
                                 target="_blank"
                                 rel="noreferrer"
                               >
-                                Si necesitás ayuda, escribinos por WhatsApp.
+                                Si necesitás ayuda, escribinos a soporte@verlo.lat.
                               </a>
                             </p>
                           </>
