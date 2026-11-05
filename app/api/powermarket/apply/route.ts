@@ -9,6 +9,7 @@ export async function POST(req:NextRequest){
   const leadId=verifyCaucionLead(String(body?.access||""))
   if(!leadId)return NextResponse.json({error:"Enlace inválido o vencido"},{status:401})
   const rent=Number(body?.rent), expenses=Number(body?.expenses),income=Number(body?.income),months=Number(body?.months),coIncome=body?.coIncome==null||body?.coIncome===""?null:Number(body.coIncome)
+  const simulatorChoice=body?.simulator_choice==="solo_caucion"||body?.simulator_choice==="caucion_con_contrato"?body.simulator_choice:null
   const employment=String(body?.employment||"")
   const hasCo=body?.hasCo===true
   if(![rent,expenses,income,months].every(Number.isFinite)||rent<=0||expenses<0||income<0||!Number.isInteger(months)||months<1||months>120||!["salary_receipt","monotributo","self_employed","other_formal","none"].includes(employment)||hasCo&&(!Number.isFinite(coIncome)||coIncome<0)||coIncome!==null&&(!Number.isFinite(coIncome)||coIncome<0)||body?.consent!==true)
@@ -27,7 +28,7 @@ export async function POST(req:NextRequest){
    status:"submitted",submitted_at:new Date().toISOString(),consent_at:new Date().toISOString(),consent_version:"powermarket-v1"
   }).select("id").single()
   if(error)throw error
-  const {error:eventError}=await db.from("caucion_events").insert({application_id:data.id,event_key:`caucion:submitted:${data.id}`,event_type:"application_submitted",payload:{source:"verlo_tenant_optin"}})
+  const {error:eventError}=await db.from("caucion_events").insert({application_id:data.id,event_key:`caucion:submitted:${data.id}`,event_type:"application_submitted",payload:{source:simulatorChoice?"simulador_caucion":"verlo_tenant_optin",...(simulatorChoice?{simulator_choice:simulatorChoice}:{})}})
   if(eventError)console.error("PowerMarket event logging failed",eventError)
   return NextResponse.json({ok:true,application_id:data.id})
  }catch(e){console.error("PowerMarket application create failed",e);return NextResponse.json({error:"No pudimos guardar la solicitud"},{status:500})}
