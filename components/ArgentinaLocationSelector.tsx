@@ -277,7 +277,7 @@ export default function ArgentinaLocationSelector({
         <select
           className="select"
           value={provinceId}
-          onChange={(event) => { setSeoLocation(null); setSelected([]); setProvinceId(event.target.value) }}
+          onChange={(event) => { setSeoLocation(null); if (mode === "single") setSelected([]); setProvinceId(event.target.value) }}
           required
         >
           <option value="">Provincia</option>
@@ -291,7 +291,7 @@ export default function ArgentinaLocationSelector({
         <select
           className="select"
           value={municipalityId}
-          onChange={(event) => { setSeoLocation(null); setSelected([]); setMunicipalityId(event.target.value) }}
+          onChange={(event) => { setSeoLocation(null); if (mode === "single") setSelected([]); setMunicipalityId(event.target.value) }}
           disabled={!provinceId || loadingMunicipalities}
           required
         >
@@ -310,7 +310,7 @@ export default function ArgentinaLocationSelector({
         <select
           className="select"
           value={localityId}
-          onChange={(event) => { setSeoLocation(null); setSelected([]); setLocalityId(event.target.value) }}
+          onChange={(event) => { setSeoLocation(null); if (mode === "single") setSelected([]); setLocalityId(event.target.value) }}
           disabled={!municipalityId || loadingLocalities}
           required
         >
