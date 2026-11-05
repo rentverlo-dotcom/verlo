@@ -67,6 +67,12 @@ async function authorize(request: NextRequest) {
   }
 }
 
+type VerificationRow = {
+  lead_id: string
+  document_number: string | null
+  status: string | null
+}
+
 type TenantLead = {
   id: string
   full_name: string | null
@@ -178,7 +184,36 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Existing verification identity is linked through the tenant lead.
+    // Only authorized partner accounts reach this query; no identity data is exposed publicly.
+    const identityByLead = new Map<string, { dni: string | null; status: string | null }>()
+    if (leadIds.length > 0) {
+      const { data: verifications, error: verificationError } = await ctx.db
+        .from("tenant_verifications")
+        .select("lead_id,document_number,status")
+        .in("lead_id", leadIds)
+        .order("created_at", { ascending: false })
+        .limit(300)
+      if (verificationError) {
+        console.error("Partner applicant identity lookup failed", verificationError)
+      } else {
+        for (const row of (verifications || []) as VerificationRow[]) {
+          if (!identityByLead.has(row.lead_id)) {
+            identityByLead.set(row.lead_id, {
+              dni: row.document_number?.trim() || null,
+              status: row.status || null,
+            })
+          }
+        }
+      }
+    }
+
     const results = applications.map((application) => ({
+      identity: {
+        dni: identityByLead.get(application.tenant_lead_id)?.dni || null,
+        verification_status: identityByLead.get(application.tenant_lead_id)?.status || "not_available",
+        cuit_cuil: null as string | null,
+      },
       simulator_choice: choiceByApplication.get(application.id) || null,
       ...application,
       tenant:
