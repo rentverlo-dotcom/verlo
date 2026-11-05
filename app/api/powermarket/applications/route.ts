@@ -159,7 +159,27 @@ export async function GET(request: NextRequest) {
       leads.map((lead) => [lead.id, lead])
     )
 
+    // The product choice is stored in the existing caucion event; no schema change.
+    const applicationIds = applications.map((application) => application.id)
+    const choiceByApplication = new Map<string, "solo_caucion" | "caucion_con_contrato">()
+    if (applicationIds.length > 0) {
+      const { data: submissionEvents, error: eventError } = await ctx.db
+        .from("caucion_events")
+        .select("application_id,payload")
+        .eq("event_type", "application_submitted")
+        .in("application_id", applicationIds)
+        .limit(100)
+      if (eventError) throw eventError
+      for (const event of submissionEvents || []) {
+        const choice = event?.payload?.simulator_choice
+        if (choice === "solo_caucion" || choice === "caucion_con_contrato") {
+          choiceByApplication.set(event.application_id, choice)
+        }
+      }
+    }
+
     const results = applications.map((application) => ({
+      simulator_choice: choiceByApplication.get(application.id) || null,
       ...application,
       tenant:
         leadsById.get(application.tenant_lead_id) || null,
