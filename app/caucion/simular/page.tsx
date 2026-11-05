@@ -164,7 +164,6 @@ export default function CaucionSimulator() {
                   </div>
                 )}
                 <button type="button" className="cs-button" onClick={continueToVerlo}>Quiero avanzar →</button>
-                <p style={{fontSize:12,color:"#61575c",marginBottom:0}}>Continuás en el circuito actual de VERLO. Esta pantalla no genera una solicitud ni un cobro.</p>
               </section>
             )}
           </section>
