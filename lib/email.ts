@@ -1,3 +1,4 @@
+import { qaProvidersDisabled } from '@/lib/qa/provider-guard'
 import tls from "node:tls"
 
 import {
@@ -132,6 +133,8 @@ export async function sendZohoEmail(
   url: string,
   eventKey: string
 ) {
+  if (qaProvidersDisabled()) return { ok: false, configured: false, provider_id: null, error: 'QA_EXTERNAL_DELIVERY_BLOCKED' }
+
   const host =
     clean(
       process.env
