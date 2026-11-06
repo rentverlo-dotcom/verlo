@@ -121,7 +121,7 @@ export function makeIdentikElectronicClient(options?: {
 
     async downloadSignedPdf(documentId: number): Promise<Uint8Array> {
       assertDocumentId(documentId)
-      const response = await request(`/document/${documentId}/download`)
+      const response = await request(`/document/${documentId}/download?version=signed`)
       return new Uint8Array(await response.arrayBuffer())
     },
 
