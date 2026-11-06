@@ -37,6 +37,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (verified && request.method === 'POST' && path === '/api/qa/mi-verlo/isolation' &&
+      Boolean(process.env.CRON_SECRET)) {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' && path === '/api/mi-verlo') {
     return NextResponse.next()
   }
