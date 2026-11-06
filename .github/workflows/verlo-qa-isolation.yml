@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: verlo-qa-isolation
@@ -69,6 +70,28 @@ jobs:
           exit 1
       - name: Run isolated QA Playwright suite
         run: npx playwright test --config=playwright.qa.config.ts
+      - name: Verify real QA Auth with two synthetic customer roles
+        shell: bash
+        run: |
+          set -euo pipefail
+          # GitHub supplies a short-lived, workflow-bound OIDC token. The server
+          # verifies signature, repository, workflow, ref and deployed SHA.
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 120 -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/mi-verlo/isolation" | node -e "
+            let input = '';
+            process.stdin.on('data', chunk => input += chunk);
+            process.stdin.on('end', () => {
+              let result;
+              try { result = JSON.parse(input); } catch { process.exit(1); }
+              if (!(result.ok && result.qaOnly && result.realSupabaseAuth &&
+                    result.twoTemporaryUsers && result.ownerOnlyOwnData &&
+                    result.tenantOnlyOwnData && result.sharedMatchVisible)) {
+                console.error('Mi VERLO QA identity isolation failed:', result.error || 'assertions');
+                process.exit(1);
+              }
+              console.log('Mi VERLO real Auth: separate owner / tenant + shared match verified');
+            });
+          "
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
