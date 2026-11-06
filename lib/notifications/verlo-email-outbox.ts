@@ -18,8 +18,12 @@ type EnqueueInput = {
  * Queuing and sending require distinct flags.
  */
 export async function enqueueVerloEmail(input: EnqueueInput): Promise<"disabled" | "queued" | "duplicate" | "invalid"> {
-  if (process.env.VERLO_EMAIL_QUEUE_CAPTURE_ENABLED !== "true"
-    || process.env.VERLO_EMAIL_CUTOVER_APPROVED !== "true") return "disabled"
+  const qaOnly = process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e"
+    && process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
+  // QA can capture synthetic email intents, but never dispatch them.
+  if (qaOnly && !(input.recipientEmail || "").trim().toLowerCase().endsWith("@example.com")) return "invalid"
+  if (!qaOnly && (process.env.VERLO_EMAIL_QUEUE_CAPTURE_ENABLED !== "true"
+    || process.env.VERLO_EMAIL_CUTOVER_APPROVED !== "true")) return "disabled"
 
   const supported = VERLO_EMAIL_EVENT_TYPES[input.area] as readonly string[] | undefined
   const email = (input.recipientEmail || "").trim().toLowerCase()
