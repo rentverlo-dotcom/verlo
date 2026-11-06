@@ -26,7 +26,7 @@ export default function InquilinoPage() {
       <button
         className="button"
         style={{ marginTop: 32 }}
-        onClick={() => router.push('/buscar')}
+        onClick={() => router.push('/permanentes')}
       >
         Buscar propiedades
       </button>
