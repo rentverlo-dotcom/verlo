@@ -5,16 +5,24 @@ test('Mi VERLO redirects a visitor without a session to login', async ({ page })
   await expect(page).toHaveURL(/\/login\?next=%2Fmi-verlo/, { timeout: 20_000 })
 })
 
-test('QA currently rejects dashboard API requests without a synthetic authenticated session', async ({ request }) => {
+test('Mi VERLO rejects a request without Supabase session with HTTP 401', async ({ request }) => {
   const response = await request.get('/api/mi-verlo')
-  expect(response.status()).toBe(503)
-  expect(await response.json()).toMatchObject({ error: 'QA_API_LOCKED' })
+  expect(response.status()).toBe(401)
+  expect(await response.json()).toMatchObject({ ok: false, error: 'Missing session' })
 })
 
-test('QA prevents supplying an arbitrary lead ID to the dashboard API', async ({ request }) => {
-  const response = await request.get('/api/mi-verlo?lead_id=00000000-0000-4000-8000-000000000001', {
-    headers: { Authorization: 'Bearer invalid-test-token' },
+test('Mi VERLO rejects forged Bearer tokens with HTTP 401', async ({ request }) => {
+  const response = await request.get('/api/mi-verlo', {
+    headers: { Authorization: 'Bearer qa-forged-token' },
   })
-  expect(response.status()).toBe(503)
-  expect(await response.json()).toMatchObject({ error: 'QA_API_LOCKED' })
+  expect(response.status()).toBe(401)
+  expect(await response.json()).toMatchObject({ ok: false, error: 'Invalid session' })
+})
+
+test('Mi VERLO does not allow unauthenticated users to query another lead ID', async ({ request }) => {
+  const response = await request.get('/api/mi-verlo?lead_id=00000000-0000-4000-8000-000000000001', {
+    headers: { Authorization: 'Bearer qa-forged-token' },
+  })
+  expect(response.status()).toBe(401)
+  expect(await response.json()).toMatchObject({ ok: false, error: 'Invalid session' })
 })
