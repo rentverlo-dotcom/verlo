@@ -1,16 +1,48 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname === '/api/qa/status') {
-    const branch = process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e'
-    const database = process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://anptswspguyotnasoacq.supabase.co'
-    return NextResponse.json({ ok: branch && database, branch, database }, { status: branch && database ? 200 : 503 })
+const QA_URL = 'https://anptswspguyotnasoacq.supabase.co'
+
+function qaVerified() {
+  return process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL
+}
+
+export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname
+  const verified = qaVerified()
+
+  if (path === '/api/qa/status') {
+    return NextResponse.json({
+      ok: verified,
+      branch: process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e',
+      database: process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL,
+    }, { status: verified ? 200 : 503 })
   }
-  if (request.nextUrl.pathname === '/api/qa/tradicionales/preflight' && request.method === 'GET') {
+
+  if (verified && request.method === 'GET' &&
+      (path === '/api/qa/tradicionales/preflight' || path === '/api/qa/tradicionales/result')) {
     return NextResponse.next()
   }
-  return NextResponse.json({ error: 'QA_API_LOCKED' }, { status: 503 })
+
+  if (verified && path === '/api/lead-intake' && request.method === 'POST') {
+    const data = await request.clone().json().catch(() => null)
+    const email = String(data?.email || '').trim().toLowerCase()
+    const source = String(data?.source || '').trim()
+    const role = String(data?.role || '').trim()
+    const intent = String(data?.intent || '').trim()
+    const validRole = (role === 'owner' && intent === 'owner_new_listing') ||
+      (role === 'tenant' && intent === 'tenant_search')
+
+    if (email.endsWith('@example.com') && source.startsWith('qa_e2e_') && validRole) {
+      return NextResponse.next()
+    }
+  }
+
+  return NextResponse.json({ error: 'QA_API_LOCKED' }, {
+    status: 503,
+    headers: { 'Cache-Control': 'no-store' },
+  })
 }
 
 export const config = { matcher: ['/api/:path*'] }
