@@ -3997,7 +3997,9 @@ const leadPayload = {
 
 // The transactional RPC is opt-in until its database migration is verified.
 // Never fall back to separate inserts if an enabled RPC fails.
-const useAtomicIntake = process.env.ATOMIC_LEAD_INTAKE_ENABLED === "true"
+const useAtomicIntake = process.env.ATOMIC_LEAD_INTAKE_ENABLED === 'true' ||
+  (process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' &&
+   process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://anptswspguyotnasoacq.supabase.co')
 let leadRecord: { id: string } | null = null
 if (useAtomicIntake) {
   const neighborhoodRows = buildLeadNeighborhoodRows({
