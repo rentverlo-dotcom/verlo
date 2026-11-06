@@ -88,6 +88,7 @@ test('Tradicionales: propietario + inquilino crean un match persistido en Supaba
   const persisted = await check.json()
   expect(check.status(), JSON.stringify(persisted)).toBe(200)
   expect(persisted.qaLeadsPersisted).toBe(true)
+  expect(persisted.notificationEvents).toBe(0)
   expect(persisted.matches.length, JSON.stringify({ persisted, ownerMatch: owner.match_result, tenantMatch: tenant.match_result })).toBeGreaterThan(0)
   expect(persisted.matches[0].score).toBeGreaterThanOrEqual(80)
 
