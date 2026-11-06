@@ -28,6 +28,15 @@ export async function middleware(request: NextRequest) {
     }, { status: verified ? 200 : 503 })
   }
 
+  if (verified && request.method === 'POST' &&
+      path === '/api/webhooks/identik-electronic' &&
+      process.env.IDENTIK_ELECTRONIC_WEBHOOK_SECRET &&
+      (!process.env.IDENTIK_ELECTRONIC_API_BASE_URL ||
+       process.env.IDENTIK_ELECTRONIC_API_BASE_URL ===
+         'https://sandbox-electronica.identik.me/api/v2')) {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' && path === '/api/qa/identik/readiness') {
     return NextResponse.next()
   }
