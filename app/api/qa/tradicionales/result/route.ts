@@ -35,9 +35,12 @@ export async function GET(request: NextRequest) {
     .select('id,status,score,prequalified')
     .eq('owner_lead_id', owner).eq('tenant_lead_id', tenant)
   if (error) return NextResponse.json({ ok: false, error: 'MATCH_LOOKUP_FAILED' }, { status: 503 })
+  const notificationResult = await db.from('lead_notification_events').select('id', { count: 'exact', head: true }).in('lead_id', [owner, tenant])
+  if (notificationResult.error) return NextResponse.json({ ok: false, error: 'NOTIFICATION_AUDIT_FAILED' }, { status: 503 })
   return NextResponse.json({
     ok: true,
     qaLeadsPersisted: true,
+    notificationEvents: notificationResult.count ?? 0,
     matches: (matches || []).map(m => ({
       exists: true, status: m.status, score: Number(m.score), prequalified: m.prequalified,
     })),
