@@ -33,3 +33,14 @@ test('QA rejects unsigned or unauthenticated Identik webhook', async ({ request 
   expect(response.status()).toBe(401)
   expect(await response.json()).toMatchObject({ ok: false })
 })
+
+test('Identik Sandbox accepts QA credentials without creating or signing a document', async ({ request }) => {
+  const response = await request.get('/api/qa/identik/connectivity', { timeout: 40_000 })
+  const body = await response.json()
+  expect(response.status(), JSON.stringify(body)).toBe(200)
+  expect(body).toMatchObject({
+    ok: true,
+    providerStatus: 404,
+    credentialLikelyAccepted: true,
+  })
+})
