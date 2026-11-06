@@ -6,3 +6,9 @@ test('Inquilino: CTA enters active permanent rental matching funnel', async ({ p
   await expect(page).toHaveURL(/\/permanentes(?:[?#]|$)/)
   await expect(page.locator('body')).toContainText(/alquiler|verlo/i)
 })
+
+test('Publicar antiguo: redirige al formulario de propietarios vigente', async ({ page }) => {
+  await page.goto('/propietario/publicar-v2', { waitUntil: 'domcontentloaded' })
+  await expect(page).toHaveURL(/\/propietarios(?:[?#]|$)/)
+  await expect(page.locator('form.owner-form')).toBeVisible()
+})
