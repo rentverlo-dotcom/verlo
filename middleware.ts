@@ -28,6 +28,10 @@ export async function middleware(request: NextRequest) {
     }, { status: verified ? 200 : 503 })
   }
 
+  if (verified && request.method === 'GET' && path === '/api/qa/identik/readiness') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' &&
       (path === '/api/qa/tradicionales/preflight' || path === '/api/qa/tradicionales/result')) {
     return NextResponse.next()
