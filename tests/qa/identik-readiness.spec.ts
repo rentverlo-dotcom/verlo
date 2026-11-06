@@ -26,7 +26,7 @@ test('Identik readiness verifies QA isolation and sandbox-only configuration wit
   ])
 })
 
-test('QA continues blocking real Identik integration routes', async ({ request }) => {
+test('QA continues blocking webhook until a QA-specific secret is configured', async ({ request }) => {
   const response = await request.post('/api/webhooks/identik-electronic', {
     data: { type: 'DOCUMENT_COMPLETED', documentId: 1 },
   })
