@@ -37,6 +37,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (verified && request.method === 'GET' && path === '/api/mi-verlo') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' && path === '/api/qa/identik/connectivity') {
     return NextResponse.next()
   }
