@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 // Explicitly pin the independently verified QA deployment; never default to Production.
-const QA_URL = 'https://verlopunto0-1oy0qgpf3-verlos-projects-b9e9c595.vercel.app'
+const QA_URL = 'https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app'
 const target = process.env.PLAYWRIGHT_QA_BASE_URL || QA_URL
 
 if (target !== QA_URL) {
