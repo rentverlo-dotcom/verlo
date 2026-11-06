@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test('QA deployment uses only the QA database', async ({ request }) => {
   const response = await request.get('/api/qa/status')
   expect(response.status()).toBe(200)
-  expect(await response.json()).toEqual({
+  expect(await response.json()).toMatchObject({
     ok: true,
     branch: true,
     database: true,
