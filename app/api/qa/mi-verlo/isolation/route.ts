@@ -93,8 +93,16 @@ export async function POST(request: NextRequest) {
     const ownerContainsTenant = owner.dashboard.intakes.some((x: {id: string}) => x.id === tenant.id)
     const tenantContainsOwner = tenant.dashboard.intakes.some((x: {id: string}) => x.id === owner.id)
 
+    // The same match must be visible to each party, but each dashboard
+    // must represent the current user as the correct role.
+    const ownerMatches = [...(owner.dashboard.matches || []), ...(owner.dashboard.operations || [])]
+    const tenantMatches = [...(tenant.dashboard.matches || []), ...(tenant.dashboard.operations || [])]
+    const sharedMatchVisible = ownerMatches.some((m: {id:string,role:string}) =>
+      m.role === 'owner' && tenantMatches.some((t: {id:string,role:string}) =>
+        t.id === m.id && t.role === 'tenant'))
+
     const isolated = !ownerSeesTenant && !tenantSeesOwner &&
-      !ownerContainsTenant && !tenantContainsOwner
+      !ownerContainsTenant && !tenantContainsOwner && sharedMatchVisible
     return NextResponse.json({
       ok: isolated,
       qaOnly: true,
@@ -102,6 +110,7 @@ export async function POST(request: NextRequest) {
       twoTemporaryUsers: true,
       ownerOnlyOwnData: !ownerSeesTenant && !ownerContainsTenant,
       tenantOnlyOwnData: !tenantSeesOwner && !tenantContainsOwner,
+      sharedMatchVisible,
       users: [{role:owner.role, ownLeads:owner.rows}, {role:tenant.role, ownLeads:tenant.rows}],
     }, { status: isolated ? 200 : 500, headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
