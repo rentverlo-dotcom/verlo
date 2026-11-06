@@ -46,9 +46,9 @@ test('Propietarios: selector real de fotos acumula archivos sin enviarlos', asyn
   await expect(page.getByText('3 archivos seleccionados')).toBeVisible()
 })
 
-test('Buscar: un visitante sin sesión debe pasar por login', async ({ page }) => {
+test('Buscar antiguo: redirige al formulario comercial vigente', async ({ page }) => {
   await page.goto('/buscar', { waitUntil: 'domcontentloaded' })
-  await expect(page).toHaveURL(/\/login(?:\?|$)/, { timeout: 20_000 })
+  await expect(page).toHaveURL(/\/permanentes(?:[?#]|$)/, { timeout: 20_000 })
 })
 
 test('Mi VERLO: un visitante sin sesión no puede abrir su panel privado', async ({ page }) => {
