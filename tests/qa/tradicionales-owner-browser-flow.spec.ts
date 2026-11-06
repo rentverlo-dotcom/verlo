@@ -1,0 +1,81 @@
+import { test, expect } from '@playwright/test'
+
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zx7sAAAAASUVORK5CYII=',
+  'base64',
+)
+const ID = '22222222-2222-4222-8222-222222222222'
+
+// Browser contract test: real page / real controls / real form submission code.
+// All write endpoints are intercepted at the browser, so this test never
+// uploads to real R2 or inserts fake leads. Persistence is tested separately.
+test('Propietario: formulario completo -> geografía -> foto -> solicitud -> pantalla éxito', async ({ page }) => {
+  test.setTimeout(80_000)
+  let leadPayload: Record<string, any> | undefined
+  let mediaPayload: Record<string, any> | undefined
+  let presignPayload: Record<string, any> | undefined
+  let uploadedBytes = 0
+
+  // Deny any unanticipated API request. Register first; specific routes override.
+  await page.route('**/api/**', route => route.abort('blockedbyclient'))
+  await page.route('**/api/lead-intake', async route => {
+    leadPayload = route.request().postDataJSON()
+    await route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true, lead_id: ID }) })
+  })
+  await page.route('**/api/r2/presign', async route => {
+    presignPayload = route.request().postDataJSON()
+    await route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true, key: 'qa/mock-owner-photo.png',
+        uploadUrl: '/api/qa/e2e-owner-upload', publicUrl: null }) })
+  })
+  await page.route('**/api/qa/e2e-owner-upload', async route => {
+    expect(route.request().method()).toBe('PUT')
+    uploadedBytes = route.request().postDataBuffer()?.byteLength ?? 0
+    await route.fulfill({ status: 200, body: '' })
+  })
+  await page.route('**/api/owner-initial-media', async route => {
+    mediaPayload = route.request().postDataJSON()
+    await route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true }) })
+  })
+
+  await page.goto('/propietarios', { waitUntil: 'domcontentloaded' })
+  const form = page.locator('form.owner-form')
+  await expect(form).toBeVisible()
+  await form.locator('[name="full_name"]').fill('Propietario UI QA')
+  await form.locator('[name="phone"]').fill('1155550001')
+  await form.locator('[name="email"]').fill('qa-browser-owner@example.com')
+
+  const selectors = form.locator('select.select')
+  await selectors.nth(0).selectOption('02')
+  await expect(selectors.nth(1)).toHaveValue('caba')
+  await selectors.nth(2).selectOption({ label: 'Palermo' })
+  await expect(form.locator('[name="neighborhood_slug"]')).toHaveValue('ar:02:caba:palermo')
+
+  await form.locator('[name="property_type"]').selectOption({ index: 1 })
+  await form.locator('[name="property_rooms"]').selectOption({ index: 1 })
+  await form.locator('[name="approx_price"]').selectOption({ index: 1 })
+  await form.locator('[name="availability_status"]').selectOption({ index: 1 })
+  await form.locator('input[type=file]').setInputFiles({
+    name: 'qa-owner-photo.png', mimeType: 'image/png', buffer: PNG,
+  })
+
+  await form.getByRole('button', { name: /Ver si mi propiedad matchea/i }).click()
+  await expect(page).toHaveURL(new RegExp('/success\\?role=owner&lead=' + ID), { timeout: 25_000 })
+
+  expect(leadPayload).toMatchObject({
+    full_name: 'Propietario UI QA',
+    email: 'qa-browser-owner@example.com',
+    role: 'owner', intent: 'owner_new_listing',
+    zone: 'Palermo, CABA',
+    neighborhood_slug: 'ar:02:caba:palermo',
+    source: 'verlo_propietarios',
+  })
+  expect(presignPayload).toMatchObject({ folder: 'owner-media', id: ID })
+  expect(uploadedBytes).toBeGreaterThan(0)
+  expect(mediaPayload).toMatchObject({
+    owner_lead_id: ID, dispatch_matches: false,
+    media: [{ key: 'qa/mock-owner-photo.png', mediaType: 'photo' }],
+  })
+})
