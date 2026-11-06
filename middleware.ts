@@ -12,6 +12,13 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
   const verified = qaVerified()
 
+  if (verified && request.method === 'GET' && path === '/buscar') {
+    return NextResponse.redirect(new URL('/permanentes', request.url), 307)
+  }
+  if (verified && request.method === 'GET' && path === '/propietario/publicar-v2') {
+    return NextResponse.redirect(new URL('/propietarios', request.url), 307)
+  }
+
   if (path === '/api/qa/status') {
     return NextResponse.json({
       ok: verified,
@@ -50,4 +57,4 @@ export async function middleware(request: NextRequest) {
   })
 }
 
-export const config = { matcher: ['/api/:path*'] }
+export const config = { matcher: ['/api/:path*', '/buscar', '/propietario/publicar-v2'] }
