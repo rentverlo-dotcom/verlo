@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const { data: matches, error: matchError } = await admin.from('lead_matches')
       .select('owner_lead_id,tenant_lead_id').limit(150)
     if (matchError) throw new Error('MATCH_LOOKUP_FAILED')
-    const leadIds = [...new Set((matches || []).flatMap(m => [m.owner_lead_id, m.tenant_lead_id]))]
+    const leadIds = Array.from(new Set((matches || []).flatMap(m => [m.owner_lead_id, m.tenant_lead_id])))
     if (!leadIds.length) throw new Error('NO_QA_MATCH_FIXTURES')
 
     const { data: leads, error: leadError } = await admin.from('lead_intake')
