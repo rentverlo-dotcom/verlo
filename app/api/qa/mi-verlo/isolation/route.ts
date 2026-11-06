@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { GET as getMiVerlo } from '@/app/api/mi-verlo/route'
+import { validQaWorkflowToken } from '@/lib/qa/verify-workflow-token'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,17 +17,21 @@ function eligible(lead: Lead | undefined, role: string) {
     lead.email.toLowerCase().endsWith('@example.com'))
 }
 
-// Run ONLY with a private server-side CRON_SECRET in the isolated QA deployment.
-// No email invitations are sent: admin.createUser(email_confirm:true) creates
-// temporary synthetic Auth identities; every identity is deleted in finally.
-// Production and public unauthenticated traffic must never reach this endpoint.
+// This privileged QA-only fixture is executed only by a signed GitHub
+// Actions identity on the exact commit currently deployed to QA.
+// Never use shared CRON_SECRET to create authenticated synthetic accounts.
 export async function POST(request: NextRequest) {
-  if (process.env.VERCEL_GIT_COMMIT_REF !== 'qa/verlo-e2e' ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL !== QA_URL ||
-      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      !process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      !process.env.CRON_SECRET ||
-      request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+  const sandboxOnly = process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL &&
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) &&
+    Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
+  if (!sandboxOnly) {
+    return NextResponse.json({ ok: false, error: 'QA_ONLY' }, { status: 403 })
+  }
+  const authHeader = request.headers.get('authorization') || ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA || ''
+  if (!sha || !(await validQaWorkflowToken(token, sha))) {
     return NextResponse.json({ ok: false, error: 'QA_ONLY' }, { status: 403 })
   }
 
