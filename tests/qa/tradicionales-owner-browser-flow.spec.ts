@@ -79,3 +79,51 @@ test('Propietario: formulario completo -> geografía -> foto -> solicitud -> pan
     media: [{ key: 'qa/mock-owner-photo.png', mediaType: 'photo' }],
   })
 })
+
+test('Propietario: fallo en multimedia no debe mostrar éxito ni navegar', async ({ page }) => {
+  test.setTimeout(70_000)
+  let leadCalled = 0
+  let presignCalled = 0
+  let mediaCalled = 0
+
+  await page.route('**/api/**', route => route.abort('blockedbyclient'))
+  await page.route('**/api/lead-intake', async route => {
+    leadCalled += 1
+    await route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true, lead_id: ID }) })
+  })
+  await page.route('**/api/r2/presign', async route => {
+    presignCalled += 1
+    await route.fulfill({ status: 500, contentType: 'application/json',
+      body: JSON.stringify({ ok: false, error: 'QA_UPLOAD_UNAVAILABLE' }) })
+  })
+  await page.route('**/api/owner-initial-media', async route => {
+    mediaCalled += 1
+    await route.fulfill({ status: 500, body: '{}' })
+  })
+
+  await page.goto('/propietarios', { waitUntil: 'domcontentloaded' })
+  const form = page.locator('form.owner-form')
+  await form.locator('[name="full_name"]').fill('Propietario QA Fallo Media')
+  await form.locator('[name="phone"]').fill('1155550001')
+  await form.locator('[name="email"]').fill('qa-owner-failure@example.com')
+  const selectors = form.locator('select.select')
+  await selectors.nth(0).selectOption('02')
+  await expect(selectors.nth(1)).toHaveValue('caba')
+  await selectors.nth(2).selectOption({ label: 'Palermo' })
+  await expect(form.locator('[name="neighborhood_slug"]')).toHaveValue('ar:02:caba:palermo')
+  await form.locator('[name="property_type"]').selectOption({ index: 1 })
+  await form.locator('[name="property_rooms"]').selectOption({ index: 1 })
+  await form.locator('[name="approx_price"]').selectOption({ index: 1 })
+  await form.locator('[name="availability_status"]').selectOption({ index: 1 })
+  await form.locator('input[type=file]').setInputFiles({
+    name: 'qa-owner-photo.png', mimeType: 'image/png', buffer: PNG,
+  })
+
+  await form.getByRole('button', { name: /Ver si mi propiedad matchea/i }).click()
+  await expect(page.getByText('QA_UPLOAD_UNAVAILABLE')).toBeVisible({ timeout: 15_000 })
+  expect(leadCalled).toBe(1)
+  expect(presignCalled).toBe(1)
+  expect(mediaCalled).toBe(0)
+  expect(new URL(page.url()).pathname).toBe('/propietarios')
+})
