@@ -26,6 +26,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (verified && path === '/api/qa/tradicionales/notify' && request.method === 'POST') {
+    return NextResponse.next()
+  }
+
   if (verified && path === '/api/lead-intake' && request.method === 'POST') {
     const data = await request.clone().json().catch(() => null)
     const email = String(data?.email || '').trim().toLowerCase()
