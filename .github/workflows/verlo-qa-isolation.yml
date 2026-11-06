@@ -1,4 +1,4 @@
-name: VERLO QA - isolation smoke
+name: VERLO QA - isolation and traditional matching
 
 on:
   push:
@@ -9,7 +9,14 @@ on:
       - 'tests/qa/**'
       - 'playwright.qa.config.ts'
       - 'middleware.ts'
-      - 'app/api/qa/tradicionales/preflight/route.ts'
+      - 'app/api/qa/**'
+      - 'app/api/lead-intake/route.ts'
+      - 'lib/qa/**'
+      - 'lib/meta/capi.ts'
+      - 'lib/notifications/**'
+      - 'lib/push.ts'
+      - 'lib/email.ts'
+      - 'app/layout.tsx'
   workflow_dispatch:
 
 permissions:
@@ -20,9 +27,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  isolation:
+  qa-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 18
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
     steps:
       - name: Checkout QA branch
         uses: actions/checkout@v4
@@ -35,13 +44,36 @@ jobs:
         run: npm ci
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run all QA isolation and traditional preflight tests
+      - name: Wait for exact QA commit deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 40); do
+            if curl -fsS --max-time 15 "$QA_BASE_URL/api/qa/status" | node -e "
+              let buf = '';
+              process.stdin.on('data', x => buf += x);
+              process.stdin.on('end', () => {
+                try {
+                  const status = JSON.parse(buf);
+                  if (!(status.ok && status.branch && status.database &&
+                    status.commit === process.env.GITHUB_SHA)) process.exit(1);
+                } catch { process.exit(1); }
+              });
+            "; then
+              echo "Verified QA branch, QA database, exact deployed SHA"
+              exit 0
+            fi
+            sleep 12
+          done
+          echo "QA deployment not ready for this exact commit"
+          exit 1
+      - name: Run isolated QA Playwright suite
         run: npx playwright test --config=playwright.qa.config.ts
-      - name: Upload failure reports
-        if: failure()
+      - name: Upload evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: qa-isolation-playwright-results
+          name: qa-e2e-playwright-evidence
           path: |
             playwright-report/
             test-results/
