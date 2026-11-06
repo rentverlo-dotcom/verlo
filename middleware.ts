@@ -17,6 +17,7 @@ export async function middleware(request: NextRequest) {
       ok: verified,
       branch: process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e',
       database: process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL,
+      commit: process.env.VERCEL_GIT_COMMIT_SHA || null,
     }, { status: verified ? 200 : 503 })
   }
 
