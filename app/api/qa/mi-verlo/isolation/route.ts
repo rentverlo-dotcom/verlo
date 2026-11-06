@@ -6,6 +6,7 @@ import { validQaWorkflowToken } from '@/lib/qa/verify-workflow-token'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 const QA_URL = 'https://anptswspguyotnasoacq.supabase.co'
 type Lead = { id: string; email: string; role: string; intent: string; source: string }
