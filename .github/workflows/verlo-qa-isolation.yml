@@ -68,8 +68,6 @@ jobs:
           done
           echo "QA deployment not ready for this exact commit"
           exit 1
-      - name: Run isolated QA Playwright suite
-        run: npx playwright test --config=playwright.qa.config.ts
       - name: Verify real QA Auth with two synthetic customer roles
         shell: bash
         run: |
@@ -92,6 +90,8 @@ jobs:
               console.log('Mi VERLO real Auth: separate owner / tenant + shared match verified');
             });
           "
+      - name: Run isolated QA Playwright suite
+        run: npx playwright test --config=playwright.qa.config.ts
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
