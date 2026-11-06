@@ -50,6 +50,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (verified && path === '/api/qa/tradicionales/media' && request.method === 'POST') {
+    return NextResponse.next()
+  }
+
   if (verified && path === '/api/qa/tradicionales/notify' && request.method === 'POST') {
     return NextResponse.next()
   }
