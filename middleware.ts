@@ -37,8 +37,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  if (verified && request.method === 'POST' && path === '/api/qa/mi-verlo/isolation' &&
-      Boolean(process.env.CRON_SECRET)) {
+  if (verified && request.method === 'POST' && path === '/api/qa/mi-verlo/isolation') {
     return NextResponse.next()
   }
 
