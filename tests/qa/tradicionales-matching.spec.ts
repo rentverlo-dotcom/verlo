@@ -92,6 +92,45 @@ test('Tradicionales: propietario + inquilino crean un match persistido en Supaba
   expect(persisted.matches.length, JSON.stringify({ persisted, ownerMatch: owner.match_result, tenantMatch: tenant.match_result })).toBeGreaterThan(0)
   expect(persisted.matches[0].score).toBeGreaterThanOrEqual(80)
 
+  // Only the QA route may simulate a match event. The real provider calls
+  // are disabled by the branch guard; Email stays pending in the QA outbox.
+  // Result route omits match IDs intentionally. Use the QA match ID
+  // returned by intake when available.
+  const createdIds = [
+    ...(Array.isArray(tenant.match_result?.match_ids) ? tenant.match_result.match_ids : []),
+    ...(Array.isArray(owner.match_result?.match_ids) ? owner.match_result.match_ids : []),
+  ]
+  const id = createdIds.find((value: unknown) => typeof value === 'string')
+  expect(id, JSON.stringify({ owner: owner.match_result, tenant: tenant.match_result })).toBeTruthy()
+
+  for (let i = 0; i < 2; i += 1) {
+    const response = await request.post('/api/qa/tradicionales/notify', {
+      data: { match_id: id },
+    })
+    const result = await response.json()
+    expect(response.status(), JSON.stringify(result)).toBe(200)
+    expect(result.ok).toBe(true)
+    expect(result.noExternalDelivery).toBe(true)
+    expect(result.eventCount).toBe(2)
+    expect(result.emailCount).toBe(2)
+    expect(result.recipients).toHaveLength(2)
+    for (const recipient of result.recipients) {
+      expect(recipient.eventRecorded).toBe(true)
+      expect(recipient.emailQueued).toBe(true)
+      expect(recipient.titleCorrect).toBe(true)
+      expect(recipient.destinationCorrect).toBe(true)
+      expect(recipient.recipientCorrect).toBe(true)
+      expect(recipient.emailStatus).toBe('pending')
+      expect(recipient.pushDelivered).toBe(false)
+    }
+  }
+
+  const audit = await request.get(
+    `/api/qa/tradicionales/result?owner=${owner.lead_id}&tenant=${tenant.lead_id}`,
+  )
+  expect(audit.status()).toBe(200)
+  expect((await audit.json()).notificationEvents).toBe(2)
+
   await page.goto(`/success?role=tenant&lead=${tenant.lead_id}`)
   await expect(page.locator('body')).toContainText(/verlo|notificaciones|búsqueda/i)
 })
