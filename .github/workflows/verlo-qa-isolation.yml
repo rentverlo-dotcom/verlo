@@ -105,7 +105,9 @@ jobs:
                   out.noExternalDelivery && out.identityVerificationSimulated &&
                   out.twoInterests && out.firstDoubleOk && out.draftPersisted &&
                   out.contractTokenRoles === 2 && out.secondDoubleOk &&
-                  out.repeatIdempotent)) {
+                  out.repeatIdempotent && out.bothLegalPartiesSaved &&
+                  out.ownDataProtected && out.legalUpdateIdempotent &&
+                  out.prematureAgreementDenied && out.invalidRentalPriceDenied)) {
                 console.error('Synthetic contracts lifecycle failed:', out.error || 'assertions');
                 process.exit(1);
               }
