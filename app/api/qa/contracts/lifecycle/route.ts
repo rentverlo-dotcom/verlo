@@ -6,6 +6,9 @@ import { POST as createLead } from '@/app/api/lead-intake/route'
 import { POST as setTenantInterest } from '@/app/api/match-interest/route'
 import { POST as setOwnerInterest } from '@/app/api/owner-interest/route'
 import { POST as postVisit } from '@/app/api/post-visit-decision/route'
+import { POST as saveLegalData } from '@/app/api/closing-legal-data/route'
+import { POST as generateContract } from '@/app/api/closing-generate/route'
+import { POST as agreeContract } from '@/app/api/closing-agree/route'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -153,6 +156,61 @@ export async function POST(request: NextRequest) {
     if (repeat.decision_changed !== false || repeat.became_second_double_ok !== false)
       throw Error('POST_VISIT_DUPLICATE_TRIGGER')
 
+    // Actual contract handlers: validate each party's own legal data.
+    // No external provider is called, and no real identity is claimed.
+    const tenantLegal = {
+      token: tenantDecisionToken.data.token,
+      tenant: { dni: '30123456', civil_status: 'soltero',
+        legal_address: 'Calle QA 100', city: 'Olivos',
+        province: 'Buenos Aires', country: 'Argentina', postal_code: '1636' },
+      // A tenant must never overwrite the owner's legal data.
+      owner: { dni: '99999999' },
+    }
+    const tenantSave = await step('TENANT_LEGAL', await saveLegalData(internal(tenantLegal)))
+    if (tenantSave.changed !== true || tenantSave.role !== 'tenant')
+      throw Error('TENANT_LEGAL_NOT_PERSISTED')
+    const tenantRepeat = await step('TENANT_LEGAL_REPEAT', await saveLegalData(internal(tenantLegal)))
+    if (tenantRepeat.changed !== false) throw Error('TENANT_LEGAL_NOT_IDEMPOTENT')
+
+    const ownerLegal = {
+      token: ownerDecisionToken.data.token,
+      owner: { dni: '25123456', civil_status: 'casado',
+        legal_address: 'Calle QA 200', city: 'Olivos',
+        province: 'Buenos Aires', country: 'Argentina' },
+      property: { street: 'Calle QA', number: '500',
+        city: 'Olivos', province: 'Buenos Aires', country: 'Argentina' },
+      signing_place: { city: 'Olivos', province: 'Buenos Aires', country: 'Argentina' },
+      furnishing: { status: 'unfurnished' },
+      tenant: { dni: '99999999' },
+    }
+    const ownerSave = await step('OWNER_LEGAL', await saveLegalData(internal(ownerLegal)))
+    if (ownerSave.changed !== true || ownerSave.role !== 'owner')
+      throw Error('OWNER_LEGAL_NOT_PERSISTED')
+    const ownerRepeat = await step('OWNER_LEGAL_REPEAT', await saveLegalData(internal(ownerLegal)))
+    if (ownerRepeat.changed !== false) throw Error('OWNER_LEGAL_NOT_IDEMPOTENT')
+
+    const contractTerms = await db.from('lead_contracts')
+      .select('status,content,terms_json,tenant_agreed_at,owner_agreed_at')
+      .eq('id', draft.id).single()
+    const terms = contractTerms.data?.terms_json || {}
+    if (contractTerms.error || contractTerms.data?.status !== 'draft' ||
+        contractTerms.data?.content || contractTerms.data?.tenant_agreed_at ||
+        contractTerms.data?.owner_agreed_at ||
+        terms.tenant_dni !== '30123456' || terms.owner_dni !== '25123456' ||
+        terms.property_number !== '500' || terms.signing_city !== 'Olivos')
+      throw Error('CONTRACT_LEGAL_ROLES_OR_STATE_INVALID')
+
+    // No premature acceptance: a contract must be generated first.
+    const premature = await agreeContract(internal({token: tenantDecisionToken.data.token}))
+    if (premature.status !== 409) throw Error('PREMATURE_AGREEMENT_ALLOWED')
+    // Invalid economic terms cannot generate a contract.
+    const badGenerate = await generateContract(internal({
+      token: ownerDecisionToken.data.token, monthly_price: -100,
+      deposit: 0, start_date: '2027-01-01', end_date: '2028-01-01',
+      adjustment_method: 'IPC',
+    }))
+    if (badGenerate.status !== 400) throw Error('INVALID_RENT_ALLOWED')
+
     const { data: final, error: finalError } = await db.from('lead_matches')
       .select('tenant_interest_at,tenant_verified_at,owner_interest_at,ready_to_connect_at,tenant_post_visit_decision,owner_post_visit_decision')
       .eq('id', match.id).single()
@@ -167,6 +225,9 @@ export async function POST(request: NextRequest) {
       firstDoubleOk: true, draftPersisted: true,
       contractTokenRoles: 2, secondDoubleOk: true,
       repeatIdempotent: true,
+      bothLegalPartiesSaved: true, ownDataProtected: true,
+      legalUpdateIdempotent: true, prematureAgreementDenied: true,
+      invalidRentalPriceDenied: true,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     return NextResponse.json({
