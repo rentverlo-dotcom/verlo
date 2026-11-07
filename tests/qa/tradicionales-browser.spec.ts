@@ -30,8 +30,12 @@ test('Propietarios: el formulario real pide los datos obligatorios', async ({ pa
 })
 
 test('Propietarios: selector real de fotos acumula archivos sin enviarlos', async ({ page }) => {
-  await page.goto('/propietarios', { waitUntil: 'domcontentloaded' })
-  const files = page.locator('form.owner-form input[type="file"][accept="image/*,video/*"]')
+  // Setting files before client hydration can silently miss React onChange.
+  // Wait for Next.js scripts and the interactive form, not merely HTML parsing.
+  await page.goto('/propietarios', { waitUntil: 'networkidle' })
+  const form = page.locator('form.owner-form')
+  await expect(form).toBeVisible()
+  const files = form.locator('input[type="file"][accept="image/*,video/*"]')
   await expect(files).toBeAttached()
 
   await files.setInputFiles({
