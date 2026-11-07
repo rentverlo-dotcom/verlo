@@ -107,7 +107,10 @@ jobs:
                   out.contractTokenRoles === 2 && out.secondDoubleOk &&
                   out.repeatIdempotent && out.bothLegalPartiesSaved &&
                   out.ownDataProtected && out.legalUpdateIdempotent &&
-                  out.prematureAgreementDenied && out.invalidRentalPriceDenied)) {
+                  out.prematureAgreementDenied && out.invalidRentalPriceDenied &&
+                  out.completeContractContentGenerated && out.unpaidAgreementDenied &&
+                  out.qaPaymentSimulated && out.bothPartyAgreementsRecorded &&
+                  out.agreedLegalDataImmutable)) {
                 console.error('Synthetic contracts lifecycle failed:', out.error || 'assertions');
                 process.exit(1);
               }
