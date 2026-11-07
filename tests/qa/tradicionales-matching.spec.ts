@@ -92,16 +92,10 @@ test('Tradicionales: propietario + inquilino crean un match persistido en Supaba
   expect(persisted.matches.length, JSON.stringify({ persisted, ownerMatch: owner.match_result, tenantMatch: tenant.match_result })).toBeGreaterThan(0)
   expect(persisted.matches[0].score).toBeGreaterThanOrEqual(80)
 
-  // Only the QA route may simulate a match event. The real provider calls
-  // are disabled by the branch guard; Email stays pending in the QA outbox.
-  // Result route omits match IDs intentionally. Use the QA match ID
-  // returned by intake when available.
-  const createdIds = [
-    ...(Array.isArray(tenant.match_result?.match_ids) ? tenant.match_result.match_ids : []),
-    ...(Array.isArray(owner.match_result?.match_ids) ? owner.match_result.match_ids : []),
-  ]
-  const id = createdIds.find((value: unknown) => typeof value === 'string')
-  expect(id, JSON.stringify({ owner: owner.match_result, tenant: tenant.match_result })).toBeTruthy()
+  // Use the exact match linking this owner and tenant. Intake's
+  // match_ids can include other compatible synthetic QA users.
+  const id = persisted.matches[0].id
+  expect(id).toMatch(/^[0-9a-f-]{36}$/i)
 
   for (let i = 0; i < 2; i += 1) {
     const response = await request.post('/api/qa/tradicionales/notify', {
