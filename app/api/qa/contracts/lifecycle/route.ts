@@ -249,6 +249,24 @@ export async function POST(request: NextRequest) {
     }).eq('id', match.id).eq('tenant_lead_id', tenantId)
     if (markPayment.error) throw Error('QA_PAYMENT_STANDIN_FAILED')
 
+    // The real closing handler requires an approved, unconsumed Verlo payment
+    // record before activating a rental. Keep the production guard intact:
+    // this synthetic QA-only record never calls Mercado Pago or a customer.
+    const syntheticPaymentId = 'qa-contract-' + run
+    const payment = await db.from('lead_payments').insert({
+      lead_contract_id: draft.id,
+      lead_match_id: match.id,
+      tenant_lead_id: tenantId,
+      provider: 'qa-synthetic',
+      provider_payment_id: syntheticPaymentId,
+      amount: 119000,
+      currency: 'ARS',
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      raw_payload: { qa_only: true, run, external_charge: false },
+    }).select('id').single()
+    if (payment.error || !payment.data?.id) throw Error('QA_APPROVED_PAYMENT_FIXTURE_FAILED')
+
     const ownerAgreement = await step('OWNER_AGREEMENT', await agreeContract(internal({
       token: ownerDecisionToken.data.token,
     })))
