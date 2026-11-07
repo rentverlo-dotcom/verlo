@@ -41,6 +41,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (verified && request.method === 'GET' && path === '/api/qa/contracts/preflight') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' && path === '/api/qa/notifications/preflight') {
     return NextResponse.next()
   }
