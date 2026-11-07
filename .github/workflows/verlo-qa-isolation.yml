@@ -90,6 +90,28 @@ jobs:
               console.log('Mi VERLO real Auth: separate owner / tenant + shared match verified');
             });
           "
+      - name: Exercise synthetic match interest and contract double OK
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 120 -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/contracts/lifecycle" | node -e "
+            let input = '';
+            process.stdin.on('data', data => input += data);
+            process.stdin.on('end', () => {
+              let out;
+              try { out = JSON.parse(input); } catch { process.exit(1); }
+              if (!(out.ok && out.qaOnly && out.realApiHandlers &&
+                  out.noExternalDelivery && out.identityVerificationSimulated &&
+                  out.twoInterests && out.firstDoubleOk && out.draftPersisted &&
+                  out.contractTokenRoles === 2 && out.secondDoubleOk &&
+                  out.repeatIdempotent)) {
+                console.error('Synthetic contracts lifecycle failed:', out.error || 'assertions');
+                process.exit(1);
+              }
+              console.log('Real contract handlers QA: first and second double OK, draft and idempotency verified');
+            });
+          "
       - name: Run isolated QA Playwright suite
         run: npx playwright test --config=playwright.qa.config.ts
       - name: Upload evidence
