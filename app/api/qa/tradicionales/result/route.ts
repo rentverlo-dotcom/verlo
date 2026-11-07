@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     qaLeadsPersisted: true,
     notificationEvents: notificationResult.count ?? 0,
     matches: (matches || []).map(m => ({
-      exists: true, status: m.status, score: Number(m.score), prequalified: m.prequalified,
+      id: m.id, exists: true, status: m.status, score: Number(m.score), prequalified: m.prequalified,
     })),
   }, { headers: { 'Cache-Control': 'no-store' } })
 }
