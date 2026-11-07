@@ -211,6 +211,68 @@ export async function POST(request: NextRequest) {
     }))
     if (badGenerate.status !== 400) throw Error('INVALID_RENT_ALLOWED')
 
+    // Generate a complete plain-text contractual draft using the real
+    // contract generator. PDF conversion/signature is a separate stage.
+    const generated = await step('GENERATE_CONTRACT', await generateContract(internal({
+      token: ownerDecisionToken.data.token,
+      monthly_price: 800000, deposit: 800000,
+      start_date: '2027-01-01', end_date: '2028-01-01',
+      adjustment_method: 'IPC',
+      expenses: 'Expensas ordinarias según liquidación',
+      services: 'Servicios a cargo del inquilino',
+      payment_method: 'Transferencia bancaria',
+      guarantee_type: 'Seguro de caución',
+      pets_policy: 'Se admiten mascotas',
+    })))
+    if (generated.contract_status !== 'generated' && generated.status !== 'generated')
+      throw Error('GENERATED_CONTRACT_STATUS_INVALID')
+
+    const persistedGenerated = await db.from('lead_contracts')
+      .select('status,monthly_price,deposit,start_date,end_date,content,tenant_agreed_at,owner_agreed_at')
+      .eq('id', draft.id).single()
+    if (persistedGenerated.error || persistedGenerated.data?.status !== 'generated' ||
+        Number(persistedGenerated.data?.monthly_price) !== 800000 ||
+        !persistedGenerated.data?.content?.includes('ALQUILER MENSUAL') ||
+        persistedGenerated.data?.tenant_agreed_at || persistedGenerated.data?.owner_agreed_at)
+      throw Error('GENERATED_CONTRACT_CONTENT_INVALID')
+
+    // Payment must be verified before the tenant is allowed to accept.
+    const unpaidAgreement = await agreeContract(internal({
+      token: tenantDecisionToken.data.token,
+    }))
+    if (unpaidAgreement.status !== 402) throw Error('PAYMENT_GUARD_BYPASSED')
+
+    // A QA-only payment stand-in lets us exercise agreement state transitions
+    // without charging anyone or invoking Mercado Pago.
+    const markPayment = await db.from('lead_matches').update({
+      tenant_paid_at: new Date().toISOString(),
+    }).eq('id', match.id).eq('tenant_lead_id', tenantId)
+    if (markPayment.error) throw Error('QA_PAYMENT_STANDIN_FAILED')
+
+    const ownerAgreement = await step('OWNER_AGREEMENT', await agreeContract(internal({
+      token: ownerDecisionToken.data.token,
+    })))
+    const tenantAgreement = await step('TENANT_AGREEMENT', await agreeContract(internal({
+      token: tenantDecisionToken.data.token,
+    })))
+    if (ownerAgreement.both_agreed === true ||
+        tenantAgreement.both_agreed !== true ||
+        tenantAgreement.contract_status !== 'agreed')
+      throw Error('TWO_PARTY_AGREEMENT_INVALID')
+
+    const agreed = await db.from('lead_contracts')
+      .select('status,tenant_agreed_at,owner_agreed_at,content').eq('id', draft.id).single()
+    if (agreed.error || agreed.data?.status !== 'agreed' ||
+        !agreed.data?.tenant_agreed_at || !agreed.data?.owner_agreed_at ||
+        !agreed.data?.content) throw Error('AGREED_CONTRACT_NOT_PERSISTED')
+
+    // Once both parties agree, legal details must be immutable.
+    const lateLegal = await saveLegalData(internal({
+      token: tenantDecisionToken.data.token,
+      tenant: { dni: '30123457' },
+    }))
+    if (lateLegal.status !== 409) throw Error('AGREED_LEGAL_DATA_MUTABLE')
+
     const { data: final, error: finalError } = await db.from('lead_matches')
       .select('tenant_interest_at,tenant_verified_at,owner_interest_at,ready_to_connect_at,tenant_post_visit_decision,owner_post_visit_decision')
       .eq('id', match.id).single()
@@ -228,6 +290,11 @@ export async function POST(request: NextRequest) {
       bothLegalPartiesSaved: true, ownDataProtected: true,
       legalUpdateIdempotent: true, prematureAgreementDenied: true,
       invalidRentalPriceDenied: true,
+      completeContractContentGenerated: true,
+      unpaidAgreementDenied: true,
+      qaPaymentSimulated: true,
+      bothPartyAgreementsRecorded: true,
+      agreedLegalDataImmutable: true,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     return NextResponse.json({
