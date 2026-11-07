@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
       guarantee_type: 'Seguro de caución',
       pets_policy: 'Se admiten mascotas',
     })))
-    if (generated.contract_status !== 'generated' && generated.status !== 'generated')
+    if ((generated.contract as {status?:string})?.status !== 'generated')
       throw Error('GENERATED_CONTRACT_STATUS_INVALID')
 
     const persistedGenerated = await db.from('lead_contracts')
