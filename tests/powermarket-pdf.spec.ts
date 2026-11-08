@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test"
 import { createHash } from "node:crypto"
 import { createCaucionContractPdf } from "../lib/powermarket/contract-pdf"
+import { createTemporaryContractPdf } from "../lib/temporarios/contract-pdf"
+import { traditionalContractPurpose, traditionalContractTitle, traditionalContractDestination } from "../lib/contracts/traditional-purpose"
 
 const hash = (value: string) => createHash("sha256").update(value, "utf8").digest("hex")
 const pdfOf = (content: string) => createCaucionContractPdf({
@@ -76,4 +78,37 @@ test("VERLO branded PDF keeps legal wording and no visible technical hash or C2P
   expect(pdf).toContain("/Subtype /Image")
   expect(pdf).toContain("Contrato de locación")
   expect(pdf).toContain("verlo")
+})
+
+
+test("traditional form types use correct contractual purpose and prohibit misleading housing titles", () => {
+  for (const type of ["apartment", "house", "ph", "Departamento", "Casa", "PH"]) {
+    expect(traditionalContractTitle(traditionalContractPurpose(type))).toBe("CONTRATO DE LOCACIÓN DE VIVIENDA")
+  }
+  expect(traditionalContractTitle(traditionalContractPurpose("room"))).toBe("CONTRATO DE LOCACIÓN DE HABITACIÓN")
+  const commercial = traditionalContractPurpose("local")
+  expect(traditionalContractTitle(commercial)).toBe("CONTRATO DE LOCACIÓN COMERCIAL")
+  expect(traditionalContractDestination(commercial).use).not.toContain("vivienda propia")
+  expect(() => traditionalContractPurpose("unknown-commercial")).toThrow()
+})
+
+test("PDF VerloBrand header reflects actual commercial and room document titles", () => {
+  for (const type of ["local", "room", "ph"]) {
+    const title = traditionalContractTitle(traditionalContractPurpose(type))
+    const text = title + "\\n\\nPRIMERA — OBJETO\\nEl contrato respeta el destino previsto."
+    const pdf = pdfOf(text).toString("latin1")
+    expect(pdf.match(new RegExp(title, "g"))?.length).toBeGreaterThanOrEqual(2)
+    if (type === "local") expect(pdf).not.toContain("CONTRATO DE LOCACIÓN DE VIVIENDA")
+    expect(pdf).toContain("/Logo")
+  }
+})
+
+test("temporarios PDF shares exact VerloBrand visuals with separate temporary agreement title", () => {
+  const content = "CONTRATO DE ESTADÍA TEMPORARIA\\n\\nLas partes acuerdan la reserva temporal de la propiedad."
+  const pdf = createTemporaryContractPdf({ documentText: content, sha256: hash(content), version: 1,
+    contractId: "11111111-1111-4111-8111-111111111111" }).toString("latin1")
+  expect(pdf).toContain("CONTRATO DE ESTADÍA TEMPORARIA")
+  expect(pdf).toContain("/Logo")
+  expect(pdf).not.toContain("SHA-256 del texto contractual")
+  expect(pdf).toContain("ESPACIOS RESERVADOS PARA FIRMA")
 })
