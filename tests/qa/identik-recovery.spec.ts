@@ -43,3 +43,25 @@ test("Identik: download handler validates PDF bytes from provider", () => {
   expect(code).toContain("/certificate")
   expect(code).toContain("payload.recipients.length !== 2")
 })
+
+test("Identik: signed artifact route rejects invalid and unknown access without provider calls", async ({ request }) => {
+  const invalid = await request.post("/api/qa/identik/signed-artifact", {
+    data: { token: "", kind: "signed_pdf" },
+  })
+  expect(invalid.status()).toBe(400)
+
+  const unknown = await request.post("/api/qa/identik/signed-artifact", {
+    data: { token: "qa-invalid-token-no-document", kind: "signed_pdf" },
+  })
+  expect(unknown.status()).toBe(404)
+})
+
+test("Identik: signed artifact requires linked owner or tenant and completed provider record", () => {
+  const source = readFileSync("app/api/qa/identik/signed-artifact/route.ts", "utf8")
+  expect(source).toContain('access.role === "owner"')
+  expect(source).toContain('contract.status !== "agreed"')
+  expect(source).toContain('.eq("lead_contract_id", contract.id).eq("status", "completed")')
+  expect(source).toContain("downloadSignedPdf(id)")
+  expect(source).toContain("downloadCertificate(id)")
+  expect(source).toContain('"Cache-Control": "private, no-store, max-age=0"')
+})
