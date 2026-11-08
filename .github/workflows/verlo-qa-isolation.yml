@@ -110,10 +110,17 @@ jobs:
                   out.prematureAgreementDenied && out.invalidRentalPriceDenied &&
                   out.completeContractContentGenerated && out.unpaidAgreementDenied &&
                   out.qaPaymentSimulated && out.bothPartyAgreementsRecorded &&
-                  out.agreedLegalDataImmutable && out.agreementReplayIdempotent)) {
+                  out.agreedLegalDataImmutable && out.agreementReplayIdempotent &&
+                  out.contractPdfPreflight && typeof out.contractExamplePdfBase64 === 'string')) {
                 console.error('Synthetic contracts lifecycle failed:', out.error || 'assertions');
                 process.exit(1);
               }
+              const fs = require('node:fs');
+              const pdf = Buffer.from(out.contractExamplePdfBase64, 'base64');
+              if (!pdf.subarray(0, 8).toString('ascii').startsWith('%PDF-1.4')) process.exit(1);
+              fs.mkdirSync('test-results', { recursive: true });
+              fs.writeFileSync('test-results/VERLO-contrato-QA-ejemplo.pdf', pdf);
+              console.log('QA example contract PDF saved as Playwright evidence');
               console.log('Real contract handlers QA: first and second double OK, draft and idempotency verified');
             });
           "
