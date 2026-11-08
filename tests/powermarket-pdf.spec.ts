@@ -199,3 +199,68 @@ test("owner V2 publishing persists the original PH and local enum values", () =>
   expect(mapping![1]).toMatch(/ph:\s*["']ph["']/)
   expect(source).toContain("property_type: safePropertyType")
 })
+
+test("QA: complete traditional contract template retains 27 ordered nonempty legal sections", () => {
+  const source = readFileSync(join(process.cwd(), "app/api/closing-generate/route.ts"), "utf8")
+  const start = source.indexOf("const content = `")
+  const end = source.indexOf("`.trim()", start)
+  expect(start).toBeGreaterThan(-1)
+  expect(end).toBeGreaterThan(start)
+  const content = source.slice(start, end)
+  const headers = [
+    "PRIMERA", "SEGUNDA", "TERCERA", "CUARTA", "QUINTA", "SEXTA",
+    "SÉPTIMA", "OCTAVA", "NOVENA", "DÉCIMA", "DÉCIMA PRIMERA",
+    "DÉCIMA SEGUNDA", "DÉCIMA TERCERA", "DÉCIMA CUARTA",
+    "DÉCIMA QUINTA", "DÉCIMA SEXTA", "DÉCIMA SÉPTIMA",
+    "DÉCIMA OCTAVA", "DÉCIMA NOVENA", "VIGÉSIMA",
+    "VIGÉSIMA PRIMERA", "VIGÉSIMA SEGUNDA", "VIGÉSIMA TERCERA",
+    "VIGÉSIMA CUARTA", "VIGÉSIMA QUINTA", "VIGÉSIMA SEXTA",
+    "VIGÉSIMA SÉPTIMA",
+  ]
+  const lines = content.split("\n").map(x => x.trim())
+  let previous = -1
+  for (const header of headers) {
+    const indices = lines.flatMap((x, i) => x.startsWith(header + " — ") ? [i] : [])
+    expect(indices, header + " must occur exactly once").toHaveLength(1)
+    expect(indices[0]).toBeGreaterThan(previous)
+    previous = indices[0]
+  }
+  expect(lines.some(x => x === "DATOS PRINCIPALES DEL CONTRATO")).toBeTruthy()
+  expect(content).toContain("${destination.use}")
+  expect(content).toContain("${destination.restrictions}")
+  expect(content).toContain("${destination.occupation}")
+  expect(content).toContain("${contractTitle}")
+})
+
+test("QA: complete contract template selects correct residential commercial and room legal destinations", () => {
+  for (const [formType, title, useWord] of [
+    ["Departamento", "CONTRATO DE LOCACIÓN DE VIVIENDA", "vivienda propia"],
+    ["Casa", "CONTRATO DE LOCACIÓN DE VIVIENDA", "vivienda propia"],
+    ["PH", "CONTRATO DE LOCACIÓN DE VIVIENDA", "vivienda propia"],
+    ["Local", "CONTRATO DE LOCACIÓN COMERCIAL", "actividad comercial"],
+    ["Habitación", "CONTRATO DE LOCACIÓN DE HABITACIÓN", "habitación"],
+  ]) {
+    const purpose = traditionalContractPurpose(formType)
+    expect(traditionalContractTitle(purpose)).toBe(title)
+    expect(traditionalContractDestination(purpose).use).toContain(useWord)
+    const pdf = pdfOf([title, "PRIMERA — OBJETO", traditionalContractDestination(purpose).use].join("\n\n")).toString("latin1")
+    expect(pdf).toContain(title)
+    expect(pdf).toContain("/Logo")
+  }
+})
+
+test("QA: temporary contract has all existing substantive paragraphs and independent owner payment rule", () => {
+  const source = readFileSync(join(process.cwd(), "app/api/temporarios/contracts/route.ts"), "utf8")
+  for (const section of [
+    "OBJETO Y DESTINO:", "ENTREGA Y DEVOLUCIÓN:",
+    "OBLIGACIONES DE LA PERSONA PROPIETARIA:",
+    "OBLIGACIONES DE LA PERSONA HUÉSPED:",
+    "DAÑOS:", "DEPÓSITO:", "CANCELACIÓN Y MODIFICACIONES:",
+    "INCUMPLIMIENTOS Y CONTROVERSIAS:", "INTERVENCIÓN DE VERLO:",
+  ]) expect(source).toContain(section)
+  expect(source).toContain("El pago del alojamiento y cualquier depósito acordado se realizan directamente entre las partes, fuera de VERLO.")
+  expect(source).toContain('].join("\\n\\n")')
+  const pdfSource = readFileSync(join(process.cwd(), "app/api/temporarios/contracts/pdf/route.ts"), "utf8")
+  expect(pdfSource).toContain("verifyTemporaryContractText")
+  expect(pdfSource).toContain("createTemporaryContractPdf")
+})
