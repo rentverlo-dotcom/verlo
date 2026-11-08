@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test"
 import { createHash } from "node:crypto"
+import { mkdirSync, writeFileSync } from "node:fs"
 import { createCaucionContractPdf } from "../lib/powermarket/contract-pdf"
 import { createTemporaryContractPdf } from "../lib/temporarios/contract-pdf"
 import { traditionalContractPurpose, traditionalContractTitle, traditionalContractDestination } from "../lib/contracts/traditional-purpose"
@@ -111,4 +112,49 @@ test("temporarios PDF shares exact VerloBrand visuals with separate temporary ag
   expect(pdf).toContain("/Logo")
   expect(pdf).not.toContain("SHA-256 del texto contractual")
   expect(pdf).toContain("ESPACIOS RESERVADOS PARA FIRMA")
+})
+
+
+test("QA evidence: visual PDF examples for all five real owner form types and temporarios", () => {
+  // These clearly labeled synthetic samples prove the actual PDF heading/layout;
+  // they do NOT certify an end-to-end commercial contract or replace legal review.
+  mkdirSync("qa-evidence", { recursive: true })
+  const variants = [
+    ["casa", "house"], ["departamento", "apartment"], ["PH", "ph"],
+    ["habitacion", "room"], ["local", "local"],
+  ] as const
+  for (const [label, formType] of variants) {
+    const purpose = traditionalContractPurpose(formType)
+    const title = traditionalContractTitle(purpose)
+    const destination = traditionalContractDestination(purpose)
+    const content = [
+      title,
+      "",
+      "MUESTRA VISUAL SINTÉTICA DE QA — NO ES UN CONTRATO PARA FIRMAR",
+      "",
+      "PRIMERA — OBJETO",
+      "Las partes identifican el inmueble de prueba ubicado en Olivos, Buenos Aires.",
+      "",
+      "SEGUNDA — DESTINO",
+      destination.use,
+      "", destination.restrictions,
+      "", destination.occupation,
+    ].join("\n")
+    const pdf = pdfOf(content)
+    const rendered = pdf.toString("latin1")
+    expect(rendered).toContain(title)
+    expect(rendered).toContain("/Logo")
+    expect(rendered).not.toContain("SHA-256 del texto contractual")
+    if (formType === "local") expect(rendered).not.toContain("CONTRATO DE LOCACIÓN DE VIVIENDA")
+    writeFileSync(`qa-evidence/VERLO-QA-${label}-MUESTRA-VISUAL.pdf`, pdf)
+  }
+  const temporaryText = [
+    "CONTRATO DE ESTADÍA TEMPORARIA", "",
+    "MUESTRA VISUAL SINTÉTICA DE QA — NO ES UN CONTRATO PARA FIRMAR", "",
+    "PRIMERA — OBJETO", "Las partes acuerdan una estadía temporaria de prueba.",
+  ].join("\n")
+  const temporary = createTemporaryContractPdf({ documentText: temporaryText, version: 1,
+    sha256: hash(temporaryText), contractId: "11111111-1111-4111-8111-111111111111" })
+  expect(temporary.toString("latin1")).toContain("CONTRATO DE ESTADÍA TEMPORARIA")
+  writeFileSync("qa-evidence/VERLO-QA-temporarios-MUESTRA-VISUAL.pdf", temporary)
 })
