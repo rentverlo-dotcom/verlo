@@ -141,7 +141,7 @@ jobs:
         with:
           name: qa-e2e-playwright-evidence
           path: |
-            qa-evidence/VERLO-contrato-QA-ejemplo.pdf
+            qa-evidence/*.pdf
             playwright-report/
             test-results/
           if-no-files-found: ignore
