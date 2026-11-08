@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test"
 import { createHash } from "node:crypto"
-import { mkdirSync, writeFileSync } from "node:fs"
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs"
+import { join } from "node:path"
 import { createCaucionContractPdf } from "../lib/powermarket/contract-pdf"
 import { createTemporaryContractPdf } from "../lib/temporarios/contract-pdf"
 import { traditionalContractPurpose, traditionalContractTitle, traditionalContractDestination } from "../lib/contracts/traditional-purpose"
@@ -188,8 +189,8 @@ test("Identik preflight: PDFs from VERLO have exactly one revision, no C2PA or p
 })
 
 test("owner V2 publishing persists the original PH and local enum values", () => {
-  const source = require("node:fs").readFileSync(
-    require("node:path").join(process.cwd(), "app/propietario/publicar-v2/page.tsx"),
+  const source = readFileSync(
+    join(process.cwd(), "app/propietario/publicar-v2/page.tsx"),
     "utf8",
   )
   const mapping = source.match(/const propertyTypeMap = \{([\s\S]*?)\}\s+as const/)
