@@ -31,7 +31,7 @@ function wrap(paragraph: string, limit = 50): string[] {
   // whitespace with split(/\\s+/), which changes names, clauses and amounts.
   // Only visual wrapping is introduced when the line exceeds the page width.
   const lines: string[] = []
-  for (const original of paragraph.replace(/\\r\\n?/g, "\\n").split("\\n")) {
+  for (const original of paragraph.replace(/\r\n?/g, "\n").split("\n")) {
     if (!original.length) {
       lines.push("")
       continue
