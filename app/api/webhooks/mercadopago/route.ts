@@ -350,6 +350,17 @@ export async function POST(
       )
     }
 
+    // Repair a partially processed approved notification on replay too.
+    // Idempotent: an already paid match keeps its original paid timestamp.
+    const syncApprovedMatch = async (approvedAt: string) => {
+      const result = await supabaseAdmin.from("lead_matches")
+        .update({ tenant_paid_at: approvedAt })
+        .eq("id", storedPayment.lead_match_id)
+        .eq("tenant_lead_id", storedPayment.tenant_lead_id)
+        .is("tenant_paid_at", null)
+      if (result.error) throw result.error
+    }
+
     const decision = decideMpContractPayment({
       storedProvider: storedPayment.provider,
       storedStatus: storedPayment.status,
@@ -370,6 +381,7 @@ export async function POST(
       )
     }
     if (decision === "duplicate") {
+      await syncApprovedMatch(storedPayment.approved_at || new Date().toISOString())
       return NextResponse.json({
         ok: true, status: "approved", payment_id: storedPayment.id,
         already_processed: true,
@@ -460,6 +472,7 @@ export async function POST(
         .select("status").eq("id", storedPayment.id).maybeSingle()
       if (latest.error) throw latest.error
       if (latest.data?.status === "approved") {
+        await syncApprovedMatch(storedPayment.approved_at || now)
         return NextResponse.json({
           ok: true, status: "approved", payment_id: storedPayment.id,
           already_processed: true,
@@ -468,39 +481,8 @@ export async function POST(
       return NextResponse.json({ ok: false, error: "Concurrent payment update" }, { status: 409 })
     }
 
-    if (
-      status ===
-      "approved"
-    ) {
-      const {
-        error:
-          matchUpdateError,
-      } =
-        await supabaseAdmin
-          .from(
-            "lead_matches"
-          )
-          .update({
-            tenant_paid_at:
-              approvedAt ||
-              now,
-          })
-          .eq(
-            "id",
-            storedPayment
-              .lead_match_id
-          )
-          .eq(
-            "tenant_lead_id",
-            storedPayment
-              .tenant_lead_id
-          )
-
-      if (
-        matchUpdateError
-      ) {
-        throw matchUpdateError
-      }
+    if (status === "approved") {
+      await syncApprovedMatch(approvedAt || now)
     }
 
     return NextResponse.json({
