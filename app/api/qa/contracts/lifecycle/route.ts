@@ -278,6 +278,17 @@ export async function POST(request: NextRequest) {
         tenantAgreement.contract_status !== 'agreed')
       throw Error('TWO_PARTY_AGREEMENT_INVALID')
 
+    // Repeating an already accepted contract must not consume another payment.
+    const replay = await step('AGREEMENT_REPLAY', await agreeContract(internal({
+      token: tenantDecisionToken.data.token,
+    })))
+    if (replay.already_agreed !== true || replay.both_agreed !== true ||
+        replay.rental_id !== tenantAgreement.rental_id) throw Error('AGREEMENT_REPLAY_INVALID')
+    const consumed = await db.from('lead_payments').select('id,consumed_rental_id')
+      .eq('id', payment.data.id).single()
+    if (consumed.error || consumed.data?.consumed_rental_id !== tenantAgreement.rental_id)
+      throw Error('APPROVED_PAYMENT_NOT_CONSUMED_ONCE')
+
     const agreed = await db.from('lead_contracts')
       .select('status,tenant_agreed_at,owner_agreed_at,content').eq('id', draft.id).single()
     if (agreed.error || agreed.data?.status !== 'agreed' ||
@@ -312,7 +323,7 @@ export async function POST(request: NextRequest) {
       unpaidAgreementDenied: true,
       qaPaymentSimulated: true,
       bothPartyAgreementsRecorded: true,
-      agreedLegalDataImmutable: true,
+      agreedLegalDataImmutable: true, agreementReplayIdempotent: true,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     return NextResponse.json({
