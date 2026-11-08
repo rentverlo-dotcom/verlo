@@ -93,7 +93,7 @@ function wrapLine(input: string, size: number, maxWidth: number): string[] {
 }
 function isClauseTitle(line: string): boolean {
   return /^(PRELIMINAR|PRIMERA|SEGUNDA|TERCERA|CUARTA|QUINTA|SEXTA|SÉPTIMA|OCTAVA|NOVENA|DÉCIMA|VIGÉSIMA)(?:\s|$)/.test(line) ||
-    /^CONTRATO DE LOCACIÓN (?:DE VIVIENDA|COMERCIAL|DE HABITACIÓN)$/.test(line) ||
+    /^CONTRATO DE LOCACIÓN (?:DE VIVIENDA|COMERCIAL|DE HABITACIÓN|DE OFICINA|DE INMUEBLE)$/.test(line) ||
     /^(DATOS PRINCIPALES DEL CONTRATO|INMUEBLE:|LOCADOR:|LOCATARIO:|PLAZO:|ALQUILER MENSUAL INICIAL:|DEPÓSITO:|ACTUALIZACIÓN:|AMOBLAMIENTO:)$/.test(line)
 }
 type PDFLine = { text: string; x: number; y: number; font: "F1" | "F2" | "F3"; size: number }
@@ -208,7 +208,8 @@ export function createCaucionContractPdf(args: {
   // Do not independently infer a title from property-table fallback values.
   const sourceTitle = args.documentText.replace(/\r\n?/g, "\n").split("\n").map(x => x.trim()).find(Boolean) || ""
   const approvedTitles = ["CONTRATO DE LOCACIÓN DE VIVIENDA", "CONTRATO DE LOCACIÓN COMERCIAL",
-    "CONTRATO DE LOCACIÓN DE HABITACIÓN", "CONTRATO DE ESTADÍA TEMPORARIA"]
+    "CONTRATO DE LOCACIÓN DE HABITACIÓN", "CONTRATO DE LOCACIÓN DE OFICINA",
+    "CONTRATO DE LOCACIÓN DE INMUEBLE", "CONTRATO DE ESTADÍA TEMPORARIA"]
   const contractTitle = args.headingOverride && approvedTitles.includes(args.headingOverride)
     ? args.headingOverride : approvedTitles.includes(sourceTitle) ? sourceTitle : "CONTRATO DE LOCACIÓN"
   const pages = layout(args.documentText)
