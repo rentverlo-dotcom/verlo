@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
   const created: string[] = []
   try {
     const { data: matches, error: matchError } = await admin.from('lead_matches')
-      .select('owner_lead_id,tenant_lead_id').limit(150)
+      .select('owner_lead_id,tenant_lead_id,status,created_at').neq('status', 'discarded')
+      .order('created_at', { ascending: false }).limit(150)
     if (matchError) throw new Error('MATCH_LOOKUP_FAILED')
     const leadIds = Array.from(new Set((matches || []).flatMap(m => [m.owner_lead_id, m.tenant_lead_id])))
     if (!leadIds.length) throw new Error('NO_QA_MATCH_FIXTURES')
@@ -109,6 +110,11 @@ export async function POST(request: NextRequest) {
 
     const isolated = !ownerSeesTenant && !tenantSeesOwner &&
       !ownerContainsTenant && !tenantContainsOwner && sharedMatchVisible
+    const diagnostics = {
+      ownerSeesTenant, tenantSeesOwner, ownerContainsTenant, tenantContainsOwner,
+      sharedMatchVisible, ownerMatchCount: ownerMatches.length,
+      tenantMatchCount: tenantMatches.length,
+    }
     return NextResponse.json({
       ok: isolated,
       qaOnly: true,
@@ -117,6 +123,7 @@ export async function POST(request: NextRequest) {
       ownerOnlyOwnData: !ownerSeesTenant && !ownerContainsTenant,
       tenantOnlyOwnData: !tenantSeesOwner && !tenantContainsOwner,
       sharedMatchVisible,
+      ...(isolated ? {} : { error: 'QA_ISOLATION_ASSERTION_FAILED', diagnostics }),
       users: [{role:owner.role, ownLeads:owner.rows}, {role:tenant.role, ownLeads:tenant.rows}],
     }, { status: isolated ? 200 : 500, headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
