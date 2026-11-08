@@ -342,6 +342,7 @@ export async function POST(request: NextRequest) {
       contractPdfPreflight: true, contractExamplePdfBase64: previewPdf.toString('base64'),
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
+    console.error('QA CONTRACT LIFECYCLE FAILED:', error instanceof Error ? error.message : 'UNKNOWN')
     return NextResponse.json({
       ok: false, qaOnly: true,
       error: error instanceof Error ? error.message : 'UNKNOWN_QA_LIFECYCLE_ERROR',
