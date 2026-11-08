@@ -11,6 +11,7 @@ import {
 import {
   supabaseAdmin,
 } from "@/lib/supabase/admin"
+import { decideMpContractPayment } from "@/lib/payments/mercadopago-contract-state"
 
 export const runtime =
   "nodejs"
@@ -349,102 +350,39 @@ export async function POST(
       )
     }
 
-    // Do not let a notification for another provider/payment mutate a VERLO
-    // contract. Payment verification comes from MP, not from the incoming body.
-    if (
-      storedPayment.provider !== "mercadopago" ||
-      clean(payment.id) !== paymentId ||
-      (storedPayment.provider_payment_id &&
-       storedPayment.provider_payment_id !== clean(payment.id))
-    ) {
+    const decision = decideMpContractPayment({
+      storedProvider: storedPayment.provider,
+      storedStatus: storedPayment.status,
+      storedProviderPaymentId: storedPayment.provider_payment_id,
+      storedAmount: Number(storedPayment.amount),
+      storedCurrency: storedPayment.currency,
+      notificationId: paymentId,
+      paymentId: payment.id,
+      paymentAmount: Number(payment.transaction_amount),
+      paymentCurrency: clean(payment.currency_id),
+      paymentStatus: clean(payment.status),
+    })
+
+    if (decision === "reject_reference") {
       return NextResponse.json(
         { ok: false, error: "Payment reference mismatch" },
         { status: 409 }
       )
     }
-
-    // An already approved payment is final for this contract fee. Duplicate
-    // notifications and late rejected/pending events cannot revoke it.
-    if (storedPayment.status === "approved") {
+    if (decision === "duplicate") {
       return NextResponse.json({
-        ok: true,
-        status: "approved",
-        payment_id: storedPayment.id,
+        ok: true, status: "approved", payment_id: storedPayment.id,
         already_processed: true,
       })
     }
-
-    const paymentAmount =
-      Number(
-        payment
-          .transaction_amount
-      )
-
-    const storedAmount =
-      Number(
-        storedPayment
-          .amount
-      )
-
-    const currency =
-      clean(
-        payment
-          .currency_id
-      )
-
-    if (
-      !Number.isFinite(
-        paymentAmount
-      ) ||
-      paymentAmount !==
-        storedAmount ||
-      currency !==
-        storedPayment
-          .currency
-    ) {
-      await supabaseAdmin
-        .from(
-          "lead_payments"
-        )
-        .update({
-          status:
-            "amount_mismatch",
-
-          provider_payment_id:
-            clean(
-              payment.id
-            ) ||
-            null,
-
-          raw_payload:
-            payment,
-
-          updated_at:
-            new Date()
-              .toISOString(),
-        })
-        .eq(
-          "id",
-          storedPayment.id
-        )
-
+    if (decision === "reject_amount") {
+      // Mismatched amount or currency must never unlock the contract.
       return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Payment amount or currency mismatch",
-        },
-        {
-          status: 409,
-        }
+        { ok: false, error: "Payment amount or currency mismatch" },
+        { status: 409 }
       )
     }
-
-    // Explicitly ignore unknown provider statuses; never unlock a contract.
-    const validStatuses = new Set([
-      "approved", "rejected", "cancelled", "pending", "in_process",
-    ])
-    if (!validStatuses.has(clean(payment.status))) {
+    if (decision === "ignore_status") {
       return NextResponse.json({
         ok: true, ignored: true, reason: "unsupported_payment_status",
       })
@@ -476,6 +414,7 @@ export async function POST(
             .approved_at
 
     const {
+      data: updatedRows,
       error:
         paymentUpdateError,
     } =
@@ -505,11 +444,28 @@ export async function POST(
           "id",
           storedPayment.id
         )
+        .neq("status", "approved")
+        .select("id")
 
     if (
       paymentUpdateError
     ) {
       throw paymentUpdateError
+    }
+
+    // The update is conditional: another webhook may have approved this
+    // payment after our initial read. Never downgrade that approved state.
+    if (!updatedRows?.length) {
+      const latest = await supabaseAdmin.from("lead_payments")
+        .select("status").eq("id", storedPayment.id).maybeSingle()
+      if (latest.error) throw latest.error
+      if (latest.data?.status === "approved") {
+        return NextResponse.json({
+          ok: true, status: "approved", payment_id: storedPayment.id,
+          already_processed: true,
+        })
+      }
+      return NextResponse.json({ ok: false, error: "Concurrent payment update" }, { status: 409 })
     }
 
     if (
