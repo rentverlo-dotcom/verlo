@@ -700,6 +700,15 @@ export async function POST(
       if (
         rentalId
       ) {
+        // Replay-safe: a closed rental must consume exactly one verified
+        // Verlo payment, never a second unused credit on repeated agreement.
+        const { data: alreadyConsumed, error: consumedLookupError } =
+          await supabase.from("lead_payments").select("id")
+            .eq("consumed_rental_id", rentalId)
+            .eq("tenant_lead_id", contract.tenant_lead_id)
+            .eq("status", "approved").limit(1).maybeSingle()
+        if (consumedLookupError) throw new Error(consumedLookupError.message)
+        if (!alreadyConsumed) {
         const {
           data:
             availablePayment,
@@ -792,6 +801,8 @@ export async function POST(
             consumePaymentError
               .message
           )
+        }
+      
         }
       }
 
