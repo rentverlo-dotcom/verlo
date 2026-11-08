@@ -162,20 +162,20 @@ test("QA evidence: visual PDF examples for all five real owner form types and te
 test("Identik preflight: PDFs from VERLO have exactly one revision, no C2PA or previous signatures", () => {
   const full = [
     "CONTRATO DE LOCACIÓN DE VIVIENDA",
-    ...Array.from({ length: 27 }, (_, i) => `CLÁUSULA ${i + 1} — ACUERDO DE LAS PARTES\\nLas partes aceptan las condiciones particulares del alquiler.`),
-  ].join("\\n\\n")
+    ...Array.from({ length: 27 }, (_, i) => `CLÁUSULA ${i + 1} — ACUERDO DE LAS PARTES\nLas partes aceptan las condiciones particulares del alquiler.`),
+  ].join("\n\n")
   const documents = [
     pdfOf(full),
-    createTemporaryContractPdf({ documentText: "CONTRATO DE ESTADÍA TEMPORARIA\\n\\nCondiciones de estadía acordadas.", version: 1,
-      sha256: hash("CONTRATO DE ESTADÍA TEMPORARIA\\n\\nCondiciones de estadía acordadas."),
+    createTemporaryContractPdf({ documentText: "CONTRATO DE ESTADÍA TEMPORARIA\n\nCondiciones de estadía acordadas.", version: 1,
+      sha256: hash("CONTRATO DE ESTADÍA TEMPORARIA\n\nCondiciones de estadía acordadas."),
       contractId: "11111111-1111-4111-8111-111111111111" }),
   ]
   for (const document of documents) {
     const raw = document.toString("latin1")
     expect(raw.startsWith("%PDF-1.4")).toBeTruthy()
-    expect((raw.match(/\\bstartxref\\b/g) || []).length).toBe(1)
+    expect((raw.match(/\bstartxref\b/g) || []).length).toBe(1)
     expect((raw.match(/%%EOF/g) || []).length).toBe(1)
-    expect((raw.match(/\\btrailer\\b/g) || []).length).toBe(1)
+    expect((raw.match(/\btrailer\b/g) || []).length).toBe(1)
     for (const forbidden of ["C2PA", "/Metadata", "/AcroForm", "/Encrypt", "/ByteRange", "/Sig ", "/Prev ", "/Annots"]) {
       expect(raw).not.toContain(forbidden)
     }
