@@ -104,6 +104,8 @@ jobs:
               console.log('Real contract handlers QA: first and second double OK, draft and idempotency verified');
             });
           "
+      - name: Verify existing contractual PDF generator without external services
+        run: npx playwright test tests/powermarket-pdf.spec.ts --reporter=line
       - name: Verify real QA Auth with two synthetic customer roles
         shell: bash
         run: |
@@ -128,8 +130,6 @@ jobs:
           "
       - name: Verify contract fee and PowerMarket 50 percent discount without network or charges
         run: npx playwright test tests/caucion-contract-discount.spec.ts --reporter=line
-      - name: Verify existing contractual PDF generator without external services
-        run: npx playwright test tests/powermarket-pdf.spec.ts --reporter=line
       - name: Run isolated QA Playwright suite
         run: npx playwright test --config=playwright.qa.config.ts
       - name: Upload evidence
