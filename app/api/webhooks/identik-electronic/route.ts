@@ -114,7 +114,11 @@ export async function POST(request: NextRequest) {
     if (updateError) return NextResponse.json({ ok: false }, { status: 503 })
     return NextResponse.json({ ok: true, recorded: true, duplicate, status })
   } catch {
-    // Keep the event for the reconciliation job. Never leak API error details.
-    return NextResponse.json({ ok: true, recorded: true, synced: false })
+    // Keep the event and request a retry; duplicate retries resync against Identik.
+    // Do not leak signing URLs or provider error details.
+    return NextResponse.json(
+      { ok: false, recorded: true, duplicate, synced: false, retryable: true },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    )
   }
 }
