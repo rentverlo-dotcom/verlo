@@ -90,11 +90,15 @@ test("traditional form types use correct contractual purpose and prohibit mislea
   const commercial = traditionalContractPurpose("local")
   expect(traditionalContractTitle(commercial)).toBe("CONTRATO DE LOCACIÓN COMERCIAL")
   expect(traditionalContractDestination(commercial).use).not.toContain("vivienda propia")
+  expect(traditionalContractTitle(traditionalContractPurpose("Oficina"))).toBe("CONTRATO DE LOCACIÓN DE OFICINA")
+  expect(traditionalContractTitle(traditionalContractPurpose("Otro"))).toBe("CONTRATO DE LOCACIÓN DE INMUEBLE")
+  expect(traditionalContractDestination(traditionalContractPurpose("Oficina")).use).toContain("oficina")
+  expect(traditionalContractDestination(traditionalContractPurpose("Otro")).use).toContain("destino específico")
   expect(() => traditionalContractPurpose("unknown-commercial")).toThrow()
 })
 
 test("PDF VerloBrand header reflects actual commercial and room document titles", () => {
-  for (const type of ["local", "room", "ph"]) {
+  for (const type of ["local", "room", "ph", "Oficina", "Otro"]) {
     const title = traditionalContractTitle(traditionalContractPurpose(type))
     const text = title + "\n\nPRIMERA — OBJETO\nEl contrato respeta el destino previsto."
     const pdf = pdfOf(text).toString("latin1")
