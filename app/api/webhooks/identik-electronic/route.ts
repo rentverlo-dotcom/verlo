@@ -82,8 +82,10 @@ export async function POST(request: NextRequest) {
     .from("identik_electronic_events")
     .insert({ document_id: local.id, dedupe_key: dedupeKey, event_type: eventType,
       provider_status: String(doc?.status ?? "").slice(0, 100) || null })
-  if (eventError) {
-    if (eventError.code === "23505") return NextResponse.json({ ok: true, duplicate: true })
+  // A previous attempt may have recorded the event before Identik was
+  // reachable. A duplicate MUST retry provider reconciliation, not exit early.
+  const duplicate = eventError?.code === "23505"
+  if (eventError && !duplicate) {
     return NextResponse.json({ ok: false }, { status: 503 })
   }
 
@@ -92,12 +94,12 @@ export async function POST(request: NextRequest) {
   try {
     const provider = await makeIdentikElectronicClient().getDocument(documentId)
     const status = mappedStatus(provider.status)
-    if (!status) return NextResponse.json({ ok: true, recorded: true, synced: false })
+    if (!status) return NextResponse.json({ ok: true, recorded: true, duplicate, synced: false })
 
     // Do not regress terminal states if an older event arrives late.
     const terminal = ["completed", "rejected", "cancelled", "expired"]
     if (terminal.includes(local.status) && local.status !== status) {
-      return NextResponse.json({ ok: true, recorded: true, unchanged: true })
+      return NextResponse.json({ ok: true, recorded: true, duplicate, unchanged: true })
     }
     const now = new Date().toISOString()
     const { error: updateError } = await db
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", local.id)
     if (updateError) return NextResponse.json({ ok: false }, { status: 503 })
-    return NextResponse.json({ ok: true, recorded: true, status })
+    return NextResponse.json({ ok: true, recorded: true, duplicate, status })
   } catch {
     // Keep the event for the reconciliation job. Never leak API error details.
     return NextResponse.json({ ok: true, recorded: true, synced: false })
