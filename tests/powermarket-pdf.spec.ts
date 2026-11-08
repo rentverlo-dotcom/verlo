@@ -186,3 +186,15 @@ test("Identik preflight: PDFs from VERLO have exactly one revision, no C2PA or p
     expect(document.length).toBeLessThan(50 * 1024 * 1024)
   }
 })
+
+test("owner V2 publishing persists the original PH and local enum values", () => {
+  const source = require("node:fs").readFileSync(
+    require("node:path").join(process.cwd(), "app/propietario/publicar-v2/page.tsx"),
+    "utf8",
+  )
+  const mapping = source.match(/const propertyTypeMap = \{([\s\S]*?)\}\s+as const/)
+  expect(mapping).not.toBeNull()
+  expect(mapping![1]).toMatch(/local:\s*["']local["']/)
+  expect(mapping![1]).toMatch(/ph:\s*["']ph["']/)
+  expect(source).toContain("property_type: safePropertyType")
+})
