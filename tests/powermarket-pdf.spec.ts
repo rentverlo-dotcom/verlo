@@ -31,7 +31,7 @@ test("PowerMarket PDF contains complete Spanish contractual clauses with WinAnsi
 })
 
 test("PowerMarket PDF keeps repeated spaces and explicit line breaks", () => {
-  const text = "DNI: 12  345   678\\nDOMICILIO: Calle 123\\n\\nImporte: $  100.000"
+  const text = "DNI: 12  345   678\nDOMICILIO: Calle 123\n\nImporte: $  100.000"
   const pdf = pdfOf(text).toString("latin1")
   expect(pdf).toContain("DNI: 12  345   678")
   expect(pdf).toContain("DOMICILIO: Calle 123")
