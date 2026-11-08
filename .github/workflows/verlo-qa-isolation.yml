@@ -22,6 +22,8 @@ on:
       - 'lib/powermarket/contract-pdf.ts'
       - 'tests/powermarket-pdf.spec.ts'
       - 'tests/mercadopago-contract-webhook.spec.ts'
+      - 'tests/caucion-contract-discount.spec.ts'
+      - 'lib/payments/caucion-contract-discount.ts'
       - 'lib/payments/mercadopago-contract-state.ts'
       - 'app/api/webhooks/mercadopago/route.ts'
       - 'app/layout.tsx'
