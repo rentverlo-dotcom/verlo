@@ -38,6 +38,15 @@ test("PowerMarket PDF keeps repeated spaces and explicit line breaks", () => {
   expect(pdf).toContain("Importe: $  100.000")
 })
 
+test("PowerMarket PDF renders real LF and CRLF separators without rejecting newline characters", () => {
+  const text = ["PRIMERA — OBJETO", "El inmueble está en Olivos.", "SEGUNDA — PRECIO"].join("\n") + "\r\nFin del contrato."
+  const pdf = pdfOf(text).toString("latin1")
+  expect(pdf).toContain("PRIMERA \x97 OBJETO")
+  expect(pdf).toContain("El inmueble está en Olivos.")
+  expect(pdf).toContain("SEGUNDA \x97 PRECIO")
+  expect(pdf).toContain("Fin del contrato.")
+})
+
 test("PowerMarket PDF fails closed for unsupported characters rather than changing legal text", () => {
   expect(() => pdfOf("Contrato con carácter no WinAnsi: 漢")).toThrow(/no representable/)
 })
