@@ -1,4 +1,5 @@
-import { randomBytes } from 'node:crypto'
+import { randomBytes, createHash } from 'node:crypto'
+import { createCaucionContractPdf } from '@/lib/powermarket/contract-pdf'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validQaWorkflowToken } from '@/lib/qa/verify-workflow-token'
@@ -310,6 +311,20 @@ export async function POST(request: NextRequest) {
         final.tenant_post_visit_decision !== 'yes' || final.owner_post_visit_decision !== 'yes')
       throw Error('MATCH_FINAL_STATE_INVALID')
 
+    // Exact QA-generated contract text rendered with the current production
+    // contractual PDF renderer. This is a synthetic, unsigned review copy,
+    // not an Identik-signed document. Only the verified CI workflow receives it.
+    const text = agreed.data.content as string
+    const previewPdf = createCaucionContractPdf({
+      documentText: text, version: 1,
+      sha256: createHash('sha256').update(text, 'utf8').digest('hex'),
+      contractId: draft.id,
+    })
+    const pdfData = previewPdf.toString('latin1')
+    if (!pdfData.startsWith('%PDF-1.4') || !pdfData.includes('xref') ||
+        !pdfData.trimEnd().endsWith('%%EOF') || pdfData.includes('C2PA'))
+      throw Error('CONTRACT_PDF_PREFLIGHT_FAILED')
+
     return NextResponse.json({
       ok: true, qaOnly: true, realApiHandlers: true, noExternalDelivery: true,
       identityVerificationSimulated: true, twoInterests: true,
@@ -324,6 +339,7 @@ export async function POST(request: NextRequest) {
       qaPaymentSimulated: true,
       bothPartyAgreementsRecorded: true,
       agreedLegalDataImmutable: true, agreementReplayIdempotent: true,
+      contractPdfPreflight: true, contractExamplePdfBase64: previewPdf.toString('base64'),
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     return NextResponse.json({
