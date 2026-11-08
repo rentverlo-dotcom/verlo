@@ -92,7 +92,7 @@ function wrapLine(input: string, size: number, maxWidth: number): string[] {
   return lines.length ? lines : [""]
 }
 function isClauseTitle(line: string): boolean {
-  return /^(PRELIMINAR|PRIMERA|SEGUNDA|TERCERA|CUARTA|QUINTA|SEXTA|SÉPTIMA|OCTAVA|NOVENA|DÉCIMA|VIGÉSIMA)(?:\s|$)/u.test(line) ||
+  return /^(PRELIMINAR|PRIMERA|SEGUNDA|TERCERA|CUARTA|QUINTA|SEXTA|SÉPTIMA|OCTAVA|NOVENA|DÉCIMA|VIGÉSIMA)(?:\s|$)/.test(line) ||
     /^(CONTRATO DE LOCACIÓN DE VIVIENDA|DATOS PRINCIPALES DEL CONTRATO|INMUEBLE:|LOCADOR:|LOCATARIO:|PLAZO:|ALQUILER MENSUAL INICIAL:|DEPÓSITO:|ACTUALIZACIÓN:|AMOBLAMIENTO:)$/u.test(line)
 }
 type PDFLine = { text: string; x: number; y: number; font: "F1" | "F2" | "F3"; size: number }
