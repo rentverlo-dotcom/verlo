@@ -76,7 +76,7 @@ test("VERLO branded PDF keeps legal wording and no visible technical hash or C2P
   expect(pdf).toContain("ESPACIOS RESERVADOS PARA FIRMA")
   expect(pdf).toContain("/Logo")
   expect(pdf).toContain("/Subtype /Image")
-  expect(pdf).toContain("Contrato de locación")
+  expect(pdf).toContain("Contrato VERLO")
   expect(pdf).toContain("verlo")
 })
 
