@@ -110,7 +110,7 @@ jobs:
                   out.prematureAgreementDenied && out.invalidRentalPriceDenied &&
                   out.completeContractContentGenerated && out.unpaidAgreementDenied &&
                   out.qaPaymentSimulated && out.bothPartyAgreementsRecorded &&
-                  out.agreedLegalDataImmutable)) {
+                  out.agreedLegalDataImmutable && out.agreementReplayIdempotent)) {
                 console.error('Synthetic contracts lifecycle failed:', out.error || 'assertions');
                 process.exit(1);
               }
