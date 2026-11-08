@@ -21,6 +21,9 @@ on:
       - 'lib/temporarios/contract-pdf.ts'
       - 'lib/powermarket/contract-pdf.ts'
       - 'tests/powermarket-pdf.spec.ts'
+      - 'tests/mercadopago-contract-webhook.spec.ts'
+      - 'lib/payments/mercadopago-contract-state.ts'
+      - 'app/api/webhooks/mercadopago/route.ts'
       - 'app/layout.tsx'
   workflow_dispatch:
 
@@ -131,6 +134,8 @@ jobs:
               console.log('Mi VERLO real Auth: separate owner / tenant + shared match verified');
             });
           "
+      - name: Verify Mercado Pago contract webhook states without sending payments
+        run: npx playwright test tests/mercadopago-contract-webhook.spec.ts --reporter=line
       - name: Verify contract fee and PowerMarket 50 percent discount without network or charges
         run: npx playwright test tests/caucion-contract-discount.spec.ts --reporter=line
       - name: Run isolated QA Playwright suite
