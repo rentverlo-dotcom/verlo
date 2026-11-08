@@ -95,7 +95,7 @@ test("traditional form types use correct contractual purpose and prohibit mislea
 test("PDF VerloBrand header reflects actual commercial and room document titles", () => {
   for (const type of ["local", "room", "ph"]) {
     const title = traditionalContractTitle(traditionalContractPurpose(type))
-    const text = title + "\\n\\nPRIMERA — OBJETO\\nEl contrato respeta el destino previsto."
+    const text = title + "\n\nPRIMERA — OBJETO\nEl contrato respeta el destino previsto."
     const pdf = pdfOf(text).toString("latin1")
     expect(pdf.match(new RegExp(title, "g"))?.length).toBeGreaterThanOrEqual(2)
     if (type === "local") expect(pdf).not.toContain("CONTRATO DE LOCACIÓN DE VIVIENDA")
@@ -104,7 +104,7 @@ test("PDF VerloBrand header reflects actual commercial and room document titles"
 })
 
 test("temporarios PDF shares exact VerloBrand visuals with separate temporary agreement title", () => {
-  const content = "CONTRATO DE ESTADÍA TEMPORARIA\\n\\nLas partes acuerdan la reserva temporal de la propiedad."
+  const content = "CONTRATO DE ESTADÍA TEMPORARIA\n\nLas partes acuerdan la reserva temporal de la propiedad."
   const pdf = createTemporaryContractPdf({ documentText: content, sha256: hash(content), version: 1,
     contractId: "11111111-1111-4111-8111-111111111111" }).toString("latin1")
   expect(pdf).toContain("CONTRATO DE ESTADÍA TEMPORARIA")
