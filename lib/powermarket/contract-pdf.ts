@@ -199,7 +199,7 @@ function streamObject(dictionary: string, data: Buffer): Buffer {
   ])
 }
 export function createCaucionContractPdf(args: {
-  documentText: string; version: number; sha256: string; contractId: string
+  documentText: string; version: number; sha256: string; contractId: string; headingOverride?: string
 }): Buffer {
   // Validation and preserved hash: never alter legal clauses or trust changed PDF text.
   latin1(args.documentText.replace(/\r\n?/g, "").replace(/\n/g, " "))
@@ -207,8 +207,10 @@ export function createCaucionContractPdf(args: {
   // Derive the visual heading from the already generated legal source text.
   // Do not independently infer a title from property-table fallback values.
   const sourceTitle = args.documentText.replace(/\r\n?/g, "\n").split("\n").map(x => x.trim()).find(Boolean) || ""
-  const contractTitle = /^CONTRATO DE LOCACIÓN (?:DE VIVIENDA|COMERCIAL|DE HABITACIÓN)$/.test(sourceTitle)
-    ? sourceTitle : "CONTRATO DE LOCACIÓN"
+  const approvedTitles = ["CONTRATO DE LOCACIÓN DE VIVIENDA", "CONTRATO DE LOCACIÓN COMERCIAL",
+    "CONTRATO DE LOCACIÓN DE HABITACIÓN", "CONTRATO DE ESTADÍA TEMPORARIA"]
+  const contractTitle = args.headingOverride && approvedTitles.includes(args.headingOverride)
+    ? args.headingOverride : approvedTitles.includes(sourceTitle) ? sourceTitle : "CONTRATO DE LOCACIÓN"
   const pages = layout(args.documentText)
   const png = logoPixels()
   const objects: Buffer[] = []
@@ -255,7 +257,7 @@ export function createCaucionContractPdf(args: {
     }
     cmd.push("0.82 0.80 0.82 RG 0.5 w " + LEFT + " 68 m " + RIGHT + " 68 l S")
     drawText(LEFT, 53, "F3", 11, "verlo", BLACK)
-    drawText(104, 53, "F1", 8, "Contrato de locación · Documento privado", MUTED)
+    drawText(104, 53, "F1", 8, "Contrato VERLO · Documento privado", MUTED)
     drawText(478, 53, "F1", 8, String(idx + 1) + " / " + total, MUTED)
     const data = Buffer.from(cmd.join("\n") + "\n", "latin1")
     const contentId = add(streamObject("", data))
