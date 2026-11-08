@@ -93,7 +93,8 @@ function wrapLine(input: string, size: number, maxWidth: number): string[] {
 }
 function isClauseTitle(line: string): boolean {
   return /^(PRELIMINAR|PRIMERA|SEGUNDA|TERCERA|CUARTA|QUINTA|SEXTA|SÉPTIMA|OCTAVA|NOVENA|DÉCIMA|VIGÉSIMA)(?:\s|$)/.test(line) ||
-    /^(CONTRATO DE LOCACIÓN DE VIVIENDA|DATOS PRINCIPALES DEL CONTRATO|INMUEBLE:|LOCADOR:|LOCATARIO:|PLAZO:|ALQUILER MENSUAL INICIAL:|DEPÓSITO:|ACTUALIZACIÓN:|AMOBLAMIENTO:)$/.test(line)
+    /^CONTRATO DE LOCACIÓN (?:DE VIVIENDA|COMERCIAL|DE HABITACIÓN)$/.test(line) ||
+    /^(DATOS PRINCIPALES DEL CONTRATO|INMUEBLE:|LOCADOR:|LOCATARIO:|PLAZO:|ALQUILER MENSUAL INICIAL:|DEPÓSITO:|ACTUALIZACIÓN:|AMOBLAMIENTO:)$/.test(line)
 }
 type PDFLine = { text: string; x: number; y: number; font: "F1" | "F2" | "F3"; size: number }
 type Page = { lines: PDFLine[]; signature?: true }
@@ -203,6 +204,11 @@ export function createCaucionContractPdf(args: {
   // Validation and preserved hash: never alter legal clauses or trust changed PDF text.
   latin1(args.documentText.replace(/\r\n?/g, "").replace(/\n/g, " "))
   if (!/^[a-f0-9]{64}$/i.test(args.sha256)) throw new Error("Invalid contractual SHA256")
+  // Derive the visual heading from the already generated legal source text.
+  // Do not independently infer a title from property-table fallback values.
+  const sourceTitle = args.documentText.replace(/\r\n?/g, "\n").split("\n").map(x => x.trim()).find(Boolean) || ""
+  const contractTitle = /^CONTRATO DE LOCACIÓN (?:DE VIVIENDA|COMERCIAL|DE HABITACIÓN)$/.test(sourceTitle)
+    ? sourceTitle : "CONTRATO DE LOCACIÓN"
   const pages = layout(args.documentText)
   const png = logoPixels()
   const objects: Buffer[] = []
@@ -231,7 +237,7 @@ export function createCaucionContractPdf(args: {
     // Exact repo logo + VerloBrand Georgia/Times-style italic wordmark.
     cmd.push("q 27 0 0 27 52 772 cm /Logo Do Q")
     drawText(88, 780, "F3", 27, "verlo")
-    drawText(LEFT, 753, "F2", 12.5, "CONTRATO DE LOCACIÓN DE VIVIENDA")
+    drawText(LEFT, 753, "F2", 12.5, contractTitle)
     drawText(LEFT, 737, "F1", 8.4, "Versión " + args.version + " · Copia previa a la firma", MUTED)
     cmd.push(PINK + " RG 1.35 w " + LEFT + " 727 m " + RIGHT + " 727 l S")
     if (page.signature) {
