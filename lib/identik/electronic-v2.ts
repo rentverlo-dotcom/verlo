@@ -4,6 +4,7 @@
  * The caller must authorize the VERLO operation and persist document IDs before retries.
  */
 import "server-only"
+import { assertIdentikPdfDownload } from "./signed-pdf-integrity"
 
 const DEFAULT_BASE = "https://sandbox-electronica.identik.me/api/v2"
 
@@ -122,7 +123,9 @@ export function makeIdentikElectronicClient(options?: {
     async downloadSignedPdf(documentId: number): Promise<Uint8Array> {
       assertDocumentId(documentId)
       const response = await request(`/document/${documentId}/download?version=signed`)
-      return new Uint8Array(await response.arrayBuffer())
+      const bytes = new Uint8Array(await response.arrayBuffer())
+      assertIdentikPdfDownload(bytes)
+      return bytes
     },
 
     async downloadCertificate(documentId: number): Promise<Uint8Array> {
