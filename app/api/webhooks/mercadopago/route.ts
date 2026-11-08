@@ -323,7 +323,9 @@ export async function POST(
           amount,
           currency,
           status,
-          approved_at
+          approved_at,
+          provider,
+          provider_payment_id
         `)
         .eq(
           "id",
@@ -345,6 +347,31 @@ export async function POST(
           status: 404,
         }
       )
+    }
+
+    // Do not let a notification for another provider/payment mutate a VERLO
+    // contract. Payment verification comes from MP, not from the incoming body.
+    if (
+      storedPayment.provider !== "mercadopago" ||
+      clean(payment.id) !== paymentId ||
+      (storedPayment.provider_payment_id &&
+       storedPayment.provider_payment_id !== clean(payment.id))
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "Payment reference mismatch" },
+        { status: 409 }
+      )
+    }
+
+    // An already approved payment is final for this contract fee. Duplicate
+    // notifications and late rejected/pending events cannot revoke it.
+    if (storedPayment.status === "approved") {
+      return NextResponse.json({
+        ok: true,
+        status: "approved",
+        payment_id: storedPayment.id,
+        already_processed: true,
+      })
     }
 
     const paymentAmount =
@@ -411,6 +438,16 @@ export async function POST(
           status: 409,
         }
       )
+    }
+
+    // Explicitly ignore unknown provider statuses; never unlock a contract.
+    const validStatuses = new Set([
+      "approved", "rejected", "cancelled", "pending", "in_process",
+    ])
+    if (!validStatuses.has(clean(payment.status))) {
+      return NextResponse.json({
+        ok: true, ignored: true, reason: "unsupported_payment_status",
+      })
     }
 
     const status =
