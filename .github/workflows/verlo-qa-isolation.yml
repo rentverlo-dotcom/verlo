@@ -16,6 +16,8 @@ on:
       - 'lib/notifications/**'
       - 'lib/push.ts'
       - 'lib/email.ts'
+      - 'lib/powermarket/contract-pdf.ts'
+      - 'tests/powermarket-pdf.spec.ts'
       - 'app/layout.tsx'
   workflow_dispatch:
 
