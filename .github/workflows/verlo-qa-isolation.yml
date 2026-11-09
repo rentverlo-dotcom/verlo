@@ -99,7 +99,7 @@ jobs:
                   out.completeContractContentGenerated && out.unpaidAgreementDenied &&
                   out.qaPaymentSimulated && out.bothPartyAgreementsRecorded &&
                   out.agreedLegalDataImmutable && out.agreementReplayIdempotent &&
-                  out.contractPdfPreflight && typeof out.contractExamplePdfBase64 === 'string')) {
+                  out.contractPdfPreflight && out.signingPreflightOnPersistedContract && typeof out.contractExamplePdfBase64 === 'string')) {
                 console.error('Synthetic contracts lifecycle failed:', out.error || 'assertions');
                 process.exit(1);
               }
