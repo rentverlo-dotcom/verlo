@@ -35,7 +35,7 @@ export async function sendWithZeptoMail(
   // Configure the verified transactional subdomain only after Zoho authorizes it.
   // Never infer a Reply-To mailbox: transactional notices are not conversations.
   const fromAddress = (process.env.VERLO_ZEPTO_FROM_EMAIL || DEFAULT_FROM_ADDRESS).trim()
-  if (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(fromAddress)) {
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fromAddress)) {
     return { accepted: false, providerId: null, status: null, reason: "invalid_sender" }
   }
 
