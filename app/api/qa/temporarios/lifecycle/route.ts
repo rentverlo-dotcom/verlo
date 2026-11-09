@@ -171,6 +171,34 @@ export async function POST(request: NextRequest) {
     if ((confirmation.reservation as Record<string, unknown>)?.status !== "confirmed")
       throw Error("QA_RESERVATION_NOT_CONFIRMED")
 
+    // Transactional outbox must target the two actual participants.
+    // No external messages are sent in this synthetic QA run.
+    const verifyRecipients = async () => {
+      const { data: events, error } = await admin.from("temporary_notification_outbox")
+        .select("event_key,event_type,recipient_user_id,recipient_role,status,payload")
+        .eq("reservation_id", reservationId)
+      if (error || !events || events.length !== 2)
+        throw Error("QA_TEMPORARY_NOTIFICATION_COUNT_INVALID")
+      const byRole = new Map(events.map(event => [event.recipient_role, event]))
+      if (byRole.size !== 2 ||
+          byRole.get("owner")?.recipient_user_id !== owner.id ||
+          byRole.get("tenant")?.recipient_user_id !== tenant.id ||
+          events.some(event => event.event_type !== "reservation_confirmed" ||
+            event.status !== "pending" ||
+            event.payload?.match_id !== matchId ||
+            event.payload?.check_in !== inDate ||
+            event.payload?.check_out !== outDate) ||
+          new Set(events.map(event => event.event_key)).size !== 2)
+        throw Error("QA_TEMPORARY_NOTIFICATION_RECIPIENT_INVALID")
+    }
+    await verifyRecipients()
+    // Duplicate confirmation must neither reopen the booking nor queue a third email.
+    const confirmedReplay = await invoke("confirm-replay", confirmReservation,
+      tenant.jwt, { matchId, role: "tenant" })
+    if ((confirmedReplay.reservation as Record<string, unknown>)?.status !== "confirmed")
+      throw Error("QA_TEMPORARY_CONFIRMATION_REPLAY_FAILED")
+    await verifyRecipients()
+
     const legal = {
       matchId, action: "generate",
       owner: { fullName: "QA Owner Temporary", document: "QA-12345678", address: "QA Olivos synthetic address" },
@@ -207,6 +235,7 @@ export async function POST(request: NextRequest) {
       ownerTenantIsolation: true, doubleAcceptance: true,
       reservationTermsAccepted: true, unpaidConfirmationDenied: true,
       feeSimulated: true, bilateralReservationConfirmed: true,
+      notificationRecipientsVerified: true, notificationDeduplicated: true,
       contractAgreedByBoth: true, temporaryContractPdf: true,
       noRealPayment: true, noExternalNotifications: true,
     }, { headers: { "Cache-Control": "no-store" } })
