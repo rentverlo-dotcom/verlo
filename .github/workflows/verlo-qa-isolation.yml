@@ -126,7 +126,7 @@ jobs:
               const required = ['ok','qaOnly','realTemporaryApiHandlers',
                 'twoAuthenticatedRoles','matchIdempotent','ownerTenantIsolation',
                 'doubleAcceptance','reservationTermsAccepted','unpaidConfirmationDenied',
-                'feeSimulated','bilateralReservationConfirmed','contractAgreedByBoth',
+                'feeSimulated','bilateralReservationConfirmed','notificationRecipientsVerified','notificationDeduplicated','contractAgreedByBoth',
                 'temporaryContractPdf','noRealPayment','noExternalNotifications'];
               if (!required.every(key => result[key] === true)) {
                 console.error('Temporary QA lifecycle failed:', result.error || 'invalid assertion');
