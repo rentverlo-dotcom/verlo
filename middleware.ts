@@ -69,6 +69,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // The signed artifact endpoint performs its own contract-role and token checks.
+  // Permit it only on the isolated QA branch with Identik's Sandbox URL.
+  if (verified && request.method === 'POST' &&
+      path === '/api/qa/identik/signed-artifact' &&
+      (!process.env.IDENTIK_ELECTRONIC_API_BASE_URL ||
+       process.env.IDENTIK_ELECTRONIC_API_BASE_URL ===
+         'https://sandbox-electronica.identik.me/api/v2')) {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' &&
       (path === '/api/qa/tradicionales/preflight' || path === '/api/qa/tradicionales/result')) {
     return NextResponse.next()
