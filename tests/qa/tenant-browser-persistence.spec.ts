@@ -105,4 +105,41 @@ test('Inquilino: formulario real -> intake QA -> match persistido con propietari
   expect(persisted.matches.length, JSON.stringify(persisted)).toBeGreaterThan(0)
   expect(persisted.matches[0].score).toBeGreaterThanOrEqual(80)
   expect(persisted.notificationEvents).toBe(0)
+
+  // Continue the SAME real browser-created tenant/owner pair through QA-only
+  // notification dispatch. Provider guards prevent any real Email or Push.
+  const matchId = persisted.matches[0].id
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await request.post('/api/qa/tradicionales/notify', {
+      data: { match_id: matchId },
+    })
+    const result = await response.json()
+    expect(response.status(), JSON.stringify(result)).toBe(200)
+    expect(result).toMatchObject({
+      ok: true,
+      qaOnly: true,
+      noExternalDelivery: true,
+      eventCount: 2,
+      emailCount: 2,
+    })
+    expect(result.recipients).toHaveLength(2)
+    expect(result.recipients.map((x: { role: string }) => x.role).sort()).toEqual(['owner', 'tenant'])
+    for (const recipient of result.recipients) {
+      expect(recipient).toMatchObject({
+        eventRecorded: true,
+        emailQueued: true,
+        emailStatus: 'pending',
+        titleCorrect: true,
+        destinationCorrect: true,
+        recipientCorrect: true,
+        pushDelivered: false,
+      })
+    }
+  }
+
+  const finalResponse = await request.get(
+    `/api/qa/tradicionales/result?owner=${ownerData.lead_id}&tenant=${tenantData.lead_id}`,
+  )
+  expect(finalResponse.status()).toBe(200)
+  expect((await finalResponse.json()).notificationEvents).toBe(2)
 })
