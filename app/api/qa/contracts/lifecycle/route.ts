@@ -1,5 +1,6 @@
 import { randomBytes, createHash } from 'node:crypto'
 import { createCaucionContractPdf } from '@/lib/powermarket/contract-pdf'
+import { checkTraditionalSigningReadiness } from '@/lib/identik/traditional-signing-preflight'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validQaWorkflowToken } from '@/lib/qa/verify-workflow-token'
@@ -296,6 +297,12 @@ export async function POST(request: NextRequest) {
         !agreed.data?.tenant_agreed_at || !agreed.data?.owner_agreed_at ||
         !agreed.data?.content) throw Error('AGREED_CONTRACT_NOT_PERSISTED')
 
+    // Read-only QA preflight of the ACTUAL persisted two-party contract.
+    // This is not an Identik signing request and consumes no credits.
+    const signingReadiness = await checkTraditionalSigningReadiness(db, draft.id)
+    if (!signingReadiness.allowed || signingReadiness.reason !== 'no_caucion')
+      throw Error('QA_IDENTIK_SIGNING_PREFLIGHT_FAILED_' + signingReadiness.reason)
+
     // Once both parties agree, legal details must be immutable.
     const lateLegal = await saveLegalData(internal({
       token: tenantDecisionToken.data.token,
@@ -339,7 +346,8 @@ export async function POST(request: NextRequest) {
       qaPaymentSimulated: true,
       bothPartyAgreementsRecorded: true,
       agreedLegalDataImmutable: true, agreementReplayIdempotent: true,
-      contractPdfPreflight: true, contractExamplePdfBase64: previewPdf.toString('base64'),
+      contractPdfPreflight: true, signingPreflightOnPersistedContract: true,
+      contractExamplePdfBase64: previewPdf.toString('base64'),
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('QA CONTRACT LIFECYCLE FAILED:', error instanceof Error ? error.message : 'UNKNOWN')
