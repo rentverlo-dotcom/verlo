@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
+import { QA_PALERMO_LOCATION, assertQaLocation } from '../../lib/qa/lead-fixtures'
 
 // This is NOT a mocked intake: the browser submits to the real QA handler.
 // Rewriting only the source marks the synthetic request for QA middleware;
 // the actual form fields, API, matching RPC and database writes remain real.
 test('Inquilino: formulario real -> intake QA -> match persistido con propietario QA', async ({ page, request }) => {
   test.setTimeout(120_000)
+  assertQaLocation(QA_PALERMO_LOCATION)
   const run = randomUUID().slice(0, 12)
   const owner = await request.post('/api/lead-intake', {
     data: {
@@ -15,16 +17,7 @@ test('Inquilino: formulario real -> intake QA -> match persistido con propietari
       role: 'owner',
       intent: 'owner_new_listing',
       source: 'qa_e2e_browser_owner',
-      zone: 'Palermo, CABA',
-      neighborhood_labels: ['Palermo, CABA'],
-      neighborhood_slugs: ['ar:02:caba:palermo'],
-      neighborhood_slug: 'ar:02:caba:palermo',
-      metadata: { georef: [{
-        provinceId: '02', provinceName: 'Ciudad Autónoma de Buenos Aires',
-        municipalityId: 'caba', municipalityName: 'Ciudad Autónoma de Buenos Aires',
-        localityId: 'Palermo', localityName: 'Palermo',
-        key: 'ar:02:caba:palermo', label: 'Palermo, CABA',
-      }] },
+      ...QA_PALERMO_LOCATION,
       property_type: 'Departamento',
       property_rooms: '2 ambientes',
       approx_price: '700001-900000',

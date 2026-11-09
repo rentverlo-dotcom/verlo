@@ -1,23 +1,14 @@
 import { test, expect } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
+import { QA_PALERMO_LOCATION, assertQaLocation } from '../../lib/qa/lead-fixtures'
 
 // End-to-end negative case: the pair must never be matched despite same locality.
 // Uses real QA intake and persistent pair lookup, never sends external notifications.
 test('Tradicionales: inquilino y propietario incompatibles no generan match', async ({ request }) => {
   test.setTimeout(90_000)
   const run = randomUUID().slice(0, 12)
-  const loc = {
-    zone: 'Palermo, CABA',
-    neighborhood_labels: ['Palermo, CABA'],
-    neighborhood_slugs: ['ar:02:caba:palermo'],
-    neighborhood_slug: 'ar:02:caba:palermo',
-    metadata: { georef: [{
-      provinceId: '02', provinceName: 'Ciudad Autónoma de Buenos Aires',
-      municipalityId: 'caba', municipalityName: 'Ciudad Autónoma de Buenos Aires',
-      localityId: 'Palermo', localityName: 'Palermo',
-      key: 'ar:02:caba:palermo', label: 'Palermo, CABA',
-    }] },
-  }
+  const loc = QA_PALERMO_LOCATION
+  assertQaLocation(loc)
 
   const ownerResponse = await request.post('/api/lead-intake', {
     data: {

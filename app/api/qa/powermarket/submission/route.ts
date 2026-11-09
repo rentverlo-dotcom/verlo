@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { signCaucionLead } from '@/lib/powermarket/lead-token'
+import { QA_PALERMO_LOCATION, assertQaLocation } from '@/lib/qa/lead-fixtures'
 import { validQaWorkflowToken } from '@/lib/qa/verify-workflow-token'
 import { POST as createLead } from '@/app/api/lead-intake/route'
 import { POST as applyCaucion } from '@/app/api/powermarket/apply/route'
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
       !(await validQaWorkflowToken(bearer.slice(7), sha))) return fail('QA_AUTH_FAILED')
 
   try {
+    assertQaLocation(QA_PALERMO_LOCATION)
     const run = randomBytes(10).toString('hex')
     const leadResponse = await createLead(input('lead-intake', {
       full_name: 'QA Caucion Submission',
@@ -44,20 +46,7 @@ export async function POST(request: NextRequest) {
       role: 'tenant',
       intent: 'tenant_search',
       source: 'qa_e2e_caucion_submission',
-      zone: 'Palermo, CABA',
-      neighborhood_labels: ['Palermo, CABA'],
-      neighborhood_slugs: ['ar:02:caba:palermo'],
-      neighborhood_slug: 'ar:02:caba:palermo',
-      metadata: { georef: [{
-        provinceId: '02',
-        provinceName: 'Ciudad Autónoma de Buenos Aires',
-        municipalityId: 'caba',
-        municipalityName: 'Ciudad Autónoma de Buenos Aires',
-        localityId: 'Palermo',
-        localityName: 'Palermo',
-        key: 'ar:02:caba:palermo',
-        label: 'Palermo, CABA',
-      }] },
+      ...QA_PALERMO_LOCATION,
       desired_property_type: 'Departamento',
       desired_rooms: '2 ambientes',
       budget_max: 900000,
