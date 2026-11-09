@@ -124,16 +124,26 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: events, error: eventError } = await db.from('caucion_events')
-      .select('id,event_type').eq('application_id', applicationId)
+      .select('id,event_key,event_type').eq('application_id', applicationId)
       .eq('event_type', 'application_submitted')
-    if (eventError || events?.length !== 1) throw Error('AUDIT_EVENT_MISSING_OR_DUPLICATE')
+    // Two distinct, expected event streams: one business audit event and
+    // one push-notification event from the database trigger. Neither may
+    // duplicate its own key when concurrent submissions race.
+    const auditKey = `caucion:submitted:${applicationId}`
+    const pushKey = `push:caucion_applications:${applicationId}:application_submitted:submitted`
+    const actualKeys = (events || []).map(e => e.event_key).sort()
+    if (eventError || actualKeys.length !== 2 ||
+        actualKeys[0] !== [auditKey, pushKey].sort()[0] ||
+        actualKeys[1] !== [auditKey, pushKey].sort()[1]) {
+      throw Error('APPLICATION_AUDIT_OR_PUSH_EVENT_MISMATCH')
+    }
 
     return NextResponse.json({
       ok: true, qaOnly: true, actualHandlers: true,
       consentDenied: true, invalidTokenDenied: true,
       concurrentSameApplication: true, replayIdempotent: true,
       exactlyOneStoredApplication: true, matchingEconomicFields: true,
-      exactlyOneAuditEvent: true, noExternalPartner: true,
+      exactlyOneAuditAndOnePushEvent: true, noExternalPartner: true,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('QA caucion submission lifecycle failure', error)
