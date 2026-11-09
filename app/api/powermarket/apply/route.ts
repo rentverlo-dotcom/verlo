@@ -26,6 +26,18 @@ export async function POST(req:NextRequest){
    employment_type:employment,has_co_tenant:hasCo,co_tenant_income_ars:hasCo?coIncome:null,
    status:"submitted",submitted_at:new Date().toISOString(),consent_at:new Date().toISOString(),consent_version:"powermarket-v1"
   }).select("id").single()
+  if(error?.code==="23505"){
+   // A simultaneous submit may already have committed this tenant's request.
+   // Return the durable existing ID rather than reporting an error or creating
+   // a second application. The unique DB index is the final concurrency guard.
+   const {data:duplicate,error:duplicateError}=await db.from("caucion_applications")
+    .select("id").eq("tenant_lead_id",leadId).limit(1)
+   if(duplicateError)throw duplicateError
+   if(duplicate?.[0]?.id)return NextResponse.json({
+    ok:true,already_submitted:true,application_id:duplicate[0].id
+   })
+   return NextResponse.json({error:"La solicitud se está procesando; reintentá"},{status:409})
+  }
   if(error)throw error
   const {error:eventError}=await db.from("caucion_events").insert({application_id:data.id,event_key:`caucion:submitted:${data.id}`,event_type:"application_submitted",payload:{source:"verlo_tenant_optin"}})
   if(eventError)console.error("PowerMarket event logging failed",eventError)
