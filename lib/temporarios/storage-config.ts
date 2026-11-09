@@ -19,8 +19,17 @@ export type TemporaryStorageConfig = {
 export function getTemporaryStorageConfig(
   env: Record<string, string | undefined>,
 ): TemporaryStorageConfig | null {
-  if (env.VERCEL_ENV !== "preview") return null
+  const isPreview = env.VERCEL_ENV === "preview" &&
+    ["feature/temporarios", "qa/verlo-e2e"].includes(env.VERCEL_GIT_COMMIT_REF || "")
+  const isProduction = env.VERCEL_ENV === "production" &&
+    env.TEMPORARY_PUBLIC_ENABLED === "true" &&
+    env.TEMPORARY_DB_WRITES_ENABLED === "true"
+  if (!isPreview && !isProduction) return null
   if (env.TEMPORARY_R2_UPLOADS_ENABLED !== "true") return null
+  // The QA branch must be connected to its independent Supabase QA database.
+  if (env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e" &&
+      env.NEXT_PUBLIC_SUPABASE_URL !== "https://anptswspguyotnasoacq.supabase.co")
+    return null
   const bucket = env.TEMPORARY_R2_BUCKET?.trim()
   const accountId = env.TEMPORARY_R2_ACCOUNT_ID?.trim()
   const accessKeyId = env.TEMPORARY_R2_ACCESS_KEY_ID?.trim()
