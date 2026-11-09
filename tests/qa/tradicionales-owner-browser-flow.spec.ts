@@ -121,7 +121,11 @@ test('Propietario: fallo en multimedia no debe mostrar éxito ni navegar', async
   })
 
   await form.getByRole('button', { name: /Ver si mi propiedad matchea/i }).click()
-  await expect(page.getByText('QA_UPLOAD_UNAVAILABLE')).toBeVisible({ timeout: 15_000 })
+  // Image optimization may take longer under two parallel browser workers.
+  // Still require the actual visible error, never accept a silent failure.
+  const error = page.locator('form.owner-form .form-message.error')
+  await expect(error).toBeVisible({ timeout: 30_000 })
+  await expect(error).toContainText('QA_UPLOAD_UNAVAILABLE')
   expect(leadCalled).toBe(1)
   expect(presignCalled).toBe(1)
   expect(mediaCalled).toBe(0)
