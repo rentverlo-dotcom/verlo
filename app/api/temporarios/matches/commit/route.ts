@@ -30,8 +30,11 @@ export async function POST(request:Request) {
   ])
   if(p.error||d.error||b.error||existing.error||!p.data||!d.data)
     return reply(404,{ok:false,error:"No se pudo verificar la coincidencia"})
-  if(p.data.owner_user_id !== auth.userId || d.data.tenant_user_id !== auth.userId)
-    return reply(403,{ok:false,error:"Esta operación requiere datos QA del usuario autorizado"})
+  // The actor must own the listing. A real match has a DISTINCT tenant user:
+  // requiring the tenant ID to equal the owner made all two-party matches fail.
+  if(p.data.owner_user_id !== auth.userId || !d.data.tenant_user_id ||
+     d.data.tenant_user_id === auth.userId)
+    return reply(403,{ok:false,error:"La coincidencia requiere un propietario y un inquilino distintos"})
   if(existing.data) return reply(200,{ok:true,id:existing.data.id,reused:true})
   if(p.data.status!=="published"||d.data.status!=="active")
     return reply(409,{ok:false,error:"La publicación o búsqueda no está activa"})
