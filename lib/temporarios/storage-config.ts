@@ -25,15 +25,18 @@ export function getTemporaryStorageConfig(
     env.TEMPORARY_PUBLIC_ENABLED === "true" &&
     env.TEMPORARY_DB_WRITES_ENABLED === "true"
   if (!isPreview && !isProduction) return null
-  if (env.TEMPORARY_R2_UPLOADS_ENABLED !== "true") return null
-  // The QA branch must be connected to its independent Supabase QA database.
-  if (env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e" &&
+  const isQa = env.VERCEL_ENV === "preview" &&
+    env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e"
+  // QA must NEVER inherit shared Preview/feature credentials or upload flags.
+  const prefix = isQa ? "TEMPORARY_QA_R2_" : "TEMPORARY_R2_"
+  if (env[prefix + "UPLOADS_ENABLED"] !== "true") return null
+  if (isQa &&
       env.NEXT_PUBLIC_SUPABASE_URL !== "https://anptswspguyotnasoacq.supabase.co")
     return null
-  const bucket = env.TEMPORARY_R2_BUCKET?.trim()
-  const accountId = env.TEMPORARY_R2_ACCOUNT_ID?.trim()
-  const accessKeyId = env.TEMPORARY_R2_ACCESS_KEY_ID?.trim()
-  const secretAccessKey = env.TEMPORARY_R2_SECRET_ACCESS_KEY?.trim()
+  const bucket = env[prefix + "BUCKET"]?.trim()
+  const accountId = env[prefix + "ACCOUNT_ID"]?.trim()
+  const accessKeyId = env[prefix + "ACCESS_KEY_ID"]?.trim()
+  const secretAccessKey = env[prefix + "SECRET_ACCESS_KEY"]?.trim()
   if (!bucket || !accountId || !accessKeyId || !secretAccessKey) return null
   if (bucket === "verlo" || bucket === env.R2_BUCKET) return null
   if (accessKeyId === env.R2_ACCESS_KEY_ID || secretAccessKey === env.R2_SECRET_ACCESS_KEY) return null
