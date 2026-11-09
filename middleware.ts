@@ -41,6 +41,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Signed GitHub Actions identity is verified inside the QA handler.
+  if (verified && request.method === 'POST' && path === '/api/qa/temporarios/lifecycle') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'POST' && path === '/api/qa/mi-verlo/isolation') {
     return NextResponse.next()
   }
