@@ -112,6 +112,29 @@ jobs:
               console.log('Real contract handlers QA: first and second double OK, draft and idempotency verified');
             });
           "
+      - name: Exercise two real QA Auth users through Temporarios APIs, reservation and contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 120 -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/temporarios/lifecycle" | node -e "
+            let input = '';
+            process.stdin.on('data', chunk => input += chunk);
+            process.stdin.on('end', () => {
+              let result;
+              try { result = JSON.parse(input); } catch { process.exit(1); }
+              const required = ['ok','qaOnly','realTemporaryApiHandlers',
+                'twoAuthenticatedRoles','matchIdempotent','ownerTenantIsolation',
+                'doubleAcceptance','reservationTermsAccepted','unpaidConfirmationDenied',
+                'feeSimulated','bilateralReservationConfirmed','contractAgreedByBoth',
+                'temporaryContractPdf','noRealPayment','noExternalNotifications'];
+              if (!required.every(key => result[key] === true)) {
+                console.error('Temporary QA lifecycle failed:', result.error || 'invalid assertion');
+                process.exit(1);
+              }
+              console.log('Temporary QA lifecycle PASS: real API handlers, two accounts, booking, agreed contract and PDF');
+            });
+          "
       - name: Verify existing contractual PDF generator without external services
         run: npx playwright test tests/powermarket-pdf.spec.ts --reporter=line
       - name: Verify real QA Auth with two synthetic customer roles
