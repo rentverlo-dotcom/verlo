@@ -125,7 +125,7 @@ jobs:
               try { data = JSON.parse(input); } catch { process.exit(1); }
               const flags = ['ok','qaOnly','actualHandlers','consentDenied','invalidTokenDenied',
                 'concurrentSameApplication','replayIdempotent','exactlyOneStoredApplication',
-                'matchingEconomicFields','exactlyOneAuditEvent','noExternalPartner'];
+                'matchingEconomicFields','exactlyOneAuditAndOnePushEvent','noExternalPartner'];
               if (!flags.every(flag => data[flag] === true)) {
                 console.error('PowerMarket QA application submission failed:', data.error || data);
                 process.exit(1);
