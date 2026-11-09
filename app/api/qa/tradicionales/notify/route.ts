@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
     .select('id,email,role,intent,source')
     .in('id', [match.tenant_lead_id, match.owner_lead_id])
   if (leadError || !leads || leads.length !== 2 ||
-      !leads.every(lead => lead.source === 'qa_e2e_tradicionales'
-        && String(lead.email).endsWith('@example.com'))) {
+      !leads.every(lead => String(lead.source || '').startsWith('qa_e2e_')
+        && String(lead.email || '').toLowerCase().endsWith('@example.com'))) {
     return NextResponse.json({ ok: false, error: 'NOT_SYNTHETIC' }, { status: 403 })
   }
 
