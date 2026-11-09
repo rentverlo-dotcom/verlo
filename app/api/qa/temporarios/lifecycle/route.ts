@@ -160,10 +160,60 @@ export async function POST(request: NextRequest) {
     }))
     if (beforeFee.status !== 409) throw Error("QA_UNPAID_RESERVATION_NOT_BLOCKED")
 
-    // QA-only fee stand-in, NOT a real Mercado Pago transaction.
-    const simulated = await admin.from("temporary_reservations")
-      .update({ status: "fee_paid" }).eq("id", reservationId)
-    if (simulated.error) throw Error("QA_FEE_STANDIN_FAILED")
+    // QA-only provider-result stand-in: exercise the REAL atomic payment RPC,
+    // rather than setting reservation.status directly. No Mercado Pago calls.
+    const attempted = await admin.from("temporary_payment_attempts").insert({
+      reservation_id: reservationId, tenant_user_id: tenant.id,
+      amount_ars: 49999, currency: "ARS", status: "pending",
+      mp_preference_id: "qa-synthetic-" + run,
+    }).select("id").single()
+    if (attempted.error || !attempted.data?.id)
+      throw Error("QA_MP_ATTEMPT_NOT_CREATED")
+    const attemptId = attempted.data.id
+    const providerPaymentId = "8" + String(BigInt("0x" + run)).slice(0, 14)
+
+    const wrongAmount = await admin.rpc("temporary_register_verified_payment", {
+      p_attempt_id: attemptId, p_mp_payment_id: providerPaymentId,
+      p_amount: 1, p_currency: "ARS", p_mp_status: "approved",
+    })
+    if (!wrongAmount.error || wrongAmount.error.message.indexOf("invalid_payment") < 0)
+      throw Error("QA_MP_INVALID_AMOUNT_WAS_ACCEPTED")
+    const pending = await admin.rpc("temporary_register_verified_payment", {
+      p_attempt_id: attemptId, p_mp_payment_id: providerPaymentId,
+      p_amount: 49999, p_currency: "ARS", p_mp_status: "pending",
+    })
+    if (pending.error || pending.data?.status !== "pending")
+      throw Error("QA_MP_PENDING_FAILED")
+    const approved = await admin.rpc("temporary_register_verified_payment", {
+      p_attempt_id: attemptId, p_mp_payment_id: providerPaymentId,
+      p_amount: 49999, p_currency: "ARS", p_mp_status: "approved",
+    })
+    if (approved.error || approved.data?.status !== "approved" ||
+        approved.data?.reservationStatus !== "fee_paid")
+      throw Error("QA_MP_APPROVAL_FAILED")
+    const duplicate = await admin.rpc("temporary_register_verified_payment", {
+      p_attempt_id: attemptId, p_mp_payment_id: providerPaymentId,
+      p_amount: 49999, p_currency: "ARS", p_mp_status: "approved",
+    })
+    if (duplicate.error || duplicate.data?.reused !== true)
+      throw Error("QA_MP_DUPLICATE_FAILED")
+    const staleRejection = await admin.rpc("temporary_register_verified_payment", {
+      p_attempt_id: attemptId, p_mp_payment_id: providerPaymentId,
+      p_amount: 49999, p_currency: "ARS", p_mp_status: "rejected",
+    })
+    if (staleRejection.error || staleRejection.data?.status !== "approved")
+      throw Error("QA_MP_PAYMENT_DOWNGRADED")
+    const foreignPayment = await admin.rpc("temporary_register_verified_payment", {
+      p_attempt_id: attemptId, p_mp_payment_id: providerPaymentId + "7",
+      p_amount: 49999, p_currency: "ARS", p_mp_status: "approved",
+    })
+    if (!foreignPayment.error || foreignPayment.error.message.indexOf("payment_id_conflict") < 0)
+      throw Error("QA_MP_FOREIGN_PAYMENT_WAS_ACCEPTED")
+    const savedPayment = await admin.from("temporary_payment_attempts")
+      .select("status,mp_payment_id").eq("id", attemptId).single()
+    if (savedPayment.error || savedPayment.data?.status !== "approved" ||
+        savedPayment.data.mp_payment_id !== providerPaymentId)
+      throw Error("QA_MP_VERIFIED_PAYMENT_NOT_PERSISTED")
 
     await invoke("confirm-owner", confirmReservation, owner.jwt, { matchId, role: "owner" })
     const confirmation = await invoke("confirm-tenant", confirmReservation, tenant.jwt,
@@ -234,7 +284,8 @@ export async function POST(request: NextRequest) {
       twoAuthenticatedRoles: true, matchIdempotent: true,
       ownerTenantIsolation: true, doubleAcceptance: true,
       reservationTermsAccepted: true, unpaidConfirmationDenied: true,
-      feeSimulated: true, bilateralReservationConfirmed: true,
+      feeSimulated: true, verifiedFeeRpcSimulated: true,
+      bilateralReservationConfirmed: true,
       notificationRecipientsVerified: true, notificationDeduplicated: true,
       contractAgreedByBoth: true, temporaryContractPdf: true,
       noRealPayment: true, noExternalNotifications: true,
