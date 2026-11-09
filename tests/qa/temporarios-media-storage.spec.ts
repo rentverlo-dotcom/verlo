@@ -6,32 +6,43 @@ const qa = {
   VERCEL_ENV: "preview",
   VERCEL_GIT_COMMIT_REF: "qa/verlo-e2e",
   NEXT_PUBLIC_SUPABASE_URL: "https://anptswspguyotnasoacq.supabase.co",
+  TEMPORARY_QA_R2_UPLOADS_ENABLED: "true",
+  TEMPORARY_QA_R2_BUCKET: "verlo-temporary-qa",
+  TEMPORARY_QA_R2_ACCOUNT_ID: "qa-account",
+  TEMPORARY_QA_R2_ACCESS_KEY_ID: "qa-key",
+  TEMPORARY_QA_R2_SECRET_ACCESS_KEY: "qa-secret",
+  // Shared Preview credentials MUST NOT be a fallback for QA.
   TEMPORARY_R2_UPLOADS_ENABLED: "true",
-  TEMPORARY_R2_BUCKET: "verlo-temporary-qa",
-  TEMPORARY_R2_ACCOUNT_ID: "qa-account",
-  TEMPORARY_R2_ACCESS_KEY_ID: "qa-key",
-  TEMPORARY_R2_SECRET_ACCESS_KEY: "qa-secret",
+  TEMPORARY_R2_BUCKET: "verlo-preview-existing",
+  TEMPORARY_R2_ACCOUNT_ID: "preview-account",
+  TEMPORARY_R2_ACCESS_KEY_ID: "preview-key",
+  TEMPORARY_R2_SECRET_ACCESS_KEY: "preview-secret",
   R2_BUCKET: "verlo",
   R2_ACCESS_KEY_ID: "prod-key",
   R2_SECRET_ACCESS_KEY: "prod-secret",
+
 }
 
 test("Temporarios media: QA bucket requires correct branch, DB, explicit enablement and independent credentials", () => {
   expect(getTemporaryStorageConfig(qa)?.bucket).toBe("verlo-temporary-qa")
-  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_R2_UPLOADS_ENABLED: "false" })).toBeNull()
+  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_QA_R2_UPLOADS_ENABLED: "false" })).toBeNull()
   expect(getTemporaryStorageConfig({ ...qa, VERCEL_GIT_COMMIT_REF: "main" })).toBeNull()
   expect(getTemporaryStorageConfig({ ...qa, NEXT_PUBLIC_SUPABASE_URL: "https://different.supabase.co" })).toBeNull()
-  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_R2_BUCKET: "verlo" })).toBeNull()
-  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_R2_SECRET_ACCESS_KEY: "prod-secret" })).toBeNull()
-  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_R2_ACCESS_KEY_ID: "prod-key" })).toBeNull()
+  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_QA_R2_BUCKET: "verlo" })).toBeNull()
+  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_QA_R2_SECRET_ACCESS_KEY: "prod-secret" })).toBeNull()
+  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_QA_R2_ACCESS_KEY_ID: "prod-key" })).toBeNull()
+  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_QA_R2_BUCKET: undefined })).toBeNull()
+  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_QA_R2_SECRET_ACCESS_KEY: undefined })).toBeNull()
+  expect(getTemporaryStorageConfig({ ...qa, TEMPORARY_QA_R2_UPLOADS_ENABLED: undefined })).toBeNull()
+
 })
 
-test("Temporarios media: production storage requires explicit product enablement and a separate bucket", () => {
+test("Temporarios media: production requires independent credentials and two explicit product flags", () => {
   const prod = { ...qa, VERCEL_ENV: "production", VERCEL_GIT_COMMIT_REF: "main" }
   expect(getTemporaryStorageConfig(prod)).toBeNull()
   expect(getTemporaryStorageConfig({ ...prod, TEMPORARY_PUBLIC_ENABLED: "true" })).toBeNull()
   expect(getTemporaryStorageConfig({ ...prod, TEMPORARY_PUBLIC_ENABLED: "true",
-    TEMPORARY_DB_WRITES_ENABLED: "true" })?.bucket).toBe("verlo-temporary-qa")
+    TEMPORARY_DB_WRITES_ENABLED: "true" })?.bucket).toBe("verlo-preview-existing")
 })
 
 test("Temporarios media: routes preserve owner verification and HEAD before saving objects", () => {
