@@ -30,3 +30,21 @@ test('Mobile: owner form remains usable and cannot submit empty data', async ({ 
   await expect(form.locator('[name="full_name"]')).toBeFocused()
   expect(writes).toBe(0)
 })
+
+
+test('Mobile: incomplete tenant search is rejected without creating a lead', async ({ page }) => {
+  let writes = 0
+  page.on('request', request => {
+    if (request.method() !== 'GET' && /\/api\/lead-intake(?:[?#]|$)/.test(request.url())) writes++
+  })
+  await page.goto('/permanentes', { waitUntil: 'networkidle' })
+  const form = page.locator('form.form')
+  await expect(form).toBeVisible()
+  await form.locator('[name="full_name"]').fill('Inquilino QA Movil')
+  await form.locator('[name="phone"]').fill('1155550002')
+  await form.locator('[name="email"]').fill('qa-mobile-tenant@example.com')
+  await form.getByRole('button', { name: /Cargar mi búsqueda/i }).click()
+  await expect(page.getByText('Elegí al menos una localidad o barrio donde buscarías alquilar.')).toBeVisible()
+  expect(writes).toBe(0)
+  await expect(page).toHaveURL(/\/permanentes(?:[?#]|$)/)
+})
