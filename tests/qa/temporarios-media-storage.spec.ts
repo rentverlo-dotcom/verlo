@@ -58,3 +58,13 @@ test("Temporarios media: routes preserve owner verification and HEAD before savi
   expect(presign).not.toContain('process.env.VERCEL_GIT_COMMIT_REF!=="feature/temporarios"')
   expect(complete).not.toContain('process.env.VERCEL_GIT_COMMIT_REF!=="feature/temporarios"')
 })
+
+test("Temporarios media: authorized owner and matched tenant can view only with isolated storage", () => {
+  const view = readFileSync("app/api/temporarios/media/view/[id]/route.ts", "utf8")
+  expect(view).toContain("getTemporaryStorageConfig(process.env)")
+  expect(view).toContain("if(!config)return new Response(null,{status:404})")
+  expect(view).toContain("property.data.owner_user_id===user.id")
+  expect(view).toContain('.eq("temporary_demands.tenant_user_id",user.id)')
+  expect(view).toContain("if(!authorized)return new Response(null,{status:403})")
+  expect(view).not.toContain('process.env.VERCEL_GIT_COMMIT_REF!=="feature/temporarios"')
+})
