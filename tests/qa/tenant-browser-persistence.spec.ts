@@ -40,15 +40,22 @@ test('Inquilino: formulario real -> intake QA -> match persistido con propietari
   expect(ownerData.lead_id).toMatch(/^[0-9a-f-]{36}$/i)
 
   let actualTenantPayload: Record<string, unknown> | null = null
+  let tenantApiResult: { status: number; body: Record<string, any> } | null = null
   await page.route('**/api/lead-intake', async route => {
     const payload = route.request().postDataJSON()
     expect(payload.role).toBe('tenant')
     expect(payload.intent).toBe('tenant_search')
     expect(payload.email).toBe(`qa-browser-tenant-${run}@example.com`)
     actualTenantPayload = payload
-    await route.continue({
+
+    // Call the REAL QA API, read its response before the success redirect,
+    // then forward that very response to the page. No fabricated success.
+    const upstream = await route.fetch({
       postData: JSON.stringify({ ...payload, source: 'qa_e2e_browser_tenant' }),
     })
+    const body = await upstream.json()
+    tenantApiResult = { status: upstream.status(), body }
+    await route.fulfill({ response: upstream })
   })
 
   await page.goto('/permanentes', { waitUntil: 'networkidle' })
@@ -73,13 +80,11 @@ test('Inquilino: formulario real -> intake QA -> match persistido con propietari
   await form.locator('[name="income_range"]').selectOption('2000001-3000000')
   await form.locator('input[name="guarantee_types"][value="surety_insurance"]').check()
 
-  const intakeResponse = page.waitForResponse(res =>
-    res.url().endsWith('/api/lead-intake') && res.request().method() === 'POST'
-  )
   await form.getByRole('button', { name: /Cargar mi búsqueda/i }).click()
-  const response = await intakeResponse
-  const tenantData = await response.json()
-  expect(response.status(), JSON.stringify(tenantData)).toBe(200)
+  await expect(page).toHaveURL(/\/success\?role=tenant&lead=/, { timeout: 30_000 })
+  expect(tenantApiResult, 'QA API response must be captured before navigation').not.toBeNull()
+  const tenantData = tenantApiResult!.body
+  expect(tenantApiResult!.status, JSON.stringify(tenantData)).toBe(200)
   expect(tenantData.ok).toBe(true)
   expect(tenantData.lead_id).toMatch(/^[0-9a-f-]{36}$/i)
   expect(actualTenantPayload).toMatchObject({
