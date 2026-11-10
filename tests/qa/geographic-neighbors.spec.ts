@@ -62,7 +62,23 @@ const locations = {
   },
 }
 
-type Location = typeof locations[keyof typeof locations]
+type Location = {
+  zone: string
+  neighborhood_labels: readonly string[]
+  neighborhood_slugs: readonly string[]
+  neighborhood_slug: string
+  metadata: { georef: Array<{
+    provinceId: string; provinceName: string
+    municipalityId: string; municipalityName: string
+    localityId: string; localityName: string
+    key: string; label: string
+    latitude?: number; longitude?: number
+  }> }
+}
+const palermoZero = {
+  ...QA_PALERMO_LOCATION,
+  metadata: { georef: [{ ...QA_PALERMO_LOCATION.metadata.georef[0], latitude: 0, longitude: 0 }] },
+}
 test.describe('Real QA geography: cross-neighborhood matching', () => {
   test.setTimeout(120_000)
 
@@ -123,6 +139,6 @@ test.describe('Real QA geography: cross-neighborhood matching', () => {
   })
 
   test('Flores ↔ Palermo: zero coordinates cannot create false match', async ({ request }) => {
-    await checkPair(request, locations.flores, QA_PALERMO_LOCATION, 'none')
+    await checkPair(request, locations.flores, palermoZero, 'none')
   })
 })
