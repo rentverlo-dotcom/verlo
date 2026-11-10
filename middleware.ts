@@ -78,6 +78,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (verified && request.method === 'GET' && path === '/api/qa/identik/schema-preflight') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' && path === '/api/qa/identik/readiness') {
     return NextResponse.next()
   }
