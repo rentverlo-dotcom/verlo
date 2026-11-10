@@ -2366,18 +2366,23 @@ async function createLeadMatches({
         supabaseAdmin,
 
         leadIds:
-          [
-            lead.id,
-            ...ownerLeads.map(
-              (
-                ownerLead
-              ) =>
-                ownerLead.id
-            ),
-          ],
+          ownerLeads.map(
+            (ownerLead) =>
+              ownerLead.id
+          ),
 
         context:
           "owner_property",
+      })
+
+    // The new lead is a TENANT. It must be loaded from tenant_search;
+    // querying owner_property loses Georef metadata and coordinates,
+    // which silently prevents cross-neighborhood matches.
+    const tenantNeighborhoodMap =
+      await getLeadNeighborhoodLocations({
+        supabaseAdmin,
+        leadIds: [lead.id],
+        context: "tenant_search",
       })
 
     const matches:
@@ -2398,7 +2403,7 @@ async function createLeadMatches({
               )
 
             const tenantLocations =
-              ownerNeighborhoodMap
+              tenantNeighborhoodMap
                 .get(
                   lead.id
                 ) ||
