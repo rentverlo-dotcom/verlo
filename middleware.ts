@@ -37,6 +37,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (verified && request.method === 'POST' && path === '/api/qa/identik/webhook-probe') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'POST' && path === '/api/qa/powermarket/submission') {
     return NextResponse.next()
   }
