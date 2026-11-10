@@ -1548,6 +1548,16 @@ function haversineKm(
     return null
   }
 
+  // (0, 0) is a missing-coordinate sentinel in historical CABA
+  // georef records, NOT a valid point near Argentina. Reject invalid
+  // coordinates rather than matching unrelated locations at 0 km.
+  const valid = (loc: NeighborhoodLocation) =>
+    loc.latitude !== null && loc.longitude !== null &&
+    Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude) &&
+    Math.abs(loc.latitude) <= 90 && Math.abs(loc.longitude) <= 180 &&
+    !(loc.latitude === 0 && loc.longitude === 0)
+  if (!valid(a) || !valid(b)) return null
+
   const toRad = (
     value: number
   ) =>
@@ -1850,16 +1860,17 @@ function getNeighborhoodCompatibility({
     const tenantLocation
     of tenantLocations
   ) {
+    // Adjacency configuration uses historic neighborhood names (e.g.
+    // "flores" / "caballito"), whereas new intake stores canonical Georef
+    // keys (e.g. "ar:02:caba:flores"). Preserve both representations.
+    const compatibilitySlug = (loc: NeighborhoodLocation) =>
+      loc.neighborhood_slug.startsWith("ar:") && loc.locality_name
+        ? normalizeText(loc.locality_name)
+        : loc.neighborhood_slug
     const relationship =
       compatibilityMap
-        .get(
-          tenantLocation
-            .neighborhood_slug
-        )
-        ?.get(
-          ownerLocation
-            .neighborhood_slug
-        )
+        .get(compatibilitySlug(tenantLocation))
+        ?.get(compatibilitySlug(ownerLocation))
 
     if (
       relationship
