@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'ROLE_MISMATCH' }, { status: 400 })
   }
   const { data: matches, error } = await db.from('lead_matches')
-    .select('id,status,score,prequalified')
+    .select('id,status,score,prequalified,reasons')
     .eq('owner_lead_id', owner).eq('tenant_lead_id', tenant)
   if (error) return NextResponse.json({ ok: false, error: 'MATCH_LOOKUP_FAILED' }, { status: 503 })
   const notificationResult = await db.from('lead_notification_events').select('id', { count: 'exact', head: true }).in('lead_id', [owner, tenant])
@@ -43,6 +43,8 @@ export async function GET(request: NextRequest) {
     notificationEvents: notificationResult.count ?? 0,
     matches: (matches || []).map(m => ({
       id: m.id, exists: true, status: m.status, score: Number(m.score), prequalified: m.prequalified,
+      neighborhoodMatchType: m.reasons?.neighborhood_match_type || null,
+      neighborhoodDistanceKm: m.reasons?.neighborhood_distance_km ?? null,
     })),
   }, { headers: { 'Cache-Control': 'no-store' } })
 }

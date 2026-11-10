@@ -5,7 +5,7 @@ import { test, expect, devices } from '@playwright/test'
 test.use({ ...devices['Pixel 7'] })
 
 test('Mobile: tenant entry leads to the current permanent-rental form', async ({ page }) => {
-  await page.goto('/inquilino', { waitUntil: 'domcontentloaded' })
+  await page.goto('/inquilino', { waitUntil: 'networkidle' })
   const cta = page.getByRole('button', { name: 'Buscar propiedades' })
   await expect(cta).toBeVisible()
   await cta.click()
