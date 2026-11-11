@@ -53,8 +53,23 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright Chromium with bounded network retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then
+              echo "Chromium and OS dependencies installed"
+              exit 0
+            fi
+            echo "::warning::Playwright dependencies unavailable (attempt $attempt of 3)"
+            getent hosts security.ubuntu.com || true
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Playwright installation failed after three attempts; no application tests executed"
+              exit 1
+            fi
+            sleep $((attempt * 15))
+          done
       - name: Wait for exact QA commit deployment
         shell: bash
         run: |
@@ -97,15 +112,6 @@ jobs:
               console.log('Identik QA webhook real HTTP 200, authenticated and isolated');
             });
           "
-
-      # Authorized Sandbox test: two controlled inboxes, one QA synthetic contract.
-      - name: One-time Identik Sandbox invitations (QA commit marker only)
-        if: "${{ github.event.head_commit.message == 'test(qa): execute first Identik Sandbox two signer invitation' }}"
-        shell: bash
-        run: |
-          set -euo pipefail
-          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
-          curl -fsS --max-time 65 -H "Authorization: Bearer $token" -H "x-qa-identik-intent: send-two-sandbox-invitations" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .providerDocumentCreated == true and .invitationsRequested == true and .twoSigners == true'
 
       - name: Exercise synthetic match interest and contract double OK
         shell: bash
@@ -228,3 +234,47 @@ jobs:
             playwright-report/
             test-results/
           if-no-files-found: ignore
+
+  # Read-only Identik validation has no Chromium/apt dependency.
+  identik-sandbox-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Verify identical deployed QA commit and database
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 45); do
+            if curl -fsS --max-time 15 "$QA_BASE_URL/api/qa/status" | jq -e --arg sha "$GITHUB_SHA" '.ok == true and .branch == true and .database == true and .commit == $sha' >/dev/null; then
+              echo "QA deploy SHA and QA database confirmed"
+              exit 0
+            fi
+            sleep 12
+          done
+          echo "::error::Exact QA commit never reached Vercel"
+          exit 1
+      - name: Check authorized synthetic contract without provider effects
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 40 -H "Authorization: Bearer $token" "$QA_BASE_URL/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .sandboxOnly == true and .readOnly == true and .contractEligible == true and .unreserved == true'
+
+  # Never send invitations on a normal push or merely because tests passed.
+  # A uniquely named, deliberately authored QA-only commit gates this job.
+  identik-sandbox-send:
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): execute first Identik Sandbox two signer invitation' }}"
+    needs: [qa-e2e, identik-sandbox-preflight]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Send exactly one document to two controlled Sandbox inboxes
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 65 -H "Authorization: Bearer $token" -H "x-qa-identik-intent: send-two-sandbox-invitations" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .providerDocumentCreated == true and .invitationsRequested == true and .twoSigners == true'

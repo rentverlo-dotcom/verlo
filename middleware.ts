@@ -37,6 +37,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // OIDC required inside GET (read-only) and POST (one-time send).
+  if (verified && request.method === 'GET' && path === '/api/qa/identik/create-signing') {
+    return NextResponse.next()
+  }
+
   // One-time manual Github OIDC guarded Sandbox signing request, QA only.
   if (verified && request.method === 'POST' && path === '/api/qa/identik/create-signing') {
     return NextResponse.next()

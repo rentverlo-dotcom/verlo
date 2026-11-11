@@ -24,8 +24,59 @@ function reply(body: Record<string, unknown>, status = 200) {
   })
 }
 
-// Deliberately NOT called by automatic CI. Only a manually dispatched
-// workflow with GitHub OIDC can create/distribute this one Sandbox document.
+// This preflight is read-only: no document creation, no notifications,
+// no mutation of QA Supabase. GitHub OIDC binds access to the exact QA SHA.
+export async function GET(request: NextRequest) {
+  if (process.env.VERCEL_GIT_COMMIT_REF !== 'qa/verlo-e2e' ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL !== QA_URL ||
+      (process.env.IDENTIK_ELECTRONIC_API_BASE_URL || SANDBOX) !== SANDBOX)
+    return reply({ ok: false, error: 'QA_ONLY' }, 503)
+
+  const bearer = request.headers.get('authorization') || ''
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA || ''
+  if (!sha || !bearer.startsWith('Bearer ') ||
+      !(await validQaWorkflowToken(bearer.slice(7), sha)))
+    return reply({ ok: false, error: 'QA_OIDC_REQUIRED' }, 403)
+
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key || !process.env.IDENTIK_ELECTRONIC_API_TOKEN ||
+      !process.env.IDENTIK_ELECTRONIC_WEBHOOK_SECRET)
+    return reply({ ok: false, error: 'QA_CONFIGURATION_MISSING' }, 503)
+
+  const db = createClient(QA_URL, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  const { data: contract, error } = await db.from('lead_contracts')
+    .select('id,status,content,tenant_agreed_at,owner_agreed_at,tenant_lead_id,owner_lead_id')
+    .eq('id', CONTRACT_ID).maybeSingle()
+  if (error || !contract || contract.status !== 'agreed' || !contract.content ||
+      !contract.tenant_agreed_at || !contract.owner_agreed_at)
+    return reply({ ok: false, error: 'QA_AGREED_CONTRACT_MISSING' }, 409)
+
+  const { data: participants, error: participantError } = await db
+    .from('lead_intake').select('id,email,source')
+    .in('id', [contract.owner_lead_id, contract.tenant_lead_id])
+  if (participantError || participants?.length !== 2 ||
+      participants.some(row => row.source !== 'qa_e2e_contract_lifecycle' ||
+        !String(row.email).endsWith('@example.com')))
+    return reply({ ok: false, error: 'QA_SYNTHETIC_PARTICIPANTS_REQUIRED' }, 409)
+
+  const signing = await checkTraditionalSigningReadiness(db, CONTRACT_ID)
+  if (!signing.allowed || signing.reason !== 'no_caucion')
+    return reply({ ok: false, error: 'QA_SIGNING_GATE_BLOCKED', reason: signing.reason }, 409)
+
+  const { data: prior, error: priorError } = await db
+    .from('identik_electronic_documents').select('id')
+    .eq('lead_contract_id', CONTRACT_ID).maybeSingle()
+  if (priorError || prior)
+    return reply({ ok: false, error: 'DOCUMENT_ALREADY_RESERVED_OR_LOOKUP_FAILED' }, 409)
+
+  return reply({ ok: true, qaOnly: true, sandboxOnly: true,
+    readOnly: true, contractEligible: true, unreserved: true })
+}
+
+// Only the deliberately gated QA GitHub Actions job can create/distribute
+// this one Sandbox document after QA E2E and read-only preflight pass.
 // Once a local record exists, the route will not create another provider copy.
 export async function POST(request: NextRequest) {
   if (process.env.VERCEL_GIT_COMMIT_REF !== 'qa/verlo-e2e' ||
