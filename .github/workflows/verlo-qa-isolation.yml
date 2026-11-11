@@ -98,6 +98,7 @@ jobs:
             });
           "
 
+      # Authorized Sandbox test: two controlled inboxes, one QA synthetic contract.
       - name: One-time Identik Sandbox invitations (QA commit marker only)
         if: "${{ github.event.head_commit.message == 'test(qa): execute first Identik Sandbox two signer invitation' }}"
         shell: bash
