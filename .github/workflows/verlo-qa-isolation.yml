@@ -99,7 +99,7 @@ jobs:
           "
 
       - name: One-time Identik Sandbox two-signature invitation (explicit QA commit only)
-        if: ${{ github.event.head_commit.message == 'test(qa): execute first Identik Sandbox two signer invitation' }}
+        if: "${{ github.event.head_commit.message == 'test(qa): execute first Identik Sandbox two signer invitation' }}"
         shell: bash
         run: |
           set -euo pipefail
