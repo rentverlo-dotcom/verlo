@@ -37,6 +37,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // One-time manual Github OIDC guarded Sandbox signing request, QA only.
+  if (verified && request.method === 'POST' && path === '/api/qa/identik/create-signing') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'POST' && path === '/api/qa/identik/webhook-probe') {
     return NextResponse.next()
   }
