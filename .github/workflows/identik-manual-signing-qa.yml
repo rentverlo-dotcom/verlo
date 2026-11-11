@@ -1,0 +1,33 @@
+name: VERLO Identik Sandbox two-signature manual E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  identik-sandbox-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Only run against checked-in QA branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/qa/verlo-e2e"
+      - name: Verify exact deployed QA commit before requesting invitations
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app"
+          result="$(curl -fsS --max-time 20 "$url/api/qa/status")"
+          echo "$result" | jq -e --arg sha "$GITHUB_SHA" '.ok == true and .branch == true and .database == true and .commit == $sha' >/dev/null
+      - name: Create exactly one Sandbox document and invite two controlled inboxes
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app"
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 65 -H "Authorization: Bearer $token" -H "x-qa-identik-intent: send-two-sandbox-invitations" -H "Content-Type: application/json" --data '{}' "$url/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .providerDocumentCreated == true and .invitationsRequested == true and .twoSigners == true'
