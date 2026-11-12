@@ -69,6 +69,9 @@ test("Identik: signed artifact requires linked owner or tenant and completed pro
   expect(source).toContain('.eq("lead_contract_id", contract.id).eq("status", "completed")')
   expect(source).toContain("downloadSignedPdf(id)")
   expect(source).toContain("downloadCertificate(id)")
+  expect(source).toContain(".from(IDENTIK_ARTIFACT_BUCKET).download(storedKey)")
+  expect(source).toContain("if (storedKey)")
+  expect(source).toContain("assertIdentikPdfDownload(bytes)")
   expect(source).toContain('"Cache-Control": "private, no-store, max-age=0"')
 })
 
