@@ -176,7 +176,7 @@ export default async function ControlPage({
     process.env.CONTROL_DASHBOARD_TOKEN ||
     process.env.INVESTOR_DASHBOARD_TOKEN
 
-  if (requiredToken && params.token !== requiredToken) {
+  if (!requiredToken || params.token !== requiredToken) {
     return (
       <main style={page}>
         <section style={locked}>
