@@ -5,6 +5,7 @@ import { validQaWorkflowToken } from '@/lib/qa/verify-workflow-token'
 import { checkTraditionalSigningReadiness } from '@/lib/identik/traditional-signing-preflight'
 import { createCaucionContractPdf } from '@/lib/powermarket/contract-pdf'
 import { makeIdentikElectronicClient } from '@/lib/identik/electronic-v2'
+import { identikSignatureField } from '@/lib/identik/signature-geometry'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -144,10 +145,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const client = makeIdentikElectronicClient({ baseUrl: SANDBOX })
-    const fields = (pageY: number) => [{
-      type: 'SIGNATURE', pageNumber: pages,
-      pageX: 52, pageY, width: 260, height: 64,
-    }]
+    // Convert PDF A4 points to the percentages expected by Identik v2.
+    // Validate both signer fields before any provider document is created.
+    const ownerField = identikSignatureField('owner', pages)
+    const tenantField = identikSignatureField('tenant', pages)
     const created = await client.createDocument(
       new Blob([new Uint8Array(pdf)], { type: 'application/pdf' }),
       {
@@ -155,9 +156,9 @@ export async function POST(request: NextRequest) {
         externalId: EXTERNAL_ID, includeSigningUrls: false,
         recipients: [
           { email: OWNER_EMAIL, name: 'VERLO QA Propietario',
-            role: 'SIGNER', signingOrder: 1, fields: fields(240) },
+            role: 'SIGNER', signingOrder: 1, fields: [ownerField] },
           { email: TENANT_EMAIL, name: 'VERLO QA Inquilino',
-            role: 'SIGNER', signingOrder: 2, fields: fields(400) },
+            role: 'SIGNER', signingOrder: 2, fields: [tenantField] },
         ],
         meta: { distributionMethod: 'EMAIL', signingOrder: 'SEQUENTIAL',
           language: 'es', subject: 'VERLO QA: firma de contrato de prueba',
