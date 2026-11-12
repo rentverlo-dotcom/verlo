@@ -260,12 +260,28 @@ jobs:
         run: |
           set -euo pipefail
           token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
-          curl -fsS --max-time 40 -H "Authorization: Bearer $token" "$QA_BASE_URL/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .sandboxOnly == true and .readOnly == true and .contractEligible == true and ((.unreserved == true and .existingDocument == false) or (.unreserved == false and .existingDocument == true))'
+          # A transient external GitHub JWKS fetch may deny OIDC. Retry with
+          # fresh short-lived tokens, NEVER bypass or relax identity validation.
+          for attempt in 1 2 3; do
+            token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+            bodyfile="$(mktemp)"
+            status="$(curl -sS --max-time 40 -o "$bodyfile" -w '%{http_code}' -H "Authorization: Bearer $token" "$QA_BASE_URL/api/qa/identik/create-signing")"
+            if [ "$status" = 200 ] && jq -e '.ok == true and .qaOnly == true and .sandboxOnly == true and .readOnly == true and .contractEligible == true and ((.unreserved == true and .existingDocument == false) or (.unreserved == false and .existingDocument == true))' "$bodyfile" >/dev/null; then
+              rm -f "$bodyfile"
+              echo "Authenticated preflight OK on attempt $attempt"
+              exit 0
+            fi
+            jq -c '{ok,error,qaOnly,readOnly,contractEligible,existingDocument}' "$bodyfile" || true
+            rm -f "$bodyfile"
+            echo "::warning::Preflight attempt $attempt returned HTTP $status"
+            if [ "$status" != 403 ] || [ "$attempt" = 3 ]; then exit 1; fi
+            sleep $((attempt * 3))
+          done
 
   # A one-time controlled provider-read reconciliation, not a forged webhook.
   identik-sandbox-reconcile:
     if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): reconcile completed Identik document 33' }}"
-    needs: [qa-e2e, identik-sandbox-preflight]
+    needs: [qa-e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
