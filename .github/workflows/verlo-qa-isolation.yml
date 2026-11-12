@@ -14,6 +14,8 @@ on:
       - 'lib/qa/**'
       - 'lib/meta/capi.ts'
       - 'lib/notifications/**'
+      - 'lib/identik/**'
+      - 'app/api/webhooks/identik-electronic/route.ts'
       - 'lib/push.ts'
       - 'lib/email.ts'
       - 'lib/contracts/traditional-purpose.ts'
@@ -341,3 +343,20 @@ jobs:
           set -euo pipefail
           token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
           curl -fsS --max-time 65 -H "Authorization: Bearer $token" -H "x-qa-identik-intent: send-two-sandbox-invitations" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .providerDocumentCreated == true and .invitationsRequested == true and .twoSigners == true'
+
+  # Explicit one-time archive: reads only completed Sandbox documents from
+  # Identik, then stores signed artifacts in QA private storage. No invites.
+  identik-archive-completed:
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): archive completed Identik signed documents' }}"
+    needs: [qa-e2e, identik-sandbox-preflight]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Archive completed QA documents in private storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 55 -H "Authorization: Bearer $token" -H "x-qa-intent: archive-signed-documents" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/archive-completed" | jq -e '.ok == true and .qaOnly == true and .noExternalDelivery == true and .failed == 0 and .selected >= 0 and .completed >= 0'
