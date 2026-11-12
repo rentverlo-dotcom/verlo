@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { makeIdentikElectronicClient } from "@/lib/identik/electronic-v2"
+import { identikCanAdvance, identikProviderStatus } from "@/lib/identik/reconciliation-status"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -22,19 +23,6 @@ function secureEqual(actual: string | null, expected: string): boolean {
   const b = Buffer.from(expected)
   return a.length === b.length && timingSafeEqual(a, b)
 }
-function mappedStatus(value: unknown):
-  "created" | "sent" | "pending" | "completed" | "rejected" | "cancelled" | "expired" | null {
-  const s = String(value ?? "").toUpperCase()
-  if (s === "COMPLETED") return "completed"
-  if (s === "REJECTED" || s === "DECLINED") return "rejected"
-  if (s === "CANCELLED" || s === "CANCELED") return "cancelled"
-  if (s === "EXPIRED") return "expired"
-  if (s === "SENT") return "sent"
-  if (s === "PENDING" || s === "IN_PROGRESS") return "pending"
-  if (s === "CREATED" || s === "DRAFT") return "created"
-  return null
-}
-
 export async function POST(request: NextRequest) {
   if (process.env.VERCEL_GIT_COMMIT_REF !== 'qa/verlo-e2e' ||
       process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://anptswspguyotnasoacq.supabase.co' ||
@@ -69,7 +57,7 @@ export async function POST(request: NextRequest) {
 
   const { data: local, error: lookupError } = await db
     .from("identik_electronic_documents")
-    .select("id, status")
+    .select("id, status, updated_at")
     .eq("identik_document_id", documentId)
     .maybeSingle()
   if (lookupError) return NextResponse.json({ ok: false }, { status: 503 })
@@ -93,25 +81,38 @@ export async function POST(request: NextRequest) {
   // An API outage returns a retryable error; persisted event remains auditable.
   try {
     const provider = await makeIdentikElectronicClient().getDocument(documentId)
-    const status = mappedStatus(provider.status)
-    if (!status) return NextResponse.json({ ok: true, recorded: true, duplicate, synced: false })
+    if (provider.id !== undefined && Number(provider.id) !== documentId) {
+      return NextResponse.json({ ok: false, recorded: true, duplicate, retryable: true }, { status: 502 })
+    }
+    const status = identikProviderStatus(provider.status)
+    if (!status) return NextResponse.json({ ok: false, recorded: true, duplicate, retryable: true }, { status: 503 })
 
-    // Do not regress terminal states if an older event arrives late.
-    const terminal = ["completed", "rejected", "cancelled", "expired"]
-    if (terminal.includes(local.status) && local.status !== status) {
+    // Provider polling and webhook share one monotonic state machine.
+    // Never rewrite an already completed/terminal document or move backward.
+    if (!identikCanAdvance(local.status, status)) {
       return NextResponse.json({ ok: true, recorded: true, duplicate, unchanged: true })
     }
     const now = new Date().toISOString()
-    const { error: updateError } = await db
+    const { data: updated, error: updateError } = await db
       .from("identik_electronic_documents")
       .update({
         status,
         last_checked_at: now,
+        last_error_code: null,
         updated_at: now,
         ...(status === "completed" ? { completed_at: now } : {}),
       })
       .eq("id", local.id)
-    if (updateError) return NextResponse.json({ ok: false }, { status: 503 })
+      .eq("status", local.status)
+      .eq("updated_at", local.updated_at)
+      .select("id")
+      .maybeSingle()
+    if (updateError) return NextResponse.json({ ok: false, recorded: true, duplicate, retryable: true }, { status: 503 })
+    if (!updated) {
+      // Another worker won the compare-and-swap: let the provider retry,
+      // or polling perform a fresh read. Never overwrite its result.
+      return NextResponse.json({ ok: false, recorded: true, duplicate, retryable: true }, { status: 503 })
+    }
     return NextResponse.json({ ok: true, recorded: true, duplicate, status })
   } catch {
     // Keep the event and request a retry; duplicate retries resync against Identik.
