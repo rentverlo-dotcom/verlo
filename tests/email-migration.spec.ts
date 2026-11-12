@@ -166,6 +166,7 @@ test.describe("VERLO email migration - no external deliveries", () => {
       expect(init?.method).toBe("POST")
       const body = JSON.parse(String(init?.body))
       expect(body.to[0].email_address.address).toBe("test@example.invalid")
+      expect(body.reply_to[0].address).toBe("hola@verlo.lat")
       expect((init?.headers as Record<string,string>).Authorization).toBe("Zoho-enczapikey test-key")
       return { ok: true, status: 200, json: async () => ({ request_id: "mock-001" }) } as Response
     }) as typeof fetch
