@@ -279,6 +279,7 @@ jobs:
           done
 
   # A one-time controlled provider-read reconciliation, not a forged webhook.
+  # Execution authorized against existing, already signed Sandbox document 33 only.
   identik-sandbox-reconcile:
     if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): reconcile completed Identik document 33' }}"
     needs: [qa-e2e]
