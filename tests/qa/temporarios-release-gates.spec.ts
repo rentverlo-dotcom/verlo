@@ -27,7 +27,7 @@ test("Temporarios: entry clearly separates rent from VERLO contract fee", async 
 })
 
 test.describe("Temporarios: mobile onboarding smoke with no writes", () => {
-  test.use({ ...devices["Pixel 7"] })
+  test.use({ viewport: devices["Pixel 7"].viewport, isMobile: true, hasTouch: true })
   test("tenant and owner forms render on real mobile viewport", async ({ page }) => {
     let writes = 0
     page.on("request", request => {
