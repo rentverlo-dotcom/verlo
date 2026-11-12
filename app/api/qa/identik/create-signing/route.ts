@@ -69,11 +69,14 @@ export async function GET(request: NextRequest) {
   const { data: prior, error: priorError } = await db
     .from('identik_electronic_documents').select('id')
     .eq('lead_contract_id', CONTRACT_ID).maybeSingle()
-  if (priorError || prior)
-    return reply({ ok: false, error: 'DOCUMENT_ALREADY_RESERVED_OR_LOOKUP_FAILED' }, 409)
+  if (priorError)
+    return reply({ ok: false, error: 'QA_RESERVATION_LOOKUP_FAILED' }, 503)
 
+  // Existing QA document is a safe, expected read-only state: test it without
+  // permitting a second send. Never delete or recycle the first reservation.
   return reply({ ok: true, qaOnly: true, sandboxOnly: true,
-    readOnly: true, contractEligible: true, unreserved: true })
+    readOnly: true, contractEligible: true,
+    unreserved: !prior, existingDocument: !!prior })
 }
 
 // Only the deliberately gated QA GitHub Actions job can create/distribute
