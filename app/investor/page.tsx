@@ -117,7 +117,7 @@ export default async function InvestorPage({ searchParams }: { searchParams: Sea
   const params = await searchParams
   const requiredToken = process.env.INVESTOR_DASHBOARD_TOKEN
 
-  if (requiredToken && params.token !== requiredToken) {
+  if (!requiredToken || params.token !== requiredToken) {
     return (
       <main style={page}>
         <section style={locked}>
