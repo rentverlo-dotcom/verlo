@@ -300,6 +300,22 @@ jobs:
           test "$code" = 200
           echo "$body" | jq -e '.ok == true and .qaOnly == true and .providerVerified == true and .providerStatus == "COMPLETED" and .localCompleted == true' >/dev/null
 
+  # Provider reads only: tests the general pending-document reconciler.
+  identik-reconcile-pending:
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): verify all pending Identik documents reconciliation' }}"
+    needs: [qa-e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Process bounded pending documents from Identik Sandbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 55 -H "Authorization: Bearer $token" -H "x-qa-intent: reconcile-pending-documents" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/reconcile-pending" | jq -e '.ok == true and .qaOnly == true and .providerReadsOnly == true and .noExternalDelivery == true and .failed == 0 and (.selected >= 0) and (.checked >= 0)'
+
   # Never send invitations on a normal push or merely because tests passed.
   # One QA-only send authorized after independent E2E and read-only preflight.
   # A uniquely named, deliberately authored QA-only commit gates this job.

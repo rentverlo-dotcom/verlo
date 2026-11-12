@@ -48,6 +48,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Authenticated GitHub OIDC is enforced inside the QA-only reconcile handler.
+  if (verified && request.method === 'POST' && path === '/api/qa/identik/reconcile-pending') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'POST' && path === '/api/qa/identik/reconcile-completed') {
     return NextResponse.next()
   }
