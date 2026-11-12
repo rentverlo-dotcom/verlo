@@ -14,10 +14,10 @@ export const maxDuration = 60
 const QA_URL = 'https://anptswspguyotnasoacq.supabase.co'
 const SANDBOX = 'https://sandbox-electronica.identik.me/api/v2'
 // An already fully agreed QA E2E contract, never a real customer's document.
-const CONTRACT_ID = '3bbe40ee-0fb3-4695-ba10-361faca412ac'
+const CONTRACT_ID = 'd27f9d3f-f806-46ef-b6f4-d8a7c08f8106'
 const OWNER_EMAIL = 'juanoddone29@gmail.com'
 const TENANT_EMAIL = 'juanmanueloddone74@gmail.com'
-const EXTERNAL_ID = 'verlo-qa-identik-e2e-' + CONTRACT_ID
+const EXTERNAL_ID = 'verlo-qa-identik-e2e-geometry-v2-' + CONTRACT_ID
 
 function reply(body: Record<string, unknown>, status = 200) {
   return NextResponse.json(body, {
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     const created = await client.createDocument(
       new Blob([new Uint8Array(pdf)], { type: 'application/pdf' }),
       {
-        title: 'VERLO QA - Contrato de prueba - SIN VALIDEZ COMERCIAL',
+        title: 'VERLO QA V2 - Contrato de prueba - SIN VALIDEZ COMERCIAL',
         externalId: EXTERNAL_ID, includeSigningUrls: false,
         recipients: [
           { email: OWNER_EMAIL, name: 'VERLO QA Propietario',

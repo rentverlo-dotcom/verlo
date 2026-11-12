@@ -266,7 +266,7 @@ jobs:
   # One QA-only send authorized after independent E2E and read-only preflight.
   # A uniquely named, deliberately authored QA-only commit gates this job.
   identik-sandbox-send:
-    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): execute first Identik Sandbox two signer invitation' }}"
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): execute corrected Identik Sandbox geometry two signer invitation' }}"
     needs: [qa-e2e, identik-sandbox-preflight]
     runs-on: ubuntu-latest
     timeout-minutes: 5
