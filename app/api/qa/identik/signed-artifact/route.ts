@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { makeIdentikElectronicClient } from "@/lib/identik/electronic-v2"
+import { IDENTIK_ARTIFACT_BUCKET } from "@/lib/identik/archive-artifacts"
+import { assertIdentikPdfDownload } from "@/lib/identik/signed-pdf-integrity"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
 
   const { data: rows, error: documentError } = await db
     .from("identik_electronic_documents")
-    .select("identik_document_id,status")
+    .select("identik_document_id,status,signed_pdf_storage_key,certificate_storage_key")
     .eq("lead_contract_id", contract.id).eq("status", "completed")
     .order("completed_at", { ascending: false })
     .limit(1)
@@ -69,10 +71,23 @@ export async function POST(request: Request) {
     return fail(409, "El documento todavía no está firmado")
 
   try {
-    const client = makeIdentikElectronicClient({ baseUrl: SANDBOX })
-    const bytes = kind === "signed_pdf"
-      ? await client.downloadSignedPdf(id)
-      : await client.downloadCertificate(id)
+    const storedKey = kind === "signed_pdf"
+      ? rows?.[0]?.signed_pdf_storage_key : rows?.[0]?.certificate_storage_key
+    let bytes: Uint8Array
+    if (storedKey) {
+      // Private first: signed artifacts remain accessible if Identik is down.
+      // Keys originate only from the completed document DB record, not user input.
+      const { data: archived, error: archivedError } = await db.storage
+        .from(IDENTIK_ARTIFACT_BUCKET).download(storedKey)
+      if (archivedError || !archived) return fail(503, "Documento archivado temporalmente no disponible")
+      bytes = new Uint8Array(await archived.arrayBuffer())
+      if (kind === "signed_pdf") assertIdentikPdfDownload(bytes)
+    } else {
+      const client = makeIdentikElectronicClient({ baseUrl: SANDBOX })
+      bytes = kind === "signed_pdf"
+        ? await client.downloadSignedPdf(id)
+        : await client.downloadCertificate(id)
+    }
     if (!bytes.byteLength || bytes.byteLength > 50 * 1024 * 1024)
       return fail(502, "Documento incompleto")
     const suffix = kind === "signed_pdf" ? "firmado.pdf" : "constancia.bin"
