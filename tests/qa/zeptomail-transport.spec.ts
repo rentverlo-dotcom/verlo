@@ -32,7 +32,7 @@ test("ZeptoMail QA: provider acceptance is not treated as actual delivery", asyn
     fetcher: async (_url, options) => {
       requests++
       expect(options?.method).toBe("POST")
-      return new Response(JSON.stringify({ request_id: "qa_accepted" }), { status: 200,
+      return new Response(JSON.stringify({ message: "OK", data: [{ code: "EM_104" }], request_id: "qa_accepted" }), { status: 200,
         headers: { "Content-Type": "application/json" } })
     } })
   expect(requests).toBe(1)
@@ -82,7 +82,7 @@ test("ZeptoMail QA: uses VERLO sender and Reply-To while accepting provider resp
         const payload = JSON.parse(String(options?.body))
         expect(payload.from).toEqual({ address: "notificaciones@verlo.lat", name: "VERLO" })
         expect(payload.reply_to).toEqual([{ address: "hola@verlo.lat", name: "VERLO" }])
-        return new Response(JSON.stringify({ request_id: "qa-reply-to-test" }), { status: 200 })
+        return new Response(JSON.stringify({ message: "OK", data: [{ code: "EM_104" }], request_id: "qa-reply-to-test" }), { status: 200 })
       },
     })
     expect(result).toMatchObject({ accepted: true, providerId: "qa-reply-to-test" })
@@ -102,4 +102,14 @@ test("ZeptoMail QA: real outgoing requests are blocked even if enabled", async (
     if (old === undefined) delete process.env.VERCEL_GIT_COMMIT_REF
     else process.env.VERCEL_GIT_COMMIT_REF = old
   }
+})
+
+test("ZeptoMail QA: a successful HTTP code with an invalid body is not accepted", async () => {
+  const result = await sendWithZeptoMail(message, {
+    enabled: true, apiKey: "qa-mock-token",
+    fetcher: async () => new Response(JSON.stringify({
+      message: "error", data: [{ code: "TM_3004" }], request_id: "failed",
+    }), { status: 200 }),
+  })
+  expect(result).toMatchObject({ accepted: false, reason: "unconfirmed_provider_acceptance" })
 })
