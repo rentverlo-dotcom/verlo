@@ -263,6 +263,7 @@ jobs:
           curl -fsS --max-time 40 -H "Authorization: Bearer $token" "$QA_BASE_URL/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .sandboxOnly == true and .readOnly == true and .contractEligible == true and .unreserved == true'
 
   # Never send invitations on a normal push or merely because tests passed.
+  # One QA-only send authorized after independent E2E and read-only preflight.
   # A uniquely named, deliberately authored QA-only commit gates this job.
   identik-sandbox-send:
     if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): execute first Identik Sandbox two signer invitation' }}"
