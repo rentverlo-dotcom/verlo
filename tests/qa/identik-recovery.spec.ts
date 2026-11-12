@@ -95,6 +95,8 @@ test("Identik: only authenticated QA workflow can archive, never a public reques
   expect(source).toContain('if (bucketError || !bucket || bucket.public)')
   expect(source).toContain('.eq("status", "completed")')
   expect(source).toContain('archiveIdentikArtifacts(db, document, SANDBOX)')
+  expect(source).toContain("failureCodes")
+  expect(source).toContain("PRIVATE_ARCHIVE_BUCKET_UNAVAILABLE")
   expect(source).not.toContain('createDocument(')
   expect(source).not.toContain('distributeDocument(')
 })
