@@ -56,6 +56,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // The archive handler requires signed GitHub OIDC and explicit intent.
+  // This allowlist entry applies only to the isolated QA branch/database.
+  if (verified && request.method === 'POST' &&
+      path === '/api/qa/identik/archive-completed' &&
+      (!process.env.IDENTIK_ELECTRONIC_API_BASE_URL ||
+       process.env.IDENTIK_ELECTRONIC_API_BASE_URL ===
+         'https://sandbox-electronica.identik.me/api/v2')) {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'POST' && path === '/api/qa/identik/webhook-probe') {
     return NextResponse.next()
   }
