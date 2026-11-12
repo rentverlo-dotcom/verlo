@@ -46,16 +46,32 @@ export async function POST(request: NextRequest) {
 
   let completed = 0
   let failed = 0
+  const failureCodes: Record<string, number> = {}
   for (const document of (documents || []).slice(0, BATCH_LIMIT)) {
     try {
       const archived = await archiveIdentikArtifacts(db, document, SANDBOX)
       if (!archived.pdf || !archived.certificate) throw new Error("ARCHIVE_INCOMPLETE")
       completed++
-    } catch {
+    } catch (error) {
       failed++
+      // Explicit coarse codes only; never expose provider response, tokens,
+      // document identifiers or Storage exception messages in diagnostics.
+      const message = error instanceof Error ? error.message : ""
+      const known = [
+        "DOCUMENT_NOT_COMPLETED", "PROVIDER_ID_MISMATCH",
+        "PROVIDER_NOT_COMPLETED", "INVALID_DOCUMENT_ID",
+        "ARTIFACT_INVALID_SIZE", "ARTIFACT_STORAGE_FAILED",
+        "ARTIFACT_CONFLICT_UNVERIFIED", "ARTIFACT_CONFLICT_DIFFERENT_BYTES",
+        "ARTIFACT_DB_UPDATE_FAILED", "ARTIFACT_DB_CONFLICT",
+        "ARCHIVE_INCOMPLETE",
+      ]
+      const code = known.includes(message) ? message
+        : message.startsWith("Identik request failed (HTTP ")
+          ? "IDENTIK_PROVIDER_HTTP_ERROR" : "ARCHIVE_UNAVAILABLE"
+      failureCodes[code] = (failureCodes[code] || 0) + 1
     }
   }
   return json(failed ? 503 : 200, { ok: failed === 0, qaOnly: true, noExternalDelivery: true,
     selected: Math.min(documents?.length || 0, BATCH_LIMIT),
-    completed, failed, hasMore: (documents?.length || 0) > BATCH_LIMIT })
+    completed, failed, failureCodes, hasMore: (documents?.length || 0) > BATCH_LIMIT })
 }
