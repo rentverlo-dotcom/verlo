@@ -17,6 +17,13 @@ test("Temporarios: production migration changes new fee to 49999 without rewriti
   expect(prepare).toContain("const FEE=49999")
 })
 
+test("Temporarios: QA visual routes open only on isolated preview+database, not main", () => {
+  const layout = read("app/temporarios/layout.tsx")
+  expect(layout).toContain('process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e"')
+  expect(layout).toContain('process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"')
+  expect(layout).toContain('if (!isPreview && !isQaVisual && !isProduction) notFound()')
+})
+
 test("Temporarios: entry clearly separates rent from VERLO contract fee", async ({ page }) => {
   await page.goto("/temporarios", { waitUntil: "domcontentloaded" })
   await expect(page.getByRole("link", { name: "Busco alojamiento" })).toHaveAttribute("href", "/temporarios/buscar")
