@@ -262,6 +262,27 @@ jobs:
           token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
           curl -fsS --max-time 40 -H "Authorization: Bearer $token" "$QA_BASE_URL/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .sandboxOnly == true and .readOnly == true and .contractEligible == true and ((.unreserved == true and .existingDocument == false) or (.unreserved == false and .existingDocument == true))'
 
+  # A one-time controlled provider-read reconciliation, not a forged webhook.
+  identik-sandbox-reconcile:
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): reconcile completed Identik document 33' }}"
+    needs: [qa-e2e, identik-sandbox-preflight]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Reconcile only Identik Sandbox document 33 from provider status
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          response="$(curl -sS --max-time 55 -w '\n%{http_code}' -H "Authorization: Bearer $token" -H "x-qa-intent: reconcile-signed-document-33" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/reconcile-completed")"
+          code="$(printf '%s\n' "$response" | tail -n 1)"
+          body="$(printf '%s\n' "$response" | sed '$d')"
+          echo "$body" | jq -c '{ok,qaOnly,providerVerified,providerStatus,localCompleted,alreadyReconciled,reconciliation,error}'
+          test "$code" = 200
+          echo "$body" | jq -e '.ok == true and .qaOnly == true and .providerVerified == true and .providerStatus == "COMPLETED" and .localCompleted == true' >/dev/null
+
   # Never send invitations on a normal push or merely because tests passed.
   # One QA-only send authorized after independent E2E and read-only preflight.
   # A uniquely named, deliberately authored QA-only commit gates this job.
