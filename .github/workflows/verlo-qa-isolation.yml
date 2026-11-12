@@ -301,6 +301,7 @@ jobs:
           echo "$body" | jq -e '.ok == true and .qaOnly == true and .providerVerified == true and .providerStatus == "COMPLETED" and .localCompleted == true' >/dev/null
 
   # Provider reads only: tests the general pending-document reconciler.
+  # Explicit QA-only execution: all due pending documents, no external delivery.
   identik-reconcile-pending:
     if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): verify all pending Identik documents reconciliation' }}"
     needs: [qa-e2e]
