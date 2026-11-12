@@ -362,7 +362,7 @@ jobs:
           bodyfile="$(mktemp)"
           status="$(curl -sS --max-time 55 -o "$bodyfile" -w '%{http_code}' -H "Authorization: Bearer $token" -H "x-qa-intent: archive-signed-documents" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/archive-completed")"
           # Print only safe booleans/counters and predefined error categories.
-          jq -c '{ok,qaOnly,error,selected,completed,failed,hasMore}' "$bodyfile" || true
+          jq -c '{ok,qaOnly,error,selected,completed,failed,failureCodes,hasMore}' "$bodyfile" || true
           if [ "$status" != 200 ]; then
             echo "::error::QA archive failed with HTTP $status"
             rm -f "$bodyfile"
