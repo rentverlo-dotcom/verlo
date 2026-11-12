@@ -359,4 +359,14 @@ jobs:
         run: |
           set -euo pipefail
           token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
-          curl -fsS --max-time 55 -H "Authorization: Bearer $token" -H "x-qa-intent: archive-signed-documents" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/archive-completed" | jq -e '.ok == true and .qaOnly == true and .noExternalDelivery == true and .failed == 0 and .selected >= 0 and .completed >= 0'
+          bodyfile="$(mktemp)"
+          status="$(curl -sS --max-time 55 -o "$bodyfile" -w '%{http_code}' -H "Authorization: Bearer $token" -H "x-qa-intent: archive-signed-documents" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/archive-completed")"
+          # Print only safe booleans/counters and predefined error categories.
+          jq -c '{ok,qaOnly,error,selected,completed,failed,hasMore}' "$bodyfile" || true
+          if [ "$status" != 200 ]; then
+            echo "::error::QA archive failed with HTTP $status"
+            rm -f "$bodyfile"
+            exit 1
+          fi
+          jq -e '.ok == true and .qaOnly == true and .noExternalDelivery == true and .failed == 0 and .selected >= 0 and .completed >= 0' "$bodyfile" >/dev/null
+          rm -f "$bodyfile"
