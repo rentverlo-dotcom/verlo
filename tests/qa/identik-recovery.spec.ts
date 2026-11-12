@@ -71,3 +71,27 @@ test("Identik: signed artifact requires linked owner or tenant and completed pro
   expect(source).toContain("downloadCertificate(id)")
   expect(source).toContain('"Cache-Control": "private, no-store, max-age=0"')
 })
+
+test("Identik: private completed-document archive uses immutable keys and provider confirmation", () => {
+  const source = readFileSync("lib/identik/archive-artifacts.ts", "utf8")
+  expect(source).toContain('IDENTIK_ARTIFACT_BUCKET = "identik-contracts"')
+  expect(source).toContain('if (row.status !== "completed")')
+  expect(source).toContain('String(provider.status).toUpperCase() !== "COMPLETED"')
+  expect(source).toContain('assertIdentikPdfDownload(bytes)')
+  expect(source).toContain('upsert: false')
+  expect(source).toContain('createHash("sha256")')
+  expect(source).toContain('.eq("status", "completed").is(column, null)')
+  expect(source).toContain('ARTIFACT_CONFLICT_DIFFERENT_BYTES')
+})
+
+test("Identik: only authenticated QA workflow can archive, never a public request", () => {
+  const source = readFileSync("app/api/qa/identik/archive-completed/route.ts", "utf8")
+  expect(source).toContain('validQaWorkflowToken(auth.slice(7), sha)')
+  expect(source).toContain('x-qa-intent')
+  expect(source).toContain('archive-signed-documents')
+  expect(source).toContain('if (bucketError || !bucket || bucket.public)')
+  expect(source).toContain('.eq("status", "completed")')
+  expect(source).toContain('archiveIdentikArtifacts(db, document, SANDBOX)')
+  expect(source).not.toContain('createDocument(')
+  expect(source).not.toContain('distributeDocument(')
+})
