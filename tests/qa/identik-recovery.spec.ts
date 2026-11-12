@@ -34,6 +34,12 @@ test("Identik: webhook retries reconciliation even for a duplicate event", () =>
   expect(code).not.toContain('if (eventError.code === "23505") return')
   expect(code).toContain("retryable: true")
   expect(code).toContain("status: 503")
+  expect(code).toContain("identikCanAdvance(local.status, status)")
+  expect(code).toContain('identikProviderStatus(provider.status)')
+  expect(code).toContain('.eq("updated_at", local.updated_at)')
+  expect(code).toContain('.eq("status", local.status)')
+  expect(code).toContain('.select("id")')
+  expect(code).not.toContain("mappedStatus(")
 })
 
 test("Identik: download handler validates PDF bytes from provider", () => {
