@@ -103,6 +103,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Read-only CEO indicators; the handler independently requires a verified
+  // Supabase Auth session and an allowlisted admin identity.
+  if (verified && request.method === 'GET' && path === '/api/admin/dashboard') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' && path === '/api/qa/identik/connectivity') {
     return NextResponse.next()
   }
