@@ -21,7 +21,8 @@ export type MailResult = {
 }
 
 const ENDPOINT = "https://cpaas.zoho.com/v1.1/email"
-const DEFAULT_FROM_ADDRESS = "hola@verlo.lat"
+const DEFAULT_FROM_ADDRESS = "notificaciones@verlo.lat"
+const REPLY_TO_ADDRESS = "hola@verlo.lat"
 const FROM_NAME = "VERLO"
 
 export async function sendWithZeptoMail(
@@ -31,9 +32,12 @@ export async function sendWithZeptoMail(
   // Explicit AND gate. Inactive until verification + manual cutover.
   const enabled = options.enabled ?? process.env.VERLO_ZEPTO_EMAIL_LIVE === "true"
   if (!enabled) return { accepted: false, providerId: null, status: null, reason: "disabled" }
+  // Mock transports may be tested in QA; real delivery from the isolated QA branch is forbidden.
+  if (!options.fetcher && process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e") {
+    return { accepted: false, providerId: null, status: null, reason: "qa_external_delivery_blocked" }
+  }
 
-  // Configure the verified transactional subdomain only after Zoho authorizes it.
-  // Never infer a Reply-To mailbox: transactional notices are not conversations.
+  // The default uses the verified verlo.lat domain; replies reach the real Zoho mailbox.
   const fromAddress = (process.env.VERLO_ZEPTO_FROM_EMAIL || DEFAULT_FROM_ADDRESS).trim()
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fromAddress)) {
     return { accepted: false, providerId: null, status: null, reason: "invalid_sender" }
@@ -58,6 +62,7 @@ export async function sendWithZeptoMail(
       },
       body: JSON.stringify({
         from: { address: fromAddress, name: FROM_NAME },
+        reply_to: [{ address: REPLY_TO_ADDRESS, name: FROM_NAME }],
         to: [{ email_address: { address: message.to } }],
         subject: message.subject,
         htmlbody: message.html,
