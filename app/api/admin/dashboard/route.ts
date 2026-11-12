@@ -6,6 +6,7 @@ import {
 import {
   createClient,
 } from "@supabase/supabase-js"
+import { getBusinessMetrics, getMetaMetrics } from "@/lib/admin/business-metrics"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -744,6 +745,11 @@ export async function GET(
       throw pushError
     }
 
+    const [business, meta] = await Promise.all([
+      getBusinessMetrics(supabase, mode === "e2e" ? "e2e" : mode === "production" ? "production" : "all", process.env),
+      getMetaMetrics(process.env),
+    ])
+
     const funnel = {
       matches:
         matchesTotal,
@@ -840,6 +846,8 @@ export async function GET(
 
       push_subscriptions:
         pushSubscriptions || [],
+      business,
+      meta,
     })
   } catch (error) {
     console.error(
