@@ -40,7 +40,7 @@ test('Propietario: formulario completo -> geografía -> foto -> solicitud -> pan
       body: JSON.stringify({ ok: true }) })
   })
 
-  await page.goto('/propietarios', { waitUntil: 'domcontentloaded' })
+  await page.goto('/propietarios', { waitUntil: 'load' })
   const form = page.locator('form.owner-form')
   await expect(form).toBeVisible()
   await form.locator('[name="full_name"]').fill('Propietario UI QA')
@@ -61,6 +61,9 @@ test('Propietario: formulario completo -> geografía -> foto -> solicitud -> pan
     name: 'qa-owner-photo.png', mimeType: 'image/png', buffer: PNG,
   })
 
+  // Ensure all required inputs survived initial Next.js hydration before submitting.
+  await expect(form.locator('[name="full_name"]')).toHaveValue('Propietario UI QA')
+  await expect(form.locator('[name="email"]')).toHaveValue('qa-browser-owner@example.com')
   await form.getByRole('button', { name: /Ver si mi propiedad matchea/i }).click()
   await expect(page).toHaveURL(new RegExp('/success\\?role=owner&lead=' + ID), { timeout: 25_000 })
 
@@ -102,7 +105,7 @@ test('Propietario: fallo en multimedia no debe mostrar éxito ni navegar', async
     await route.fulfill({ status: 500, body: '{}' })
   })
 
-  await page.goto('/propietarios', { waitUntil: 'domcontentloaded' })
+  await page.goto('/propietarios', { waitUntil: 'load' })
   const form = page.locator('form.owner-form')
   await form.locator('[name="full_name"]').fill('Propietario QA Fallo Media')
   await form.locator('[name="phone"]').fill('1155550001')
@@ -120,6 +123,10 @@ test('Propietario: fallo en multimedia no debe mostrar éxito ni navegar', async
     name: 'qa-owner-photo.png', mimeType: 'image/png', buffer: PNG,
   })
 
+  // An earlier run showed the name cleared by hydration despite fill() returning.
+  // Fail explicitly on an empty required field rather than timing out on a missing API error.
+  await expect(form.locator('[name="full_name"]')).toHaveValue('Propietario QA Fallo Media')
+  await expect(form.locator('[name="email"]')).toHaveValue('qa-owner-failure@example.com')
   await form.getByRole('button', { name: /Ver si mi propiedad matchea/i }).click()
   // Image optimization may take longer under two parallel browser workers.
   // Still require the actual visible error, never accept a silent failure.
