@@ -71,3 +71,35 @@ test("VERLO emails: caucion payment always points tenant to PowerMarket and not 
   expect(ownerEmail.text).toContain("inquilino")
   expect(ownerEmail.text).not.toContain("Confirmamos tu pago")
 })
+
+test("ZeptoMail QA: uses VERLO sender and Reply-To while accepting provider response", async () => {
+  const oldFrom = process.env.VERLO_ZEPTO_FROM_EMAIL
+  delete process.env.VERLO_ZEPTO_FROM_EMAIL
+  try {
+    const result = await sendWithZeptoMail(message, {
+      enabled: true, apiKey: "qa-mock-token",
+      fetcher: async (_url, options) => {
+        const payload = JSON.parse(String(options?.body))
+        expect(payload.from).toEqual({ address: "notificaciones@verlo.lat", name: "VERLO" })
+        expect(payload.reply_to).toEqual([{ address: "hola@verlo.lat", name: "VERLO" }])
+        return new Response(JSON.stringify({ request_id: "qa-reply-to-test" }), { status: 200 })
+      },
+    })
+    expect(result).toMatchObject({ accepted: true, providerId: "qa-reply-to-test" })
+  } finally {
+    if (oldFrom === undefined) delete process.env.VERLO_ZEPTO_FROM_EMAIL
+    else process.env.VERLO_ZEPTO_FROM_EMAIL = oldFrom
+  }
+})
+
+test("ZeptoMail QA: real outgoing requests are blocked even if enabled", async () => {
+  const old = process.env.VERCEL_GIT_COMMIT_REF
+  process.env.VERCEL_GIT_COMMIT_REF = "qa/verlo-e2e"
+  try {
+    const result = await sendWithZeptoMail(message, { enabled: true, apiKey: "qa-mock-token" })
+    expect(result).toMatchObject({ accepted: false, reason: "qa_external_delivery_blocked" })
+  } finally {
+    if (old === undefined) delete process.env.VERCEL_GIT_COMMIT_REF
+    else process.env.VERCEL_GIT_COMMIT_REF = old
+  }
+})
