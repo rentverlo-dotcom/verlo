@@ -65,6 +65,7 @@ export async function sendWithZeptoMail(
         reply_to: [{ address: REPLY_TO_ADDRESS, name: FROM_NAME }],
         to: [{ email_address: { address: message.to } }],
         subject: message.subject,
+        client_reference: message.eventKey.slice(0, 128),
         htmlbody: message.html,
         textbody: message.text,
       }),
@@ -80,10 +81,20 @@ export async function sendWithZeptoMail(
         reason: response.status === 429 || response.status >= 500 ? "retryable_http" : "provider_rejected",
       }
     }
-    const result = await response.json().catch(() => ({})) as Record<string, unknown>
+    const result = await response.json().catch(() => null) as Record<string, unknown> | null
+    const codes = Array.isArray(result?.data)
+      ? result.data.map((item: unknown) =>
+          typeof item === "object" && item !== null && "code" in item ? item.code : null)
+      : []
+    // HTTP 200 is not sufficient. The provider must explicitly accept the
+    // recipient; otherwise keep the outbox unresolved for review/retry.
+    if (!result || result.message !== "OK" || codes.length !== 1 || codes[0] !== "EM_104" ||
+        typeof result.request_id !== "string" || !result.request_id.trim()) {
+      return { accepted: false, providerId: null, status: response.status, reason: "unconfirmed_provider_acceptance" }
+    }
     return {
       accepted: true,
-      providerId: typeof result.request_id === "string" ? result.request_id : null,
+      providerId: result.request_id,
       status: response.status,
     }
   } catch (error) {
