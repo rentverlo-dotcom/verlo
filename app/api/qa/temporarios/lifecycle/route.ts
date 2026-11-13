@@ -51,7 +51,8 @@ async function ensureSandboxCheckout(
   if (process.env.VERCEL_ENV !== "preview" ||
       process.env.VERCEL_GIT_COMMIT_REF !== "qa/verlo-e2e" ||
       process.env.NEXT_PUBLIC_SUPABASE_URL !== QA_URL ||
-      !process.env.TEMPORARY_MP_ACCESS_TOKEN?.startsWith("TEST-"))
+      !(process.env.TEMPORARY_MP_ACCESS_TOKEN?.startsWith("TEST-") ||
+        process.env.TEMPORARY_MP_ACCESS_TOKEN?.startsWith("APP_USR-")))
     throw Error("QA_SANDBOX_TEST_CREDENTIAL_REQUIRED")
 
   const seedDb = admin as ReturnType<typeof createClient<any>>
