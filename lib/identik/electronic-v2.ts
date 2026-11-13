@@ -91,6 +91,16 @@ export function makeIdentikElectronicClient(options?: {
       if (!Array.isArray(payload.recipients) || payload.recipients.length !== 2) {
         throw new Error("VERLO contracts require exactly two recipients")
       }
+      // Never create a production signature without an identity challenge for
+      // BOTH signers. This is a protective gate, not evidence that the
+      // provider has actually enabled or successfully run biometrics.
+      // The provider capability must be explicitly certified before
+      // IDENTIK_BIOMETRIC_SIGNING_CONFIRMED is set in production.
+      if (parsedBase.hostname === "electronica.identik.me" &&
+          (process.env.IDENTIK_BIOMETRIC_SIGNING_CONFIRMED !== "true" ||
+           payload.meta?.requireBiometricId !== true)) {
+        throw new Error("IDENTIK_BIOMETRIC_SIGNING_NOT_CERTIFIED")
+      }
       const body = new FormData()
       body.append("payload", JSON.stringify(payload))
       body.append("file", pdf, filename)
