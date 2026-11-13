@@ -67,10 +67,11 @@ export async function POST(request:Request){
    external_reference:attempt.id,
    notification_url:base+"/api/temporarios/payments/webhook",
    back_urls:{
-    success:base+"/temporarios/mi-verlo",
-    failure:base+"/temporarios/mi-verlo",
-    pending:base+"/temporarios/mi-verlo"
+    success:base+"/temporarios/mi-verlo?matchId="+encodeURIComponent(body.matchId),
+    failure:base+"/temporarios/mi-verlo?matchId="+encodeURIComponent(body.matchId),
+    pending:base+"/temporarios/mi-verlo?matchId="+encodeURIComponent(body.matchId)
    },
+   auto_return:"approved",
    metadata:{temporary_payment_attempt_id:attempt.id,temporary_reservation_id:r.id},
    statement_descriptor:"VERLO"
   }),cache:"no-store"
