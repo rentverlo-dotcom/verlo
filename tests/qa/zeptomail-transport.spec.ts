@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-import { sendWithZeptoMail } from "../../lib/notifications/zeptomail"
+import { sendWithZeptoMail, getZeptoMailReadiness } from "../../lib/notifications/zeptomail"
 import { renderVerloEmail, safeVerloEmailUrl } from "../../lib/notifications/verlo-email-templates"
 
 const message = {
@@ -112,4 +112,37 @@ test("ZeptoMail QA: a successful HTTP code with an invalid body is not accepted"
     }), { status: 200 }),
   })
   expect(result).toMatchObject({ accepted: false, reason: "unconfirmed_provider_acceptance" })
+})
+
+test("ZeptoMail readiness: does not expose secrets, never claims inbox delivery", () => {
+  const status = getZeptoMailReadiness({
+    VERCEL_GIT_COMMIT_REF: "qa/verlo-e2e",
+    ZOHO_CPAAS_EMAIL_API_KEY: "secret-value-never-exposed",
+    VERLO_ZEPTO_EMAIL_LIVE: "true",
+    VERLO_EMAIL_DISPATCH_ENABLED: "true",
+    VERLO_EMAIL_QUEUE_CAPTURE_ENABLED: "true",
+    VERLO_EMAIL_CUTOVER_APPROVED: "true",
+  })
+  expect(status).toMatchObject({
+    qa_isolated: true,
+    sender: "notificaciones@verlo.lat",
+    reply_to: "hola@verlo.lat",
+    api_key_configured: true,
+    can_dispatch: false,
+    provider_delivery_verified: false,
+  })
+  expect(JSON.stringify(status)).not.toContain("secret-value-never-exposed")
+})
+
+test("ZeptoMail readiness: missing API key or cutover flags keep live dispatch locked", () => {
+  const missingKey = getZeptoMailReadiness({
+    VERLO_ZEPTO_EMAIL_LIVE: "true",
+    VERLO_EMAIL_DISPATCH_ENABLED: "true",
+    VERLO_EMAIL_CUTOVER_APPROVED: "true",
+  })
+  expect(missingKey.api_key_configured).toBe(false)
+  expect(missingKey.can_dispatch).toBe(false)
+  const noCutover = getZeptoMailReadiness({ ZOHO_CPAAS_EMAIL_API_KEY: "present" })
+  expect(noCutover.can_dispatch).toBe(false)
+  expect(noCutover.dispatch_approved).toBe(false)
 })
