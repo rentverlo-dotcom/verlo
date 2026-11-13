@@ -43,6 +43,33 @@ export default function MyTemporaries() {
     }catch(error){trackPostHog("temporary_match_decision_failed",{product:"temporary",role,decision});setDecisionError(error instanceof Error?error.message:"Error de conexión")}
     finally{setDeciding("")}
   }
+  // Mercado Pago may return before its webhook. The server verifies payment
+  // ownership, status, amount and currency against Mercado Pago itself.
+  useEffect(()=>{
+    const params = new URLSearchParams(window.location.search)
+    const matchId = params.get("matchId")
+    const paymentId = params.get("payment_id") || params.get("collection_id")
+    if (!matchId || !paymentId || !/^[0-9a-f-]{36}$/i.test(matchId) ||
+        !/^[0-9]{1,32}$/.test(paymentId)) return
+    let active = true
+    void (async()=>{
+      const {data:{session}} = await supabase.auth.getSession()
+      if (!session?.access_token) return
+      try{
+        const response = await fetch("/api/temporarios/payments/reconcile",{
+          method:"POST",
+          headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},
+          body:JSON.stringify({matchId,paymentId})
+        })
+        const outcome = await response.json().catch(()=>null) as {ok?:boolean}|null
+        if(response.ok && outcome?.ok && active){
+          window.history.replaceState(null,"",window.location.pathname)
+          setRefresh(v=>v+1)
+        }
+      }catch{ /* The webhook remains primary; never mark a payment approved locally. */ }
+    })()
+    return ()=>{active=false}
+  },[])
   // Refresh after returning from Mercado Pago (same tab or external checkout tab).
   // Only reads the reservation state; the webhook alone records approved payments.
   useEffect(()=>{
