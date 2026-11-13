@@ -78,6 +78,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Read-only Temporarios views: each handler validates the logged-in user's
+  // Supabase access token and verifies resource ownership.
+  if (verified && request.method === 'GET' && [
+    '/api/temporarios/mine',
+    '/api/temporarios/contracts',
+    '/api/temporarios/contracts/pdf',
+  ].includes(path)) {
+    return NextResponse.next()
+  }
+
   // Existing Temporarios customer handlers remain protected by Supabase Auth,
   // verified synthetic QA identities, and per-resource ownership checks.
   // Open only the QA-isolated flow needed for a real sandbox checkout.
