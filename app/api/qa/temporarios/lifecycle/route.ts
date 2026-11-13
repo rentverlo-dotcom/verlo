@@ -446,6 +446,7 @@ export async function POST(request: NextRequest) {
       noRealPayment: true, noExternalNotifications: true,
     }, { headers: { "Cache-Control": "no-store" } })
   } catch (error) {
+    console.error("QA_TEMPORARY_FAILURE", error instanceof Error ? error.message : "QA_TEMPORARY_UNKNOWN")
     return errorResponse(error instanceof Error ? error.message : "QA_TEMPORARY_UNKNOWN")
   } finally {
     if (contractId) {
