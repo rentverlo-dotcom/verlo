@@ -47,6 +47,18 @@ type Data = {
     period: string
     error?: string
   }
+  zeptomail?: {
+    qa_isolated: boolean
+    sender: string
+    reply_to: string
+    sender_valid: boolean
+    api_key_configured: boolean
+    queue_capture_approved: boolean
+    dispatch_approved: boolean
+    can_dispatch: boolean
+    provider_delivery_verified: boolean
+    note: string
+  }
 }
 
 function dt(v?: string | null) {
@@ -212,6 +224,26 @@ export default function AdminVerloPage() {
                   <Metric n={data.business?.metrics.temporary_reservations_confirmed?.value ?? null} label="Reservas confirmadas" />
                   <Metric n={data.business?.metrics.temporary_contracts?.value ?? null} label="Contratos temporarios" />
                 </div>
+              </section>
+
+              <section className="panel" aria-label="Estado de preparación de correo ZeptoMail">
+                <h2>ZeptoMail · preparado para operar</h2>
+                <p className="muted" style={{lineHeight:1.7}}>
+                  Remitente: {data.zeptomail?.sender || "Sin información"} ·
+                  Respuestas: {data.zeptomail?.reply_to || "Sin información"}
+                </p>
+                <div className="cards">
+                  <Metric n={data.zeptomail?.sender_valid ? 1 : 0} label="Remitente con formato válido" />
+                  <Metric n={data.zeptomail?.api_key_configured ? 1 : 0} label="Credencial configurada (sí=1)" />
+                  <Metric n={data.zeptomail?.queue_capture_approved ? 1 : 0} label="Captura habilitada (sí=1)" />
+                  <Metric n={data.zeptomail?.can_dispatch ? 1 : 0} label="Envío habilitado (sí=1)" />
+                </div>
+                <p className="muted" style={{marginTop:16,lineHeight:1.7}}>
+                  {data.zeptomail?.qa_isolated
+                    ? "QA aislado: envíos reales bloqueados."
+                    : "El estado de configuración no certifica que un destinatario haya recibido el correo."}
+                  {" "}{data.zeptomail?.note || "Todavía no se verificó el proveedor."}
+                </p>
               </section>
 
               <section className="panel" aria-label="Salud de comunicaciones">
