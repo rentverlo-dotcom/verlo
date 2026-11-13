@@ -28,7 +28,7 @@ async function invoke(
   jwt: string,
   input: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
-  const response = await handler(new Request("https://qa.verlo.invalid/api/temporarios/" + label, {
+  const response = await handler(new Request((label === "qa-seed-sandbox-checkout" ? "https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app" : "https://qa.verlo.invalid") + "/api/temporarios/" + label, {
     method: "POST",
     headers: { Authorization: "Bearer " + jwt, "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -54,19 +54,20 @@ async function ensureSandboxCheckout(
       !process.env.TEMPORARY_MP_ACCESS_TOKEN?.startsWith("TEST-"))
     throw Error("QA_SANDBOX_TEST_CREDENTIAL_REQUIRED")
 
+  const seedDb = admin as ReturnType<typeof createClient<any>>
   const ownerEmail = "qa-temp-mp-owner-20261113@example.com"
   const tenantEmail = "qa-temp-mp-tenant-20261113@example.com"
-  const existing = await admin.from("temporary_properties")
+  const existing = await seedDb.from("temporary_properties")
     .select("id").eq("owner_email", ownerEmail).maybeSingle()
   if (existing.error) throw Error("QA_SEED_LOOKUP_FAILED")
   if (existing.data) {
-    const matches = await admin.from("temporary_matches")
+    const matches = await seedDb.from("temporary_matches")
       .select("id").eq("property_id", existing.data.id).limit(1)
     if (matches.error || matches.data?.length !== 1) throw Error("QA_SEED_MATCH_MISSING")
-    const reservation = await admin.from("temporary_reservations")
+    const reservation = await seedDb.from("temporary_reservations")
       .select("id,status").eq("match_id", matches.data[0].id).maybeSingle()
     if (reservation.error || !reservation.data) throw Error("QA_SEED_RESERVATION_MISSING")
-    const attempts = await admin.from("temporary_payment_attempts")
+    const attempts = await seedDb.from("temporary_payment_attempts")
       .select("mp_checkout_url").eq("reservation_id", reservation.data.id).limit(1)
     if (attempts.error || !attempts.data?.[0]?.mp_checkout_url)
       throw Error("QA_SEED_CHECKOUT_MISSING")
@@ -112,7 +113,7 @@ async function ensureSandboxCheckout(
     })
     propertyId = String(p.id || "")
     if (!propertyId) throw Error("QA_SEED_PROPERTY_MISSING")
-    const published = await admin.from("temporary_properties").update({
+    const published = await seedDb.from("temporary_properties").update({
       status: "published", title: "QA MP Sandbox - sin validez comercial",
     }).eq("id", propertyId).eq("owner_user_id", owner.id)
     if (published.error) throw Error("QA_SEED_PROPERTY_PUBLISH_FAILED")
@@ -152,14 +153,14 @@ async function ensureSandboxCheckout(
   } finally {
     if (!success) {
       if (reservationId) {
-        await admin.from("temporary_payment_attempts").delete().eq("reservation_id", reservationId)
-        await admin.from("temporary_reservations").delete().eq("id", reservationId)
+        await seedDb.from("temporary_payment_attempts").delete().eq("reservation_id", reservationId)
+        await seedDb.from("temporary_reservations").delete().eq("id", reservationId)
       }
-      if (matchId) await admin.from("temporary_matches").delete().eq("id", matchId)
-      if (demandId) await admin.from("temporary_demands").delete().eq("id", demandId)
-      if (propertyId) await admin.from("temporary_properties").delete().eq("id", propertyId)
+      if (matchId) await seedDb.from("temporary_matches").delete().eq("id", matchId)
+      if (demandId) await seedDb.from("temporary_demands").delete().eq("id", demandId)
+      if (propertyId) await seedDb.from("temporary_properties").delete().eq("id", propertyId)
       for (const id of users) {
-        await admin.from("user_profiles").delete().eq("user_id", id)
+        await seedDb.from("user_profiles").delete().eq("user_id", id)
         await admin.auth.admin.deleteUser(id)
       }
     }
