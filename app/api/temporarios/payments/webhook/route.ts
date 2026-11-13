@@ -19,7 +19,11 @@ function validSignature(request:NextRequest,id:string,secret:string){
  return received.length===expected.length&&timingSafeEqual(expected,received)
 }
 export async function POST(request:NextRequest){
- const isPreview=process.env.VERCEL_ENV==="preview"&&process.env.VERCEL_GIT_COMMIT_REF==="feature/temporarios"
+ const isPreview=process.env.VERCEL_ENV==="preview"&&(
+  process.env.VERCEL_GIT_COMMIT_REF==="feature/temporarios" ||
+  (process.env.VERCEL_GIT_COMMIT_REF==="qa/verlo-e2e" &&
+   process.env.NEXT_PUBLIC_SUPABASE_URL==="https://anptswspguyotnasoacq.supabase.co")
+ )
  const isProduction=process.env.VERCEL_ENV==="production"&&process.env.TEMPORARY_PUBLIC_ENABLED==="true"&&process.env.TEMPORARY_DB_WRITES_ENABLED==="true"
  if(!isPreview&&!isProduction)return reply(404,{ok:false})
  const secret=process.env.TEMPORARY_MP_WEBHOOK_SECRET
