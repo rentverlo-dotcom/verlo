@@ -9,6 +9,7 @@ import { POST as decideMatch } from "@/app/api/temporarios/matches/decide/route"
 import { POST as startReservation } from "@/app/api/temporarios/reservations/start/route"
 import { POST as acceptTerms } from "@/app/api/temporarios/reservations/accept-terms/route"
 import { POST as confirmReservation } from "@/app/api/temporarios/reservations/confirm/route"
+import { POST as preparePayment } from "@/app/api/temporarios/payments/prepare/route"
 import { POST as contractAction } from "@/app/api/temporarios/contracts/route"
 import { createTemporaryContractPdf } from "@/lib/temporarios/contract-pdf"
 
@@ -35,6 +36,134 @@ async function invoke(
   const body = await response.json().catch(() => null) as Record<string, unknown> | null
   if (!response.ok || !body || body.ok !== true) throw Error(label + "_FAILED_" + response.status)
   return body
+}
+
+
+/**
+ * One persistent QA-only booking, created using Supabase Auth Admin (never raw
+ * writes to auth.users). It stays at terms_accepted until Mercado Pago returns
+ * a genuinely verified Sandbox payment. No synthetic fee approvals here.
+ */
+async function ensureSandboxCheckout(
+  admin: ReturnType<typeof createClient>,
+  publicClient: ReturnType<typeof createClient>,
+) {
+  if (process.env.VERCEL_ENV !== "preview" ||
+      process.env.VERCEL_GIT_COMMIT_REF !== "qa/verlo-e2e" ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL !== QA_URL ||
+      !process.env.TEMPORARY_MP_ACCESS_TOKEN?.startsWith("TEST-"))
+    throw Error("QA_SANDBOX_TEST_CREDENTIAL_REQUIRED")
+
+  const ownerEmail = "qa-temp-mp-owner-20261113@example.com"
+  const tenantEmail = "qa-temp-mp-tenant-20261113@example.com"
+  const existing = await admin.from("temporary_properties")
+    .select("id").eq("owner_email", ownerEmail).maybeSingle()
+  if (existing.error) throw Error("QA_SEED_LOOKUP_FAILED")
+  if (existing.data) {
+    const matches = await admin.from("temporary_matches")
+      .select("id").eq("property_id", existing.data.id).limit(1)
+    if (matches.error || matches.data?.length !== 1) throw Error("QA_SEED_MATCH_MISSING")
+    const reservation = await admin.from("temporary_reservations")
+      .select("id,status").eq("match_id", matches.data[0].id).maybeSingle()
+    if (reservation.error || !reservation.data) throw Error("QA_SEED_RESERVATION_MISSING")
+    const attempts = await admin.from("temporary_payment_attempts")
+      .select("mp_checkout_url").eq("reservation_id", reservation.data.id).limit(1)
+    if (attempts.error || !attempts.data?.[0]?.mp_checkout_url)
+      throw Error("QA_SEED_CHECKOUT_MISSING")
+    return { prepared: true, reused: true, reservationId: reservation.data.id,
+      reservationStatus: reservation.data.status }
+  }
+
+  const users: string[] = []
+  let propertyId = "", demandId = "", matchId = "", reservationId = ""
+  let success = false
+  try {
+    const createTestUser = async (email: string) => {
+      const password = randomBytes(30).toString("base64url")
+      const created = await admin.auth.admin.createUser({
+        email, password, email_confirm: true,
+        user_metadata: { qa_synthetic: true, qa_purpose: "temporary_mp_checkout" },
+      })
+      if (created.error || !created.data.user) throw Error("QA_SEED_USER_CREATE_FAILED")
+      users.push(created.data.user.id)
+      const login = await publicClient.auth.signInWithPassword({ email, password })
+      if (login.error || !login.data.session?.access_token)
+        throw Error("QA_SEED_USER_LOGIN_FAILED")
+      return { id: created.data.user.id, jwt: login.data.session.access_token }
+    }
+    const owner = await createTestUser(ownerEmail)
+    const tenant = await createTestUser(tenantEmail)
+
+    const today = new Date()
+    const checkInDate = new Date(Date.UTC(
+      today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 35,
+    ))
+    const iso = (date: Date) => date.toISOString().slice(0, 10)
+    const checkIn = iso(checkInDate)
+    const checkOut = iso(new Date(checkInDate.getTime() + 4 * 86400000))
+    const p = await invoke("qa-seed-property", createProperty, owner.jwt, {
+      requestKey: crypto.randomUUID(), fullName: "QA MP Owner",
+      phone: "1155550101", localityKey: "ar:06:060756:06075610",
+      localityLabel: "Olivos", propertyType: "departamento",
+      nightlyPriceArs: 85000,
+      availabilityStart: iso(new Date(checkInDate.getTime() - 2 * 86400000)),
+      availabilityEnd: iso(new Date(checkInDate.getTime() + 10 * 86400000)),
+      depositRequired: false,
+    })
+    propertyId = String(p.id || "")
+    if (!propertyId) throw Error("QA_SEED_PROPERTY_MISSING")
+    const published = await admin.from("temporary_properties").update({
+      status: "published", title: "QA MP Sandbox - sin validez comercial",
+    }).eq("id", propertyId).eq("owner_user_id", owner.id)
+    if (published.error) throw Error("QA_SEED_PROPERTY_PUBLISH_FAILED")
+
+    const d = await invoke("qa-seed-demand", createDemand, tenant.jwt, {
+      requestKey: crypto.randomUUID(), fullName: "QA MP Tenant",
+      phone: "1155550102", localityKeys: ["ar:06:060756:06075610"],
+      propertyType: "departamento", checkIn, checkOut,
+      maxTotalBudgetArs: 400000,
+    })
+    demandId = String(d.id || "")
+    if (!demandId) throw Error("QA_SEED_DEMAND_MISSING")
+    const m = await invoke("qa-seed-match", commitMatch, owner.jwt, {
+      propertyId, demandId,
+    })
+    matchId = String(m.id || "")
+    if (!matchId) throw Error("QA_SEED_MATCH_MISSING")
+    await invoke("qa-seed-owner-decision", decideMatch, owner.jwt,
+      { matchId, role: "owner", decision: "accepted" })
+    await invoke("qa-seed-tenant-decision", decideMatch, tenant.jwt,
+      { matchId, role: "tenant", decision: "accepted" })
+    const r = await invoke("qa-seed-reservation", startReservation, owner.jwt, { matchId })
+    reservationId = String((r.reservation as Record<string, unknown>)?.id || "")
+    if (!reservationId) throw Error("QA_SEED_RESERVATION_MISSING")
+    await invoke("qa-seed-owner-terms", acceptTerms, owner.jwt, { matchId, role: "owner" })
+    await invoke("qa-seed-tenant-terms", acceptTerms, tenant.jwt, { matchId, role: "tenant" })
+
+    // This is a real TEST preference, NOT a payment and NOT a simulated approval.
+    const checkout = await invoke("qa-seed-sandbox-checkout", preparePayment,
+      tenant.jwt, { matchId })
+    if (typeof checkout.checkoutUrl !== "string" ||
+        !checkout.checkoutUrl.startsWith("https://"))
+      throw Error("QA_SEED_CHECKOUT_INVALID")
+    success = true
+    return { prepared: true, reused: false, reservationId,
+      reservationStatus: "terms_accepted" }
+  } finally {
+    if (!success) {
+      if (reservationId) {
+        await admin.from("temporary_payment_attempts").delete().eq("reservation_id", reservationId)
+        await admin.from("temporary_reservations").delete().eq("id", reservationId)
+      }
+      if (matchId) await admin.from("temporary_matches").delete().eq("id", matchId)
+      if (demandId) await admin.from("temporary_demands").delete().eq("id", demandId)
+      if (propertyId) await admin.from("temporary_properties").delete().eq("id", propertyId)
+      for (const id of users) {
+        await admin.from("user_profiles").delete().eq("user_id", id)
+        await admin.auth.admin.deleteUser(id)
+      }
+    }
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -298,7 +427,12 @@ export async function POST(request: NextRequest) {
     if (!pdf.subarray(0, 8).toString("latin1").startsWith("%PDF-"))
       throw Error("QA_TEMPORARY_PDF_INVALID")
 
+    const sandboxSeed = await ensureSandboxCheckout(admin, publicClient)
+
     return NextResponse.json({
+      sandboxCheckoutPrepared: sandboxSeed.prepared,
+      sandboxReservationId: sandboxSeed.reservationId,
+      sandboxReservationStatus: sandboxSeed.reservationStatus,
       ok: true, qaOnly: true, realTemporaryApiHandlers: true,
       twoAuthenticatedRoles: true, matchIdempotent: true,
       ownerTenantIsolation: true, doubleAcceptance: true,
