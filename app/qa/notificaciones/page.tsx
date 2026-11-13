@@ -32,7 +32,7 @@ const EXAMPLES: { area: VerloEmailArea; role: VerloEmailRole; type: string; labe
     pushUrl: "/temporarios/mi-verlo" },
   { area: "powermarket", role: "tenant", type: "policy_payment_pending",
     label: "Caución: pago pendiente",
-    pushTitle: "Pago pendiente en PowerMarket",
+    pushTitle: "Pago de caución pendiente",
     pushBody: "Revisá los pasos de tu caución en Mi VERLO.",
     pushUrl: "/mi-verlo" },
   { area: "powermarket", role: "owner", type: "policy_issued",
