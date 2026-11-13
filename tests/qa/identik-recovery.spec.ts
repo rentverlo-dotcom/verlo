@@ -103,3 +103,14 @@ test("Identik: only authenticated QA workflow can archive, never a public reques
   expect(source).not.toContain('createDocument(')
   expect(source).not.toContain('distributeDocument(')
 })
+
+test("Identik: production signer identity check fails closed until certified", () => {
+  const code = readFileSync("lib/identik/electronic-v2.ts", "utf8")
+  expect(code).toContain('parsedBase.hostname === "electronica.identik.me"')
+  expect(code).toContain('process.env.IDENTIK_BIOMETRIC_SIGNING_CONFIRMED !== "true"')
+  expect(code).toContain("payload.meta?.requireBiometricId !== true")
+  expect(code).toContain('throw new Error("IDENTIK_BIOMETRIC_SIGNING_NOT_CERTIFIED")')
+  const signing = readFileSync("app/api/qa/identik/create-signing/route.ts", "utf8")
+  expect(signing).toContain("requireBiometricId: false")
+  expect(signing).toContain("https://sandbox-electronica.identik.me/api/v2")
+})
