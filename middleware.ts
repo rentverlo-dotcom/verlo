@@ -78,6 +78,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Mercado Pago Sandbox webhook: isolated QA branch/database only.
+  // The handler independently verifies the webhook signature and payment with MP.
+  if (verified && request.method === 'POST' &&
+      path === '/api/temporarios/payments/webhook') {
+    return NextResponse.next()
+  }
+
   // Signed GitHub Actions identity is verified inside the QA handler.
   if (verified && request.method === 'POST' && path === '/api/qa/temporarios/lifecycle') {
     return NextResponse.next()
