@@ -221,6 +221,25 @@ export async function POST(request: NextRequest) {
     if ((confirmation.reservation as Record<string, unknown>)?.status !== "confirmed")
       throw Error("QA_RESERVATION_NOT_CONFIRMED")
 
+    // A confirmed reservation must lock exactly the booked nights, atomically.
+    const locked = await admin.from("temporary_availability_blocks")
+      .select("property_id,reservation_id,check_in,check_out,source")
+      .eq("reservation_id", reservationId)
+    if (locked.error || !locked.data || locked.data.length !== 1 ||
+        locked.data[0].property_id !== propertyId ||
+        locked.data[0].check_in !== inDate ||
+        locked.data[0].check_out !== outDate ||
+        locked.data[0].source !== "verlo")
+      throw Error("QA_DATES_NOT_ATOMICALLY_BLOCKED")
+
+    // Concurrent/manual bookings may not overlap an existing confirmed booking.
+    const conflicting = await admin.from("temporary_availability_blocks").insert({
+      property_id: propertyId, check_in: inDate, check_out: outDate,
+      source: "owner_block",
+    }).select("id").maybeSingle()
+    if (!conflicting.error || conflicting.error.code !== "23P01")
+      throw Error("QA_OVERLAPPING_DATES_WERE_ACCEPTED")
+
     // Transactional outbox must target the two actual participants.
     // No external messages are sent in this synthetic QA run.
     const verifyRecipients = async () => {
@@ -286,6 +305,7 @@ export async function POST(request: NextRequest) {
       reservationTermsAccepted: true, unpaidConfirmationDenied: true,
       feeSimulated: true, verifiedFeeRpcSimulated: true,
       bilateralReservationConfirmed: true,
+      datesAtomicallyBlocked: true, overlappingDatesRejected: true,
       notificationRecipientsVerified: true, notificationDeduplicated: true,
       contractAgreedByBoth: true, temporaryContractPdf: true,
       noRealPayment: true, noExternalNotifications: true,
