@@ -42,7 +42,7 @@ function htmlEscape(value: string): string {
 
 const powermarketCopy: Record<string, [string, string]> = {
   application_submitted: ["Recibimos tu solicitud de caución", "Podés seguir el estado de tu solicitud en Mi VERLO."],
-  application_under_review: ["Tu caución está en evaluación", "Tu solicitud de caución está en evaluación."],
+  application_under_review: ["Tu caución está en evaluación", "PowerMarket, nuestro broker de seguros asociado, está gestionando la evaluación de tu solicitud."],
   application_more_info_required: ["Tu caución necesita información", "Revisá los próximos pasos en Mi VERLO."],
   application_prequalified: ["Tu caución avanzó", "Tenés una novedad sobre tu solicitud."],
   application_not_eligible: ["Novedad sobre tu caución", "Consultá el resultado en Mi VERLO."],
@@ -53,12 +53,12 @@ const powermarketCopy: Record<string, [string, string]> = {
   quote_accepted: ["Cotización de caución aceptada", "Registramos tu aceptación."],
   quote_declined: ["Cotización de caución rechazada", "Podés consultar el estado en Mi VERLO."],
   quote_expired: ["Tu cotización venció", "Revisá el estado de tu caución."],
-  review_pending: ["Tu contrato está en revisión", "El contrato de tu alquiler está en revisión."],
+  review_pending: ["Tu contrato está en revisión", "PowerMarket, nuestro broker de seguros asociado, está gestionando la revisión del contrato de tu alquiler."],
   review_changes_requested: ["Hay observaciones sobre el contrato", "Revisá las correcciones necesarias en Mi VERLO."],
   review_approved: ["Revisión contractual aprobada", "La revisión del contrato fue aprobada."],
   policy_pending: ["Tu caución está en trámite", "Seguimos procesando tu caución."],
   policy_final_review: ["Tu caución está en revisión final", "Revisá el estado en Mi VERLO."],
-  policy_payment_pending: ["Hay un pago pendiente de tu caución", "Consultá los próximos pasos en Mi VERLO. El pago de la caución se realiza directamente con la entidad emisora."],
+  policy_payment_pending: ["Hay un pago pendiente de tu caución", "Consultá los próximos pasos en Mi VERLO. PowerMarket, nuestro broker de seguros asociado, coordina el trámite; el pago de la caución se realiza directamente con la entidad correspondiente."],
   policy_payment_confirmed: ["Pago de caución confirmado", "El pago de tu caución fue confirmado. La emisión de la póliza continúa pendiente."],
   policy_issued: ["Tu póliza de caución fue emitida", "Ingresá a Mi VERLO para conocer el estado actualizado."],
   policy_cancelled: ["Novedad sobre tu caución", "El trámite se encuentra cancelado. Revisá Mi VERLO."],
