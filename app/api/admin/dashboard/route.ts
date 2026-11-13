@@ -7,6 +7,7 @@ import {
   createClient,
 } from "@supabase/supabase-js"
 import { getBusinessMetrics, getMetaMetrics } from "@/lib/admin/business-metrics"
+import { getZeptoMailReadiness } from "@/lib/notifications/zeptomail"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -848,6 +849,7 @@ export async function GET(
         pushSubscriptions || [],
       business,
       meta,
+      zeptomail: getZeptoMailReadiness(process.env),
     })
   } catch (error) {
     console.error(
