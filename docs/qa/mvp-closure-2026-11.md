@@ -2,6 +2,21 @@
 Fecha: 2026-11-06. Rama EXCLUSIVA: `qa/verlo-e2e`.
 Base QA EXCLUSIVA: `anptswspguyotnasoacq`. PROHIBIDO cambiar `main`, Supabase producción (`bmgrpcqrdvwculrisasi`) o Vercel Production desde QA.
 
+
+## Congelamiento definitivo de alcance — 13/11/2026
+Decisión del propietario: **NO sumar nuevas funciones, paneles, integraciones o cambios cosméticos antes del lanzamiento**. El MVP ya está construido. Solo se permiten correcciones demostrablemente necesarias para completar el recorrido de usuario, seguridad, estabilidad, cobros, identidad y entrega. Este congelamiento prevalece sobre propuestas de ampliación posteriores; no autoriza abrir trabajo nuevo por conveniencia.
+
+**Tanda final de cierre, exactamente en este orden:**
+1. **Email + Push existentes:** inspeccionar y presentar las plantillas reales para tenant/owner; verificar texto, branding, enlace a Mi VERLO, registros de estado, y probar entrega controlada cuando el proveedor esté habilitado. La vista previa no envía ni modifica datos.
+2. **Temporarios existentes:** recorrer visualmente como propietario e inquilino, y certificar el flujo comercial, tarifa ARS 49.999, estados y contrato. Corregir solo fallas reproducibles.
+3. **Seguridad y empaquetado:** actualizar solo dependencias vulnerables, alinear Node y lockfile, validar migraciones compatibles con QA y producción, separar rutas de prueba de `main`, ejecutar regresión completa y desplegar gradualmente sin destruir datos reales.
+
+**Dependencias externas bloqueantes solamente para certificación final:** Identik/Namirial (onboarding y validación biométrica); PowerMarket (cotización/aprobación/pago/emisión); Zoho ZeptoMail (API key y una entrega real supervisada); Mercado Pago Sandbox cuando aplique. No inventar endpoints ni activar envíos/cobros para simular que están completados.
+
+**No repetir pruebas ya aprobadas salvo como parte de la regresión final o ante un fallo concreto.** No seguir creando commits de instrumentación o fixtures sin una evidencia de falla. Todo código y evidencia de prueba en `qa/verlo-e2e`, ninguna modificación de DB/branch productivo, y ningún merge general a `main`.
+
+**Criterio de FIN:** propietario e inquilino pueden completar los recorridos definidos y visualizar sus avisos; firma y archivo protegidos y disponibles; proveedor de identidad/caución/pago integrado y certificado; métricas mínimas de conversión y ventas verificables en dashboard ya creado; Vercel y CI verdes en un SHA liberable; migraciones y rollback aprobados. Mejoras de PostHog/investor/SEO/copy quedan para pos-lanzamiento salvo defecto comercial o de seguridad bloqueante.
+
 ## Regla de cierre
 **Verde del deploy no significa E2E aprobado.** Una etapa queda APROBADA solo con Playwright + verificaciones persistidas en Supabase QA, aserciones de permisos/errores, evidencia de ejecución correspondiente al SHA exacto y cero envíos al mundo real. No etiquetar “integración real aprobada” cuando la respuesta de proveedor es simulada.
 Secuencia: (1) pruebas y fixes internos aislados, (2) pruebas externas reales cuando haya acceso, (3) selección/revisión de commits FUNCIONALES; no merge general de la rama QA, (4) deploy de `main` por separado, (5) smoke supervisado de producción.
