@@ -25,6 +25,35 @@ const DEFAULT_FROM_ADDRESS = "notificaciones@verlo.lat"
 const REPLY_TO_ADDRESS = "hola@verlo.lat"
 const FROM_NAME = "VERLO"
 
+/**
+ * Safe administrative readiness snapshot.
+ * Never returns keys or values of environment variables. In particular,
+ * "configured" is NOT a claim of an email being received by its destination.
+ */
+export function getZeptoMailReadiness(env: NodeJS.ProcessEnv) {
+  const qaIsolated = env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e"
+  const sender = (env.VERLO_ZEPTO_FROM_EMAIL || DEFAULT_FROM_ADDRESS).trim()
+  const senderValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(sender)
+  const hasApiKey = Boolean(env.ZOHO_CPAAS_EMAIL_API_KEY?.trim())
+  const captureApproved = env.VERLO_EMAIL_QUEUE_CAPTURE_ENABLED === "true" &&
+    env.VERLO_EMAIL_CUTOVER_APPROVED === "true"
+  const dispatchApproved = env.VERLO_EMAIL_DISPATCH_ENABLED === "true" &&
+    env.VERLO_ZEPTO_EMAIL_LIVE === "true" &&
+    env.VERLO_EMAIL_CUTOVER_APPROVED === "true"
+  return {
+    qa_isolated: qaIsolated,
+    sender,
+    reply_to: REPLY_TO_ADDRESS,
+    sender_valid: senderValid,
+    api_key_configured: hasApiKey,
+    queue_capture_approved: captureApproved,
+    dispatch_approved: dispatchApproved,
+    can_dispatch: !qaIsolated && hasApiKey && senderValid && dispatchApproved,
+    provider_delivery_verified: false,
+    note: "La aceptación de ZeptoMail no certifica entrega en la casilla; requiere prueba real supervisada.",
+  }
+}
+
 export async function sendWithZeptoMail(
   message: TransactionalMail,
   options: { apiKey?: string; enabled?: boolean; fetcher?: Fetcher } = {},
