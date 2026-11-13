@@ -428,7 +428,7 @@ export async function POST(request: NextRequest) {
     if (!pdf.subarray(0, 8).toString("latin1").startsWith("%PDF-"))
       throw Error("QA_TEMPORARY_PDF_INVALID")
 
-    const sandboxSeed = await ensureSandboxCheckout(admin, publicClient)
+    const sandboxSeed = await ensureSandboxCheckout(admin as never, publicClient as never)
 
     return NextResponse.json({
       sandboxCheckoutPrepared: sandboxSeed.prepared,
