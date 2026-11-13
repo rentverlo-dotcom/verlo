@@ -9,7 +9,9 @@ export async function GET(request: Request) {
     status, headers: { "Cache-Control": "no-store" },
   })
   const isPreview = process.env.VERCEL_ENV === "preview" &&
-    process.env.VERCEL_GIT_COMMIT_REF === "feature/temporarios"
+    (process.env.VERCEL_GIT_COMMIT_REF === "feature/temporarios" ||
+      (process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e" &&
+       process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"))
   const isProduction = process.env.VERCEL_ENV === "production" &&
     process.env.TEMPORARY_PUBLIC_ENABLED === "true"
   if (!isPreview && !isProduction)
