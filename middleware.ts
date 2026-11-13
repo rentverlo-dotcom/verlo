@@ -78,6 +78,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Existing Temporarios customer handlers remain protected by Supabase Auth,
+  // verified synthetic QA identities, and per-resource ownership checks.
+  // Open only the QA-isolated flow needed for a real sandbox checkout.
+  if (verified && request.method === 'POST' && [
+    '/api/temporarios/properties',
+    '/api/temporarios/demands',
+    '/api/temporarios/matches/commit',
+    '/api/temporarios/matches/decide',
+    '/api/temporarios/reservations/start',
+    '/api/temporarios/reservations/accept-terms',
+    '/api/temporarios/reservations/confirm',
+    '/api/temporarios/payments/prepare',
+    '/api/temporarios/payments/reconcile',
+    '/api/temporarios/contracts',
+  ].includes(path)) {
+    return NextResponse.next()
+  }
+
   // Mercado Pago Sandbox webhook: isolated QA branch/database only.
   // The handler independently verifies the webhook signature and payment with MP.
   if (verified && request.method === 'POST' &&
