@@ -116,12 +116,11 @@ export function makeIdentikElectronicClient(options?: {
       if (!Number.isSafeInteger(body.documentId) || body.documentId <= 0) {
         throw new Error("Invalid document ID")
       }
-      // VERLO's default remains NONE (links delivered by VERLO).
-      // EMAIL is allowed only for the controlled Identik Sandbox E2E,
-      // never for the production Identik endpoint.
-      if (body.meta?.distributionMethod === "EMAIL" &&
-          parsedBase.hostname !== "sandbox-electronica.identik.me") {
-        throw new Error("Identik-managed invitations are restricted to Sandbox")
+      // Contractual invariant: VERLO always owns signing invitations.
+      // Identik must never send emails, including in QA Sandbox.
+      if (body.meta?.distributionMethod !== "NONE" ||
+          body.includeSigningUrls !== true) {
+        throw new Error("IDENTIK_VERLO_MANAGED_INVITATIONS_ONLY")
       }
       const response = await request("/document/distribute", {
         method: "POST",
