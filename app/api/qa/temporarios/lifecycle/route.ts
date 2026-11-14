@@ -431,7 +431,47 @@ export async function POST(request: NextRequest) {
 
     const sandboxSeed = await ensureSandboxCheckout(admin as never, publicClient as never)
 
+    // Reconcile one already-completed Sandbox receipt, authenticated by GitHub OIDC.
+    // No charge or payment creation. Only the MP API can establish approval.
+    const realPaymentId = "189434035796"
+    const { data: realAttempt, error: attemptError } = await admin
+      .from("temporary_payment_attempts")
+      .select("id,status,mp_payment_id,amount_ars,currency")
+      .eq("reservation_id", sandboxSeed.reservationId).single()
+    if (attemptError || !realAttempt) throw Error("QA_MP_REAL_ATTEMPT_MISSING")
+    if (realAttempt.status === "pending") {
+      const response = await fetch("https://api.mercadopago.com/v1/payments/" + realPaymentId, {
+        headers: { Authorization: "Bearer " + process.env.TEMPORARY_MP_ACCESS_TOKEN },
+        cache: "no-store",
+      }).catch(() => null)
+      if (!response?.ok) throw Error("QA_MP_LOOKUP_HTTP_" + (response?.status || 0))
+      const verified = await response.json().catch(() => null) as {
+        id?: number | string; status?: string; external_reference?: string;
+        transaction_amount?: number; currency_id?: string
+      } | null
+      if (String(verified?.id) !== realPaymentId ||
+          verified?.external_reference !== realAttempt.id ||
+          Number(verified?.transaction_amount) !== 49999 ||
+          verified?.currency_id !== "ARS" ||
+          verified?.status !== "approved")
+        throw Error("QA_MP_REAL_PAYMENT_MISMATCH")
+      const registered = await admin.rpc("temporary_register_verified_payment", {
+        p_attempt_id: realAttempt.id, p_mp_payment_id: realPaymentId,
+        p_amount: 49999, p_currency: "ARS", p_mp_status: "approved",
+      })
+      if (registered.error) throw Error("QA_MP_REAL_REGISTRATION_FAILED")
+    } else if (realAttempt.status !== "approved" ||
+               realAttempt.mp_payment_id !== realPaymentId) {
+      throw Error("QA_MP_REAL_PAYMENT_CONFLICT")
+    }
+    const { data: paidReservation, error: paidError } = await admin
+      .from("temporary_reservations").select("status")
+      .eq("id", sandboxSeed.reservationId).single()
+    if (paidError || !["fee_paid","ready_to_block","confirmed"].includes(paidReservation?.status || ""))
+      throw Error("QA_MP_REAL_FEE_NOT_RECORDED")
+
     return NextResponse.json({
+      sandboxRealPaymentReconciled: true,
       sandboxCheckoutPrepared: sandboxSeed.prepared,
       sandboxReservationId: sandboxSeed.reservationId,
       sandboxReservationStatus: sandboxSeed.reservationStatus,
