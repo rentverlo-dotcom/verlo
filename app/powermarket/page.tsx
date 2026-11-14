@@ -23,6 +23,7 @@ export default function PowerMarketDashboard(){
  const [items,setItems]=useState<Application[]>([]),[selected,setSelected]=useState<string|null>(null)
  const [error,setError]=useState(""),[loading,setLoading]=useState(true),[email,setEmail]=useState(""),[password,setPassword]=useState("")
  const [logged,setLogged]=useState(false),[busy,setBusy]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState("")
+ const [notice,setNotice]=useState("")
  const [amount,setAmount]=useState(""),[note,setNote]=useState(""),[docs,setDocs]=useState<DocumentRow[]|null>(null)
  const [reviews,setReviews]=useState<ContractReview[]|null>(null)
  const [quotes,setQuotes]=useState<QuoteRow[]|null>(null)
@@ -35,6 +36,15 @@ export default function PowerMarketDashboard(){
  async function refresh(){
   const access=await token()
   if(!access){setLogged(false);setLoading(false);return}
+  // QA: a verified email can self-activate only if it is explicitly allowlisted.
+  // The server keeps the operator-first rule and checks Supabase Auth identity.
+  if(process.env.NEXT_PUBLIC_SUPABASE_URL==="https://anptswspguyotnasoacq.supabase.co"){
+    const grant=await fetch("/api/qa/powermarket/access",{
+      method:"POST",headers:{Authorization:`Bearer ${access}`},cache:"no-store"
+    })
+    const verdict=await grant.json().catch(()=>({}))
+    if(!grant.ok){setError(verdict.error||"Acceso QA no autorizado");setItems([]);setLogged(false);setLoading(false);return}
+  }
   const res=await fetch("/api/powermarket/applications",{headers:{Authorization:`Bearer ${access}`},cache:"no-store"})
   const json=await res.json().catch(()=>({}))
   if(!res.ok){setError(json.error||"Acceso denegado");setItems([]);setLogged(false)}
@@ -44,6 +54,24 @@ export default function PowerMarketDashboard(){
  useEffect(()=>{void refresh()},[])
  function select(item:Application){trackPostHog("powermarket_application_opened",{area:"powermarket",role:"partner",status:item.status});setSelected(item.id);setDocs(null);setReviews(null);setQuotes(null);setPolicies(null);setOpenedReviewIds([]);setNote("");setAmount(String(item.approved_max_total_ars??""))}
  async function login(e:React.FormEvent){e.preventDefault();setError("");setBusy(true);const {error:err}=await supabase.auth.signInWithPassword({email,password});setBusy(false);if(err){setError("Credenciales incorrectas");return}setPassword("");setLoading(true);await refresh()}
+ async function register(){
+  setError("");setNotice("")
+  const address=email.trim().toLowerCase()
+  if(!["juanoddone29@gmail.com","mpagoto@pmb.com.ar"].includes(address)){
+    setError("Este acceso es exclusivo para los dos usuarios autorizados");return
+  }
+  if(password.length<12){setError("Elegí una contraseña de al menos 12 caracteres");return}
+  setBusy(true)
+  const {error:err}=await supabase.auth.signUp({
+    email:address,password,
+    options:{emailRedirectTo:window.location.origin+"/powermarket"},
+  })
+  setBusy(false)
+  if(err){setError(err.message);return}
+  setPassword("")
+  setNotice("Revisá tu correo para confirmar la cuenta. Después ingresá con tu contraseña.")
+ }
+
  async function decide(status:string){
   if(!current||busy)return
   setBusy(true);setError("")
@@ -181,12 +209,17 @@ export default function PowerMarketDashboard(){
    {logged&&<button style={button} onClick={async()=>{await supabase.auth.signOut();setLogged(false);setItems([]);setSelected(null)}}>Cerrar sesión</button>}
   </div>
   {error&&<p role="alert" style={{background:"#fff",border:"1px solid #c37986",borderRadius:10,padding:12,color:"#892b40"}}>{error}</p>}
+  {notice&&<p role="status" style={{background:"#fff",borderRadius:10,padding:12}}>{notice}</p>}
   {loading?<p style={{marginTop:28}}>Cargando…</p>:!logged?
    <form onSubmit={login} style={{background:"#fff",maxWidth:420,padding:28,borderRadius:20,marginTop:32,display:"grid",gap:15}}>
     <h1 style={{fontSize:24,lineHeight:1.2,margin:0}}>Acceso privado</h1>
     <label>Email<input type="email" style={{...control,display:"block",marginTop:6}} required value={email} onChange={e=>setEmail(e.target.value)}/></label>
     <label>Contraseña<input type="password" style={{...control,display:"block",marginTop:6}} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
     <button style={button} disabled={busy}>Ingresar</button>
+    {process.env.NEXT_PUBLIC_SUPABASE_URL==="https://anptswspguyotnasoacq.supabase.co"&&
+    <button type="button" style={{...button,background:"#fff",color:"#050002",border:"1px solid #050002"}}
+      disabled={busy} onClick={()=>void register()}>Crear acceso QA (primera vez)</button>}
+
     <small>Acceso exclusivo para operadores autorizados por VERLO.</small>
    </form>:
    <div style={{paddingTop:28}}>
