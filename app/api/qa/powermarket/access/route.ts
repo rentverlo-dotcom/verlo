@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   })
   const {data: {user}, error} = await auth.auth.getUser(bearer.slice(7))
   if (error || !user || user.is_anonymous || !user.email_confirmed_at ||
-      ![OWNER_EMAIL, PARTNER_EMAIL].includes(user.email?.trim().toLowerCase() || "")
+      ![OWNER_EMAIL, PARTNER_EMAIL].includes(user.email?.trim().toLowerCase() || ""))
     return respond(403, {ok: false, error: "Cuenta no habilitada para PowerMarket QA"})
 
   const db = createClient(QA_SUPABASE, service, {
