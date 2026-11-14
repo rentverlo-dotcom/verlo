@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       !(await validQaWorkflowToken(bearer.slice(7), sha)))
     return reply({ ok: false, error: 'QA_OIDC_REQUIRED' }, 403)
 
-  if (request.headers.get('x-qa-identik-intent') !== 'send-two-sandbox-invitations')
+  if (request.headers.get('x-qa-identik-intent') !== 'create-sandbox-signing-without-provider-email')
     return reply({ ok: false, error: 'EXPLICIT_INTENT_REQUIRED' }, 400)
 
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -156,14 +156,14 @@ export async function POST(request: NextRequest) {
       new Blob([new Uint8Array(pdf)], { type: 'application/pdf' }),
       {
         title: 'VERLO QA V2 - Contrato de prueba - SIN VALIDEZ COMERCIAL',
-        externalId: EXTERNAL_ID, includeSigningUrls: false,
+        externalId: EXTERNAL_ID, includeSigningUrls: true,
         recipients: [
           { email: OWNER_EMAIL, name: 'VERLO QA Propietario',
             role: 'SIGNER', signingOrder: 1, fields: [ownerField] },
           { email: TENANT_EMAIL, name: 'VERLO QA Inquilino',
             role: 'SIGNER', signingOrder: 2, fields: [tenantField] },
         ],
-        meta: { distributionMethod: 'EMAIL', signingOrder: 'SEQUENTIAL',
+        meta: { distributionMethod: 'NONE', signingOrder: 'SEQUENTIAL',
           language: 'es', subject: 'VERLO QA: firma de contrato de prueba',
           message: 'Documento exclusivamente de prueba. No representa una operación de alquiler.',
           requireBiometricId: false,
@@ -180,10 +180,10 @@ export async function POST(request: NextRequest) {
 
     await client.distributeDocument({
       documentId: created.id,
-      includeSigningUrls: false,
-      meta: { distributionMethod: 'EMAIL', language: 'es',
+      includeSigningUrls: true,
+      meta: { distributionMethod: 'NONE', language: 'es',
         subject: 'VERLO QA: firma de contrato de prueba',
-        emailSettings: { recipientSigningRequest: true } },
+        emailSettings: { recipientSigningRequest: false } },
     })
     const sent = await db.from('identik_electronic_documents')
       .update({ status: 'sent', updated_at: new Date().toISOString() })
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
         manualRecoveryRequired: true }, 503)
 
     return reply({ ok: true, qaOnly: true, providerDocumentCreated: true,
-      invitationsRequested: true, twoSigners: true, documentId: created.id,
+      invitationsRequested: false, providerEmailsDisabled: true, twoSigners: true, documentId: created.id,
       externalId: EXTERNAL_ID, contractId: CONTRACT_ID })
   } catch (e) {
     // Do NOT retry automatically: the provider may have already created a
