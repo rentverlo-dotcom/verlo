@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic"
 
 // The initial QA dashboard invitation belongs to the VERLO operator.
 // A partner contact is onboarded separately after this access is verified.
-const APPROVED_QA_EMAIL = "juanoddone29@gmail.com"
+const OWNER_EMAIL = "juanoddone29@gmail.com"
+const PARTNER_EMAIL = "mpagoto@pmb.com.ar"
 const QA_SUPABASE = "https://anptswspguyotnasoacq.supabase.co"
 const respond = (status: number, body: object) =>
   NextResponse.json(body, {status, headers: {"Cache-Control": "no-store"}})
@@ -28,12 +29,31 @@ export async function POST(req: NextRequest) {
   })
   const {data: {user}, error} = await auth.auth.getUser(bearer.slice(7))
   if (error || !user || user.is_anonymous || !user.email_confirmed_at ||
-      user.email?.trim().toLowerCase() !== APPROVED_QA_EMAIL)
+      ![OWNER_EMAIL, PARTNER_EMAIL].includes(user.email?.trim().toLowerCase() || "")
     return respond(403, {ok: false, error: "Cuenta no habilitada para PowerMarket QA"})
 
   const db = createClient(QA_SUPABASE, service, {
     auth: {persistSession: false, autoRefreshToken: false},
   })
+  // Partner access is sequential: VERLO's operator must activate QA first.
+  if (user.email?.trim().toLowerCase() === PARTNER_EMAIL) {
+    let operatorIsEnabled = false
+    for (let page = 1; page <= 10 && !operatorIsEnabled; page++) {
+      const {data: found, error: listingError} = await db.auth.admin.listUsers({page, perPage: 1000})
+      if (listingError) return respond(503, {ok: false, error: "No pudimos verificar el acceso de VERLO"})
+      const operator = found.users.find(account =>
+        account.email?.trim().toLowerCase() === OWNER_EMAIL && !!account.email_confirmed_at)
+      if (operator) {
+        const {data: record} = await db.from("caucion_partner_users")
+          .select("active,partner").eq("user_id", operator.id).maybeSingle()
+        operatorIsEnabled = record?.active === true && record.partner === "powermarket"
+        break
+      }
+      if (found.users.length < 1000) break
+    }
+    if (!operatorIsEnabled)
+      return respond(409, {ok: false, error: "Primero debe activarse el acceso del operador VERLO"})
+  }
   const {data: existing, error: lookupError} = await db.from("caucion_partner_users")
     .select("active,partner").eq("user_id", user.id).maybeSingle()
   if (lookupError) return respond(503, {ok: false, error: "No pudimos verificar tu acceso"})
