@@ -119,7 +119,8 @@ export function makeIdentikElectronicClient(options?: {
       // Contractual invariant: VERLO always owns signing invitations.
       // Identik must never send emails, including in QA Sandbox.
       if (body.meta?.distributionMethod !== "NONE" ||
-          body.includeSigningUrls !== true) {
+          (body.meta.emailSettings &&
+           Object.values(body.meta.emailSettings).some(value => value === true))) {
         throw new Error("IDENTIK_VERLO_MANAGED_INVITATIONS_ONLY")
       }
       const response = await request("/document/distribute", {
