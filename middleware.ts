@@ -70,6 +70,31 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // PowerMarket QA dashboard remains behind verified Supabase Auth and
+  // caucion_partner_users checks inside every handler; never opens production.
+  if (verified && (
+    (request.method === 'POST' && [
+      '/api/qa/powermarket/access',
+      '/api/powermarket/confirm-operation',
+      '/api/powermarket/policy-certificate',
+      '/api/powermarket/partner-documents',
+      '/api/powermarket/contract-reviews/pdf',
+    ].includes(path)) ||
+    (['GET', 'PATCH'].includes(request.method) && [
+      '/api/powermarket/applications',
+      '/api/powermarket/contract-reviews',
+      '/api/powermarket/quotes',
+      '/api/powermarket/policies',
+    ].includes(path)) ||
+    (request.method === 'POST' && [
+      '/api/powermarket/contract-reviews',
+      '/api/powermarket/quotes',
+      '/api/powermarket/policies',
+    ].includes(path)) ||
+    (request.method === 'GET' &&
+      path === '/api/powermarket/partner-documents')
+  )) return NextResponse.next()
+
   if (verified && request.method === 'POST' && path === '/api/qa/powermarket/submission') {
     return NextResponse.next()
   }
