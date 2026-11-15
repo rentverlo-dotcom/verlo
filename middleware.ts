@@ -75,6 +75,7 @@ export async function middleware(request: NextRequest) {
   if (verified && (
     (request.method === 'POST' && [
       '/api/qa/powermarket/access',
+      '/api/qa/powermarket/invite',
       '/api/powermarket/confirm-operation',
       '/api/powermarket/policy-certificate',
       '/api/powermarket/partner-documents',
