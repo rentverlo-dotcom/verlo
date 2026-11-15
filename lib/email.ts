@@ -133,7 +133,15 @@ export async function sendZohoEmail(
   url: string,
   eventKey: string
 ) {
-  if (qaProvidersDisabled()) return { ok: false, configured: false, provider_id: null, error: 'QA_EXTERNAL_DELIVERY_BLOCKED' }
+  // Narrow QA exception: VERLO-authored one-time access email to two approved
+  // PowerMarket operators. Never unblock general QA notification dispatch.
+  const qaPartnerInvite = process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://anptswspguyotnasoacq.supabase.co' &&
+    ['juanoddone29@gmail.com', 'mpagoto@pmb.com.ar'].includes(to.trim().toLowerCase()) &&
+    /^qa-powermarket-invite:[a-f0-9-]{36}$/i.test(eventKey) &&
+    /^https:\/\/verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595\.vercel\.app\/powermarket#token_hash=[a-f0-9]+&type=magiclink$/.test(url)
+  if (qaProvidersDisabled() && !qaPartnerInvite)
+    return { ok: false, configured: false, provider_id: null, error: 'QA_EXTERNAL_DELIVERY_BLOCKED' }
 
   const host =
     clean(
