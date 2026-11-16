@@ -37,3 +37,15 @@ test("QA signing does not send provider invitations, and production biometrics r
   expect(qa).toContain("recipientSigningRequest: false")
   expect(qa).toContain("includeSigningUrls: true")
 })
+
+test("Personal signing URL is only returned to a verified participant and never leaks other recipients", () => {
+  const route = source("app/api/identik/my-signing/route.ts")
+  expect(route).toContain("auth.auth.getUser")
+  expect(route).toContain("data.user.email_confirmed_at")
+  expect(route).toContain('lead.email?.trim().toLowerCase() !== email')
+  expect(route).toContain("checkTraditionalSigningReadiness")
+  expect(route).toContain('r.email.trim().toLowerCase() === email')
+  expect(route).toContain("validProviderUrl(mine.signingUrl)")
+  expect(route).not.toContain("distributeDocument(")
+  expect(route).not.toContain("createDocument(")
+})
