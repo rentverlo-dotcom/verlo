@@ -78,15 +78,35 @@ export async function POST(request: NextRequest) {
 
   // Admin.generateLink does not send an email: VERLO sends it using Zoho.
   // Only the hash goes into a first-party VERLO URL (never localhost).
-  const { data: link, error: linkError } = await db.auth.admin.generateLink({
-    type: "magiclink", email, options: { redirectTo: QA_ORIGIN + "/powermarket" },
-  })
+  // A first-time partner has no auth.users row. A magiclink cannot be
+  // redeemed for a missing account. Provision using a signup token first;
+  // all later links use magiclink. Both are delivered only by VERLO.
+  let existing = false
+  for (let page = 1; page <= 10; page++) {
+    const { data: listing, error: usersError } = await db.auth.admin.listUsers({ page, perPage: 1000 })
+    if (usersError) return reply(503, { ok: false, error: "No pudimos verificar la cuenta" })
+    if (listing.users.some(u => u.email?.trim().toLowerCase() === email)) {
+      existing = true
+      break
+    }
+    if (listing.users.length < 1000) break
+  }
+  const linkType = existing ? "magiclink" : "signup"
+  const { data: link, error: linkError } = existing
+    ? await db.auth.admin.generateLink({
+        type: "magiclink", email, options: { redirectTo: QA_ORIGIN + "/powermarket" },
+      })
+    : await db.auth.admin.generateLink({
+        type: "signup", email,
+        password: randomUUID() + randomUUID(),
+        options: { redirectTo: QA_ORIGIN + "/powermarket" },
+      })
   const tokenHash = link?.properties?.hashed_token
   if (linkError || typeof tokenHash !== "string" || !/^[a-f0-9]+$/i.test(tokenHash)) {
     console.error("QA_POWERMARKET_LINK_GENERATION_FAILED", linkError?.code || "missing_hash")
     return reply(503, { ok: false, error: "VERLO no pudo preparar el acceso" })
   }
-  const url = QA_ORIGIN + "/powermarket#token_hash=" + encodeURIComponent(tokenHash) + "&type=magiclink"
+  const url = QA_ORIGIN + "/powermarket#token_hash=" + encodeURIComponent(tokenHash) + "&type=" + linkType
   const sent = await sendZohoEmail(email,
     "Tu acceso al panel PowerMarket de VERLO",
     "Te invitamos a ingresar al panel privado de PowerMarket en VERLO QA. Este enlace de acceso es personal y de un solo uso. Si no lo solicitaste, podés ignorar este correo.",
