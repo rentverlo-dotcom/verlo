@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
         meta: {
           distributionMethod: "NONE", signingOrder: "SEQUENTIAL", language: "es",
           requireBiometricId: isProd, sendViaWhatsapp: false, sendViaSms: false,
-          redirectUrl: "https://" + request.nextUrl.hostname + "/mi-verlo",
+          redirectUrl: isQA ? "https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app/mi-verlo" : "https://verlo.lat/mi-verlo",
         },
       },
       "contrato-verlo.pdf",
