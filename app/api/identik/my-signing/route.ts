@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createHash, randomUUID } from "node:crypto"
 import { createCaucionContractPdf } from "@/lib/powermarket/contract-pdf"
 import { identikSignatureField } from "@/lib/identik/signature-geometry"
-import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
+import { sendEmailToLeadOnce } from "@/lib/email"
 import { sendPushToLead } from "@/lib/push"
 import { createClient } from "@supabase/supabase-js"
 import { makeIdentikElectronicClient } from "@/lib/identik/electronic-v2"
@@ -238,13 +238,16 @@ export async function POST(request: NextRequest) {
     ]
     await Promise.allSettled(notices.map(async (notice) => {
       const eventKey = "signature_ready:" + notice.role + ":" + contractId
-      await enqueueVerloEmailSafely({
-        area: "tradicionales", eventType: "signature_ready",
-        eventKey, recipientEmail: notice.email,
-        recipientRole: notice.role, url: portal,
+      // Existing Zoho SMTP pipeline is configured for production. The new
+      // ZeptoMail outbox is not cut over yet, so using it alone here would
+      // silently suppress this critical invitation. SMTP deduplicates by key.
+      // QA blocks external delivery by design.
+      const email = await sendEmailToLeadOnce({
+        leadId: notice.leadId, eventKey, url: portal,
         title: "Tu contrato está listo para firmar",
         body: "Ingresá a Mi VERLO y pulsá Firmar contrato para completar tu firma electrónica.",
       })
+      if (!email.ok) console.error("signature_ready_email_unavailable", { eventKey })
       // Push is best-effort, and a missing device must never block signing.
       try {
         await sendPushToLead(notice.leadId, {
