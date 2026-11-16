@@ -17,6 +17,8 @@ on:
       - 'lib/identik/**'
       - 'app/api/webhooks/identik-electronic/route.ts'
       - 'app/api/identik/my-signing/route.ts'
+      - 'app/api/identik/my-signed/route.ts'
+      - 'lib/identik/archive-artifacts.ts'
       - 'components/identik/**'
       - 'app/mi-verlo/page.tsx'
       - 'lib/admin/**'
