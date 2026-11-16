@@ -8,9 +8,9 @@ const supabase = createClient(
 
 export async function GET(
   _: Request,
-  { params }: { params: { name: string } }
+  { params }: { params: Promise<{ name: string }> }
 ) {
-  const { name } = params
+  const { name } = await params
 
   if (!['property_type', 'contract_duration'].includes(name)) {
     return NextResponse.json({ error: 'Invalid enum' }, { status: 400 })
