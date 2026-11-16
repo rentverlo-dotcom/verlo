@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     const readiness = await checkTraditionalSigningReadiness(db, contract.id)
     if (!readiness.allowed) continue
     try {
-      const provider = await makeIdentikElectronicClient().getDocument(Number(doc.identik_document_id))
+      const provider = await makeIdentikElectronicClient().getDocument(Number(doc.identik_document_id), true)
       const recipients = Array.isArray(provider.recipients) ? provider.recipients : []
       const mine = recipients.find(item => {
         if (!item || typeof item !== "object") return false
