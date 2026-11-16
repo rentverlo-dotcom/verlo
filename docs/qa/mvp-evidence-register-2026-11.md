@@ -144,6 +144,16 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 
 **Implicacion obligatoria para release:** la migracion del CHECK de montos debe admitir registros historicos de ARS 29.900 y nuevas operaciones a ARS 49.999 sin alterar ningun pago aprobado. Toda propuesta SQL de escritura debe presentarse al propietario; el agente no la ejecuta.
 
+## Auditoria independiente de pagos tradicionales — 16/11/2026
+
+**Solo lectura en Supabase, proyectos separados. No hubo nuevas operaciones de Mercado Pago ni modificaciones SQL.** Esta seccion NO se refiere a Temporarios ni a cauciones.
+
+- En **produccion** (`bmgrpcqrdvwculrisasi`), `public.lead_payments` presenta **0 registros** al momento de la consulta. Esto no descarta cobros contabilizados en otros circuitos/tablas.
+- En **QA** (`anptswspguyotnasoacq`), `public.lead_payments` contiene **125 registros**, todos `qa-synthetic`, `approved`, importe **ARS 119.000**. No representan transacciones reales ni ingresos.
+- **124** registros tienen `consumed_at` y `consumed_rental_id`; **1** registro permanece `approved` sin consumo. La consulta al contrato asociado muestra `status='generated'`; fue creado el 16/11/2026 a las 11:22:02 UTC. Por sí solo no indica un defecto comercial: requiere evaluar si corresponde a una ejecución sintética incompleta.
+- Las comprobaciones de webhook de Mercado Pago, bloqueo de cobro e idempotencia continúan **APROBADAS EN PRUEBAS AUTOMATICAS** según [Actions #280](https://github.com/rentverlo-dotcom/verlo/actions/runs/43954940970). Este resultado no certifica una transacción real tradicional en Mercado Pago.
+- **Regla:** no volver a generar pagos ni alterar el registro sin reproducir una falla concreta. Mantener separado del cierre verificado de ARS 49.999 de Temporarios.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
