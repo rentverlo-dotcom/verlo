@@ -215,6 +215,18 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - **Nuevo riesgo de seguridad encontrado durante la migracion:** `app/api/matches/[id]/approve-guarantee/route.ts` contiene un POST legacy que actualiza `match_guarantee_reviews` utilizando service role sin comprobacion de actor visible en el handler. Requiere clasificacion de usos y cierre/seguridad especifica antes de promover release. La adaptacion de `params` fue solamente de tipo, NO corrige esa autorizacion.
 - **Siguiente paso:** revisar diffs y el estado del Preview de la rama aislada; validar seguridad de endpoints legacy y hacer una regresion comercial acotada, sin repetir cobros ni firmas externas. No pasar las ramas aisladas enteras a `main` sin seleccionar los archivos de release. No modificar Supabase sin la revision previa y ejecucion por el propietario.
 
+## Cierre aislado de aprobaciones de garantia legacy — 16/11/2026
+
+**Estado: correccion de seguridad probada en rama aislada, NO integrada en `qa/verlo-e2e` ni `main`, NO promocionada a produccion.** Rama `security/legacy-guarantee-api-closure`; SHA de certificacion `996e042adf8f5d9a3cc823147be4b3e76172a52c`.
+
+- Inspeccion de referencias del repositorio: `match_guarantee_reviews` aparece como escritura en **dos rutas antiguas**, `app/api/matches/approve/route.ts` y `app/api/matches/[id]/approve-guarantee/route.ts`. La primera tambien alteraba `matches` mediante `transition_match_status` y usaba un envio historico de WhatsApp. Ambas aceptaban solicitudes POST sin verificacion de identidad, y empleaban `SUPABASE_SERVICE_ROLE_KEY` para aprobar. No se encontraron llamadas internas a esas URLs en la busqueda de codigo. Esto NO prueba ausencia de clientes externos o links previamente emitidos.
+- Se reemplazaron **solo los POST de esas dos rutas** por respuestas `410 LEGACY_ENDPOINT_DISABLED` con `Cache-Control: no-store`, sin inicializar clientes Supabase ni realizar escrituras. No se eliminaron tablas, filas ni policies; la rama aislada hereda la migracion Next 15 ya certificada.
+- El flujo actual separado del socio usa `app/api/powermarket/applications/route.ts` con Supabase `auth.getUser`, validacion de usuario activo en `caucion_partner_users` y decision atomica `caucion_record_partner_decision`. Ninguna ruta de PowerMarket, firma de contratos o pagos fue modificada por esta tanda.
+- `tests/qa/legacy-guarantee-closure.spec.ts` fija aserciones de codigo: ambos endpoints sin escrituras y con 410; la ruta vigente mantiene autenticacion y decision atomica. Se corrieron tambien `tests/qa/legacy-property-api-closure.spec.ts`.
+- [GitHub Actions #43979926490](https://github.com/rentverlo-dotcom/verlo/actions/runs/43979926490): **SUCCESS** en `996e042`, con `npm ci` sobre Next15/React19/Node24 y pruebas acotadas de seguridad aprobadas. Sin envio de notificaciones, nuevos pagos ni firmas a proveedores.
+- **Pendiente antes del release:** integrar selectivamente estos cambios, comprobar que los endpoints 410 no sean utilizados por navegacion real, validar Preview del paquete definitivo y respetar la evidencia E2E comercial existente. No se autoriza considerar esto probado end-to-end con PowerMarket por el solo hecho de aprobar estas aserciones estaticas.
+- **Datos y ambientes:** ningun SQL de escritura ni alteracion en Supabase, `main` o `qa/verlo-e2e` funcional. La unica modificacion en QA es esta evidencia documental.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
