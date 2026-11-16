@@ -6,6 +6,8 @@ type Signing = { contractId: string; role: "owner" | "tenant"; signingUrl: strin
 
 export default function MyIdentikSigning() {
   const [items, setItems] = useState<Signing[]>([])
+  const [ready, setReady] = useState<Array<{ contractId: string }>>([])
+  const [starting, setStarting] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -13,7 +15,7 @@ export default function MyIdentikSigning() {
     setLoading(true)
     try {
       const { data } = await supabase.auth.getSession()
-      if (!data.session) { setItems([]); return }
+      if (!data.session) { setItems([]); setReady([]); return }
       const res = await fetch("/api/identik/my-signing", {
         headers: { Authorization: `Bearer ${data.session.access_token}` },
         cache: "no-store",
@@ -22,17 +24,43 @@ export default function MyIdentikSigning() {
       if (!res.ok) { setError(body.error || "No se pudieron consultar las firmas"); setItems([]); return }
       setError("")
       setItems(Array.isArray(body.items) ? body.items : [])
+      setReady(Array.isArray(body.ready) ? body.ready : [])
     } catch {
       setError("No se pudieron consultar las firmas")
     } finally { setLoading(false) }
   }
 
   useEffect(() => { void refresh() }, [])
+  async function prepare(contractId: string) {
+    if (starting) return
+    setStarting(true)
+    setError("")
+    try {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) throw new Error("Ingresá nuevamente a Mi VERLO")
+      const res = await fetch("/api/identik/my-signing", {
+        method: "POST", cache: "no-store",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
+        body: JSON.stringify({ contractId }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error || "No se pudo iniciar la firma")
+      await refresh()
+    } catch (e) { setError(e instanceof Error ? e.message : "No se pudo iniciar la firma") }
+    finally { setStarting(false) }
+  }
   // No box at all when there are no existing, eligible signing sessions.
-  if (items.length === 0 && !error) return null
+  if (items.length === 0 && ready.length === 0 && !error) return null
   return <section style={{ border:"1px solid #e8dfe1", borderRadius:16, padding:20, background:"#fff", margin:"18px 0", color:"#050002" }}>
     <h2 style={{ margin:"0 0 10px", fontSize:22 }}>Tus contratos pendientes de firma</h2>
     <p style={{ fontSize:14 }}>Firmá desde VERLO. Se abrirá la página segura de Identik en una pestaña nueva; no necesitás ninguna invitación por email.</p>
+    {ready.map(item => <div key={item.contractId} style={{ margin:"12px 0" }}>
+      <p>Las partes aceptaron las condiciones y se verificaron los requisitos previos.</p>
+      <button type="button" disabled={starting || loading} onClick={() => void prepare(item.contractId)}
+        style={{ background:"#050002", color:"#fff", border:0, borderRadius:24, padding:"12px 20px", fontWeight:700, cursor:"pointer" }}>
+        {starting ? "Preparando firma…" : "Preparar firma del contrato"}
+      </button>
+    </div>)}
     {items.map(item => <div key={item.contractId} style={{ display:"flex", gap:12, flexWrap:"wrap", alignItems:"center", marginTop:12 }}>
       <span>Contrato · {item.role === "owner" ? "Propietario" : "Inquilino"}</span>
       <a href={item.signingUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"
