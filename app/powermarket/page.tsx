@@ -21,7 +21,7 @@ const labels:Record<string,string>={submitted:"Nueva",under_review:"En evaluaci�
 const actions=[["under_review","En evaluación"],["more_info_required","Pedir documentación"],["prequalified","Precalificar"],["alternative_offered","Ofrecer otro monto"],["not_eligible","Rechazar"]]
 export default function PowerMarketDashboard(){
  const [items,setItems]=useState<Application[]>([]),[selected,setSelected]=useState<string|null>(null)
- const [error,setError]=useState(""),[loading,setLoading]=useState(true),[email,setEmail]=useState(""),[password,setPassword]=useState("")
+ const [error,setError]=useState(""),[loading,setLoading]=useState(true),[email,setEmail]=useState("")
  const [logged,setLogged]=useState(false),[busy,setBusy]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState("")
  const [notice,setNotice]=useState("")
  const [amount,setAmount]=useState(""),[note,setNote]=useState(""),[docs,setDocs]=useState<DocumentRow[]|null>(null)
@@ -76,7 +76,6 @@ export default function PowerMarketDashboard(){
   })()
  },[])
  function select(item:Application){trackPostHog("powermarket_application_opened",{area:"powermarket",role:"partner",status:item.status});setSelected(item.id);setDocs(null);setReviews(null);setQuotes(null);setPolicies(null);setOpenedReviewIds([]);setNote("");setAmount(String(item.approved_max_total_ars??""))}
- async function login(e:React.FormEvent){e.preventDefault();setError("");setBusy(true);const {error:err}=await supabase.auth.signInWithPassword({email,password});setBusy(false);if(err){setError("Credenciales incorrectas");return}setPassword("");setLoading(true);await refresh()}
  async function requestVerloAccess(){
   setError("");setNotice("")
   const address=email.trim().toLowerCase()
@@ -238,13 +237,9 @@ export default function PowerMarketDashboard(){
    <form onSubmit={login} style={{background:"#fff",maxWidth:420,padding:28,borderRadius:20,marginTop:32,display:"grid",gap:15}}>
     <h1 style={{fontSize:24,lineHeight:1.2,margin:0}}>Acceso privado</h1>
     <label>Email<input type="email" style={{...control,display:"block",marginTop:6}} required value={email} onChange={e=>setEmail(e.target.value)}/></label>
-    <label>Contraseña (si ya tenés una)<input type="password" style={{...control,display:"block",marginTop:6}} value={password} onChange={e=>setPassword(e.target.value)}/></label>
-    <button style={button} disabled={busy||!password}>Ingresar con contraseña</button>
-    {process.env.NEXT_PUBLIC_SUPABASE_URL==="https://anptswspguyotnasoacq.supabase.co"&&
-    <button type="button" style={{...button,background:"#fff",color:"#050002",border:"1px solid #050002"}}
-      disabled={busy} onClick={()=>void requestVerloAccess()}>Recibir enlace de acceso desde VERLO</button>}
+    <button type="button" style={button} disabled={busy} onClick={()=>void requestVerloAccess()}>Enviar acceso desde VERLO</button>
 
-    <small>Para entrar por primera vez, escribí tu email y tocá «Recibir enlace de acceso desde VERLO». No necesitás contraseña.</small>
+    <small>Recibirás un enlace personal desde VERLO. No se necesita contraseña.</small>
    </form>:
    <div style={{paddingTop:28}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:8,marginBottom:18}}>
