@@ -45,9 +45,9 @@ export async function GET(request: NextRequest) {
       .ilike("tenant_email", email).in("status", ["created", "sent", "pending"]).limit(20),
   ])
   if (ownerDocs.error || tenantDocs.error) return response({ error: "No pudimos consultar las firmas" }, 503)
-  const docs = Array.from(new Map(
-    [...ownerDocs.data || [], ...tenantDocs.data || []].map(d => [d.id, d])
-  ).values())
+  const combined = [...(ownerDocs.data || []), ...(tenantDocs.data || [])]
+  const docs = combined.filter((doc, index) =>
+    combined.findIndex(item => item.id === doc.id) === index)
 
   const items: Array<{ contractId: string; role: "owner" | "tenant"; signingUrl: string }> = []
   for (const doc of docs) {
