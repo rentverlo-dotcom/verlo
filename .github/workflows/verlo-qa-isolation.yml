@@ -1,3 +1,4 @@
+# Manual QA certification trigger after stabilizing the shared preview SHA; no test logic changed.
 name: VERLO QA - isolation and traditional matching
 
 on:
