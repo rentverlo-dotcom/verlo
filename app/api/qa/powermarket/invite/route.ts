@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic"
 
 const QA_URL = "https://anptswspguyotnasoacq.supabase.co"
 const QA_ORIGIN = "https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app"
-const OWNER = "juanoddone29@gmail.com"
+const OWNER = "rentverlo@gmail.com"
 const PARTNER = "mpagoto@pmb.com.ar"
 
 const reply = (status: number, body: object) =>
