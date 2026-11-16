@@ -10,6 +10,7 @@ import { checkTraditionalSigningReadiness } from "@/lib/identik/traditional-sign
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+export const maxDuration = 60
 
 const response = (body: Record<string, unknown>, status = 200) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } })
