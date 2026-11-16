@@ -183,7 +183,21 @@ export async function POST(request: NextRequest) {
       includeSigningUrls: true,
       meta: { distributionMethod: 'NONE', language: 'es',
         subject: 'VERLO QA: firma de contrato de prueba',
-        emailSettings: { recipientSigningRequest: false } },
+        emailSettings: {
+          recipientSigningRequest: false,
+          recipientRemoved: false,
+          recipientSigned: false,
+          documentPending: false,
+          documentCompleted: false,
+          documentDeleted: false,
+          ownerDocumentCompleted: false,
+          ownerRecipientExpired: false,
+          ownerDocumentCreated: false,
+        },
+        reminderSettings: {
+          sendAfter: { disabled: true },
+          repeatEvery: { disabled: true },
+        } },
     })
     const sent = await db.from('identik_electronic_documents')
       .update({ status: 'sent', updated_at: new Date().toISOString() })
