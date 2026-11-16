@@ -1,0 +1,39 @@
+name: VERLO - Next 15 patched migration diagnostic
+
+on:
+  push:
+    branches:
+      - security/next15-patched-upgrade
+    paths:
+      - '.github/workflows/next15-upgrade-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: '1'
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-public-test-key
+      SUPABASE_SERVICE_ROLE_KEY: dummy-private-build-only-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Check verified baseline dependency lock
+        run: npm ci
+      - name: Install supported patched Next 15 / React 19 temporarily
+        run: npm install --no-save --package-lock=false next@15.5.29 react@19.3.1 react-dom@19.3.1 @types/react@19 @types/react-dom@19
+      - name: Confirm resolved versions
+        run: node -e "for(const p of ['next','react','react-dom','@types/react','@types/react-dom']) console.log(p,require(p+'/package.json').version)"
+      - name: Compile release candidate without external integrations
+        run: npx next build
+      - name: Run scoped legacy-security checks
+        run: npx playwright test tests/qa/legacy-property-api-closure.spec.ts --config=playwright.qa.config.ts
