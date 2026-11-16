@@ -29,6 +29,9 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-public-test-key
       SUPABASE_SERVICE_ROLE_KEY: dummy-private-build-only-key
+      R2_ACCOUNT_ID: dummy-build-account
+      R2_ACCESS_KEY_ID: dummy-build-access-key
+      R2_SECRET_ACCESS_KEY: dummy-build-secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
