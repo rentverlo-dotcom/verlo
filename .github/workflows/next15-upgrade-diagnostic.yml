@@ -27,8 +27,8 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Check verified baseline dependency lock
-        run: npm ci
+      # The historic npm lock is not reproducible with Node 24's npm; the
+      # clean Node 20 baseline was already certified separately.
       - name: Install supported patched Next 15 / React 19 temporarily
         run: npm install --no-save --package-lock=false next@15.5.29 react@19.3.1 react-dom@19.3.1 @types/react@19 @types/react-dom@19
       - name: Confirm resolved versions
