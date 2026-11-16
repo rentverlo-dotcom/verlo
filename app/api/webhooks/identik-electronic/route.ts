@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { makeIdentikElectronicClient } from "@/lib/identik/electronic-v2"
 import { identikCanAdvance, identikProviderStatus } from "@/lib/identik/reconciliation-status"
+import { archiveIdentikArtifacts } from "@/lib/identik/archive-artifacts"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -67,6 +68,20 @@ export async function POST(request: NextRequest) {
     .eq("identik_document_id", documentId)
     .maybeSingle()
   if (lookupError) return NextResponse.json({ ok: false }, { status: 503 })
+  async function ensureArchived(localId: string): Promise<boolean> {
+    const { data: row, error: readError } = await db
+      .from("identik_electronic_documents")
+      .select("id,lead_contract_id,identik_document_id,status,signed_pdf_storage_key,certificate_storage_key")
+      .eq("id", localId).maybeSingle()
+    if (readError || !row || row.status !== "completed" || !row.identik_document_id) return false
+    if (row.signed_pdf_storage_key && row.certificate_storage_key) return true
+    const providerUrl = isQA
+      ? "https://sandbox-electronica.identik.me/api/v2"
+      : "https://electronica.identik.me/api/v2"
+    const archived = await archiveIdentikArtifacts(db, row, providerUrl)
+    return archived.pdf && archived.certificate
+  }
+
   // Unknown documents must never mutate local contracts.
   if (!local) return NextResponse.json({ ok: true, ignored: true })
 
@@ -96,6 +111,15 @@ export async function POST(request: NextRequest) {
     // Provider polling and webhook share one monotonic state machine.
     // Never rewrite an already completed/terminal document or move backward.
     if (!identikCanAdvance(local.status, status)) {
+      // Replayed COMPLETED events repair partially archived artifacts.
+      if (local.status === "completed" && status === "completed") {
+        try {
+          if (!await ensureArchived(local.id))
+            return NextResponse.json({ ok: false, retryable: true, archivePending: true }, { status: 503 })
+        } catch {
+          return NextResponse.json({ ok: false, retryable: true, archivePending: true }, { status: 503 })
+        }
+      }
       return NextResponse.json({ ok: true, recorded: true, duplicate, unchanged: true })
     }
     const now = new Date().toISOString()
@@ -118,6 +142,14 @@ export async function POST(request: NextRequest) {
       // Another worker won the compare-and-swap: let the provider retry,
       // or polling perform a fresh read. Never overwrite its result.
       return NextResponse.json({ ok: false, recorded: true, duplicate, retryable: true }, { status: 503 })
+    }
+    if (status === "completed") {
+      try {
+        if (!await ensureArchived(local.id))
+          return NextResponse.json({ ok: false, recorded: true, retryable: true, archivePending: true }, { status: 503 })
+      } catch {
+        return NextResponse.json({ ok: false, recorded: true, retryable: true, archivePending: true }, { status: 503 })
+      }
     }
     return NextResponse.json({ ok: true, recorded: true, duplicate, status })
   } catch {
