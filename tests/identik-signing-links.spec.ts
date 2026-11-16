@@ -17,7 +17,7 @@ test("Identik signing URLs are stored only in the private bucket after validatin
   expect(route).toContain("await saveSigningLinks(db, reservation.id, links)")
   expect(route).toContain("await readOwnSigningLink(db, doc.id, role)")
   expect(route.indexOf("await saveSigningLinks")).toBeLessThan(route.indexOf('status: "sent"'))
-  expect(route.indexOf("await saveSigningLinks")).toBeLessThan(route.indexOf("sendEmailToLeadOnce"))
+  expect(route.indexOf("await saveSigningLinks")).toBeLessThan(route.indexOf("await sendEmailToLeadOnce("))
 })
 
 test("Existing sessions remain restricted to the authenticated contract participant", () => {
