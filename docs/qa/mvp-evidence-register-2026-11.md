@@ -131,6 +131,19 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - La documentacion publica de Identik describe firma electronica vendida por documento en packs y biometria opcional por firma verificada, pero la facturacion de sandbox y contratos empresariales depende del acuerdo concreto; **no declarar que el sandbox es gratis ni que genera cargos sin factura/condiciones contractuales**.
 - Antes de volver a crear/distribuir un documento o activar biometria, revisar credito y condiciones reales; pruebas de lectura y automatizadas no sustituyen esa comprobacion.
 
+## Cierre de conciliacion de pagos — lectura Supabase 16/11/2026
+
+**Verificacion de solo lectura, sin nuevos cobros, ni SQL de escritura.** Se consulto directamente `temporary_payment_attempts` agregado por `amount_ars,status,provider`, unido por `reservation_id` a `temporary_reservations` para comparar su estado. Proyectos separados: produccion `bmgrpcqrdvwculrisasi`; QA `anptswspguyotnasoacq`. No se extrajeron datos de identidad.
+
+| Entorno | Importe | Proveedor | Pagos `approved` | Reservas vinculadas |
+|---|---:|---|---:|---|
+| Produccion | ARS 29.900 | mercadopago | **2** | **1 `fee_paid` + 1 `confirmed`** |
+| QA | ARS 49.999 | mercadopago | **1** | **1 `confirmed`** |
+
+**Conclusion limitada:** queda acreditada la existencia de un pago Sandbox de ARS 49.999 aprobado en QA cuya reserva esta `confirmed` y los dos pagos reales historicos de ARS 29.900, sin repetir transacciones. El estado presente `confirmed` no demuestra por si solo la secuencia historica de todos los webhooks; la seguridad de transiciones, reintentos e idempotencia se cubre por pruebas automatizadas aprobadas en [Actions #280](https://github.com/rentverlo-dotcom/verlo/actions/runs/43954940970). No declarar un nuevo cobro de produccion de ARS 49.999.
+
+**Implicacion obligatoria para release:** la migracion del CHECK de montos debe admitir registros historicos de ARS 29.900 y nuevas operaciones a ARS 49.999 sin alterar ningun pago aprobado. Toda propuesta SQL de escritura debe presentarse al propietario; el agente no la ejecuta.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
