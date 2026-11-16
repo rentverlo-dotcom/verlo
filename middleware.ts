@@ -193,6 +193,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Read-only provider URL check; handler verifies exact workflow OIDC and SHA.
+  if (verified && request.method === 'GET' && path === '/api/qa/identik/signing-url-check') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' && path === '/api/qa/identik/readiness') {
     return NextResponse.next()
   }
