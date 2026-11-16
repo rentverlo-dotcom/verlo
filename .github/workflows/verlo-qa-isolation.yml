@@ -272,6 +272,17 @@ jobs:
           done
           echo "::error::Exact QA commit never reached Vercel"
           exit 1
+      - name: Verify existing Identik signing links can be retrieved without sending invitations
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 45 -H "Authorization: Bearer $token" "$QA_BASE_URL/api/qa/identik/signing-url-check" | jq -e '
+            .ok == true and .qaOnly == true and .readOnly == true and
+            .providerRead == true and .personalSigningUrlPresent == true and
+            .validSigningUrls >= 1
+          ' >/dev/null
+          echo "Identik personal signing URL available: provider read-only verified; no invitation sent"
       - name: Check authorized synthetic contract without provider effects
         shell: bash
         run: |
