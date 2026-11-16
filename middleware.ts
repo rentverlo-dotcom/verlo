@@ -11,6 +11,14 @@ function qaVerified() {
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
   const verified = qaVerified()
+  // The isolation allowlist below is ONLY for QA. Production routes must
+  // keep working after QA is merged into main; never inherit QA_API_LOCKED.
+  const production =
+    process.env.VERCEL_ENV === 'production' &&
+    process.env.VERCEL_GIT_COMMIT_REF === 'main' &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL ===
+      'https://bmgrpcqrdvwculrisasi.supabase.co'
+  if (production) return NextResponse.next()
 
   if (verified && request.method === 'GET' && path === '/buscar') {
     return NextResponse.redirect(new URL('/permanentes', request.url), 307)
