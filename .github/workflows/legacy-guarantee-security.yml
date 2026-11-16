@@ -1,0 +1,27 @@
+name: VERLO - isolated legacy guarantee approval closure
+
+on:
+  push:
+    branches:
+      - security/legacy-guarantee-api-closure
+    paths:
+      - '.github/workflows/legacy-guarantee-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-guarantee-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install previously certified pinned dependencies
+        run: npm ci --no-audit
+      - name: Verify blocked legacy approvals and retained PowerMarket authorization
+        run: npx playwright test tests/qa/legacy-guarantee-closure.spec.ts tests/qa/legacy-property-api-closure.spec.ts --config=playwright.qa.config.ts
