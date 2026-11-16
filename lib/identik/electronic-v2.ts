@@ -131,9 +131,12 @@ export function makeIdentikElectronicClient(options?: {
       return response.json()
     },
 
-    async getDocument(documentId: number): Promise<IdentikDocumentStatus> {
+    async getDocument(documentId: number, includeSigningUrls = false): Promise<IdentikDocumentStatus> {
       assertDocumentId(documentId)
-      const response = await request(`/document/${documentId}`)
+      // The v2 API requires this explicit query parameter to return private
+      // signer URLs. Keep ordinary status polling link-free by default.
+      const suffix = includeSigningUrls ? "?includeSigningUrls=true" : ""
+      const response = await request(`/document/${documentId}${suffix}`)
       return response.json() as Promise<IdentikDocumentStatus>
     },
 
