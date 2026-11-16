@@ -35,6 +35,7 @@ on:
       - 'tests/powermarket-pdf.spec.ts'
       - 'tests/mercadopago-contract-webhook.spec.ts'
       - 'tests/identik-release-guard.spec.ts'
+      - 'tests/identik-signing-links.spec.ts'
       - 'tests/caucion-contract-discount.spec.ts'
       - 'lib/payments/caucion-contract-discount.ts'
       - 'lib/payments/mercadopago-contract-state.ts'
@@ -233,6 +234,8 @@ jobs:
           "
       - name: Verify Identik release and signing security gates without provider calls
         run: npx playwright test tests/identik-release-guard.spec.ts --reporter=line
+      - name: Verify private Identik personal signing link safeguards
+        run: npx playwright test tests/identik-signing-links.spec.ts --reporter=line
       - name: Verify Mercado Pago contract webhook states without sending payments
         run: npx playwright test tests/mercadopago-contract-webhook.spec.ts --reporter=line
       - name: Verify contract fee and PowerMarket 50 percent discount without network or charges
