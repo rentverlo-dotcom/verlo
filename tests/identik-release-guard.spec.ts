@@ -50,7 +50,10 @@ test("Personal signing URL is only returned to a verified participant and never 
   expect(route).toContain("checkTraditionalSigningReadiness")
   expect(route).toContain('r.email.trim().toLowerCase() === email')
   expect(route).toContain("validProviderUrl(mine.signingUrl)")
-  expect(route).not.toContain("distributeDocument(")
+  // GET only reads existing sessions; POST may create and distribute on explicit action.
+  expect(route).toContain("export async function GET(")
+  expect(route).toContain("export async function POST(")
+  expect(route.slice(route.indexOf("export async function GET("), route.indexOf("export async function POST("))).not.toContain("distributeDocument(")
   expect(route).toContain("No pertenecés al contrato")
   expect(route).toContain("El contrato todavía no está habilitado para firmar")
   expect(route).toContain("includeSigningUrls: true")
