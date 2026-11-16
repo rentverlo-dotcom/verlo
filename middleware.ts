@@ -70,6 +70,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // These actions require a verified Supabase Auth session and independent
+  // per-document ownership checks in the handlers. Allow no other new routes.
+  if (verified && ['GET', 'POST'].includes(request.method) &&
+      ['/api/identik/my-signing', '/api/identik/my-signed'].includes(path)) {
+    return NextResponse.next()
+  }
+
   // PowerMarket QA dashboard remains behind verified Supabase Auth and
   // caucion_partner_users checks inside every handler; never opens production.
   if (verified && (
