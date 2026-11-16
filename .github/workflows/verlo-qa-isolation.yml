@@ -233,8 +233,27 @@ jobs:
           set -euo pipefail
           # GitHub supplies a short-lived, workflow-bound OIDC token. The server
           # verifies signature, repository, workflow, ref and deployed SHA.
-          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
-          curl -fsS --max-time 120 -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/mi-verlo/isolation" | node -e "
+          # Identity failure returns 403 before any synthetic users are created.
+          # Retry only that status with a fresh GitHub OIDC JWT, never a business failure.
+          bodyfile="$(mktemp)"
+          trap 'rm -f "$bodyfile"' EXIT
+          for attempt in 1 2 3; do
+            token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+            status="$(curl -sS --max-time 120 -o "$bodyfile" -w '%{http_code}' -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/mi-verlo/isolation")"
+            if [ "$status" = 200 ]; then break; fi
+            if [ "$status" != 403 ]; then
+              echo "::error::Mi VERLO QA isolation returned HTTP $status"
+              jq -c '{ok,error}' "$bodyfile" || true
+              exit 1
+            fi
+            echo "::warning::Mi VERLO QA OIDC rejected before fixture creation (403), attempt $attempt"
+            if [ "$attempt" = 3 ]; then
+              echo "::error::Three fresh OIDC tokens rejected; test was not executed"
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
+          node -e "
             let input = '';
             process.stdin.on('data', chunk => input += chunk);
             process.stdin.on('end', () => {
@@ -248,7 +267,7 @@ jobs:
               }
               console.log('Mi VERLO real Auth: separate owner / tenant + shared match verified');
             });
-          "
+          " < "$bodyfile"
       - name: Verify Identik release and signing security gates without provider calls
         run: npx playwright test tests/identik-release-guard.spec.ts --reporter=line
       - name: Verify private Identik personal signing link safeguards
