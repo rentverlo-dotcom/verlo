@@ -6,6 +6,7 @@ on:
       - security/next15-patched-upgrade
     paths:
       - '.github/workflows/next15-upgrade-diagnostic.yml'
+      - 'app/alquileres/**'
   workflow_dispatch:
 
 permissions:
