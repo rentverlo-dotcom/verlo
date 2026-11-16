@@ -51,5 +51,12 @@ test("Personal signing URL is only returned to a verified participant and never 
   expect(route).toContain('r.email.trim().toLowerCase() === email')
   expect(route).toContain("validProviderUrl(mine.signingUrl)")
   expect(route).not.toContain("distributeDocument(")
-  expect(route).not.toContain("createDocument(")
+  expect(route).toContain("No pertenecés al contrato")
+  expect(route).toContain("El contrato todavía no está habilitado para firmar")
+  expect(route).toContain("includeSigningUrls: true")
+  expect(route).toContain('distributionMethod: "NONE"')
+  expect(route).toContain("IDENTIK_BIOMETRIC_SIGNING_CONFIRMED")
+  expect(route).toContain("Otra sesión ya está siendo preparada")
+  expect(route).toContain("manualRecoveryRequired")
+
 })
