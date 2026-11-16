@@ -189,6 +189,17 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - **Pendiente previo a integracion y release:** comprobar compilacion de produccion bajo la version de Node/Next definitiva y, cuando haya un entorno con login de prueba, probar autenticacion y aislamiento de dos sesiones. No declarar certificacion completa de guardadas basandose solo en lectura estatica.
 - No se escribieron filas ni esquema en Supabase, no se alteraron clientes, y no se borraron registros `property_likes` historicos. Garante fuera de alcance hasta pos-lanzamiento.
 
+## Limpieza de dependencias swipe legacy — 16/11/2026
+
+**Estado: validada en rama aislada; NO incorporada aun a `qa/verlo-e2e` ni a `main`.** Rama `security/legacy-dependency-cleanup`, SHA final `d6707e3a5b87f34ff759691154f3577a3edb33cf`.
+
+- Sin imports de runtime en `app/`, `components/`, `lib/` u `owner/`: `react-tinder-card` y `@react-spring/web` solamente figuraban como dependencias antiguas. Se quitaron de `package.json` y de los lockfiles `package-lock.json` y `pnpm-lock.yaml`. No se tocaron componentes o rutas del matching, ni codigo de negocio, ni React ni Next.
+- El lockfile pnpm tenia una **inconsistencia preexistente**: faltaba `web-push` (ya en `package.json`). La primera prueba fue roja por esta discrepancia; se regenero y sincronizo el lockfile en rama aislada por CI, preservando su dependencia. No se retiro `web-push`.
+- [Actions #43972699803](https://github.com/rentverlo-dotcom/verlo/actions/runs/43972699803) **SUCCESS**: ausencia de imports legacy en fuentes, `npm ci` limpio Node 20, regeneracion pnpm con `--lockfile-only --no-frozen-lockfile`, luego instalación `pnpm --frozen-lockfile --ignore-scripts`, y pruebas Playwright especificas de seguridad legacy + guardadas. El push final de la normalizacion de pnpm queda como `d6707e3` y fue precedido por la validacion del archivo generado en esa ejecucion.
+- Los intentos #43972513395 y #43972542297 fallaron antes de poder validar pnpm por el lockfile desactualizado; **no representan un error funcional de VERLO**, y su causa queda cerrada en el archivo regenerado.
+- **Limitaciones:** esta tanda no prueba build con Next.js 15, ni TypeScript global (tsconfig original incompleto), ni completa regresion comercial. No ejecutar nuevas pruebas de pagos/Identik por esta limpieza. El retiro de pantallas y tablas swipe antiguas es independiente y queda fuera del corte minimo de lanzamiento.
+- **Sin cambios en producción, Supabase, main o QA funcional**; solamente ramas de seguridad aisladas y documentación de evidencia en QA. Evitar integrar estas ramas sin la prueba final de build y la lista de archivos de release.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
