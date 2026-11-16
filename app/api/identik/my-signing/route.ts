@@ -208,10 +208,10 @@ export async function POST(request: NextRequest) {
       },
       "contrato-verlo.pdf",
     )
-    const { error: savedError } = await db.from("identik_electronic_documents")
+    const { data: saved, error: savedError } = await db.from("identik_electronic_documents")
       .update({ identik_document_id: created.id, status: "created", updated_at: new Date().toISOString() })
-      .eq("id", reservation.id).eq("status", "creating")
-    if (savedError) return response({ error: "Identik recibió el contrato; se requiere conciliación", manualRecoveryRequired: true }, 503)
+      .eq("id", reservation.id).eq("status", "creating").select("id").maybeSingle()
+    if (savedError || !saved) return response({ error: "Identik recibió el contrato; se requiere conciliación", manualRecoveryRequired: true }, 503)
 
     await client.distributeDocument({
       documentId: created.id, includeSigningUrls: true,
@@ -225,10 +225,10 @@ export async function POST(request: NextRequest) {
         reminderSettings: { sendAfter: { disabled: true }, repeatEvery: { disabled: true } },
       },
     })
-    const { error: distributedError } = await db.from("identik_electronic_documents")
+    const { data: distributed, error: distributedError } = await db.from("identik_electronic_documents")
       .update({ status: "sent", updated_at: new Date().toISOString() })
-      .eq("id", reservation.id).eq("status", "created")
-    if (distributedError) return response({ error: "Identik recibió el contrato; se requiere conciliación", manualRecoveryRequired: true }, 503)
+      .eq("id", reservation.id).eq("status", "created").select("id").maybeSingle()
+    if (distributedError || !distributed) return response({ error: "Identik recibió el contrato; se requiere conciliación", manualRecoveryRequired: true }, 503)
     // Communications are owned by VERLO, never Identik. QA captures only
     // synthetic intents and suppresses external Push/email delivery.
     const portal = "https://verlo.lat/mi-verlo"
