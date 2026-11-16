@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { createHash, randomUUID } from "node:crypto"
 import { createCaucionContractPdf } from "@/lib/powermarket/contract-pdf"
 import { identikSignatureField } from "@/lib/identik/signature-geometry"
+import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
+import { sendPushToLead } from "@/lib/push"
 import { createClient } from "@supabase/supabase-js"
 import { makeIdentikElectronicClient } from "@/lib/identik/electronic-v2"
 import { checkTraditionalSigningReadiness } from "@/lib/identik/traditional-signing-preflight"
@@ -226,6 +228,31 @@ export async function POST(request: NextRequest) {
       .update({ status: "sent", updated_at: new Date().toISOString() })
       .eq("id", reservation.id).eq("status", "created")
     if (distributedError) return response({ error: "Identik recibió el contrato; se requiere conciliación", manualRecoveryRequired: true }, 503)
+    // Communications are owned by VERLO, never Identik. QA captures only
+    // synthetic intents and suppresses external Push/email delivery.
+    const portal = "https://verlo.lat/mi-verlo"
+    const notices = [
+      { leadId: contract.owner_lead_id, email: owner.email, role: "owner" as const },
+      { leadId: contract.tenant_lead_id, email: tenant.email, role: "tenant" as const },
+    ]
+    await Promise.allSettled(notices.map(async (notice) => {
+      const eventKey = "signature_ready:" + notice.role + ":" + contractId
+      await enqueueVerloEmailSafely({
+        area: "tradicionales", eventType: "signature_ready",
+        eventKey, recipientEmail: notice.email,
+        recipientRole: notice.role, url: portal,
+        title: "Tu contrato está listo para firmar",
+        body: "Ingresá a Mi VERLO y pulsá Firmar contrato para completar tu firma electrónica.",
+      })
+      // Push is best-effort, and a missing device must never block signing.
+      try {
+        await sendPushToLead(notice.leadId, {
+          title: "Tu contrato está listo para firmar",
+          body: "Ingresá a Mi VERLO para completar tu firma electrónica.",
+          url: "/mi-verlo",
+        })
+      } catch { /* notification delivery is separate from contract creation */ }
+    }))
     return response({ ok: true, prepared: true })
   } catch {
     // Never retry a provider call automatically after ambiguous failure.
