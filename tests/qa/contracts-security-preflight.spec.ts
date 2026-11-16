@@ -10,8 +10,10 @@ test('Tradicionales: matching and contracts cannot be accessed with forged party
     invalidOwnerTokenRejected: true,
     invalidContractTokenRejected: true,
   })
-  expect(data.compatibleMatches).toBeGreaterThan(0)
-  expect(data.contractRecords).toBeGreaterThanOrEqual(0)
+  // Availability of matching fixtures belongs to the independent
+  // contract lifecycle test, not to forged-token authorization.
+  expect(data).not.toHaveProperty('compatibleMatches')
+  expect(data).not.toHaveProperty('contractRecords')
 })
 
 test('QA continues preventing direct writes to match and contract operations', async ({ request }) => {
