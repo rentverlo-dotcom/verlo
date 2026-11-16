@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   })
   try {
     const provider = await makeIdentikElectronicClient({ baseUrl: SANDBOX })
-      .getDocument(Number(doc.identik_document_id))
+      .getDocument(Number(doc.identik_document_id), true)
     const recipients = Array.isArray(provider.recipients) ? provider.recipients : []
     const emails = [doc.owner_email, doc.tenant_email].map(s => String(s || "").trim().toLowerCase())
     const signers = recipients.filter(item =>
