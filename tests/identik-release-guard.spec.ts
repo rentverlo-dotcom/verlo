@@ -60,3 +60,17 @@ test("Personal signing URL is only returned to a verified participant and never 
   expect(route).toContain("manualRecoveryRequired")
 
 })
+
+test("Archived signed PDF can be downloaded only by a verified party", () => {
+  const route = source("app/api/identik/my-signed/route.ts")
+  expect(route).toContain("auth.auth.getUser")
+  expect(route).toContain("data.user.email_confirmed_at")
+  expect(route).toContain("lead?.email?.trim().toLowerCase() !== ctx.email")
+  expect(route).toContain('eq("status", "completed")')
+  expect(route).toContain("bucket.public")
+  expect(route).toContain("createSignedUrl(row.key, 60)")
+  const webhook = source("app/api/webhooks/identik-electronic/route.ts")
+  expect(webhook).toContain("ensureArchived(local.id)")
+  expect(webhook).toContain("archiveIdentikArtifacts")
+  expect(webhook).toContain("archivePending: true")
+})
