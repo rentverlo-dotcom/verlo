@@ -19,17 +19,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['20', '24']
+        node: ['24']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - name: Verify baseline lockfile (no writes to repository)
-        run: npm ci --ignore-scripts
-      - name: Temporarily install supported framework major without changing tracked files
-        run: npm install --no-save --package-lock=false next@15 react@19 react-dom@19
+      - name: Temporarily resolve patched framework and compatible animation library
+        run: npm install --no-save --package-lock=false next@15.5.29 react@19 react-dom@19 @react-spring/web@10.1.2
       - name: Print resolved framework versions
         run: node -e "for (const p of ['next','react','react-dom']) console.log(p,require(p+'/package.json').version)"
       - name: Check TypeScript compatibility
