@@ -24,11 +24,17 @@ function secureEqual(actual: string | null, expected: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b)
 }
 export async function POST(request: NextRequest) {
-  if (process.env.VERCEL_GIT_COMMIT_REF !== 'qa/verlo-e2e' ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://anptswspguyotnasoacq.supabase.co' ||
-      (process.env.IDENTIK_ELECTRONIC_API_BASE_URL &&
-       process.env.IDENTIK_ELECTRONIC_API_BASE_URL !== 'https://sandbox-electronica.identik.me/api/v2')) {
-    return NextResponse.json({ ok: false, error: 'QA_ONLY' }, { status: 503 })
+  const isQA = process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' &&
+    process.env.VERCEL_ENV === 'preview' &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://anptswspguyotnasoacq.supabase.co' &&
+    (process.env.IDENTIK_ELECTRONIC_API_BASE_URL || 'https://sandbox-electronica.identik.me/api/v2') === 'https://sandbox-electronica.identik.me/api/v2'
+  const isProduction = process.env.VERCEL_ENV === 'production' &&
+    process.env.VERCEL_GIT_COMMIT_REF === 'main' &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://bmgrpcqrdvwculrisasi.supabase.co' &&
+    process.env.IDENTIK_ELECTRONIC_API_BASE_URL === 'https://electronica.identik.me/api/v2'
+  // Never accept sandbox callbacks in production or production callbacks in QA.
+  if (!isQA && !isProduction) {
+    return NextResponse.json({ ok: false, error: 'IDENTIK_ENVIRONMENT_MISMATCH' }, { status: 503 })
   }
   const secret = process.env.IDENTIK_ELECTRONIC_WEBHOOK_SECRET
   if (!secret) return NextResponse.json({ ok: false }, { status: 503 })
