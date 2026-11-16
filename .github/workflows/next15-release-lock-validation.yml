@@ -1,0 +1,70 @@
+name: VERLO - pinned Next 15 release candidate
+
+on:
+  push:
+    branches:
+      - security/next15-patched-upgrade
+    paths:
+      - '.github/workflows/next15-release-lock-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pinned-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CI: '1'
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-public-test-key
+      SUPABASE_SERVICE_ROLE_KEY: dummy-private-build-only-key
+      R2_ACCOUNT_ID: dummy-build-account
+      R2_ACCESS_KEY_ID: dummy-build-access-key
+      R2_SECRET_ACCESS_KEY: dummy-build-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Generate npm lock from pinned supported package versions
+        run: npm install --package-lock-only --ignore-scripts --no-audit
+      - name: Validate npm clean install
+        run: npm ci --no-audit
+      - name: Generate and check pnpm frozen lock
+        run: |
+          npx --yes pnpm@9.15.9 install --lockfile-only --no-frozen-lockfile --ignore-scripts
+          npx --yes pnpm@9.15.9 install --frozen-lockfile --ignore-scripts
+      - name: Confirm exact security versions
+        run: |
+          node -e "for(const [n,v] of [['next','15.5.29'],['react','19.3.1'],['react-dom','19.3.1']]) {const actual=require(n+'/package.json').version; if(actual!==v)throw Error(n+' expected '+v+' got '+actual); console.log(n,actual)}"
+      - name: Generate ephemeral VAPID keys for offline build
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const keys = require('web-push').generateVAPIDKeys()
+          const nl = String.fromCharCode(10)
+          fs.appendFileSync(process.env.GITHUB_ENV,
+            'NEXT_PUBLIC_VAPID_PUBLIC_KEY=' + keys.publicKey + nl +
+            'VAPID_PRIVATE_KEY=' + keys.privateKey + nl +
+            'VAPID_SUBJECT=mailto:qa-build@example.com' + nl)
+          NODE
+      - name: Production build with pinned dependencies
+        run: npx next build
+      - name: Scoped security tests (no writes or provider calls)
+        run: npx playwright test tests/qa/legacy-property-api-closure.spec.ts --config=playwright.qa.config.ts
+      - name: Commit verified lockfiles and generated framework TypeScript config
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add package-lock.json pnpm-lock.yaml tsconfig.json
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'chore(security): lock verified Next 15 React 19 release dependencies'
+            git push origin HEAD:security/next15-patched-upgrade
+          fi
