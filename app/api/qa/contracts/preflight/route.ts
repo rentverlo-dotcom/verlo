@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { POST as tenantInterest } from '@/app/api/match-interest/route'
 import { POST as ownerInterest } from '@/app/api/owner-interest/route'
 import { POST as postVisitDecision } from '@/app/api/post-visit-decision/route'
@@ -31,24 +30,18 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: 'QA_ONLY' }, { status: 503 })
   }
 
-  const db = createClient(QA_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-  const [matches, contracts, tenant, owner, decision] = await Promise.all([
-    db.from('lead_matches').select('id', { count: 'exact', head: true }).gte('score', 80),
-    db.from('lead_contracts').select('id', { count: 'exact', head: true }),
+  // Security invariant: forged party tokens must always be rejected.
+  // The existence of high-scoring matching fixtures is tested separately
+  // by /api/qa/contracts/lifecycle, which creates and validates its own pair.
+  const [tenant, owner, decision] = await Promise.all([
     denial(tenantInterest, {token: 'invalid-qa-tenant-token', match_id: FAKE_MATCH}),
     denial(ownerInterest, {token: 'invalid-qa-owner-token', match_id: FAKE_MATCH}),
     denial(postVisitDecision, {token: 'invalid-qa-contract-token', decision: 'yes'}),
   ])
-  const ok = !matches.error && !contracts.error &&
-    tenant.safe && owner.safe && decision.safe &&
-    (matches.count || 0) > 0
+  const ok = tenant.safe && owner.safe && decision.safe
 
   return NextResponse.json({
     ok, qaOnly: true, readOnly: true, noProviderCalls: true,
-    compatibleMatches: matches.count || 0,
-    contractRecords: contracts.count || 0,
     invalidTenantTokenRejected: tenant.safe,
     invalidOwnerTokenRejected: owner.safe,
     invalidContractTokenRejected: decision.safe,
