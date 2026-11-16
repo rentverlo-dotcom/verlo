@@ -79,5 +79,28 @@ export async function GET(request: NextRequest) {
       // Fail closed: provider unavailable never exposes another person's URL.
     }
   }
-  return response({ ok: true, items })
+  // Discover agreed contracts owned by the verified email. The readiness
+  // check enforces bilateral agreement, payment and PowerMarket approval.
+  const { data: ownLeads, error: ownError } = await db.from("lead_intake")
+    .select("id").ilike("email", email).limit(100)
+  if (ownError) return response({ error: "No pudimos verificar tus contratos" }, 503)
+  const leadIds = (ownLeads || []).map(lead => lead.id)
+  const ready: Array<{ contractId: string }> = []
+  if (leadIds.length > 0) {
+    const [ownerContracts, tenantContracts] = await Promise.all([
+      db.from("lead_contracts").select("id").in("owner_lead_id", leadIds).eq("status", "agreed").limit(30),
+      db.from("lead_contracts").select("id").in("tenant_lead_id", leadIds).eq("status", "agreed").limit(30),
+    ])
+    if (ownerContracts.error || tenantContracts.error)
+      return response({ error: "No pudimos verificar tus contratos" }, 503)
+    const contracts = [...(ownerContracts.data || []), ...(tenantContracts.data || [])]
+    for (const contract of contracts.filter((v,i,a)=>a.findIndex(other=>other.id===v.id)===i)) {
+      const { data: existing } = await db.from("identik_electronic_documents")
+        .select("id").eq("lead_contract_id", contract.id).maybeSingle()
+      if (existing) continue
+      const gate = await checkTraditionalSigningReadiness(db, contract.id)
+      if (gate.allowed) ready.push({ contractId: contract.id })
+    }
+  }
+  return response({ ok: true, items, ready })
 }
