@@ -80,7 +80,7 @@ export default function PowerMarketDashboard(){
  async function requestVerloAccess(){
   setError("");setNotice("")
   const address=email.trim().toLowerCase()
-  if(!["juanoddone29@gmail.com","mpagoto@pmb.com.ar"].includes(address)){
+  if(!["rentverlo@gmail.com","mpagoto@pmb.com.ar"].includes(address)){
     setError("Este acceso está reservado a usuarios autorizados de VERLO y PowerMarket.");return
   }
   setBusy(true)
