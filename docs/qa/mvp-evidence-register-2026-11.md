@@ -154,6 +154,17 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - Las comprobaciones de webhook de Mercado Pago, bloqueo de cobro e idempotencia continúan **APROBADAS EN PRUEBAS AUTOMATICAS** según [Actions #280](https://github.com/rentverlo-dotcom/verlo/actions/runs/43954940970). Este resultado no certifica una transacción real tradicional en Mercado Pago.
 - **Regla:** no volver a generar pagos ni alterar el registro sin reproducir una falla concreta. Mantener separado del cierre verificado de ARS 49.999 de Temporarios.
 
+## Verificacion de identidad de firmantes VERLO → Identik — 16/11/2026
+
+**Auditoria estatica de codigo del recorrido comercial en `app/api/identik/my-signing/route.ts` y `lib/identik/electronic-v2.ts`, sin enviar nada a Identik ni modificar DB.**
+
+- `POST /api/identik/my-signing` valida token Supabase Auth y email confirmado, recupera `lead_contracts.owner_lead_id` y `tenant_lead_id`, y carga `lead_intake.id,email,full_name` para esos IDs.
+- Encuentra `owner` y `tenant` mediante igualdad con sus respectivos IDs y exige que el solicitante tenga un correo de uno de los participantes, con comprobacion adicional de readiness del contrato.
+- Inserta `identik_electronic_documents.owner_email = owner.email.trim().toLowerCase()` y `tenant_email = tenant.email.trim().toLowerCase()`.
+- El arreglo `recipients` pasado a `makeIdentikElectronicClient().createDocument()` utiliza exactamente las mismas expresiones `owner.email.trim().toLowerCase()` y `tenant.email.trim().toLowerCase()`, respectivamente, con orden 1 propietario y 2 inquilino. El transporte envía ese payload por `POST /document/create` a Identik sin reemplazar correos.
+- **Resultado: correspondencia de emails entre participantes VERLO, registro local Identik y solicitud HTTP a Identik CERTIFICADA POR INSPECCION DEL CODIGO ACTUAL.** No supone que se haya observado un envío real nuevo. Los documentos QA 32 y 33 históricos tienen destinatarios Gmail reales frente a leads `@example.com`, por lo que no sirven para certificar descarga autenticada de ambos participantes. No tocar estos registros ni desactivar la comprobacion de identidad para hacer pasar la prueba.
+- **Falta únicamente, cuando se certifique un contrato real con los proveedores disponibles, observar el resultado de su entrega/descarga con identidades coincidentes**. No crear ni distribuir documentos nuevos solo para repetir esta correspondencia ya comprobada en código. La identidad biométrica Namirial continúa bloqueada por credenciales externas.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
