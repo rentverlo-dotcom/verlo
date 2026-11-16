@@ -35,6 +35,10 @@ test("QA signing does not send provider invitations, and production biometrics r
   const qa = source("app/api/qa/identik/create-signing/route.ts")
   expect(qa).toContain("distributionMethod: 'NONE'")
   expect(qa).toContain("recipientSigningRequest: false")
+  expect(qa).toContain("recipientSigned: false")
+  expect(qa).toContain("documentCompleted: false")
+  expect(qa).toContain("ownerDocumentCompleted: false")
+  expect(qa).toContain("sendAfter: { disabled: true }")
   expect(qa).toContain("includeSigningUrls: true")
 })
 
