@@ -2,9 +2,9 @@ import { notFound } from "next/navigation"
 import VerloBrand from "@/components/VerloBrand"
 
 type MockupLabPageProps = {
-  searchParams: {
+  searchParams: Promise<{
     key?: string
-  }
+  }>
 }
 
 const MOCKUP_KEY = process.env.MOCKUP_LAB_KEY
@@ -179,8 +179,9 @@ function ContractScene() {
   )
 }
 
-export default function MockupLabPage({ searchParams }: MockupLabPageProps) {
-  if (!MOCKUP_KEY || searchParams.key !== MOCKUP_KEY) {
+export default async function MockupLabPage({ searchParams }: MockupLabPageProps) {
+  const { key } = await searchParams
+  if (!MOCKUP_KEY || key !== MOCKUP_KEY) {
     notFound()
   }
 
