@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic"
 
 // The initial QA dashboard invitation belongs to the VERLO operator.
 // A partner contact is onboarded separately after this access is verified.
-const OWNER_EMAIL = "juanoddone29@gmail.com"
+const OWNER_EMAIL = "rentverlo@gmail.com"
 const PARTNER_EMAIL = "mpagoto@pmb.com.ar"
 const QA_SUPABASE = "https://anptswspguyotnasoacq.supabase.co"
 const respond = (status: number, body: object) =>
