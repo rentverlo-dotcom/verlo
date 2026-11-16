@@ -7,6 +7,7 @@ import { archiveIdentikArtifacts } from "@/lib/identik/archive-artifacts"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+export const maxDuration = 60
 
 type JSONObject = Record<string, unknown>
 function asObject(value: unknown): JSONObject | null {
