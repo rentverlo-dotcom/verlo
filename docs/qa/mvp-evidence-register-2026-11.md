@@ -176,6 +176,19 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - `GET /api/guardadas` conserva una identidad simulada y la pagina `/guardadas` aun lo consume: **pendiente de correccion autenticada separada**, no bloquear la pantalla hasta resolver su origen de sesion. Se han verificado referencias de `/api/property-action` desde el `MatchDeck` viejo; dicho endpoint exige token autentico; no se toco.
 - **Depuraciones pospuestas:** `react-tinder-card`, `@react-spring/web`, pantallas swipe y migracion de Next/Node/lockfiles. Ninguna eliminacion de tablas, filas, views, auth, datos o claves; cero SQL de escritura. Alcance MVP congelado.
 
+## Guardadas: correccion aislada de acceso por usuario — 16/11/2026
+
+**Alcance:** solo rama aislada `security/legacy-property-api-closure`; NO integrado a `qa/verlo-e2e` ni `main`, NO probado por usuarios reales. SHA `e2c2a246d55b3aef4a5d4d226ec5c427ee3baa9e`.
+
+- Se inspeccionaron sin modificar las columnas reales de `public.property_likes`, `properties` y `property_media` en Supabase produccion. `property_likes.tenant_id` tiene tipo `uuid`; `property_media` contiene `url,position,type`. La vista antigua esperaba `properties.cover_url`, columna que NO existe en `properties`.
+- `GET /api/guardadas`: se elimino el identificador hardcodeado `00000000-0000-0000-0000-000000000001`; exige `Authorization: Bearer` y confirma el JWT con `auth.getUser()`; aplica `.eq('tenant_id', data.user.id)` antes de leer usando el cliente privilegiado; devuelve HTTP 401 para solicitudes no autenticadas, sin divulgar errores internos. La portada sale de `property_media` (primera foto ordenada por posicion), manteniendo la forma anterior de respuesta.
+- `app/guardadas/page.tsx` obtiene la sesion local mediante el cliente Supabase existente y envia el Bearer de la sesion al endpoint; maneja ausencia de sesion, errores y lista vacia. No se modificaron matching actual, lead_matches, contratos ni pagos.
+- `tests/qa/legacy-property-api-closure.spec.ts` ahora incluye aserciones de seguridad de `guardadas`, autenticacion, filtro por usuario y reemplazo de columna inexistente. **Aserciones estaticas**: no constituyen una descarga efectiva de las guardadas de dos usuarios distintos.
+- [Actions #43971435716](https://github.com/rentverlo-dotcom/verlo/actions/runs/43971435716) fallo por un chequeo global `npx tsc --noEmit` sobre un `tsconfig.json` historico minimo (sin JSX/esModuleInterop). El chequeo de seguridad no se ejecuto en ese intento. Este es un **bloqueo de configuracion TypeScript global**, no prueba de un fallo en las nuevas rutas. No se modifico `tsconfig.json`.
+- [Actions #43971612245](https://github.com/rentverlo-dotcom/verlo/actions/runs/43971612245) **SUCCESS**, tras separar la verificacion global TypeScript de las pruebas acotadas: `npm ci` Node 20 y pruebas de endpoints legacy + `guardadas` aprobadas en el SHA aislado `e2c2a24`.
+- **Pendiente previo a integracion y release:** comprobar compilacion de produccion bajo la version de Node/Next definitiva y, cuando haya un entorno con login de prueba, probar autenticacion y aislamiento de dos sesiones. No declarar certificacion completa de guardadas basandose solo en lectura estatica.
+- No se escribieron filas ni esquema en Supabase, no se alteraron clientes, y no se borraron registros `property_likes` historicos. Garante fuera de alcance hasta pos-lanzamiento.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
