@@ -14,6 +14,9 @@ on:
       - 'app/mockup-lab/**'
       - 'app/api/qa/powermarket/**'
       - 'tsconfig.json'
+      - 'app/success/**'
+      - 'app/temporarios/success/**'
+      - 'app/tenant/validacion/**'
   workflow_dispatch:
 
 permissions:
