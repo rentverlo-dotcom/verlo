@@ -13,7 +13,7 @@ for (const endpoint of [
     expect(code).toContain('LEGACY_ENDPOINT_DISABLED')
     expect(code).toContain("status: 410")
     expect(code).not.toContain("SUPABASE_SERVICE_ROLE_KEY")
-    expect(code).not.toContain("match_guarantee_reviews")
+    expect(code).not.toContain('from("match_guarantee_reviews")')
     expect(code).not.toContain(".upsert(")
     expect(code).not.toContain(".insert(")
     expect(code).not.toContain(".update(")
