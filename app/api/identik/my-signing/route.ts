@@ -7,6 +7,7 @@ import { sendPushToLead } from "@/lib/push"
 import { createClient } from "@supabase/supabase-js"
 import { makeIdentikElectronicClient } from "@/lib/identik/electronic-v2"
 import { checkTraditionalSigningReadiness } from "@/lib/identik/traditional-signing-preflight"
+import { extractSigningLinks, readOwnSigningLink, saveSigningLinks } from "@/lib/identik/signing-links"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -79,8 +80,15 @@ export async function GET(request: NextRequest) {
         const r = item as Record<string, unknown>
         return typeof r.email === "string" && r.email.trim().toLowerCase() === email
       }) as Record<string, unknown> | undefined
-      if (mine && validProviderUrl(mine.signingUrl) && mine.signingStatus !== "SIGNED")
-        items.push({ contractId: contract.id, role: isOwner ? "owner" : "tenant", signingUrl: mine.signingUrl })
+      if (mine && mine.signingStatus !== "SIGNED") {
+        // Existing provider sessions may not expose personal URLs via GET.
+        // Prefer a previously captured URL from the private contract bucket.
+        const role = isOwner ? "owner" : "tenant"
+        const signingUrl = validProviderUrl(mine.signingUrl)
+          ? mine.signingUrl
+          : await readOwnSigningLink(db, doc.id, role)
+        if (signingUrl) items.push({ contractId: contract.id, role, signingUrl })
+      }
     } catch {
       // Fail closed: provider unavailable never exposes another person's URL.
     }
@@ -213,7 +221,7 @@ export async function POST(request: NextRequest) {
       .eq("id", reservation.id).eq("status", "creating").select("id").maybeSingle()
     if (savedError || !saved) return response({ error: "Identik recibió el contrato; se requiere conciliación", manualRecoveryRequired: true }, 503)
 
-    await client.distributeDocument({
+    const distribution = await client.distributeDocument({
       documentId: created.id, includeSigningUrls: true,
       meta: {
         distributionMethod: "NONE", language: "es",
@@ -225,6 +233,19 @@ export async function POST(request: NextRequest) {
         reminderSettings: { sendAfter: { disabled: true }, repeatEvery: { disabled: true } },
       },
     })
+    // Fail closed if Identik did not return both personal URLs.
+    // Do not send notifications telling users to sign without usable links.
+    const links = extractSigningLinks(distribution, owner.email, tenant.email)
+    if (!links) return response({
+      error: "Identik distribuyó el contrato sin enlaces personales verificables; requiere conciliación",
+      manualRecoveryRequired: true,
+    }, 503)
+    try {
+      await saveSigningLinks(db, reservation.id, links)
+    } catch {
+      return response({ error: "No se pudieron guardar los enlaces privados; requiere conciliación",
+        manualRecoveryRequired: true }, 503)
+    }
     const { data: distributed, error: distributedError } = await db.from("identik_electronic_documents")
       .update({ status: "sent", updated_at: new Date().toISOString() })
       .eq("id", reservation.id).eq("status", "created").select("id").maybeSingle()
