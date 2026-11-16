@@ -165,6 +165,17 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - **Resultado: correspondencia de emails entre participantes VERLO, registro local Identik y solicitud HTTP a Identik CERTIFICADA POR INSPECCION DEL CODIGO ACTUAL.** No supone que se haya observado un envío real nuevo. Los documentos QA 32 y 33 históricos tienen destinatarios Gmail reales frente a leads `@example.com`, por lo que no sirven para certificar descarga autenticada de ambos participantes. No tocar estos registros ni desactivar la comprobacion de identidad para hacer pasar la prueba.
 - **Falta únicamente, cuando se certifique un contrato real con los proveedores disponibles, observar el resultado de su entrega/descarga con identidades coincidentes**. No crear ni distribuir documentos nuevos solo para repetir esta correspondencia ya comprobada en código. La identidad biométrica Namirial continúa bloqueada por credenciales externas.
 
+## Seguridad legacy: cierre aislado de escrituras no autenticadas — 16/11/2026
+
+**Estado: validado en rama aislada, NO desplegado aun en la rama QA oficial ni en main.** Rama `security/legacy-property-api-closure`, ultimo SHA `bb94eccbe916ea7e9076065a4c404d48b90b74af`.
+
+- `app/api/likes/create/route.ts` y `app/api/property-like/route.ts` anteriormente aceptaban `tenant_id` y otros IDs suministrados por el cliente y realizaban inserciones con clave de servicio sin comprobar la identidad. En la rama aislada sus handlers POST devuelven **HTTP 410**, `LEGACY_ENDPOINT_DISABLED`, `Cache-Control: no-store`, sin acceso a Supabase ni escritura.
+- `tests/qa/legacy-property-api-closure.spec.ts` comprueba que ambas rutas estan desactivadas, sin referencia a service role, `insert`, `update` o `delete`; además protege que `app/api/property-action/route.ts` mantenga `auth.getUser(token)` y que el dashboard vigente continue usando `lead_matches`.
+- [GitHub Actions de validacion aislada #43969091004](https://github.com/rentverlo-dotcom/verlo/actions/runs/43969091004) — **SUCCESS** en `bb94ecc`; instalación reproducible `npm ci` con Node 20 y pruebas específicas Playwright ejecutadas correctamente. No se volvieron a ejecutar los E2E comerciales, no hubo cobros ni firmas.
+- **Pendiente de integracion deliberada:** incorporar solo estos cambios acotados en `qa/verlo-e2e` despues de revisar el impacto. La aprobacion de esta rama no equivale a un cambio en produccion. No crear nuevos merges indiscriminados.
+- `GET /api/guardadas` conserva una identidad simulada y la pagina `/guardadas` aun lo consume: **pendiente de correccion autenticada separada**, no bloquear la pantalla hasta resolver su origen de sesion. Se han verificado referencias de `/api/property-action` desde el `MatchDeck` viejo; dicho endpoint exige token autentico; no se toco.
+- **Depuraciones pospuestas:** `react-tinder-card`, `@react-spring/web`, pantallas swipe y migracion de Next/Node/lockfiles. Ninguna eliminacion de tablas, filas, views, auth, datos o claves; cero SQL de escritura. Alcance MVP congelado.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
