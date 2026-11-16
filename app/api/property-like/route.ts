@@ -1,27 +1,14 @@
-// app/api/property-like/route.ts
-import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/server'
+import { NextResponse } from "next/server"
 
-export async function POST(req: Request) {
-  const body = await req.json()
-
-  const { tenant_id, property_id, match_id } = body
-
-  if (!tenant_id || !property_id) {
-    return NextResponse.json({ error: 'missing data' }, { status: 400 })
-  }
-
-  const { error } = await supabaseAdmin
-    .from('property_likes')
-    .insert({
-      tenant_id,
-      property_id,
-      match_id: match_id ?? null,
-    })
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ ok: true })
+/**
+ * Disabled legacy property-like API (pre-MVP swipe experience).
+ * An obsolete property-like endpoint accepted arbitrary tenant and property IDs and inserted using the service-role key.
+ * New VERLO matching and interest flows must not use this route.
+ * Do not re-enable without verified actor ownership and proper authorization.
+ */
+export async function POST() {
+  return NextResponse.json(
+    { ok: false, error: "LEGACY_ENDPOINT_DISABLED" },
+    { status: 410, headers: { "Cache-Control": "no-store" } },
+  )
 }
