@@ -1,22 +1,14 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-export async function POST(req: Request) {
-  const { tenant_id, property_id } = await req.json();
-
-  const { error } = await supabase.from("property_likes").insert({
-    tenant_id,
-    property_id,
-  });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  return NextResponse.json({ success: true });
+/**
+ * Disabled legacy property-like API (pre-MVP swipe experience).
+ * An obsolete swipe-era endpoint accepted arbitrary tenant IDs and inserted using the service-role key.
+ * New VERLO matching and interest flows must not use this route.
+ * Do not re-enable without verified actor ownership and proper authorization.
+ */
+export async function POST() {
+  return NextResponse.json(
+    { ok: false, error: "LEGACY_ENDPOINT_DISABLED" },
+    { status: 410, headers: { "Cache-Control": "no-store" } },
+  )
 }
