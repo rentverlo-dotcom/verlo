@@ -39,7 +39,13 @@ jobs:
         run: npm install --no-save --package-lock=false next@15.5.29 react@19.3.1 react-dom@19.3.1 @types/react@19 @types/react-dom@19
       - name: Confirm resolved versions
         run: node -e "for(const p of ['next','react','react-dom','@types/react','@types/react-dom']) console.log(p,require(p+'/package.json').version)"
-      - name: Compile release candidate without external integrations
-        run: npx next build
+      - name: Compile candidate; report all TypeScript errors on failure
+        shell: bash
+        run: |
+          if ! npx next build; then
+            echo 'NEXT15_BUILD_FAILED: printing complete TypeScript diagnostics; not a certified upgrade'
+            npx tsc --noEmit --pretty false || true
+            exit 1
+          fi
       - name: Run scoped legacy-security checks
         run: npx playwright test tests/qa/legacy-property-api-closure.spec.ts --config=playwright.qa.config.ts
