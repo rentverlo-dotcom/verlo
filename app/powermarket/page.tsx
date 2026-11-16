@@ -57,14 +57,14 @@ export default function PowerMarketDashboard(){
   void (async()=>{
     const hash=new URLSearchParams(window.location.hash.slice(1))
     const tokenHash=hash.get("token_hash")
-    const isMagic=hash.get("type")==="magiclink"
+    const linkType=hash.get("type")
     if(tokenHash){
       window.history.replaceState(null,"",window.location.pathname)
-      if(!isMagic||!/^[a-f0-9]+$/i.test(tokenHash)){
+      if(!["signup","magiclink"].includes(linkType||"")||!/^[a-f0-9]+$/i.test(tokenHash)){
         setError("Enlace de VERLO inválido");setLoading(false);return
       }
       const {error:verifyError}=await supabase.auth.verifyOtp({
-        token_hash:tokenHash,type:"magiclink",
+        token_hash:tokenHash,type:linkType as "signup"|"magiclink",
       })
       if(verifyError){
         setError("El enlace venció o ya se utilizó. Solicitá uno nuevo desde VERLO.")
