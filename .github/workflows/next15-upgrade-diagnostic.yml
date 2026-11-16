@@ -7,6 +7,10 @@ on:
     paths:
       - '.github/workflows/next15-upgrade-diagnostic.yml'
       - 'app/alquileres/**'
+      - 'app/temporarios/**'
+      - 'app/api/enums/**'
+      - 'app/api/matches/**'
+      - 'app/api/temporarios/media/**'
   workflow_dispatch:
 
 permissions:
