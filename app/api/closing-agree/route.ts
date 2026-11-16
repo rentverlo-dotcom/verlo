@@ -1283,10 +1283,10 @@ export async function POST(
                 contract.id,
 
               title:
-                "🎉 Alquiler confirmado",
+                "Contrato aceptado por ambas partes",
 
               body:
-                "Las dos partes aceptaron el contrato. Gracias por usar Verlo.",
+                "Ambas partes aceptaron las condiciones. Revisá Mi VERLO para continuar con la firma cuando se habilite.",
 
               url:
                 tenantFinalUrl,
@@ -1328,10 +1328,10 @@ export async function POST(
                 contract.id,
 
               title:
-                "🎉 Alquiler confirmado",
+                "Contrato aceptado por ambas partes",
 
               body:
-                "Las dos partes aceptaron el contrato. Gracias por usar Verlo.",
+                "Ambas partes aceptaron las condiciones. Revisá Mi VERLO para continuar con la firma cuando se habilite.",
 
               url:
                 ownerFinalUrl,
