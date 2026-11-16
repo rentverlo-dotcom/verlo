@@ -114,6 +114,23 @@
 
 **Estado del historial:** los errores de los runs #274-279 quedan registrados como incidentes historicos, supersedidos para el alcance funcional cubierto por el #280. Las certificaciones reales pendientes siguen abiertas.
 
+## Mercado Pago — consolidacion historica (16/11/2026, sin ejecutar nuevas pruebas)
+
+La documentacion de release del 12/11 confirma dos pagos historicos de Temporarios en **Supabase produccion** con estado `approved` e importe ARS 29.900. En el historial de pruebas del proyecto se identificaron los pagos Sandbox siguientes:
+- Pago MP `182802783071` — ARS 29.900, 12/10/2026, aprobado (historico).
+- Pago MP `183768078988` — ARS 29.900, 12/10/2026, aprobado (historico).
+- Pago MP `189434035796` — ARS 49.999, 13/11/2026, aprobado por Mercado Pago Sandbox segun registro de trabajo previo. **La ultima evidencia recuperada no acredita por si sola transicion de reserva a `fee_paid`**; no repetir la compra. Validar el estado final por lectura de evidencia existente/DB, sin cobro nuevo.
+- [Actions QA #280](https://github.com/rentverlo-dotcom/verlo/actions/runs/43954940970), SHA `e3be0be`: pruebas automaticas de estados y duplicados de webhook de contrato Mercado Pago y calculo del 50% de bonificacion aprobadas **sin efectuar pagos ni llamar al proveedor**. Incluye escenarios de rechazo de montos y divisas incorrectas y replay.
+- Los dos historicos de ARS 29.900 son intocables. Falta preparar migracion compatible con nuevos importes de ARS 49.999; **no** modificar ni repetir las operaciones historicas para cumplir una nueva restriccion.
+- **Clasificacion:** pagos históricos y el pago Sandbox 49.999 **YA EJECUTADOS**; controles de webhook en QA **APROBADOS COMO PRUEBAS AUTOMATICAS**; conciliacion final del pago 49.999 **POR VERIFICAR MEDIANTE LECTURA, SIN REPETIR PAGO**. Evitar etiquetar "Mercado Pago entero no probado" o reclamar otra compra sin evidencia concreta de un bloqueo.
+- El cobro de poliza de caucion corresponde al socio, no a Mercado Pago de VERLO. No confundir con cobro del contrato digital.
+
+## Identik — alcance y costos de pruebas
+
+- QA #280 solo leyo documentos y enlaces existentes; los trabajos opcionales de envio, conciliacion y archivado quedaron SKIPPED. No se autorizaron nuevos sobres de firma ni nuevos envios en esta tanda.
+- La documentacion publica de Identik describe firma electronica vendida por documento en packs y biometria opcional por firma verificada, pero la facturacion de sandbox y contratos empresariales depende del acuerdo concreto; **no declarar que el sandbox es gratis ni que genera cargos sin factura/condiciones contractuales**.
+- Antes de volver a crear/distribuir un documento o activar biometria, revisar credito y condiciones reales; pruebas de lectura y automatizadas no sustituyen esa comprobacion.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
