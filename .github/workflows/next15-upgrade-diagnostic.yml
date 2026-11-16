@@ -12,6 +12,8 @@ on:
       - 'app/api/matches/**'
       - 'app/api/temporarios/media/**'
       - 'app/mockup-lab/**'
+      - 'app/api/qa/powermarket/**'
+      - 'tsconfig.json'
   workflow_dispatch:
 
 permissions:
