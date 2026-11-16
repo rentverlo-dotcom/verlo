@@ -44,6 +44,17 @@ jobs:
         run: npm install --no-save --package-lock=false next@15.5.29 react@19.3.1 react-dom@19.3.1 @types/react@19 @types/react-dom@19
       - name: Confirm resolved versions
         run: node -e "for(const p of ['next','react','react-dom','@types/react','@types/react-dom']) console.log(p,require(p+'/package.json').version)"
+      - name: Generate ephemeral public/private VAPID pair for offline build imports
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const keys = require('web-push').generateVAPIDKeys()
+          fs.appendFileSync(process.env.GITHUB_ENV,
+            'NEXT_PUBLIC_VAPID_PUBLIC_KEY=' + keys.publicKey + '\\n' +
+            'VAPID_PRIVATE_KEY=' + keys.privateKey + '\\n' +
+            'VAPID_SUBJECT=mailto:qa-build@example.com\\n')
+          NODE
       - name: Compile candidate; report all TypeScript errors on failure
         shell: bash
         run: |
