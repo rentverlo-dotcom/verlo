@@ -234,7 +234,7 @@ export default function PowerMarketDashboard(){
   {error&&<p role="alert" style={{background:"#fff",border:"1px solid #c37986",borderRadius:10,padding:12,color:"#892b40"}}>{error}</p>}
   {notice&&<p role="status" style={{background:"#fff",borderRadius:10,padding:12}}>{notice}</p>}
   {loading?<p style={{marginTop:28}}>Cargando…</p>:!logged?
-   <form onSubmit={login} style={{background:"#fff",maxWidth:420,padding:28,borderRadius:20,marginTop:32,display:"grid",gap:15}}>
+   <form onSubmit={e=>{e.preventDefault();void requestVerloAccess()}} style={{background:"#fff",maxWidth:420,padding:28,borderRadius:20,marginTop:32,display:"grid",gap:15}}>
     <h1 style={{fontSize:24,lineHeight:1.2,margin:0}}>Acceso privado</h1>
     <label>Email<input type="email" style={{...control,display:"block",marginTop:6}} required value={email} onChange={e=>setEmail(e.target.value)}/></label>
     <button type="button" style={button} disabled={busy} onClick={()=>void requestVerloAccess()}>Enviar acceso desde VERLO</button>
