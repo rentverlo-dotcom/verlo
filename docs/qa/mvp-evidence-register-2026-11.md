@@ -227,6 +227,18 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - **Pendiente antes del release:** integrar selectivamente estos cambios, comprobar que los endpoints 410 no sean utilizados por navegacion real, validar Preview del paquete definitivo y respetar la evidencia E2E comercial existente. No se autoriza considerar esto probado end-to-end con PowerMarket por el solo hecho de aprobar estas aserciones estaticas.
 - **Datos y ambientes:** ningun SQL de escritura ni alteracion en Supabase, `main` o `qa/verlo-e2e` funcional. La unica modificacion en QA es esta evidencia documental.
 
+## Integracion controlada: PR draft #28 y divergencia QA — 16/11/2026
+
+**Estado: PR abierto como DRAFT, SIN MERGE NI CAMBIO DE LA RAMA QA FUNCIONAL O PRODUCCION.** [PR #28](https://github.com/rentverlo-dotcom/verlo/pull/28): `security/legacy-guarantee-api-closure` → `qa/verlo-e2e`. Su estado inicial: `mergeable=false`; no aprobar hasta revisar divergencia.
+
+- Comparacion exacta al momento del registro: rama de seguridad **48 commits por delante y 5 por detras** de `qa/verlo-e2e` (divergieron). El diff muestra **28 archivos**, incluyendo **5 workflows de diagnostico/seguridad** que no deberian promocionarse ciegamente a `main`; incluye tambien `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `tsconfig.json`, handlers deshabilitados y cambios de compatibilidad Next15/React19.
+- QA actual vs `main`: **397 commits adelante y 0 atras**. Hay cambios comerciales requeridos en Identik/mercadopago/PowerMarket/Temporarios, pero tambien rutas y workflows exclusivos de QA. **Prohibido fusionar sin separar** o se arriesga a promover infraestructura de prueba.
+- PR #28 es solamente una superficie de revision; **NO se ha incorporado** a QA comercial ni a `main`. No autorizar merge automatico o deploy productivo por el estado de Actions verdes de una rama aislada.
+- Dependencias cerradas: Next15 `15.5.29`, React19 `19.3.1`, Node24, lockfiles; CI #43976150025 SUCCESS; API garantías antiguas HTTP410 y CI #43979926490 SUCCESS. Todo esto se obtuvo en rama aislada.
+- **Pendientes internos verificables:** reconciliar los cinco commits nuevos QA sin sobrescribirlos; revisar si rutas bloqueadas tienen consumidores externos; validar Preview final y `/guardadas` con dos sesiones reales; probar un conjunto minimo de rutas comerciales en Next15; preparar release selectivo de los cambios de QA sin incluir endpoints `/api/qa/*` ni workflows de prueba.
+- **Pendientes externos** (no dar por certificados por los tests actuales): credenciales y validacion real Namirial; resolucion/aprobacion/certificado de PowerMarket; primer correo de ZeptoMail realmente recibido; operativa final Identik produccion y eventuales verificaciones Mercado Pago segun preflight.
+- **Criterio para seguir:** cierre de riesgos de seguridad y paquete de release, sin nuevas funcionalidades, sin nuevas pruebas pagas externas, sin tocar Supabase sin SQL y revision previa por el propietario.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
