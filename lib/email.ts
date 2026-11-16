@@ -139,7 +139,7 @@ export async function sendZohoEmail(
     process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://anptswspguyotnasoacq.supabase.co' &&
     ['rentverlo@gmail.com', 'mpagoto@pmb.com.ar'].includes(to.trim().toLowerCase()) &&
     /^qa-powermarket-invite:[a-f0-9-]{36}$/i.test(eventKey) &&
-    /^https:\/\/verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595\.vercel\.app\/powermarket#token_hash=[a-f0-9]+&type=magiclink$/.test(url)
+    /^https:\/\/verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595\.vercel\.app\/powermarket#token_hash=[a-f0-9]+&type=(?:signup|magiclink)$/.test(url)
   if (qaProvidersDisabled() && !qaPartnerInvite)
     return { ok: false, configured: false, provider_id: null, error: 'QA_EXTERNAL_DELIVERY_BLOCKED' }
 
