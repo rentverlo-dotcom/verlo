@@ -23,5 +23,7 @@ jobs:
           cache: npm
       - name: Install existing locked dependencies
         run: npm ci
-      - name: Verify legacy endpoints are disabled and current matching is untouched
+      - name: TypeScript compile (no output)
+        run: npx tsc --noEmit
+      - name: Verify legacy endpoints and authorized saved properties
         run: npx playwright test tests/qa/legacy-property-api-closure.spec.ts --config=playwright.qa.config.ts
