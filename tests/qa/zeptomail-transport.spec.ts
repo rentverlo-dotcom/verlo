@@ -64,12 +64,16 @@ test("VERLO emails: no external links or script injection in tenant and owner te
   expect(safeVerloEmailUrl("javascript:alert(1)")).toBe("https://verlo.lat/mi-verlo")
 })
 
-test("VERLO emails: caucion payment always points tenant to PowerMarket and not VERLO checkout", () => {
+test("VERLO emails: caucion payment directs tenant to issuer, without naming partner or VERLO checkout", () => {
   const email = renderVerloEmail({ area: "powermarket", role: "tenant", type: "policy_payment_pending" })
-  expect(email.text).toContain("PowerMarket")
+  expect(email.text).toContain("El pago de la caución se realiza directamente con la entidad correspondiente.")
+  expect(email.text).not.toContain("PowerMarket")
+  expect(email.text).not.toContain("Pagar en VERLO")
+  expect(email.url).toBe("https://verlo.lat/mi-verlo")
   const ownerEmail = renderVerloEmail({ area: "powermarket", role: "owner", type: "policy_payment_pending" })
   expect(ownerEmail.text).toContain("inquilino")
   expect(ownerEmail.text).not.toContain("Confirmamos tu pago")
+  expect(ownerEmail.text).not.toContain("PowerMarket")
 })
 
 test("ZeptoMail QA: uses VERLO sender and Reply-To while accepting provider response", async () => {
