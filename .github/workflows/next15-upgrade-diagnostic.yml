@@ -11,6 +11,7 @@ on:
       - 'app/api/enums/**'
       - 'app/api/matches/**'
       - 'app/api/temporarios/media/**'
+      - 'app/mockup-lab/**'
   workflow_dispatch:
 
 permissions:
