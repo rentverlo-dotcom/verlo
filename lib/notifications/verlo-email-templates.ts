@@ -94,6 +94,7 @@ const traditionalCopy: Record<string, [string, string]> = {
   post_visit_waiting: ["Seguimiento de tu visita", "Revisá el próximo paso de tu alquiler."],
   double_ok_2: ["Tu alquiler avanzó", "Revisá los próximos pasos para el contrato."],
   contract_generated: ["Tu contrato está disponible", "Ingresá a Mi VERLO para revisar el contrato."],
+  signature_ready: ["Tu contrato está listo para firmar", "Ingresá a Mi VERLO y pulsá Firmar contrato. Tu firma se realiza en Identik sin ninguna invitación externa."],
   contract_accept_waiting: ["Tu contrato necesita una acción", "Revisá el estado del contrato en Mi VERLO."],
   rental_confirmed: ["Alquiler confirmado", "Podés consultar el estado de tu alquiler en Mi VERLO."],
   owner_match_digest: ["Tenés novedades de tus candidatos", "Revisá las coincidencias de tu publicación."],
