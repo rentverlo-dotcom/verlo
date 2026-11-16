@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  Suspense,
   useEffect,
   useState,
 } from "react"
@@ -810,7 +811,7 @@ function HomeIcon() {
   )
 }
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const searchParams =
     useSearchParams()
 
@@ -1363,4 +1364,9 @@ export default function SuccessPage() {
       </div>
     </>
   )
+}
+
+
+export default function SuccessPage() {
+  return <Suspense fallback={<main style={{ padding: 32, textAlign: "center" }}>Cargando VERLO…</main>}><SuccessPageContent /></Suspense>
 }
