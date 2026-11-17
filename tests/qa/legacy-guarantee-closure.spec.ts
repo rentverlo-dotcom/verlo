@@ -33,17 +33,16 @@ test("PowerMarket authorization and atomic decision paths remain unchanged", () 
 
 test("no application code still calls either disabled legacy guarantee endpoint", () => {
   const tracked = execFileSync("git", ["ls-files", "-z", "--", "app", "components", "lib", "scripts"], { encoding: "utf8" })
-    .split("\\0").filter(Boolean)
+    .split("\0").filter(Boolean)
   const disabled = new Set([
     "app/api/matches/approve/route.ts",
     "app/api/matches/[id]/approve-guarantee/route.ts",
   ])
   const references: string[] = []
   for (const path of tracked) {
-    if (disabled.has(path) || !/\\.[cm]?[jt]sx?$/.test(path)) continue
+    if (disabled.has(path) || !/\.[cm]?[jt]sx?$/.test(path)) continue
     const contents = read(path)
-    // Catch literal callers and dynamic URL construction; no HTTP requests are made.
-    if (/\\/api\\/matches\\/approve\\b/.test(contents) || /\\bapprove-guarantee\\b/.test(contents)) {
+    if (/\/api\/matches\/approve\b/.test(contents) || /\bapprove-guarantee\b/.test(contents)) {
       references.push(path)
     }
   }
