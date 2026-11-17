@@ -1,0 +1,63 @@
+name: VERLO - QA safe integration release gate
+
+on:
+  push:
+    branches:
+      - release/qa-safe-integration-2026-11-16
+    paths:
+      - '.github/workflows/qa-safe-release-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-proposed-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CI: '1'
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-public-test-key
+      SUPABASE_SERVICE_ROLE_KEY: dummy-private-build-only-key
+      R2_ACCOUNT_ID: dummy-build-account
+      R2_ACCESS_KEY_ID: dummy-build-access-key
+      R2_SECRET_ACCESS_KEY: dummy-build-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Verify exact patched framework and no obsolete swipe packages
+        run: |
+          node - <<'NODE'
+          const p = require('./package.json')
+          for (const [n,v] of Object.entries({ next:'15.5.29', react:'19.3.1', 'react-dom':'19.3.1'})) {
+            if(p.dependencies[n] !== v) throw new Error(n+' expected '+v)
+          }
+          for (const n of ['react-tinder-card','@react-spring/web']) {
+            if(p.dependencies[n]) throw new Error('obsolete dependency '+n)
+          }
+          NODE
+      - name: Verify clean install using committed npm lock
+        run: npm ci --no-audit
+      - name: Verify committed pnpm frozen lock
+        run: npx --yes pnpm@9.15.9 install --frozen-lockfile --ignore-scripts
+      - name: Generate dummy VAPID credentials for build without providers
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const keys = require('web-push').generateVAPIDKeys()
+          const nl = String.fromCharCode(10)
+          fs.appendFileSync(process.env.GITHUB_ENV,
+            'NEXT_PUBLIC_VAPID_PUBLIC_KEY=' + keys.publicKey + nl +
+            'VAPID_PRIVATE_KEY=' + keys.privateKey + nl +
+            'VAPID_SUBJECT=mailto:qa-build@example.com' + nl)
+          NODE
+      - name: Build production candidate without real provider keys
+        run: npx next build
+      - name: Verify existing security and guarantee guards
+        run: npx playwright test tests/qa/legacy-property-api-closure.spec.ts tests/qa/legacy-guarantee-closure.spec.ts --config=playwright.qa.config.ts

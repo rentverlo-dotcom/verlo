@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import FlowHeader from '@/components/FlowHeader'
+import { supabase } from '@/lib/supabase/client'
 
 type Match = {
   id: string;
@@ -18,18 +19,41 @@ type Match = {
 export default function GuardadasPage() {
   const router = useRouter();
   const [savedMatches, setSavedMatches] = useState<Match[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/guardadas")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setSavedMatches(data);
-      });
+    let active = true;
+    const load = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.access_token) {
+          if (active) setError("Ingresá a tu cuenta para ver tus propiedades guardadas.");
+          return;
+        }
+        const res = await fetch("/api/guardadas", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error("No pudimos consultar tus propiedades guardadas.");
+        const data = await res.json();
+        if (active) setSavedMatches(Array.isArray(data) ? data : []);
+      } catch {
+        if (active) setError("No pudimos cargar tus propiedades guardadas.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void load();
+    return () => { active = false; };
   }, []);
 
   return (
     <div style={container}>
       <FlowHeader title="Guardadas" />
+      {loading && <p style={{ textAlign: 'center' }}>Cargando propiedades guardadas…</p>}
+      {error && <p role="alert" style={{ textAlign: 'center' }}>{error}</p>}
+      {!loading && !error && savedMatches.length === 0 && <p style={{ textAlign: 'center' }}>No tenés propiedades guardadas todavía.</p>}
 
       <div style={list}>
         {savedMatches.map((match) => (

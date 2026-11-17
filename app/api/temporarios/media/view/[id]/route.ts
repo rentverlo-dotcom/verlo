@@ -4,7 +4,7 @@ import {getTemporaryStorageConfig} from "@/lib/temporarios/storage-config"
 import {signTemporaryObject} from "@/lib/temporarios/r2-signer"
 export const runtime="nodejs"
 export const dynamic="force-dynamic"
-export async function GET(request:Request,{params}:{params:{id:string}}){
+export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){
   // Isolated QA, feature Preview and explicitly enabled production are gated by
   // getTemporaryStorageConfig; do not block read access on a legacy branch name.
   const config=getTemporaryStorageConfig(process.env)
@@ -17,7 +17,8 @@ export async function GET(request:Request,{params}:{params:{id:string}}){
   const {data:{user},error}=await client.auth.getUser(auth.slice(7))
   if(error||!user?.id||!user.email_confirmed_at)return new Response(null,{status:401})
   const db=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
-  const media=await db.from("temporary_property_media").select("id,property_id,object_key,mime_type").eq("id",params.id).maybeSingle()
+  const {id:mediaId}=await params
+  const media=await db.from("temporary_property_media").select("id,property_id,object_key,mime_type").eq("id",mediaId).maybeSingle()
   if(media.error||!media.data)return new Response(null,{status:404})
   const property=await db.from("temporary_properties").select("owner_user_id,status").eq("id",media.data.property_id).maybeSingle()
   if(property.error||!property.data)return new Response(null,{status:404})

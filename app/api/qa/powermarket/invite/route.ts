@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
     for (let page = 1; page <= 10; page++) {
       const { data: listed, error } = await db.auth.admin.listUsers({ page, perPage: 1000 })
       if (error) return reply(503, { ok: false, error: "No pudimos verificar los permisos" })
-      const owner = listed.users.find(u =>
+      const ownerUsers = listed.users as Array<{ id: string; email?: string; email_confirmed_at?: string | null }>
+      const owner = ownerUsers.find(u =>
         u.email?.trim().toLowerCase() === OWNER && !!u.email_confirmed_at)
       if (owner) {
         const { data: role } = await db.from("caucion_partner_users")
@@ -85,7 +86,8 @@ export async function POST(request: NextRequest) {
   for (let page = 1; page <= 10; page++) {
     const { data: listing, error: usersError } = await db.auth.admin.listUsers({ page, perPage: 1000 })
     if (usersError) return reply(503, { ok: false, error: "No pudimos verificar la cuenta" })
-    if (listing.users.some(u => u.email?.trim().toLowerCase() === email)) {
+    const existingUsers = listing.users as Array<{ email?: string }>
+    if (existingUsers.some(u => u.email?.trim().toLowerCase() === email)) {
       existing = true
       break
     }

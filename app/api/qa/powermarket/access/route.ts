@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
     for (let page = 1; page <= 10 && !operatorIsEnabled; page++) {
       const {data: found, error: listingError} = await db.auth.admin.listUsers({page, perPage: 1000})
       if (listingError) return respond(503, {ok: false, error: "No pudimos verificar el acceso de VERLO"})
-      const operator = found.users.find(account =>
+      const operatorUsers = found.users as Array<{ id: string; email?: string; email_confirmed_at?: string | null }>
+      const operator = operatorUsers.find(account =>
         account.email?.trim().toLowerCase() === OWNER_EMAIL && !!account.email_confirmed_at)
       if (operator) {
         const {data: record} = await db.from("caucion_partner_users")

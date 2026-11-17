@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useEffect, useState, type ReactNode } from "react"
+import { FormEvent, Suspense, useEffect, useState, type ReactNode } from "react"
 import {
   useParams,
   useRouter,
@@ -49,7 +49,7 @@ const guaranteeOptions = [
   "Otro",
 ]
 
-export default function TenantValidationPage() {
+function TenantValidationPageContent() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -1285,3 +1285,8 @@ const styles = `
     }
   }
 `
+
+
+export default function TenantValidationPage() {
+  return <Suspense fallback={<main style={{ padding: 32, textAlign: "center" }}>Cargando validación…</main>}><TenantValidationPageContent /></Suspense>
+}

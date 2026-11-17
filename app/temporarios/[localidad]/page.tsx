@@ -4,12 +4,13 @@ import {notFound} from "next/navigation"
 import BrandHeader from "@/app/temporarios/BrandHeader"
 import {locations,locationBySlug} from "@/lib/seo/argentina-locations"
 import {shell,container,hero,heading,script,subtitle,button,outline,panel} from "@/app/temporarios/brand"
-type Props={params:{localidad:string}}
+type Props={params:Promise<{localidad:string}>}
 export const dynamicParams=false
 export function generateStaticParams(){return locations.map(x=>({localidad:x.slug}))}
 function getLocation(slug:string){return locationBySlug.get(slug)}
-export function generateMetadata({params}:Props):Metadata{
- const l=getLocation(params.localidad)
+export async function generateMetadata({params}:Props):Promise<Metadata>{
+ const {localidad}=await params
+ const l=getLocation(localidad)
  if(!l)return {title:"Localidad no encontrada | VERLO",robots:{index:false,follow:false}}
  const title=`Alquileres temporarios en ${l.name}, ${l.province} | VERLO`
  const description=`Buscá o publicá alquileres temporarios en ${l.name}. Elegí fechas y presupuesto para estadías de 1 a 90 noches, directo con propietarios en VERLO.`
@@ -18,8 +19,9 @@ export function generateMetadata({params}:Props):Metadata{
  const indexable=l.featured&&Boolean(l.highlight)
  return {title,description,alternates:{canonical},robots:{index:indexable,follow:true},openGraph:{title,description,url:canonical,siteName:"VERLO",locale:"es_AR",type:"website"}}
 }
-export default function LocalidadTemporarios({params}:Props){
- const l=getLocation(params.localidad)
+export default async function LocalidadTemporarios({params}:Props){
+ const {localidad}=await params
+ const l=getLocation(localidad)
  if(!l)notFound()
  const nearby=locations.filter(x=>x.province===l.province&&x.slug!==l.slug).slice(0,8)
  const link=`/temporarios/buscar?zona=${encodeURIComponent(l.slug)}`
