@@ -67,7 +67,7 @@ export async function getPowerMarketSettlement(
   // needs pagination rather than silently undercounting.
   if (confirmed.length === 1000) return EMPTY(month, "requires_pagination")
 
-  const applicationIds = [...new Set(confirmed.map(row => row.application_id))]
+  const applicationIds = Array.from(new Set(confirmed.map(row => row.application_id)))
   if (!applicationIds.length) return {
     ...EMPTY(month, ""), confirmed_month_count: 0,
     confirmed_total_count: 0, unavailable: null,
@@ -78,7 +78,7 @@ export async function getPowerMarketSettlement(
   if (appError || applications?.length !== applicationIds.length)
     return EMPTY(month, "application_lookup_failed")
 
-  const leadIds = [...new Set((applications || []).map(row => row.tenant_lead_id))]
+  const leadIds = Array.from(new Set((applications || []).map(row => row.tenant_lead_id)))
   const { data: leads, error: leadError } = await db.from("lead_intake")
     .select("id,full_name,email,source").in("id", leadIds)
   if (leadError || leads?.length !== leadIds.length)
