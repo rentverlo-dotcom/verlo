@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 import VerloBrand from "@/components/VerloBrand"
 import { locations, locationBySlug } from "@/lib/seo/argentina-locations"
 
-type Props = { params: { zona: string } }
+type Props = { params: Promise<{ zona: string }> }
 
 export const dynamicParams = false
 
@@ -17,8 +17,9 @@ function getLocation(slug: string) {
   return locationBySlug.get(slug)
 }
 
-export function generateMetadata({ params }: Props): Metadata {
-  const location = getLocation(params.zona)
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { zona } = await params
+  const location = getLocation(zona)
   if (!location) return { title: "Zona no encontrada | VERLO", robots: { index: false, follow: false } }
   const title = `Alquileres en ${location.name}, ${location.province} | VERLO`
   const description = `Buscá alquileres directos con propietarios en ${location.name}, ${location.province}. Cargá tu búsqueda gratis y encontrá coincidencias en VERLO. Sin comisión inmobiliaria.`
@@ -34,8 +35,9 @@ export function generateMetadata({ params }: Props): Metadata {
   }
 }
 
-export default function AlquileresZona({ params }: Props) {
-  const location = getLocation(params.zona)
+export default async function AlquileresZona({ params }: Props) {
+  const { zona } = await params
+  const location = getLocation(zona)
   if (!location) notFound()
   const nearby = locations.filter(other => other.slug !== location.slug && other.province === location.province).slice(0, 8)
   return (
