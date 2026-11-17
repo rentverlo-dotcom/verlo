@@ -38,6 +38,22 @@ type Data = {
     unavailable: string[]
     notes: string[]
   }
+  powermarket_settlement?: {
+    month: string
+    confirmed_month_count: number | null
+    confirmed_total_count: number | null
+    recent: Array<{
+      policy_id: string
+      application_id: string
+      contract_id: string | null
+      tenant_name: string
+      confirmation_at: string
+      status: string
+    }>
+    truncated: boolean
+    unavailable: string | null
+    note: string
+  }
   meta?: {
     connected: boolean
     spend_30d_ars: number | null
@@ -210,6 +226,49 @@ export default function AdminVerloPage() {
                     "Meta Ads: sin conexión verificada o sin datos en el período."}
                   {data.business?.unavailable?.length ? " · Indicadores sin datos: "+data.business.unavailable.length : ""}
                 </p>
+              </section>
+
+              <section className="panel" aria-label="Liquidación mensual de cauciones PowerMarket">
+                <h2>PowerMarket · control de ventas y liquidación</h2>
+                <p className="muted" style={{lineHeight:1.7}}>
+                  Mes contable: {data.powermarket_settlement?.month || "—"} (Buenos Aires).
+                  Se contabiliza una venta únicamente cuando PowerMarket confirma el cobro.
+                  {data.business?.environment==="qa" ? " Entorno QA: valores de prueba, no ventas reales." : ""}
+                </p>
+                <div className="cards">
+                  <Metric n={data.powermarket_settlement?.confirmed_month_count ?? null}
+                    label="Cauciones cobradas confirmadas · mes" />
+                  <Metric n={data.powermarket_settlement?.confirmed_total_count ?? null}
+                    label="Cauciones cobradas confirmadas · total" />
+                </div>
+                {data.powermarket_settlement?.unavailable && (
+                  <p role="alert" className="muted">
+                    No se puede calcular la liquidación: {data.powermarket_settlement.unavailable}
+                  </p>
+                )}
+                <p className="muted" style={{marginTop:14,lineHeight:1.7}}>
+                  Esta es la base para conciliar las ventas con PowerMarket. El importe de tu comisión
+                  y su condición de pagada se registrarán únicamente cuando haya una liquidación real;
+                  no se presume ni se inventa un porcentaje.
+                </p>
+                <div className="table"><table>
+                  <thead><tr><th>Solicitante</th><th>Fecha de cobro confirmada</th><th>Estado</th><th>Solicitud</th><th>Operación</th></tr></thead>
+                  <tbody>
+                    {(data.powermarket_settlement?.recent || []).map(row => (
+                      <tr key={row.policy_id}>
+                        <td>{row.tenant_name}</td>
+                        <td>{dt(row.confirmation_at)}</td>
+                        <td>{row.status==="issued"?"Póliza emitida":"Cobro confirmado"}</td>
+                        <td>{row.application_id}</td>
+                        <td>{row.policy_id}</td>
+                      </tr>
+                    ))}
+                    {!data.powermarket_settlement?.recent?.length && (
+                      <tr><td colSpan={5} className="muted">No hay cauciones con cobro confirmado en el filtro seleccionado.</td></tr>
+                    )}
+                  </tbody>
+                </table></div>
+                {data.powermarket_settlement?.truncated && <p className="muted">Se muestran las últimas 100 operaciones confirmadas.</p>}
               </section>
 
               <section className="panel" aria-label="Funil de temporarios">
