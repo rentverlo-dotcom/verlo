@@ -10,6 +10,7 @@ const application = (status: string, expires: string | null = null) =>
   ({ id: "app-qa-example", tenant_lead_id: tenant, status, decision_expires_at: expires })
 const policy = (status: string, confirmed: string | null = "2026-11-17T15:00:00Z") =>
   ({ id: "policy-example", status, payment_confirmed_at: confirmed,
+     payment_confirmed_by: "partner-user-qa",
      application_id: "app-qa-example", lead_contract_id: params.contractId })
 
 function fixture(apps: Record<string, unknown>[],
@@ -78,6 +79,10 @@ for (const state of ["pending", "final_review", "payment_pending", "cancelled", 
       fixture([application("prequalified")], [policy(state)]), params)).allowed).toBe(false)
   })
 }
+test("missing partner confirmation actor blocks signature", async () => {
+  expect((await checkPowerMarketSigningApproval(
+    fixture([application("prequalified")], [{ ...policy("payment_confirmed"), payment_confirmed_by: null }]), params)).allowed).toBe(false)
+})
 test("missing confirmed timestamp blocks signature", async () => {
   expect((await checkPowerMarketSigningApproval(
     fixture([application("prequalified")], [policy("payment_confirmed", null)]), params)).allowed).toBe(false)
