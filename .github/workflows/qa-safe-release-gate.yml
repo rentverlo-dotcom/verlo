@@ -6,6 +6,7 @@ on:
       - release/qa-safe-integration-2026-11-16
     paths:
       - '.github/workflows/qa-safe-release-gate.yml'
+      - 'tests/qa/guardadas-session-isolation.spec.ts'
   workflow_dispatch:
 
 permissions:
@@ -59,5 +60,5 @@ jobs:
           NODE
       - name: Build production candidate without real provider keys
         run: npx next build
-      - name: Verify existing security and guarantee guards
-        run: npx playwright test tests/qa/legacy-property-api-closure.spec.ts tests/qa/legacy-guarantee-closure.spec.ts --config=playwright.qa.config.ts
+      - name: Verify security and execute two-session saved-property isolation
+        run: npx playwright test tests/qa/legacy-property-api-closure.spec.ts tests/qa/legacy-guarantee-closure.spec.ts tests/qa/guardadas-session-isolation.spec.ts --config=playwright.qa.config.ts
