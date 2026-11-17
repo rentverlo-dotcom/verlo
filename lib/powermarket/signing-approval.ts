@@ -52,7 +52,7 @@ export async function checkPowerMarketSigningApproval(
   if (!eligibility.applicationId) return { allowed: false, reason: "caucion_lookup_unavailable" }
 
   const { data: policies, error } = await db.from("caucion_policies")
-    .select("id,status,payment_confirmed_at,application_id,lead_contract_id")
+    .select("id,status,payment_confirmed_at,payment_confirmed_by,application_id,lead_contract_id")
     .eq("application_id", eligibility.applicationId)
     .eq("lead_contract_id", params.contractId)
     .in("status", ["payment_confirmed", "issued"])
@@ -62,6 +62,7 @@ export async function checkPowerMarketSigningApproval(
   // Exactly one recorded operation, with a timestamp set by the partner-only
   // atomic payment-confirmation RPC. Do not mistake a quote for paid coverage.
   if (policies?.length !== 1 || !policies[0].payment_confirmed_at ||
+      !policies[0].payment_confirmed_by ||
       !Number.isFinite(Date.parse(policies[0].payment_confirmed_at)))
     return { allowed: false, reason: "caucion_payment_not_confirmed" }
 
