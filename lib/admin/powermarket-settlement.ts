@@ -44,10 +44,12 @@ export async function getPowerMarketSettlement(
   now = new Date(),
 ): Promise<CaucionSettlement> {
   // Buenos Aires observes UTC-03:00; explicitly derive month in AR timezone.
-  const month = new Intl.DateTimeFormat("en-CA", {
+  const monthParts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit",
-  }).format(now).replace("/", "-")
-  const [year, number] = month.split("-").map(Number)
+  }).formatToParts(now)
+  const year = Number(monthParts.find(part => part.type === "year")?.value)
+  const number = Number(monthParts.find(part => part.type === "month")?.value)
+  const month = String(year) + "-" + String(number).padStart(2, "0")
   if (!year || !number) return EMPTY(month, "invalid_month")
   const start = new Date(Date.UTC(year, number - 1, 1, 3, 0, 0)).toISOString()
   const end = new Date(Date.UTC(year, number, 1, 3, 0, 0)).toISOString()
