@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { checkPowerMarketSigningApproval } from "@/lib/powermarket/signing-approval"
+import { checkPowerMarketCaucionEligibility } from "@/lib/powermarket/signing-approval"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -68,10 +68,8 @@ export async function POST(req: NextRequest) {
     // Keep the tenant/contract association and caucion-state check server-side.
     if (typeof contract.content !== "string")
       return NextResponse.json({ error: "Contrato no disponible" }, { status: 409 })
-    const approval = await checkPowerMarketSigningApproval(ctx.db, {
-      contractId, tenantLeadId: application.tenant_lead_id, contractContent: contract.content
-    })
-    if (!approval.allowed)
+    const approval = await checkPowerMarketCaucionEligibility(ctx.db, application.tenant_lead_id)
+    if (!approval.allowed || approval.reason === "no_caucion" || approval.applicationId !== application.id)
       return NextResponse.json({ error: "La caución no tiene aprobación vigente" }, { status: 409 })
 
     const { data: existing, error: existingError } = await ctx.db.from("caucion_policies")
@@ -116,12 +114,8 @@ export async function PATCH(req: NextRequest) {
         contract.tenant_lead_id !== application.tenant_lead_id) {
       return NextResponse.json({ error: "El contrato o la solicitud ya no son válidos" }, { status: 409 })
     }
-    const approval = await checkPowerMarketSigningApproval(ctx.db, {
-      contractId: policy.lead_contract_id,
-      tenantLeadId: application.tenant_lead_id,
-      contractContent: contract.content,
-    })
-    if (!approval.allowed)
+    const approval = await checkPowerMarketCaucionEligibility(ctx.db, application.tenant_lead_id)
+    if (!approval.allowed || approval.reason === "no_caucion" || approval.applicationId !== policy.application_id)
       return NextResponse.json({ error: "La aprobación de caución ya no está vigente" }, { status: 409 })
     const { data: acceptedQuote, error: quoteError } = await ctx.db.from("caucion_quotes")
       .select("status,valid_until").eq("id", policy.quote_id).maybeSingle()
