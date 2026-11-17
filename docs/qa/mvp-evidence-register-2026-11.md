@@ -1,3 +1,12 @@
+## PowerMarket: acceso externo y contrato de consulta — 17/11/2026
+
+- El propietario solicitó retirar exclusivamente las acciones de aprobación o solicitud de cambios de versión contractual del panel PowerMarket. **Commit `461ac4d`** en `qa/verlo-e2e`: eliminados ambos botones y el callback cliente `reviewDecision` del dashboard `app/powermarket/page.tsx`; queda acceso privado para leer el PDF. Se modificó copy para indicar que los términos contractuales son responsabilidad de las partes del alquiler. **Ninguna plantilla ni generador de contrato real fue modificada.**
+- Los PDF de los tres casos QA fueron generados a partir de **texto ficticio de demostración** contenido en `lead_contracts` QA; no representan el contrato completo comercial de VERLO. Los contratos reales y el generador comercial no se sobrescribieron, ni se tocó Supabase producción.
+- La ruta backend `PATCH /api/powermarket/contract-reviews` y reglas internas de aprobación contractual **siguen presentes**. Requieren análisis separado de dependencias antes de deshabilitarse, porque podrían condicionar firma y confirmación de operación. **No atribuir a estos cambios la eliminación completa de la capacidad de aprobar desde API ni un E2E definitivo.**
+- Acceso del operador de PowerMarket: `https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app/powermarket`, utilizar únicamente `mpagoto@pmb.com.ar`, botón `Enviar acceso desde VERLO`. El servidor envía un enlace personal vía `/api/qa/powermarket/invite`, restringido a destinatarios permitidos, que exige que el operador VERLO haya sido habilitado antes. **No se certificó entrega efectiva del correo a PowerMarket.**
+- [Actions #44135281443](https://github.com/rentverlo-dotcom/verlo/actions/runs/44135281443): **SUCCESS** de pruebas de lectura/visualización QA para el commit de UI. Vercel Preview del mismo SHA estaba BUILDING durante la consulta; verificar READY antes de informar que el cambio está visible.
+
+
 # VERLO — Registro maestro de certificacion del MVP (alcance congelado)
 
 **Actualizado:** 2026-11-16. **Rama de trabajo:** `qa/verlo-e2e`. **Objetivo:** lanzamiento inmediatamente despues de aprobar Namirial. Este documento es un registro de evidencia, NO una autorizacion de deploy.
