@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { checkPowerMarketSigningApproval } from "@/lib/powermarket/signing-approval"
 
-type Outcome = { allowed: boolean; reason: string; reviewId?: string }
+type Outcome = { allowed: boolean; reason: string }
 
 /** Read-only gate before beginning an Identik electronic signing session.
  * Approval/acceptance is not itself a signature. The caller must re-run this
@@ -38,5 +38,5 @@ export async function checkTraditionalSigningReadiness(
     contractContent: contract.content,
   })
   if (!approval.allowed) return { allowed: false, reason: approval.reason }
-  return { allowed: true, reason: approval.reason, reviewId: approval.reviewId }
+  return { allowed: true, reason: approval.reason }
 }
