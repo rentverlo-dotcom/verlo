@@ -251,6 +251,16 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - Compromisos pendientes: revisar y aprobar compilacion build Next15 en QA base actual, tests de endpoints 410, Preview Vercel y regresion acotada con login (especialmente aislamiento `/guardadas` para dos sesiones). Solo luego plantear fusion a QA, nunca a `main` sin autorizacion y preflight de datos.
 - **Mantener alcance congelado:** no sumar features, no repetir pagos/firmas de terceros, preservar la base productiva y no ejecutar SQL de escritura sin que el propietario lo vea previamente.
 
+## Aislamiento automatizado de guardadas — 17/11/2026
+
+**Estado: prueba ejecutada y APROBADA en rama de release aislada, NO integrada en QA ni main.** [Actions #43993031911](https://github.com/rentverlo-dotcom/verlo/actions/runs/43993031911), SHA `3cbe0bc`, **SUCCESS**: build Next15/React19 con Node24 y **9 tests aprobados**, incluidos dos tests nuevos de aislamiento de guardadas. Sin credenciales reales ni cambios Supabase.
+
+- Se creo `tests/qa/guardadas-session-isolation.spec.ts` en la rama `release/qa-safe-integration-2026-11-16` (`c3d24cc`). El test **transpila y ejecuta el GET real** de `app/api/guardadas/route.ts` en un contexto aislado con reemplazo en memoria de los adaptadores Supabase Auth y de lectura en base. Usa dos identidades UUID ficticias y tokens de prueba, no sesiones reales ni cuentas persistidas.
+- Comprueba que una solicitud anonima recibe HTTP 401 sin consultar el cliente privilegiado; que un token invalido recibe HTTP 401 sin consultas; que token A solo obtiene la propiedad A, token B solo la B, las consultas llevan `.eq('tenant_id', identidad_validada)`, y se retorna `Cache-Control: no-store`.
+- **Alcance real:** se certifico el flujo de autorizacion y filtro a nivel handler mediante un test dinamico aislado, mas fuerte que aserciones estaticas. **NO es un E2E con Supabase QA real ni prueba entrega/validacion criptografica de JWT por servidor de Supabase**: el adaptador `auth.getUser` esta simulado. No declarar acceso real certificado ni prometer que dos usuarios reales fueron creados/probados.
+- La restriccion del propietario se respeto: **cero escritura sobre Supabase QA o produccion**, cero creacion de usuarios, cero datos de guardadas adicionales y ningun envio de proveedores. Para una prueba real de Auth+DB se necesitan cuentas de prueba ya provisionadas en QA, sin crear datos sin revision/permiso explicitos.
+- Siguiente puerta: verificar Preview del ultimo SHA del PR #29 y decidir si la prueba automatizada a nivel handler cubre el corte MVP o se habilita una prueba independiente de integracion con credenciales QA ya existentes. Mantener PR #29 draft, sin merge a `main`.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
