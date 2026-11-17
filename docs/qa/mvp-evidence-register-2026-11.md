@@ -302,6 +302,16 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - **Prueba pendiente de cierre:** verificar 3 revisiones publicadas y 3 PDFs privados SHA verificados por Actions; luego abrir con el operador autorizado o probar descarga con sesión partner, sin afirmar que ya fue validada. Esta preparación no equivale a E2E completado.
 - No se tocó `main`, no hubo SQL de escritura ni se ejecutó ninguna operación con proveedores. El alcance comercial sigue congelado.
 
+## PowerMarket: TRES PDFs publicados y verificados — 17/11/2026
+
+**RESULTADO APROBADO EN VERLO-QA**, no en producción. El operador ejecutó SQL exclusivamente en Supabase QA para completar los tres contratos demo y poner sus solicitudes en `under_review`. Después corrigió el `search_path` de las tres funciones `caucion_publish_contract_review`, `caucion_decide_contract_review`, `caucion_confirm_partner_operation` a `public, extensions, pg_temp` (pgcrypto.d igest reside en schema extensions). El asistente validó los valores mediante consultas solo lectura; no ejecutó SQL de escritura.
+
+- [GitHub Actions #44095262499](https://github.com/rentverlo-dotcom/verlo/actions/runs/44095262499), segundo intento de job `publish-and-verify`: **SUCCESS**; exigió correspondencia QA Preview exacta y token GitHub OIDC, publicó tres PDFs privados con el generador VERLO, volvió a descargarlos y validó SHA256 de bytes y de registros.
+- La **primera ejecución del mismo workflow** falló por `PUBLICATION_FAILED` en la primera solicitud (un archivo se había subido al bucket antes del fallo RPC). Se confirmó que el handler soportaba reintento del mismo contenido sin overwrite. La corrección fue en Supabase QA, no en producción.
+- Verificación SQL **solo lectura tras la ejecución aprobada**: tres registros de `caucion_contract_reviews`, todos `version=1`, `status=pending`, con claves privadas `powermarket/contracts/{application}/{contract}/v1.pdf`. Identificadores de revisión: demo inicial `f51b5bf2-1b8f-4c03-8a89-9b006be2c8e9`; ingresos bajos `1142632c-d061-40b8-bc5f-92c5de053a7d`; monotributista `7adfd4d1-bd9b-41a8-85b3-9d560ea052c2`. No hubo cambio de estado a aprobado, cobro ni emisión de póliza.
+- **Pendiente de prueba**: que el usuario partner con sesión real pueda cargar las 3 fichas, pulsar `Consultar contratos pendientes` y abrir sus PDF desde la ruta privada firmada. No afirmar prueba UI/sesión final completada hasta observar esa evidencia.
+- `qa/verlo-e2e` fue la única rama funcional modificada para el publisher. `main` y Supabase producción permanecen sin cambios.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
