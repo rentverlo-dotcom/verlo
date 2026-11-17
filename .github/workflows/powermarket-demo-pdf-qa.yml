@@ -1,8 +1,13 @@
 name: VERLO QA - publish three PowerMarket demo PDFs
 
-# Run ONLY after the owner reviews and executes the documented QA-only SQL.
-# Never run on push. Requires QA branch, exact Vercel SHA, GitHub OIDC and QA DB.
+# Owner executed verified QA-only SQL on 17/11/2026; trigger ONE targeted run.
+# Push activates only when THIS workflow changes; requires exact Preview SHA, GitHub OIDC and QA DB.
 on:
+  push:
+    branches:
+      - qa/verlo-e2e
+    paths:
+      - '.github/workflows/powermarket-demo-pdf-qa.yml'
   workflow_dispatch:
 
 permissions:
