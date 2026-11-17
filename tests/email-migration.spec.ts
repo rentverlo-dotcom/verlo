@@ -111,6 +111,20 @@ test.describe("VERLO email migration - no external deliveries", () => {
     expect(dispatcher).toContain('VERLO_EMAIL_CUTOVER_APPROVED === "true"')
   })
 
+  test("partner payment confirmation captures one email per contract participant without external send", () => {
+    const confirm = readFileSync("app/api/powermarket/confirm-operation/route.ts", "utf8")
+    expect(confirm).toContain('eventType: "policy_payment_confirmed"')
+    expect(confirm).toContain('recipientRole: p.role')
+    expect(confirm).toContain('policy.id + ":" + p.role')
+    expect(confirm).toContain('url: "/mi-verlo"')
+    expect(confirm).toContain('contract.tenant_lead_id === application.tenant_lead_id')
+    expect(confirm).toContain('status", "payment_confirmed"')
+    expect(confirm).toContain('enqueueVerloEmailSafely')
+    expect(confirm).not.toContain('sendWithZeptoMail(')
+    expect(confirm).not.toContain('sendZohoEmail(')
+    expect(confirm).not.toContain('sendPushToLead(')
+  })
+
   test("powerMarket email capture is independent of Push and still unscheduled", () => {
     const push = readFileSync("app/api/cron/powermarket-push/route.ts", "utf8")
     expect(push).not.toContain("enqueueVerloEmailSafely")
@@ -166,8 +180,9 @@ test.describe("VERLO email migration - no external deliveries", () => {
       expect(init?.method).toBe("POST")
       const body = JSON.parse(String(init?.body))
       expect(body.to[0].email_address.address).toBe("test@example.invalid")
+      expect(body.reply_to[0].address).toBe("hola@verlo.lat")
       expect((init?.headers as Record<string,string>).Authorization).toBe("Zoho-enczapikey test-key")
-      return { ok: true, status: 200, json: async () => ({ request_id: "mock-001" }) } as Response
+      return { ok: true, status: 200, json: async () => ({ message: "OK", data: [{ code: "EM_104" }], request_id: "mock-001" }) } as Response
     }) as typeof fetch
     const result = await sendWithZeptoMail({
       to: "test@example.invalid", subject: "Test", html: "<p>Test</p>",

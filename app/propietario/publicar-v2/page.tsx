@@ -384,8 +384,8 @@ export default function PublicarPropiedad() {
         house: "house",
         room: "room",
         hotel_room: "hotel_room",
-        local: "apartment",
-        ph: "apartment",
+        local: "local",
+        ph: "ph",
       } as const
 
       const safePropertyType =

@@ -72,6 +72,7 @@ type TenantLead = {
   full_name: string | null
   email: string | null
   phone: string | null
+  source: string | null
 }
 
 type ApplicationRow = {
@@ -147,7 +148,7 @@ export async function GET(request: NextRequest) {
       const { data: leadData, error: leadError } =
         await ctx.db
           .from("lead_intake")
-          .select("id,full_name,email,phone")
+          .select("id,full_name,email,phone,source")
           .in("id", leadIds)
 
       if (leadError) throw leadError
@@ -159,11 +160,24 @@ export async function GET(request: NextRequest) {
       leads.map((lead) => [lead.id, lead])
     )
 
-    const results = applications.map((application) => ({
-      ...application,
-      tenant:
-        leadsById.get(application.tenant_lead_id) || null,
-    }))
+    // QA presentation: keep the explicitly labelled PowerMarket demo and
+    // legitimate non-QA leads, but hide automated synthetic E2E submissions.
+    // Do not delete or mutate test data; production is deliberately unchanged.
+    const qaPresentation =
+      process.env.VERCEL_ENV === "preview" &&
+      process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e" &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
+
+    const results = applications
+      .filter((application) => {
+        if (!qaPresentation) return true
+        const source = leadsById.get(application.tenant_lead_id)?.source || ""
+        return source === "qa_demo_powermarket" || !source.startsWith("qa_")
+      })
+      .map((application) => ({
+        ...application,
+        tenant: leadsById.get(application.tenant_lead_id) || null,
+      }))
 
     return NextResponse.json(
       {

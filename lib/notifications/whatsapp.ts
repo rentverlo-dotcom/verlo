@@ -1,3 +1,4 @@
+import { qaProvidersDisabled } from '@/lib/qa/provider-guard'
 type WhatsAppMessage = {
   to?: string
   role?: "tenant" | "owner"
@@ -117,6 +118,10 @@ function absoluteUrl(
 export async function sendWhatsApp(
   message: WhatsAppMessage
 ): Promise<WhatsAppResult> {
+  if (qaProvidersDisabled()) {
+    return { provider: 'ghl', success: false, skipped: true, error: 'QA_EXTERNAL_DELIVERY_BLOCKED' }
+  }
+
   const eventType =
     clean(
       message.eventType ||

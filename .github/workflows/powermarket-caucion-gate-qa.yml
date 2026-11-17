@@ -1,0 +1,30 @@
+name: VERLO QA - caucion approval only, no contract veto
+on:
+  push:
+    branches: [qa/verlo-e2e]
+    paths:
+      - '.github/workflows/powermarket-caucion-gate-qa.yml'
+      - 'lib/powermarket/signing-approval.ts'
+      - 'app/api/powermarket/policies/route.ts'
+      - 'app/api/powermarket/policy-certificate/route.ts'
+      - 'app/api/powermarket/contract-reviews/route.ts'
+      - 'tests/qa/powermarket-no-contract-authorization.spec.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract-readonly-caucion-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit
+      - name: Verify caucion eligibility, no contract approval and protected partner API
+        run: npx playwright test tests/qa/powermarket-no-contract-authorization.spec.ts --config=playwright.qa.config.ts

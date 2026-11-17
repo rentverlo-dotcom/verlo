@@ -1,0 +1,65 @@
+name: VERLO QA - publish three PowerMarket demo PDFs
+
+# Owner executed verified QA-only SQL on 17/11/2026; trigger ONE targeted run.
+# Push activates only when THIS workflow changes; requires exact Preview SHA, GitHub OIDC and QA DB.
+on:
+  push:
+    branches:
+      - qa/verlo-e2e
+    paths:
+      - '.github/workflows/powermarket-demo-pdf-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: verlo-qa-powermarket-three-demo-pdfs
+  cancel-in-progress: false
+
+jobs:
+  publish-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Confirm exact QA deployment and database without changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 15 "$QA_BASE_URL/api/qa/status" | jq -e               --arg sha "$GITHUB_SHA" '.ok == true and .branch == true and .database == true and .commit == $sha' >/dev/null; then
+              echo 'Exact QA branch, QA database and deployed SHA confirmed'
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'QA deployment does not match this workflow SHA; refusing to publish'
+          exit 1
+      - name: Authenticate once with short-lived GitHub OIDC and publish exactly 3 existing synthetic contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
+          code="$(curl -sS --max-time 90 -o "$response" -w '%{http_code}'             -H "Authorization: Bearer $token" -H 'Content-Type: application/json'             --data '{}' "$QA_BASE_URL/api/qa/powermarket/demo-pdfs")"
+          if [ "$code" != 200 ]; then
+            echo "::error::Demo publication failed HTTP $code"
+            jq -c '{qaOnly,error,case_id,completed}' "$response" || true
+            exit 1
+          fi
+          jq -e '
+            .ok == true and .qaOnly == true and
+            .all_three_pdfs_verified == true and
+            (.published | length) == 3 and
+            ([.published[].application_id] | sort) ==
+              (["af0ac065-89d3-4630-8f60-053f5ae13766",
+                "4e911018-6185-4beb-83ee-559c916d330c",
+                "c0c4e8ba-5be6-4f3c-b0be-44df3453cb7a"] | sort) and
+            all(.published[]; .pdf_verified == true and
+              (.status == "published" or .status == "already_published"))
+          ' "$response" >/dev/null
+          echo 'Three existing QA-only demonstration contracts published and private bytes verified'

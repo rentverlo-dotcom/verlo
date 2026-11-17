@@ -2,11 +2,12 @@ name: VERLO email migration safe QA
 
 on:
   push:
-    branches: [main]
+    branches: [main, qa/verlo-e2e]
     paths:
       - 'lib/notifications/zeptomail.ts'
       - 'lib/notifications/verlo-email-templates.ts'
       - 'tests/email-migration.spec.ts'
+      - 'app/api/powermarket/confirm-operation/route.ts'
       - 'app/api/admin/email-dispatch/route.ts'
       - 'app/api/admin/powermarket-email-capture/route.ts'
       - 'lib/notifications/verlo-email-outbox.ts'

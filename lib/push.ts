@@ -1,3 +1,4 @@
+import { qaProvidersDisabled } from '@/lib/qa/provider-guard'
 import webpush from 'web-push'
 import { randomUUID } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -37,6 +38,8 @@ export async function sendPushToLead(
   leadId: string,
   payload: PushPayload
 ) {
+  if (qaProvidersDisabled()) return { sent: 0, failed: 0, skipped: true }
+
   const {
     data:
       targetLead,

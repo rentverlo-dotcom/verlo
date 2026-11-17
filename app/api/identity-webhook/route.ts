@@ -1,30 +1,7 @@
-import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/server'
+import { legacyIdentityDisabled } from "@/lib/identity/legacy-disabled"
 
-export async function POST(req: Request) {
-  const payload = await req.json()
-
-  const {
-    verification_id,
-    status, // approved | rejected | inconclusive
-    raw,
-  } = payload
-
-  const mappedStatus =
-    status === 'approved'
-      ? 'verified'
-      : 'failed'
-
-  await supabaseAdmin
-    .from('identity_verifications')
-    .update({
-      status: mappedStatus,
-      verified_at: mappedStatus === 'verified'
-        ? new Date().toISOString()
-        : null,
-      metadata: raw,
-    })
-    .eq('id', verification_id)
-
-  return NextResponse.json({ ok: true })
-}
+// Legacy identity integration is intentionally disabled until signed,
+// authenticated provider callbacks and subject binding are implemented.
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const POST = legacyIdentityDisabled

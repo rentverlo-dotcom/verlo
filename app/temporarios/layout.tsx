@@ -7,9 +7,14 @@ import "./georef.css"
 export default function TemporariosLayout({ children }: { children: ReactNode }) {
   const isPreview = process.env.VERCEL_ENV === "preview" &&
     process.env.VERCEL_GIT_COMMIT_REF === "feature/temporarios"
+  // Read-only visual QA is isolated from production by both branch and DB.
+  // Public API writes remain restricted separately by QA middleware/Auth.
+  const isQaVisual = process.env.VERCEL_ENV === "preview" &&
+    process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e" &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
   const isProduction = process.env.VERCEL_ENV === "production" &&
     process.env.TEMPORARY_PUBLIC_ENABLED === "true"
-  if (!isPreview && !isProduction) notFound()
+  if (!isPreview && !isQaVisual && !isProduction) notFound()
   return <>
     {children}
     <footer className="temporarios-footer">

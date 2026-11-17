@@ -1,3 +1,4 @@
+import { qaProvidersDisabled } from '@/lib/qa/provider-guard'
 type EmailWorkflowMessage = {
   role?: "tenant" | "owner"
   eventKey: string
@@ -65,6 +66,10 @@ const CONTRACT_FINAL_EVENTS = new Set([
 export async function sendGhlEmail(
   message: EmailWorkflowMessage
 ): Promise<EmailWorkflowResult> {
+  if (qaProvidersDisabled()) {
+    return { provider: 'ghl-email', success: false, skipped: true, error: 'QA_EXTERNAL_DELIVERY_BLOCKED' }
+  }
+
   const eventType = clean(message.eventType)
 
   let webhookUrl = ""

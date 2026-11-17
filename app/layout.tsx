@@ -53,8 +53,11 @@ const POSTHOG_KEY =
 const POSTHOG_HOST =
   process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim() || ''
 
+const QA_BRANCH = process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e'
+
 const POSTHOG_ENABLED =
   Boolean(
+    !QA_BRANCH &&
     POSTHOG_KEY &&
     POSTHOG_HOST
   )
@@ -139,7 +142,7 @@ export default function RootLayout({
           </>
         ) : null}
 
-        <Script
+        {!QA_BRANCH ? (<Script
           id="meta-pixel"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
@@ -156,9 +159,9 @@ export default function RootLayout({
               fbq('track', 'PageView');
             `,
           }}
-        />
+        />) : null}
 
-        <noscript>
+        {!QA_BRANCH ? (<noscript>
           <img
             height="1"
             width="1"
@@ -166,10 +169,10 @@ export default function RootLayout({
             src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
             alt=""
           />
-        </noscript>
+        </noscript>) : null}
 
         {children}
-        <VerloAnalyticsObserver />
+        {!QA_BRANCH ? <VerloAnalyticsObserver /> : null}
         <SupportEmailBubble />
       </body>
     </html>

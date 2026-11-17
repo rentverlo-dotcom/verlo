@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     const approval = await checkPowerMarketSigningApproval(db,{
       contractId: contract.id, tenantLeadId:application.tenant_lead_id, contractContent:contract.content
     })
-    if (!approval.allowed) return response("El contrato ya no tiene una revisión vigente aprobada",409)
+    if (!approval.allowed) return response("La caución no tiene aprobación vigente",409)
 
     const {data:bucket,error:bucketError} = await db.storage.getBucket(BUCKET)
     if (bucketError || !bucket || bucket.public) return response("Almacenamiento privado no disponible",503)

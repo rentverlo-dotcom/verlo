@@ -60,36 +60,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
-  try {
-    const ctx = await authorize(req)
-    if (!ctx) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
-    const body = await req.json().catch(() => null)
-    const id = String(body?.id || "")
-    const expected = String(body?.expected_status || "")
-    const decision = String(body?.decision || "")
-    const note = String(body?.note || "").trim().slice(0, 1500)
-    if (!isUuid(id) || expected !== "pending" ||
-      !["approved","changes_requested"].includes(decision) ||
-      (decision === "changes_requested" && !note)) {
-      return NextResponse.json({ error: "Decisión inválida" }, { status: 400 })
-    }
-    const { data, error } = await ctx.db.rpc("caucion_decide_contract_review", {
-      p_review_id: id, p_expected_status: expected, p_decision: decision,
-      p_actor: ctx.userId, p_note: note
-    })
-    if (error) {
-      if (error.code === "40001") return NextResponse.json({ error: "La revisión cambió. Actualizá la ficha." }, { status: 409 })
-      if (error.code === "23514") return NextResponse.json({ error: "La solicitud ya no admite la aprobación del contrato." }, { status: 409 })
-      if (error.code === "42501") return NextResponse.json({ error: "No autorizado" }, { status: 403 })
-      if (error.code === "22023") return NextResponse.json({ error: "La decisión o el comentario no son válidos." }, { status: 400 })
-      if (error.code === "42883" || error.code === "PGRST202") return NextResponse.json({ error: "Falta instalar la migración de revisión contractual" }, { status: 503 })
-      console.error("PowerMarket contract review PATCH failed", error)
-      return NextResponse.json({ error: "No se pudo registrar la revisión" }, { status: 500 })
-    }
-    return NextResponse.json({ ok: true, review: data })
-  } catch (e) {
-    console.error("PowerMarket contract review PATCH failed", e)
-    return NextResponse.json({ error: "No se pudo registrar la decisión" }, { status: 500 })
-  }
+/** Contract PDFs are view-only for PowerMarket.  Contractual acceptance is
+ * exclusively between tenant and owner; the partner only decides caucion.
+ * Explicitly block direct API callers as well as hiding the old UI actions.
+ */
+export async function PATCH() {
+  return NextResponse.json(
+    { error: "CONTRACT_REVIEW_DECISIONS_DISABLED" },
+    { status: 410, headers: { "Cache-Control": "no-store" } },
+  )
 }

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic"
 type Item={id:string;event_id:string;recipient_lead_id:string;recipient_role:"tenant"|"owner";attempts:number}
 const copy:Record<string,[string,string]>={
  application_submitted:["Caución solicitada","Recibimos tu solicitud de caución."],
- application_under_review:["Caución en evaluación","PowerMarket está evaluando tu solicitud."],
+ application_under_review:["Caución en evaluación","PowerMarket, broker asociado a VERLO, gestiona la evaluación de tu solicitud."],
  application_more_info_required:["Documentación pendiente","Revisá los próximos pasos de tu caución."],
  application_prequalified:["Caución precalificada","Tu solicitud avanzó. Revisá Mi VERLO."],
  application_not_eligible:["Resultado de caución","Hay una novedad sobre tu solicitud."],
@@ -17,13 +17,13 @@ const copy:Record<string,[string,string]>={
  quote_accepted:["Cotización aceptada","Tu aceptación quedó registrada."],
  quote_declined:["Cotización rechazada","La cotización fue rechazada."],
  quote_expired:["Cotización vencida","La oferta de caución venció."],
- review_pending:["Contrato en revisión","PowerMarket está revisando el contrato."],
+ review_pending:["Contrato en revisión","PowerMarket, broker asociado a VERLO, gestiona la revisión del contrato."],
  review_changes_requested:["Contrato con observaciones","El contrato necesita correcciones. Revisá Mi VERLO."],
  review_approved:["Contrato aprobado","PowerMarket aprobó la revisión contractual."],
  policy_pending:["Caución en trámite","La póliza sigue en trámite."],
  policy_payment_confirmed:["Pago de caución confirmado","PowerMarket confirmó la operación. La emisión de la póliza sigue pendiente."],
  policy_final_review:["Caución en revisión final","La póliza avanzó a revisión final."],
- policy_payment_pending:["Pago pendiente en PowerMarket","Revisá los pasos de tu caución en Mi VERLO."],
+ policy_payment_pending:["Pago de caución pendiente","Revisá los pasos de tu caución en Mi VERLO."],
  policy_issued:["Póliza emitida","Tu póliza de caución está emitida."],
  policy_cancelled:["Caución cancelada","Revisá el estado de la caución."],
  policy_rejected:["Caución no emitida","Revisá el estado de la caución."]
