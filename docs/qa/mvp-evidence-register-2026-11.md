@@ -251,6 +251,15 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - Compromisos pendientes: revisar y aprobar compilacion build Next15 en QA base actual, tests de endpoints 410, Preview Vercel y regresion acotada con login (especialmente aislamiento `/guardadas` para dos sesiones). Solo luego plantear fusion a QA, nunca a `main` sin autorizacion y preflight de datos.
 - **Mantener alcance congelado:** no sumar features, no repetir pagos/firmas de terceros, preservar la base productiva y no ejecutar SQL de escritura sin que el propietario lo vea previamente.
 
+## Reconciliacion de evidencia con QA actual — 16/11/2026
+
+**Realizado solo en rama `release/qa-safe-integration-2026-11-16`:** commit de integracion documental `cd60f23cba5103a756266d40ebf6bcef102ed653` tiene dos padres (ultimo release `9eb733a` y ultimo QA `f0a29c4`). Se retuvo `docs/qa/mvp-evidence-register-2026-11.md` de QA sin modificar los otros archivos del paquete. Comparacion GitHub despues de la reconciliacion: **3 commits por delante de QA y 0 por detras**; los 24 archivos de diff incluyen 23 archivos de release selectivos y el workflow exclusivo de gate `.github/workflows/qa-safe-release-gate.yml`. No se hizo merge a QA ni main.
+
+- Preview Vercel del commit original de paquete `9eb733a`: **READY**, deployment `dpl_KKoQ3DvuQ7C9aTK4efDhN1RQRTYZ`, entorno Preview `verlo_punto_0` y branch release, sin tocar produccion.
+- Actions [#43984890186](https://github.com/rentverlo-dotcom/verlo/actions/runs/43984890186): **SUCCESS**, `npm ci`, `pnpm --frozen-lockfile`, `next build`, tests de seguridad acotados (sin proveedores reales).
+- Preview del nuevo commit de reconciliacion `cd60f23`: al consultarlo figuraba **PENDING**. No extrapolar READY del commit anterior al nuevo.
+- **Barrera de integracion:** se mantiene PR #29 DRAFT sin merge. Falta prueba de usuarios autenticados con dos identidades en `/guardadas` (no hay credenciales/sesiones de QA disponibles para test real), la revision de rutas cerradas y la comprobacion de Preview sobre el SHA final. No fusionar sin pasar esas barreras. No se ejecutaron mutaciones de Supabase.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
