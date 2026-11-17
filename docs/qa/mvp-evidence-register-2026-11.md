@@ -290,6 +290,18 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - En la UI, el PDF vigente se obtiene con URL firmada de 60 segundos; puede generarse una nueva. Las versiones `superseded` se bloquean por diseño y su conservación/consulta histórica debe acordarse expresamente si PowerMarket exige ver todas las versiones.
 - Se mantiene alcance congelado; no hubo merge a `main`, acciones de proveedores, escrituras Supabase ni impacto en producción.
 
+## PowerMarket: publisher de tres PDFs privados — 17/11/2026
+
+**Estado: solución QA implementada, publicación NO ejecutada y SQL pendiente de ejecutar por el propietario; nada publicado aún.** Commits `5b0a8d5`, `7931312`, `f036144`, `c1e6a7c`, `d345f24`.
+
+- Lectura Supabase VERLO-QA `anptswspguyotnasoacq`: las 3 solicitudes son `submitted`, con 1 contrato `generated` cada una, contenido breve de 407 bytes, 0 `caucion_contract_reviews`; bucket `tenant-documents` existe y es privado. No se consultó/escribió producción.
+- **SQL de revisión obligatoria:** [`docs/qa/powermarket-demo-enable-review-2026-11-17.sql`](https://github.com/rentverlo-dotcom/verlo/blob/qa/verlo-e2e/docs/qa/powermarket-demo-enable-review-2026-11-17.sql). Cambia solamente las 3 solicitudes DEMO `submitted` a `under_review` y reemplaza el texto mínimo por documentos contractuales de demostración con varias cláusulas, debidamente identificados como NO FIRMADOS y SIN VALIDEZ COMERCIAL. Exige 3 IDs/e-mails/source exactos, contratos generados y 0 reviews; dentro de transacción con rollback por inconsistencias. **NO EJECUTADO POR EL ASISTENTE.** Efectos secundarios QA esperados: eventos y entregas push de cambio de estado.
+- **Publicador QA implementado:** [`app/api/qa/powermarket/demo-pdfs/route.ts`](https://github.com/rentverlo-dotcom/verlo/blob/qa/verlo-e2e/app/api/qa/powermarket/demo-pdfs/route.ts). Requiere ambiente preview/QA exacto + token GitHub OIDC firmado, atado a nombre workflow, rama y SHA desplegado; rechaza cualquier UUID o cuenta fuera de las 3 DEMO. Verifica los 3 contratos antes de escribir, genera PDFs con el generador VERLO, sube a bucket privado sin overwrite, publica via RPC transaccional `caucion_publish_contract_review`, vuelve a descargar y compara hash SHA256 del archivo y registro por caso; tolera reintentos tras interrupciones para el mismo contenido. No simula aprobaciones, documentos de ingresos, pagos ni pólizas.
+- Workflow manual bajo demanda [`.github/workflows/powermarket-demo-pdf-qa.yml`](https://github.com/rentverlo-dotcom/verlo/blob/qa/verlo-e2e/.github/workflows/powermarket-demo-pdf-qa.yml) valida QA commit exacto antes de emitir OIDC y ejecutar la publicación. **No ejecutar hasta SQL confirmado**, evita clientes y cron/productivo.
+- `middleware.ts` permite la ruta exclusivamente en preview QA (commit `d345f24`); funciones previas se preservan. Validar Vercel READY del SHA final antes del workflow. Mientras tanto, el dashboard mostrará "Todavía no hay contratos vinculados" correctamente.
+- **Prueba pendiente de cierre:** verificar 3 revisiones publicadas y 3 PDFs privados SHA verificados por Actions; luego abrir con el operador autorizado o probar descarga con sesión partner, sin afirmar que ya fue validada. Esta preparación no equivale a E2E completado.
+- No se tocó `main`, no hubo SQL de escritura ni se ejecutó ninguna operación con proveedores. El alcance comercial sigue congelado.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
