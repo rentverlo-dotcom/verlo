@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
+import { execFileSync } from "node:child_process"
 
 const read = (path: string) => readFileSync(path, "utf8")
 
@@ -27,4 +28,24 @@ test("PowerMarket authorization and atomic decision paths remain unchanged", () 
   expect(current).toContain('caucion_record_partner_decision')
   const policy = read("app/api/powermarket/confirm-operation/route.ts")
   expect(policy).toContain('caucion_partner_users')
+})
+
+
+test("no application code still calls either disabled legacy guarantee endpoint", () => {
+  const tracked = execFileSync("git", ["ls-files", "-z", "--", "app", "components", "lib", "scripts"], { encoding: "utf8" })
+    .split("\\0").filter(Boolean)
+  const disabled = new Set([
+    "app/api/matches/approve/route.ts",
+    "app/api/matches/[id]/approve-guarantee/route.ts",
+  ])
+  const references: string[] = []
+  for (const path of tracked) {
+    if (disabled.has(path) || !/\\.[cm]?[jt]sx?$/.test(path)) continue
+    const contents = read(path)
+    // Catch literal callers and dynamic URL construction; no HTTP requests are made.
+    if (/\\/api\\/matches\\/approve\\b/.test(contents) || /\\bapprove-guarantee\\b/.test(contents)) {
+      references.push(path)
+    }
+  }
+  expect(references, "Legacy guarantee route consumers must be investigated before release").toEqual([])
 })
