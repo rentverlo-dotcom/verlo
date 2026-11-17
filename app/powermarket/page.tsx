@@ -28,7 +28,6 @@ export default function PowerMarketDashboard(){
  const [reviews,setReviews]=useState<ContractReview[]|null>(null)
  const [quotes,setQuotes]=useState<QuoteRow[]|null>(null)
  const [policies,setPolicies]=useState<PolicyRow[]|null>(null)
- const [openedReviewIds,setOpenedReviewIds]=useState<string[]>([])
  const current=items.find(item=>item.id===selected)||null
  const visible=useMemo(()=>items.filter(item=>(filter==="all"||item.status===filter)&&(!search||[item.tenant?.full_name,item.tenant?.email,item.tenant?.phone,item.id].some(v=>String(v||"").toLowerCase().includes(search.toLowerCase())))),[items,filter,search])
  const counts={new:items.filter(i=>i.status==="submitted").length,review:items.filter(i=>["under_review","more_info_required"].includes(i.status)).length,approved:items.filter(i=>["prequalified","alternative_offered"].includes(i.status)).length}
@@ -75,7 +74,7 @@ export default function PowerMarketDashboard(){
     await refresh()
   })()
  },[])
- function select(item:Application){trackPostHog("powermarket_application_opened",{area:"powermarket",role:"partner",status:item.status});setSelected(item.id);setDocs(null);setReviews(null);setQuotes(null);setPolicies(null);setOpenedReviewIds([]);setNote("");setAmount(String(item.approved_max_total_ars??""))}
+ function select(item:Application){trackPostHog("powermarket_application_opened",{area:"powermarket",role:"partner",status:item.status});setSelected(item.id);setDocs(null);setReviews(null);setQuotes(null);setPolicies(null);setNote("");setAmount(String(item.approved_max_total_ars??""))}
  async function requestVerloAccess(){
   setError("");setNotice("")
   const address=email.trim().toLowerCase()
@@ -119,20 +118,8 @@ export default function PowerMarketDashboard(){
   const res=await fetch("/api/powermarket/contract-reviews/pdf",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({review_id:review.id})})
   const json=await res.json().catch(()=>({}))
   if(!res.ok||!json.url){win?.close();setError(json.error||"No se pudo abrir el PDF");return}
-  if(win){win.location.href=json.url;setOpenedReviewIds(prev=>prev.includes(review.id)?prev:[...prev,review.id])}
+  if(win){win.location.href=json.url}
   else setError("Permití ventanas emergentes para visualizar el PDF")
- }
- async function reviewDecision(review:ContractReview,decision:"approved"|"changes_requested"){
-  if(busy||!review.current||review.status!=="pending"||!openedReviewIds.includes(review.id))return
-  const detail=decision==="changes_requested"?window.prompt("Explicá qué debe corregirse en el contrato:",""):window.confirm("¿Aprobar esta versión exacta del contrato?")
-  if(detail===null||detail===false||(decision==="changes_requested"&&!String(detail).trim()))return
-  setBusy(true);setError("")
-  const access=await token()
-  const res=await fetch("/api/powermarket/contract-reviews",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({id:review.id,expected_status:review.status,decision,note:typeof detail==="string"?detail:""})})
-  const json=await res.json().catch(()=>({}))
-  if(!res.ok)setError(json.error||"No se pudo registrar la revisión")
-  trackPostHog(res.ok?"powermarket_contract_review_completed":"powermarket_contract_review_failed",{area:"powermarket",role:"partner",decision})
-  await loadReviews();setBusy(false)
  }
  async function loadQuotes(){
   if(!current)return
@@ -304,19 +291,15 @@ export default function PowerMarketDashboard(){
      </div>
      <div style={{borderTop:"1px solid #eee6e8",paddingTop:17,marginTop:8}}>
       <div style={{margin:"18px 0",padding:16,border:"1px solid #e7dde0",borderRadius:14}}>
-       <strong>Revisión de contrato para caución</strong>
-       <p style={{color:"#66565b",fontSize:12}}>Solo aplica a operaciones que solicitan caución mediante VERLO. La aprobación corresponde a una versión exacta del PDF.</p>
-       <button style={button} disabled={busy} onClick={()=>void loadReviews()}>Consultar contratos pendientes</button>
+       <strong>Contrato de alquiler asociado</strong>
+       <p style={{color:"#66565b",fontSize:12}}>Documento disponible para consulta durante la evaluación de la caución. Las condiciones y modificaciones del contrato corresponden exclusivamente a las partes locadora y locataria.</p>
+       <button style={button} disabled={busy} onClick={()=>void loadReviews()}>Consultar contratos</button>
        {reviews!==null&&(reviews.length===0?<p>Todavía no hay contratos vinculados a esta solicitud.</p>:reviews.map(r=><div key={r.id} style={{borderTop:"1px solid #e7dde0",marginTop:14,paddingTop:12}}>
          <strong>Contrato · versión {r.version}</strong>
-         <p>Estado: {r.status} · SHA-256: {r.pdf_sha256.slice(0,16)}…</p>
+         <p style={{fontSize:12,color:"#66565b"}}>Versión disponible para consulta</p>
          {r.partner_note&&<p>Observación: {r.partner_note}</p>}
          <button style={{...button,marginBottom:10}} disabled={busy} onClick={()=>void openReviewPdf(r)}>Abrir PDF privado</button>
-         {!r.current&&<p style={{fontWeight:750}}>Contrato modificado o versión reemplazada. No se puede aprobar.</p>}
-         {r.status==="pending"&&r.current?<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <button style={button} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"approved")}>Aprobar esta versión</button>
-          <button style={{...button,background:"#fff",color:"#050002",border:"1px solid #ddd5d7"}} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"changes_requested")}>Solicitar correcciones</button>
-         </div>:null}
+         {!r.current&&<p style={{fontWeight:750}}>Esta versión fue reemplazada. Consultá la vigente desde VERLO.</p>}
        </div>))}
       </div><button style={button} onClick={()=>void documents()}>Consultar comprobantes</button>
       {docs&&<div style={{marginTop:12}}>{docs.length===0?"No hay comprobantes cargados.":docs.map(doc=><div key={doc.id} style={{marginBottom:9}}><button style={{...button,background:"#f2ebec",color:"#050002"}} onClick={()=>void openDoc(doc.id)}>Abrir {doc.original_filename||doc.kind}</button></div>)}</div>}
