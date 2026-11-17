@@ -292,9 +292,9 @@ export default function PowerMarketDashboard(){
      <div style={{borderTop:"1px solid #eee6e8",paddingTop:17,marginTop:8}}>
       <div style={{margin:"18px 0",padding:16,border:"1px solid #e7dde0",borderRadius:14}}>
        <strong>Contrato de alquiler asociado</strong>
-       <p style={{color:"#66565b",fontSize:12}}>Documento disponible para consulta durante la evaluación de la caución. Las condiciones y modificaciones del contrato corresponden exclusivamente a las partes locadora y locataria.</p>
+       <p style={{color:"#66565b",fontSize:12}}>Etapa 2: cuando las partes generen su contrato, PowerMarket lo puede consultar aquí. Para habilitar la firma, PowerMarket debe confirmar el cobro de la caución desde «Confirmar operación»; no aprueba ni modifica cláusulas.</p>
        <button style={button} disabled={busy} onClick={()=>void loadReviews()}>Consultar contratos</button>
-       {reviews!==null&&(reviews.length===0?<p>Todavía no hay contratos vinculados a esta solicitud.</p>:reviews.map(r=><div key={r.id} style={{borderTop:"1px solid #e7dde0",marginTop:14,paddingTop:12}}>
+       {reviews!==null&&(reviews.length===0?<p>Etapa 1: todavía no hay contrato. PowerMarket puede precalificar la caución. Cuando propietario e inquilino generen el contrato en VERLO, aparecerá aquí automáticamente para consulta.</p>:reviews.map(r=><div key={r.id} style={{borderTop:"1px solid #e7dde0",marginTop:14,paddingTop:12}}>
          <strong>Contrato · versión {r.version}</strong>
          <p style={{fontSize:12,color:"#66565b"}}>Versión disponible para consulta</p>
          {r.partner_note&&<p>Observación: {r.partner_note}</p>}
