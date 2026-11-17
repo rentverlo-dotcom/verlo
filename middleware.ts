@@ -115,6 +115,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // QA-only: workflow-specific signed GitHub OIDC + exact 3 demo case guard
+  // are enforced inside the route; never open this route in production.
+  if (verified && request.method === 'POST' && path === '/api/qa/powermarket/demo-pdfs') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'POST' && path === '/api/qa/contracts/lifecycle') {
     return NextResponse.next()
   }
