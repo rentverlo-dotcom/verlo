@@ -239,6 +239,18 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - **Pendientes externos** (no dar por certificados por los tests actuales): credenciales y validacion real Namirial; resolucion/aprobacion/certificado de PowerMarket; primer correo de ZeptoMail realmente recibido; operativa final Identik produccion y eventuales verificaciones Mercado Pago segun preflight.
 - **Criterio para seguir:** cierre de riesgos de seguridad y paquete de release, sin nuevas funcionalidades, sin nuevas pruebas pagas externas, sin tocar Supabase sin SQL y revision previa por el propietario.
 
+## Integracion selectiva de seguridad y Next15 — 16/11/2026 (PR #29)
+
+**Estado: rama de release aislada + PR draft, SIN MERGE A QA NI MAIN, SIN CAMBIOS EN SUPABASE.** Se reemplazo el PR #28 (cerrado sin fusionar) por [PR #29](https://github.com/rentverlo-dotcom/verlo/pull/29).
+
+- Rama creada desde `qa/verlo-e2e` en commit `393e2b19d883b04a10e86026265f12b984c64531`: `release/qa-safe-integration-2026-11-16`. El commit selectivo `ad09532bc9493a0fbeed7cefb1b6de768061c871` incorpora **23 archivos** exactos desde la rama `security/legacy-guarantee-api-closure` sin merge de historias: handlers legacy bloqueados, `/guardadas` protegido por JWT/filtro de actor, compatibilidad Next15, `package.json`, ambos lockfiles y `tsconfig.json`, dos specs Playwright.
+- Se excluyeron **cinco workflows de diagnostico** de las ramas aisladas y se preservaron **todos los archivos de QA que no forman parte del paquete**, incluido este registro; no se borraron datos ni archivos comerciales existentes. Se agrego un solo workflow temporal de certificacion `.github/workflows/qa-safe-release-gate.yml` en commit `9eb733a2e6c91a61c87fc82cf6d1fdbfa7fbc383` para revisar este paquete en la nueva rama. No debe promocionarse automaticamente a `main`.
+- PR #28 `security/legacy-guarantee-api-closure → qa/verlo-e2e`: **CERRADO, NO MERGEADO** por divergencia (48 commits adelante y 6 atras de QA al verificar). **No usar PR #28** para integrar. PR #29 `release/qa-safe-integration-2026-11-16 → qa/verlo-e2e`: **DRAFT, ABIERTO, NO MERGEADO**.
+- [Actions #43984890186](https://github.com/rentverlo-dotcom/verlo/actions/runs/43984890186): **SUCCESS** en commit `9eb733a` de release selectivo: versiones fijadas, `npm ci`, `pnpm --frozen-lockfile`, generacion efimera de VAPID para compilacion offline, **`next build` de produccion exitoso** y tests Playwright especificos sobre endpoints legacy y preservacion de PowerMarket, todos aprobados. Esto no certifica sesiones reales, entrega email, pagos ni firmas.
+- Vercel Preview del commit `9eb733a`: al consultar su estado figuraba **pending**, no afirmar despliegue aprobado hasta comprobarlo. PR #29 permanecia **draft y sin merge**.
+- Compromisos pendientes: revisar y aprobar compilacion build Next15 en QA base actual, tests de endpoints 410, Preview Vercel y regresion acotada con login (especialmente aislamiento `/guardadas` para dos sesiones). Solo luego plantear fusion a QA, nunca a `main` sin autorizacion y preflight de datos.
+- **Mantener alcance congelado:** no sumar features, no repetir pagos/firmas de terceros, preservar la base productiva y no ejecutar SQL de escritura sin que el propietario lo vea previamente.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
