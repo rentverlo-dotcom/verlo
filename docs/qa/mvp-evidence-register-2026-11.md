@@ -321,6 +321,21 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - **Pendiente de prueba**: que el usuario partner con sesión real pueda cargar las 3 fichas, pulsar `Consultar contratos pendientes` y abrir sus PDF desde la ruta privada firmada. No afirmar prueba UI/sesión final completada hasta observar esa evidencia.
 - `qa/verlo-e2e` fue la única rama funcional modificada para el publisher. `main` y Supabase producción permanecen sin cambios.
 
+## Poder contractual de PowerMarket removido: gate de caucion — 17/11/2026
+
+**Usuario confirmó alcance:** en contratos con caución PowerMarket solamente evalúa la caución, NO aprueba contenido contractual ni exige revisión contractual para firma/póliza; el PDF queda disponible para consulta. En contratos sin caución se conserva flujo habitual.
+
+**Cambios implementados solo en `qa/verlo-e2e`**:
+- `lib/powermarket/signing-approval.ts` commit `d5165c7`: deja de consultar `caucion_contract_reviews`; acepta cauciones `prequalified` o `alternative_offered` vigentes y sin ambigüedad; bloquea estados pendientes, rechazados y vencidos; sin caución retorna `no_caucion`.
+- `app/api/powermarket/policies/route.ts` commit `456fde1`: crear/avanzar póliza requiere caución aprobada, contrato asociado al mismo inquilino y cotización vigente; elimina exigencia `approval.reviewId`.
+- `app/api/powermarket/policy-certificate/route.ts` commit `e1fb38e`: no exige revisión aprobada del PDF; conserva guardas de operador, estado `payment_confirmed`, relación caución/contrato y bucket privado.
+- `app/api/powermarket/contract-reviews/route.ts` commit `cfccb43`: GET de consulta intacto; PATCH que aprobaba/sugería cambios pasa a `410 CONTRACT_REVIEW_DECISIONS_DISABLED`. Botones ya eliminados de UI PowerMarket en `461ac4d`.
+- `tests/qa/powermarket-no-contract-authorization.spec.ts` `e4d6b45` y gate Actions [#44137707281](https://github.com/rentverlo-dotcom/verlo/actions/runs/44137707281) **SUCCESS** (sin servicios externos ni mutaciones de DB). CI commit `84a6f10`.
+
+**BLOQUEO PENDIENTE DE SQL QA:** la función real `public.caucion_confirm_partner_operation(uuid,uuid)` (verificada por lectura `pg_get_functiondef` en Supabase VERLO-QA) todavía consulta `caucion_contract_reviews` y exige `v_review.status='approved'`, de modo que la confirmación de operación de caución permanecerá bloqueada mientras no se reemplace esta función de forma atómica por una versión sin veto contractual. **EL ASISTENTE NO EJECUTÓ SQL DE ESCRITURA.** El SQL exacto debe mostrarse al propietario para que lo aplique en VERLO-QA, verificar con `pg_get_functiondef` luego de aplicarlo, y solo posteriormente migrar de modo controlado a producción. **NO declarar circuito E2E de pago/caución confirmado hasta entonces.**
+
+**Compatibilidad:** no se alteraron los PDFs existentes ni el generador de contratos. La función `checkPowerMarketSigningApproval` solo tenía como consumidores de código identificados las rutas de pólizas/certificado; la certificación directa del endpoint del proveedor de firma no se ha realizado en esta tanda. No se tocó `main` ni Supabase producción.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
