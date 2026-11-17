@@ -271,6 +271,16 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - Preview Vercel READY previamente confirmado en `3cbe0bc` (build aislado; no prod). El ultimo commit `b1b4343` tiene Actions SUCCESS, y Vercel se debe comprobar por commit antes de integracion.
 - Se mantiene PR #29 **DRAFT**, sin fusion. Siguiente control: comprobar Preview del SHA de test y decidir la integracion QA selectiva siguiendo las barreras de release. No promover a `main` solo por este estado verde.
 
+## Prelaunch: inventario de exclusiones de QA — 17/11/2026
+
+**Accion completada:** documento de corte selectivo [`docs/release/2026-11-17-prelaunch-scope-gate.md`](https://github.com/rentverlo-dotcom/verlo/blob/qa/verlo-e2e/docs/release/2026-11-17-prelaunch-scope-gate.md) agregado en QA, commit `68dc47e`.
+
+- Comparacion `main...qa/verlo-e2e`: **402 commits adelante de main** (sin atras), **147 archivos** de diff. **23 endpoints de pruebas `app/api/qa/*`** y dos workflows de QA presentes. **No fusionar QA integra a produccion.**
+- Integracion aislada PR #29 no se fusiono; el workflow de diagnostico de release tampoco se incorpora automaticamente a main.
+- La certificacion automatizada más reciente de seguridad: [Actions #43994592714](https://github.com/rentverlo-dotcom/verlo/actions/runs/43994592714) **10/10 passed**, Next15 build SUCCESS. Vercel READY confirmado para versiones anteriores de la rama, **no afirmar Ready del ultimo commit sin inspeccion explicita**.
+- Proxima accion: construir paquete comercial de release selectivo, excluyendo utilidades QA por defecto; solo despues verificar migraciones necesarias con SQL mostrado al propietario, y completar proveedores reales.
+- Solo evidencia/documentacion cambiada en QA; `main` y Supabase no tocados.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
