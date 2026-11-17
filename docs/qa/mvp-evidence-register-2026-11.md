@@ -261,6 +261,16 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - La restriccion del propietario se respeto: **cero escritura sobre Supabase QA o produccion**, cero creacion de usuarios, cero datos de guardadas adicionales y ningun envio de proveedores. Para una prueba real de Auth+DB se necesitan cuentas de prueba ya provisionadas en QA, sin crear datos sin revision/permiso explicitos.
 - Siguiente puerta: verificar Preview del ultimo SHA del PR #29 y decidir si la prueba automatizada a nivel handler cubre el corte MVP o se habilita una prueba independiente de integracion con credenciales QA ya existentes. Mantener PR #29 draft, sin merge a `main`.
 
+## Verificacion final de consumidores legacy — 17/11/2026
+
+**Estado:** control nuevo aprobado en rama aislada `release/qa-safe-integration-2026-11-16`, commit `b1b434320a4952661d4802bd8adf79fd3057f17d`; **sin fusion a QA ni main ni cambios de Supabase**.
+
+- [GitHub Actions #43994592714](https://github.com/rentverlo-dotcom/verlo/actions/runs/43994592714): **SUCCESS** con **10/10 tests** aprobados, instalacion reproducible npm y pnpm, build de produccion Next15 y suite acotada de seguridad.
+- Se agrego un test que recorre los archivos versionados bajo `app/`, `components/`, `lib/` y `scripts/` para detectar consumidores internos de las URLs legacy `/api/matches/approve` y `approve-guarantee`, excluyendo los dos handlers obsoletos. **No se encontraron consumidores de esas rutas en codigo de aplicacion versionado**. Esto no certifica ausencia de consumidores externos que puedan conservar URLs anteriores.
+- Las pruebas anteriores de `/guardadas` con dos identidades simuladas y bloqueo de llamadas anonimas siguen verdes. **No hubo autenticacion en vivo en Supabase QA** ni se crearon o alteraron cuentas/likes.
+- Preview Vercel READY previamente confirmado en `3cbe0bc` (build aislado; no prod). El ultimo commit `b1b4343` tiene Actions SUCCESS, y Vercel se debe comprobar por commit antes de integracion.
+- Se mantiene PR #29 **DRAFT**, sin fusion. Siguiente control: comprobar Preview del SHA de test y decidir la integracion QA selectiva siguiendo las barreras de release. No promover a `main` solo por este estado verde.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
