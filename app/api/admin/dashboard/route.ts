@@ -7,6 +7,7 @@ import {
   createClient,
 } from "@supabase/supabase-js"
 import { getBusinessMetrics, getMetaMetrics } from "@/lib/admin/business-metrics"
+import { getPowerMarketSettlement } from "@/lib/admin/powermarket-settlement"
 import { getZeptoMailReadiness } from "@/lib/notifications/zeptomail"
 
 export const runtime = "nodejs"
@@ -746,9 +747,10 @@ export async function GET(
       throw pushError
     }
 
-    const [business, meta] = await Promise.all([
+    const [business, meta, powerMarketSettlement] = await Promise.all([
       getBusinessMetrics(supabase, mode === "e2e" ? "e2e" : mode === "production" ? "production" : "all", process.env),
       getMetaMetrics(process.env),
+      getPowerMarketSettlement(supabase, mode === "e2e" ? "e2e" : mode === "production" ? "production" : "all"),
     ])
 
     const funnel = {
@@ -849,6 +851,7 @@ export async function GET(
         pushSubscriptions || [],
       business,
       meta,
+      powermarket_settlement: powerMarketSettlement,
       zeptomail: getZeptoMailReadiness(process.env),
     })
   } catch (error) {
