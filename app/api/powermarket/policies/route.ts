@@ -64,15 +64,15 @@ export async function POST(req: NextRequest) {
         !["prequalified", "alternative_offered"].includes(application.status))
       return NextResponse.json({ error: "La operación no corresponde a la caución aprobada" }, { status: 409 })
 
-    // A previous approval does not authorize a changed contract.
-    // Use the exact same server-side current-version gate as signing.
+    // The partner approves caucion eligibility, never the contractual text.
+    // Keep the tenant/contract association and caucion-state check server-side.
     if (typeof contract.content !== "string")
       return NextResponse.json({ error: "Contrato no disponible" }, { status: 409 })
     const approval = await checkPowerMarketSigningApproval(ctx.db, {
       contractId, tenantLeadId: application.tenant_lead_id, contractContent: contract.content
     })
-    if (!approval.allowed || !approval.reviewId)
-      return NextResponse.json({ error: "Falta una aprobación vigente del contrato de PowerMarket" }, { status: 409 })
+    if (!approval.allowed)
+      return NextResponse.json({ error: "La caución no tiene aprobación vigente" }, { status: 409 })
 
     const { data: existing, error: existingError } = await ctx.db.from("caucion_policies")
       .select("id").eq("application_id", application.id).eq("lead_contract_id", contractId).limit(1)
@@ -106,7 +106,7 @@ export async function PATCH(req: NextRequest) {
     const allowed = (policy.status === "pending" && next === "final_review") ||
       (policy.status === "final_review" && next === "payment_pending")
     if (!allowed) return NextResponse.json({ error: "Transición de estado no permitida" }, { status: 409 })
-    // A policy must not progress after the approved contract or quote became stale.
+    // A policy cannot progress if the caucion, tenant/contract relationship or quote becomes invalid.
     const { data: contract, error: contractError } = await ctx.db.from("lead_contracts")
       .select("id,tenant_lead_id,content").eq("id", policy.lead_contract_id).maybeSingle()
     const { data: application, error: appError } = await ctx.db.from("caucion_applications")
@@ -121,8 +121,8 @@ export async function PATCH(req: NextRequest) {
       tenantLeadId: application.tenant_lead_id,
       contractContent: contract.content,
     })
-    if (!approval.allowed || !approval.reviewId)
-      return NextResponse.json({ error: "La aprobación contractual ya no está vigente" }, { status: 409 })
+    if (!approval.allowed)
+      return NextResponse.json({ error: "La aprobación de caución ya no está vigente" }, { status: 409 })
     const { data: acceptedQuote, error: quoteError } = await ctx.db.from("caucion_quotes")
       .select("status,valid_until").eq("id", policy.quote_id).maybeSingle()
     if (quoteError || !acceptedQuote || acceptedQuote.status !== "accepted" ||
