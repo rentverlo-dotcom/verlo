@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/qa-safe-release-gate.yml'
       - 'tests/qa/guardadas-session-isolation.spec.ts'
+      - 'tests/qa/legacy-guarantee-closure.spec.ts'
   workflow_dispatch:
 
 permissions:
