@@ -11,7 +11,10 @@ function decodeJson(input: string): Record<string, unknown> {
   return result as Record<string, unknown>
 }
 
-export async function validQaWorkflowToken(token: string, expectedSha: string): Promise<boolean> {
+export async function validQaWorkflowToken(
+  token: string, expectedSha: string,
+  workflowFile: 'verlo-qa-isolation.yml' | 'powermarket-demo-pdf-qa.yml' = 'verlo-qa-isolation.yml',
+): Promise<boolean> {
   try {
     if (!token || token.length > 12000) return false
     const parts = token.split('.')
@@ -24,7 +27,7 @@ export async function validQaWorkflowToken(token: string, expectedSha: string): 
         payload.iss !== issuer || payload.aud !== audience ||
         payload.repository !== repository || payload.ref !== branchRef ||
         payload.sha !== expectedSha ||
-        payload.workflow_ref !== repository + '/.github/workflows/verlo-qa-isolation.yml@' + branchRef ||
+        payload.workflow_ref !== repository + '/.github/workflows/' + workflowFile + '@' + branchRef ||
         payload.sub !== 'repo:' + repository + ':ref:' + branchRef ||
         !['push', 'workflow_dispatch'].includes(String(payload.event_name)) ||
         typeof payload.exp !== 'number' || payload.exp <= now ||
