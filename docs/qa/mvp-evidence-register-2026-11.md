@@ -281,6 +281,15 @@ La documentacion de release del 12/11 confirma dos pagos historicos de Temporari
 - Proxima accion: construir paquete comercial de release selectivo, excluyendo utilidades QA por defecto; solo despues verificar migraciones necesarias con SQL mostrado al propietario, y completar proveedores reales.
 - Solo evidencia/documentacion cambiada en QA; `main` y Supabase no tocados.
 
+## PowerMarket: preparación de tres casos con contratos — 17/11/2026
+
+- Verificado **solo lectura** en Supabase `VERLO-QA` (ref `anptswspguyotnasoacq`): solicitud DEMO `af0ac065-89d3-4630-8f60-053f5ae13766`, inquilino `1a87a179-9059-441e-bd55-bd5b9d70fee3`, ingreso $2.800.000, alquiler $800.000, expensas $120.000, estado `submitted`, **sin `lead_contracts` y sin `caucion_contract_reviews`**. No se cambió ningún dato.
+- Inspeccionados esquemas y restricciones reales de `lead_intake`, `lead_matches`, `lead_contracts`, `caucion_applications`, `caucion_contract_reviews`. Cada contrato requiere `lead_match_id`, tenant y owner relacionados. El trigger `caucion_push_application_trigger` genera eventos/entregas QA al insertar solicitudes.
+- SQL **SOLO PROPUESTO Y NO EJECUTADO**: [`docs/qa/powermarket-three-scenarios-draft-2026-11-17.sql`](https://github.com/rentverlo-dotcom/verlo/blob/qa/verlo-e2e/docs/qa/powermarket-three-scenarios-draft-2026-11-17.sql) (commit `220abf5`), crea 2 nuevas solicitudes sintéticas y 3 contratos textuales de QA ligados a matches, conserva la DEMO existente, protege contra dobles inserciones y valida el entorno mediante referencia DEMO. Se ofrece **al propietario para revisión y ejecución manual en Supabase QA**, NUNCA sobre producción. No crear datos de forma automática.
+- **IMPORTANTE:** ningún PDF fue publicado ni se puede declarar acceso a contratos probado. Los PDFs requieren subida al bucket privado `tenant-documents` y publicación mediante `caucion_publish_contract_review` usando el flujo `/api/powermarket/contract-reviews/publish`; solo permitido cuando la solicitud pase a `under_review`, `prequalified` o `alternative_offered` de forma legítima. El SQL propuesto no cambia decisiones ni simula aprobación de PowerMarket. Aún falta probar la apertura real por el operador autorizado.
+- En la UI, el PDF vigente se obtiene con URL firmada de 60 segundos; puede generarse una nueva. Las versiones `superseded` se bloquean por diseño y su conservación/consulta histórica debe acordarse expresamente si PowerMarket exige ver todas las versiones.
+- Se mantiene alcance congelado; no hubo merge a `main`, acciones de proveedores, escrituras Supabase ni impacto en producción.
+
 ## Cierre operativo
 - **Cierre funcional QA confirmado en Actions #280**. No repetir la suite sintetica por defecto.
 - Prioridad siguiente: certificacion real y controlada de entrega Email + Push, auditoria de dependencia Next/Node y plan de migraciones sin tocar datos productivos.
