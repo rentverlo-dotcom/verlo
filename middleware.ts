@@ -20,6 +20,15 @@ export async function middleware(request: NextRequest) {
       'https://bmgrpcqrdvwculrisasi.supabase.co'
   if (production) return NextResponse.next()
 
+  // Isolated reconciliation probe: Supabase Auth required inside route;
+  // cannot mark anyone verified until biometrics approval is certified.
+  if (request.method === 'POST' && path === '/api/signatura/identity-reconcile' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
   // Authenticated Signatura tenant identity status. Handler verifies Supabase Auth
   // and returns no private document or biometric identifiers.
   if (request.method === 'GET' && path === '/api/signatura/identity-status' &&
