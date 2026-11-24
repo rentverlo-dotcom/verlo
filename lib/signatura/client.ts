@@ -95,6 +95,43 @@ export async function createSignaturaDocument(args: {
   return response.json() as Promise<SignaturaDocument>
 }
 
+/**
+ * Create a QA-only identity declaration invitation with mandatory biometrics.
+ * Leaving invite_channel absent prevents requesting provider email/SMS sends.
+ *
+ * Important: creation returns document/signature IDs; do not assume the signing
+ * URL is included. Resolve that separately using the provider's documented
+ * contract before exposing a user-facing activation route.
+ *
+ * This is not a contract-signing action and must never bypass VERLO Auth.
+ */
+export async function createSignaturaIdentityInvitation(args: {
+  pdf: Buffer
+  complete_url: string
+}): Promise<SignaturaDocument> {
+  if (process.env.VERCEL_ENV !== "preview" ||
+      process.env.VERCEL_GIT_COMMIT_REF !== "feature/signatura-qa-integration" ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL !==
+        "https://anptswspguyotnasoacq.supabase.co") {
+    throw new Error("Signatura identity invitation is only available in isolated QA")
+  }
+
+  const redirect = new URL(args.complete_url)
+  if (redirect.protocol !== "https:" ||
+      redirect.hostname !==
+        "verlopunto0-git-feature-signatu-009bb9-verlos-projects-b9e9c595.vercel.app" ||
+      redirect.username || redirect.password) {
+    throw new Error("Invalid Signatura QA return URL")
+  }
+
+  return createSignaturaDocument({
+    title: "VERLO QA - Activación de identidad",
+    pdf: args.pdf,
+    signatures: [{ validations: { BI: null } }],
+    complete_url: redirect.toString(),
+  })
+}
+
 export async function getSignaturaDocument(id: string): Promise<SignaturaDocument> {
   const response = await apiRequest(`/documents/${safeId(id)}`)
   return response.json() as Promise<SignaturaDocument>
