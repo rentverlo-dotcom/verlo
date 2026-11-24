@@ -20,6 +20,16 @@ export async function middleware(request: NextRequest) {
       'https://bmgrpcqrdvwculrisasi.supabase.co'
   if (production) return NextResponse.next()
 
+  // Isolated Signatura QA webhook. Its handler verifies the HMAC and persists
+  // only minimal event metadata. All existing QA and production rules remain.
+  if (request.method === 'POST' && path === '/api/webhooks/signatura' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL &&
+      process.env.SIGNATURA_WEBHOOK_QA_ENABLED === 'true') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' && path === '/buscar') {
     return NextResponse.redirect(new URL('/permanentes', request.url), 307)
   }
