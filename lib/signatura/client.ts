@@ -137,6 +137,27 @@ export async function getSignaturaDocument(id: string): Promise<SignaturaDocumen
   return response.json() as Promise<SignaturaDocument>
 }
 
+/**
+ * Retrieve the invitation URL from the documented document-detail payload.
+ * The signing link belongs to a specific signer, not the return URL.
+ * Must only be called by a trusted route that first authorizes the signer.
+ */
+export async function getSignaturaSigningUrl(
+  documentId: string,
+  signatureId: string,
+): Promise<string | null> {
+  const document = await getSignaturaDocument(documentId)
+  if (document.id !== safeId(documentId)) return null
+  const signer = document.signatures?.find(s => s.id === safeId(signatureId))
+  if (!signer || typeof signer.url !== "string") return null
+  const url = new URL(signer.url)
+  if (url.protocol !== "https:" || url.username || url.password ||
+      !(url.hostname === "signatura.co" || url.hostname.endsWith(".signatura.co"))) {
+    throw new Error("Unapproved Signatura signing URL")
+  }
+  return url.toString()
+}
+
 export async function getSignaturaBiometrics(signatureId: string): Promise<unknown> {
   const response = await apiRequest(`/signatures/${safeId(signatureId)}/biometrics`)
   return response.json()
