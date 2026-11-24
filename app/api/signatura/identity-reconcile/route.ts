@@ -26,6 +26,12 @@ export async function POST(request: NextRequest) {
   if (authError || !user) return reply({ ok: false }, 401)
 
   const db = createClient(QA_URL, key, { auth: { persistSession: false, autoRefreshToken: false } })
+  // A property owner can never acquire a tenant identity badge.
+  const { data: profile, error: profileError } = await db.from("profiles")
+    .select("role").eq("id", user.id).maybeSingle()
+  if (profileError) return reply({ ok: false }, 503)
+  if (profile?.role !== "tenant") return reply({ ok: false }, 403)
+
   const { data: binding, error } = await db.from("signatura_tenant_identity_bindings")
     .select("signatura_document_id,signatura_signature_id,verification_status")
     .eq("tenant_user_id", user.id).maybeSingle()
@@ -53,12 +59,35 @@ export async function POST(request: NextRequest) {
     const signature = document.signatures?.find((s) => s.id === binding.signatura_signature_id)
     if (!signature || signature.status !== "CO") return reply({ ok: true, status: "pending" })
 
-    // Provider status and the signed-event inbox match. However, this is NOT
-    // sufficient to assert biometric approval. The provider's biometric
-    // response schema and its explicit approval criteria must be verified.
-    // Fail closed; do not expose a blue badge or mark anyone verified.
-    return reply({ ok: true, status: "pending", document_signed: true,
-      biometric_verification: "unconfirmed" })
+    // Signatura's documented response includes validations.BI.validated.
+    // Never infer biometric approval from a PDF, status alone, or photo URLs.
+    const rawSignature = signature as typeof signature & {
+      validations?: { BI?: { validated?: boolean } }
+    }
+    if (rawSignature.validations?.BI?.validated !== true) {
+      return reply({ ok: true, status: "pending", document_signed: true,
+        biometric_verification: "unconfirmed" })
+    }
+
+    const now = new Date().toISOString()
+    const { data: updated, error: updateError } = await db
+      .from("signatura_tenant_identity_bindings")
+      .update({ verification_status: "verified", verified_at: now, updated_at: now })
+      .eq("tenant_user_id", user.id)
+      .eq("signatura_document_id", binding.signatura_document_id)
+      .eq("signatura_signature_id", binding.signatura_signature_id)
+      .eq("verification_status", "pending")
+      .select("verification_status").maybeSingle()
+    if (updateError) return reply({ ok: false }, 503)
+    if (updated) return reply({ ok: true, status: "verified" })
+
+    // Idempotency: another request may have completed the same transition.
+    const { data: latest, error: latestError } = await db
+      .from("signatura_tenant_identity_bindings")
+      .select("verification_status").eq("tenant_user_id", user.id).maybeSingle()
+    if (latestError) return reply({ ok: false }, 503)
+    return reply({ ok: true, status: latest?.verification_status === "verified"
+      ? "verified" : "pending" })
   } catch {
     // Do not leak provider response bodies, photo URLs or ID numbers.
     return reply({ ok: false, error: "provider_unavailable" }, 502)
