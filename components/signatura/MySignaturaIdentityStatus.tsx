@@ -7,6 +7,8 @@ type Status = "not_started" | "pending" | "verified" | "failed"
 
 export default function MySignaturaIdentityStatus() {
   const [status, setStatus] = useState<Status | null>(null)
+  const [opening, setOpening] = useState(false)
+  const [openError, setOpenError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -31,6 +33,34 @@ export default function MySignaturaIdentityStatus() {
     return () => { active = false }
   }, [])
 
+  async function openOwnInvitation() {
+    if (opening || status !== "pending") return
+    setOpening(true)
+    setOpenError(null)
+    try {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) throw new Error("Iniciá sesión para continuar.")
+      const response = await fetch("/api/signatura/my-signing-url", {
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+        cache: "no-store",
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || !result?.ok || typeof result.signing_url !== "string") {
+        throw new Error("Todavía no está disponible tu enlace de validación.")
+      }
+      const url = new URL(result.signing_url)
+      if (url.protocol !== "https:" ||
+          !(url.hostname === "signatura.co" || url.hostname.endsWith(".signatura.co"))) {
+        throw new Error("El enlace de firma no es válido.")
+      }
+      // Navigating in the same tab keeps the single-signer URL private.
+      window.location.assign(url.toString())
+    } catch (error) {
+      setOpenError(error instanceof Error ? error.message : "No pudimos abrir el enlace.")
+      setOpening(false)
+    }
+  }
+
   // QA-only: hide status entirely if there is no verified response.
   if (!status) return null
   const verified = status === "verified"
@@ -52,6 +82,15 @@ export default function MySignaturaIdentityStatus() {
           : status === "failed" ? "No se pudo completar la verificación de identidad."
           : "Todavía no activaste tu identidad VERLO."}
       </p>
+      {status === "pending" && (
+        <button type="button" onClick={openOwnInvitation} disabled={opening}
+          style={{ marginTop: 10, padding: "10px 14px", borderRadius: 9,
+            border: "none", background: "#1d4ed8", color: "#fff",
+            cursor: opening ? "wait" : "pointer" }}>
+          {opening ? "Abriendo validación..." : "Continuar validación"}
+        </button>
+      )}
+      {openError && <p role="alert" style={{ fontSize: 13, color: "#b91c1c" }}>{openError}</p>}
     </section>
   )
 }
