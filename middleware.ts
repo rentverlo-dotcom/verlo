@@ -20,6 +20,15 @@ export async function middleware(request: NextRequest) {
       'https://bmgrpcqrdvwculrisasi.supabase.co'
   if (production) return NextResponse.next()
 
+  // QA read-only response shape diagnostic. Returns only non-sensitive field
+  // names from one existing completed demo, never document contents or URLs.
+  if (request.method === 'GET' && path === '/api/qa/signatura-response-shape' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
   // Isolated reconciliation probe: Supabase Auth required inside route;
   // cannot mark anyone verified until biometrics approval is certified.
   if (request.method === 'POST' && path === '/api/signatura/identity-reconcile' &&
