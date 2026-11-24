@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { getSignaturaDocument, getSignaturaBiometrics } from "@/lib/signatura/client"
+import { getSignaturaDocument } from "@/lib/signatura/client"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -53,32 +53,12 @@ export async function POST(request: NextRequest) {
     const signature = document.signatures?.find((s) => s.id === binding.signatura_signature_id)
     if (!signature || signature.status !== "CO") return reply({ ok: true, status: "pending" })
 
-    // Provider returns sensitive ID data and photo URLs. Examine their
-    // presence transiently; never log, return, or store them in VERLO.
-    const raw: unknown = await getSignaturaBiometrics(binding.signatura_signature_id)
-    if (!raw || typeof raw !== "object") return reply({ ok: true, status: "pending" })
-    const biometric = raw as Record<string, unknown>
-    const photos = Array.isArray(biometric.photos) ? biometric.photos : []
-    const types = new Set(photos.map((p) => p && typeof p === "object"
-      ? (p as Record<string, unknown>).type : null))
-    if (typeof biometric.document_number !== "string" ||
-        !biometric.document_number.trim() ||
-        !["front", "back", "selfie"].every((t) => types.has(t))) {
-      return reply({ ok: true, status: "pending" })
-    }
-
-    // Lock the transition to a single linked, previously pending identity.
-    const { data: updated, error: updateError } = await db
-      .from("signatura_tenant_identity_bindings")
-      .update({ verification_status: "verified", verified_at: new Date().toISOString(),
-        updated_at: new Date().toISOString() })
-      .eq("tenant_user_id", user.id)
-      .eq("signatura_document_id", binding.signatura_document_id)
-      .eq("signatura_signature_id", binding.signatura_signature_id)
-      .eq("verification_status", "pending")
-      .select("verification_status").maybeSingle()
-    if (updateError) return reply({ ok: false }, 503)
-    return reply({ ok: true, status: updated ? "verified" : "pending" })
+    // Provider status and the signed-event inbox match. However, this is NOT
+    // sufficient to assert biometric approval. The provider's biometric
+    // response schema and its explicit approval criteria must be verified.
+    // Fail closed; do not expose a blue badge or mark anyone verified.
+    return reply({ ok: true, status: "pending", document_signed: true,
+      biometric_verification: "unconfirmed" })
   } catch {
     // Do not leak provider response bodies, photo URLs or ID numbers.
     return reply({ ok: false, error: "provider_unavailable" }, 502)
