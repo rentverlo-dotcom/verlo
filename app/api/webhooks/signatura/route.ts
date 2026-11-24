@@ -24,8 +24,16 @@ function response(ok: boolean, status: number, code: string) {
 }
 
 function qaOnly() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+  let qaDatabase = false
+  try {
+    qaDatabase = new URL(url).hostname === "anptswspguyotnasoacq.supabase.co"
+  } catch {
+    qaDatabase = false
+  }
   return process.env.VERCEL_ENV === "preview" &&
-    process.env.VERCEL_GIT_COMMIT_REF === "feature/signatura-qa-integration"
+    process.env.VERCEL_GIT_COMMIT_REF === "feature/signatura-qa-integration" &&
+    process.env.SIGNATURA_WEBHOOK_QA_ENABLED === "true" && qaDatabase
 }
 
 export async function POST(request: NextRequest) {
