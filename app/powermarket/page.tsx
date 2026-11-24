@@ -8,7 +8,7 @@ type Application = {
  id:string;tenant_lead_id:string;status:string;requested_rent_ars:number;estimated_expenses_ars:number;monthly_income_ars:number;
  duration_months:number;employment_type:string;has_co_tenant:boolean;co_tenant_income_ars:number|null;
  approved_max_total_ars:number|null;approved_max_rent_ars:number|null;decision_expires_at:string|null;created_at:string;
- tenant?:{full_name:string|null;email:string|null;phone:string|null}|null
+ tenant?:{full_name:string|null;first_name?:string|null;last_name?:string|null;dni?:string|null;email:string|null;phone:string|null}|null
 }
 type PolicyRow={id:string;status:string;quote_id:string;lead_contract_id:string;insurer_name:string|null;policy_number:string|null;issued_at:string|null}
 type QuoteRow={id:string;status:string;premium_ars:number|null;coverage_total_ars:number|null;valid_until:string|null}
@@ -254,7 +254,7 @@ export default function PowerMarketDashboard(){
     {current&&<section style={{background:"#fff",marginTop:18,padding:"22px",borderRadius:18,border:"1px solid #e7dde0"}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}><h2 style={{fontSize:21,margin:0}}>Ficha · {current.tenant?.full_name||"Interesado"}</h2><button style={button} onClick={()=>setSelected(null)}>Cerrar ficha</button></div>
      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:18,marginTop:20}}>
-      <div><strong>Contacto</strong><p>Email: {current.tenant?.email||"No informado"}<br/>Teléfono: {current.tenant?.phone||"No informado"}</p><p>Estado: {labels[current.status]||current.status}</p></div>
+      <div><strong>Identificación del solicitante</strong><p>Nombre y apellido: {([current.tenant?.first_name,current.tenant?.last_name].filter(Boolean).join(" ") || current.tenant?.full_name || "No informado")}<br/>DNI: {current.tenant?.dni || "No informado"}</p><p style={{fontSize:12,color:"#66565b"}}>DNI declarado o registrado; no implica validación biométrica.</p><strong>Contacto</strong><p>Email: {current.tenant?.email||"No informado"}<br/>Teléfono: {current.tenant?.phone||"No informado"}</p><p>Estado: {labels[current.status]||current.status}</p></div>
       <div><strong>Solicitud</strong><p>Alquiler: {money(current.requested_rent_ars)}<br/>Expensas: {money(current.estimated_expenses_ars)}<br/>Plazo: {current.duration_months} meses</p></div>
       <div><strong>Ingresos</strong><p>Declarados: {money(current.monthly_income_ars)}<br/>Tipo: {current.employment_type}<br/>Co-inquilino: {current.has_co_tenant?money(current.co_tenant_income_ars):"No"}</p></div>
      </div>
