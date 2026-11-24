@@ -20,6 +20,15 @@ export async function middleware(request: NextRequest) {
       'https://bmgrpcqrdvwculrisasi.supabase.co'
   if (production) return NextResponse.next()
 
+  // The authenticated tenant may request only their own pending signing URL.
+  // The route enforces Supabase Auth, tenant role and document ownership.
+  if (request.method === 'GET' && path === '/api/signatura/my-signing-url' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
   // QA read-only response shape diagnostic. Returns only non-sensitive field
   // names from one existing completed demo, never document contents or URLs.
   if (request.method === 'GET' && path === '/api/qa/signatura-response-shape' &&
