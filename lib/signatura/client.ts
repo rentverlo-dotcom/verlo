@@ -20,7 +20,7 @@ function apiBase(): string {
       !(process.env.VERCEL_ENV === "preview" && process.env.SIGNATURA_ALLOW_DEMO_HOST === "true")) {
     throw new Error("Signatura API host is not approved")
   }
-  return url.toString().replace(/\\/$/, "")
+  return url.toString().replace(/\/$/, "")
 }
 
 function credentials(): string {
