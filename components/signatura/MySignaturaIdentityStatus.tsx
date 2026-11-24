@@ -38,7 +38,9 @@ export default function MySignaturaIdentityStatus() {
   return (
     <section style={{
       marginBottom: "16px", padding: "16px 20px", borderRadius: "14px",
-      border: "1px solid #dbeafe", background: "#eff6ff", color: "#1e3a8a",
+      border: verified ? "1px solid #93c5fd" : "1px solid #e5e7eb",
+      background: verified ? "#eff6ff" : "#f9fafb",
+      color: verified ? "#1e3a8a" : "#374151",
     }} aria-label="Estado de identidad VERLO">
       <strong style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
         <span aria-hidden="true">{verified ? "✓" : "○"}</span>
