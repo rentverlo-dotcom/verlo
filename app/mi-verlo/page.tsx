@@ -20,6 +20,7 @@ import { trackPostHog } from "@/lib/posthog-client"
 import PushSubscribeButton from "@/components/PushSubscribeButton"
 import MyCaucionStatus from "@/components/powermarket/MyCaucionStatus"
 import MyIdentikSigning from "@/components/identik/MyIdentikSigning"
+import MySignaturaIdentityStatus from "@/components/signatura/MySignaturaIdentityStatus"
 import OwnerCaucionStatus from "@/components/powermarket/OwnerCaucionStatus"
 
 type Role =
@@ -2742,6 +2743,7 @@ export default function MiVerloPage() {
               </div>
             </section>
 
+            {data.user.role === "tenant" && <MySignaturaIdentityStatus />}
             <MyIdentikSigning />
             <MyCaucionStatus />
             <OwnerCaucionStatus />
