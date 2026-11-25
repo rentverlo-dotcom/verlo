@@ -672,8 +672,14 @@ export default function LoginPage() {
                * El alta real ocurre desde el
                * formulario + /success.
                */
+              // Only the pre-registered Signatura E2E tester may
+              // complete first-time Supabase Auth signup in isolated QA.
+              // Production and all other addresses keep signup disabled.
               shouldCreateUser:
-                false,
+                window.location.hostname ===
+                  "verlopunto0-git-feature-signatu-009bb9-verlos-projects-b9e9c595.vercel.app" &&
+                email.trim().toLowerCase() ===
+                  "juanmanueloddone74@gmail.com",
 
               emailRedirectTo:
                 redirectTo,
