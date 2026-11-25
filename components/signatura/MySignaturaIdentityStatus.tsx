@@ -24,6 +24,21 @@ export default function MySignaturaIdentityStatus() {
         const body = await response.json()
         if (active && body.ok && ["not_started","pending","verified","failed"].includes(body.status)) {
           setStatus(body.status as Status)
+          if (body.status === "pending") {
+            // Verify the provider's signed event AND approved BI via the
+            // authenticated reconciliation endpoint, never a local timer.
+            const reconcile = await fetch("/api/signatura/identity-reconcile", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${data.session.access_token}` },
+              cache: "no-store",
+            })
+            if (reconcile.ok) {
+              const checked = await reconcile.json().catch(() => ({}))
+              if (active && checked.ok && checked.status === "verified") {
+                setStatus("verified")
+              }
+            }
+          }
         }
       } catch {
         // Never claim identity is verified if status lookup failed.
