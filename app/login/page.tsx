@@ -702,8 +702,14 @@ export default function LoginPage() {
         error
       )
 
+      const authError = error as { status?: number; code?: string; message?: string } | null
+      const limited = authError?.status === 429 ||
+        authError?.code === "over_email_send_rate_limit" ||
+        authError?.code === "over_request_rate_limit"
       setError(
-        "No pudimos enviarte el acceso. Revisá que estés usando el mismo email con el que te registraste en Verlo."
+        limited
+          ? "Supabase alcanzó el límite de correos de prueba. No es un problema con tu cuenta. Evitá pedir más enlaces hasta que se restablezca el cupo."
+          : "No pudimos enviar el acceso. Revisá tu email o intentá nuevamente más tarde."
       )
     } finally {
       setLoading(
