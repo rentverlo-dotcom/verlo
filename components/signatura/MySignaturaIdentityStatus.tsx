@@ -61,6 +61,43 @@ export default function MySignaturaIdentityStatus() {
     }
   }
 
+  async function beginIdentityDeclaration() {
+    if (opening || status !== "not_started") return
+    if (!window.confirm("QA: vas a iniciar una declaración de identidad con validación biométrica en Signatura. ¿Continuar?")) return
+    setOpening(true)
+    setOpenError(null)
+    try {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) throw new Error("Iniciá sesión para continuar.")
+      const response = await fetch("/api/signatura/identity-start", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${data.session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ acknowledged: true }),
+        cache: "no-store",
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || !result.ok) throw new Error(
+        "No pudimos iniciar la declaración. Revisaremos el intento antes de repetirlo."
+      )
+      setStatus(result.status === "verified" ? "verified" : "pending")
+      if (typeof result.signing_url === "string") {
+        const url = new URL(result.signing_url)
+        if (url.protocol === "https:" &&
+            (url.hostname === "signatura.co" || url.hostname.endsWith(".signatura.co"))) {
+          window.location.assign(url.toString())
+          return
+        }
+      }
+    } catch (error) {
+      setOpenError(error instanceof Error ? error.message : "No pudimos iniciar.")
+    } finally {
+      setOpening(false)
+    }
+  }
+
   // QA-only: hide status entirely if there is no verified response.
   if (!status) return null
   const verified = status === "verified"
@@ -82,6 +119,13 @@ export default function MySignaturaIdentityStatus() {
           : status === "failed" ? "No se pudo completar la verificación de identidad."
           : "Todavía no activaste tu identidad VERLO."}
       </p>
+      {status === "not_started" && (
+        <button type="button" onClick={beginIdentityDeclaration} disabled={opening}
+          style={{ marginTop: 10, padding: "10px 14px", borderRadius: 9,
+            border: "none", background: "#1d4ed8", color: "#fff" }}>
+          {opening ? "Preparando declaración..." : "Validar identidad"}
+        </button>
+      )}
       {status === "pending" && (
         <button type="button" onClick={openOwnInvitation} disabled={opening}
           style={{ marginTop: 10, padding: "10px 14px", borderRadius: 9,
