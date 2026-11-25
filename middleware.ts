@@ -31,6 +31,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Mi VERLO loads these existing read-only panels alongside the Signatura
+  // identity card. Permit only exact GET paths on this isolated QA branch.
+  // Each handler independently authenticates with Supabase and enforces
+  // ownership; none of their write methods or production routes are opened.
+  if (request.method === 'GET' &&
+      [
+        '/api/identik/my-signing',
+        '/api/identik/my-signed',
+        '/api/powermarket/my-status',
+        '/api/powermarket/my-quote',
+        '/api/powermarket/owner-status',
+      ].includes(path) &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
   // Initial tenant-only Signatura declaration. Explicitly authorized in QA;
   // handler checks the authenticated VERLO tenant and user confirmation.
   if (request.method === 'POST' && path === '/api/signatura/identity-start' &&
