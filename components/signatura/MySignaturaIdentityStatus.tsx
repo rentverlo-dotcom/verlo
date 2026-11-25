@@ -25,7 +25,6 @@ export default function MySignaturaIdentityStatus() {
   const [opening, setOpening] = useState(false)
   const [embedUrl, setEmbedUrl] = useState<string | null>(null)
   const [openError, setOpenError] = useState<string | null>(null)
-  const [embedError, setEmbedError] = useState<string | null>(null)
   const checking = useRef(false)
 
   const checkVerification = useCallback(async () => {
@@ -58,7 +57,6 @@ export default function MySignaturaIdentityStatus() {
       if (confirmed.ok && confirmed.status === "verified") {
         setStatus("verified")
         setEmbedUrl(null)
-        setEmbedError(null)
       }
     } catch {
       // A network failure must never mark an identity as verified.
@@ -93,7 +91,6 @@ export default function MySignaturaIdentityStatus() {
 
   function showEmbeddedSession(value: unknown) {
     const url = validatedSignaturaUrl(value)
-    setEmbedError(null)
     setEmbedUrl(url)
   }
 
@@ -165,22 +162,6 @@ export default function MySignaturaIdentityStatus() {
     }
   }
 
-  function onFrameLoad(event: React.SyntheticEvent<HTMLIFrameElement>) {
-    try {
-      const frame = event.currentTarget
-      const url = frame.contentWindow?.location.href
-      // The provider's complete_url returns to our QA Mi VERLO origin.
-      // Never inspect the provider's cross-origin DOM or trust messages
-      // from unverified origins.
-      if (url && new URL(url).origin === window.location.origin &&
-          new URL(url).pathname === "/mi-verlo") {
-        void checkVerification()
-      }
-    } catch {
-      // Normal: browsers restrict cross-origin frame contents.
-    }
-  }
-
   if (!status) return null
   const verified = status === "verified"
 
@@ -245,15 +226,38 @@ export default function MySignaturaIdentityStatus() {
               Volver a Mi VERLO
             </button>
           </header>
-          <iframe
-            title="Validación de identidad con Signatura"
-            src={embedUrl}
-            onLoad={onFrameLoad}
-            allow="camera; microphone; fullscreen; clipboard-read; clipboard-write"
-            referrerPolicy="no-referrer"
-            style={{ flex: 1, width: "100%", minHeight: 0, border: 0, background: "#fff" }}
-          />
-          {embedError && <p role="alert">{embedError}</p>}
+          <main style={{
+            flex: 1, display: "flex", alignItems: "center",
+            justifyContent: "center", padding: 24,
+          }}>
+            <div style={{
+              background: "#fff", border: "1px solid #e7e0e2",
+              borderRadius: 20, maxWidth: 520, width: "100%",
+              padding: 30, textAlign: "center", color: "#171314",
+            }}>
+              <h2 style={{ fontSize: 24, margin: "0 0 12px" }}>
+                Continuar la validación segura
+              </h2>
+              <p style={{ lineHeight: 1.5, margin: "0 0 18px" }}>
+                Signatura no permite mostrar esta sesión dentro de otra página.
+                Abriremos la validación en la misma pestaña y, cuando termines,
+                volverás automáticamente a Mi VERLO.
+              </p>
+              <button type="button"
+                onClick={() => window.location.assign(embedUrl)}
+                style={{
+                  padding: "14px 20px", background: "#101010", color: "#fff",
+                  border: 0, borderRadius: 24, fontWeight: 700,
+                  cursor: "pointer",
+                }}>
+                Continuar con Signatura
+              </button>
+              <p style={{ fontSize: 12, color: "#555", marginTop: 16 }}>
+                Este botón utiliza tu declaración pendiente. No crea
+                un nuevo documento ni vuelve a cobrar su creación.
+              </p>
+            </div>
+          </main>
           <div style={{
             padding: "7px 16px", textAlign: "center", fontSize: 12,
             color: "#5d565a", background: "#fff",
