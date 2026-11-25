@@ -21,6 +21,17 @@
 - **Estado:** auditoria parcial sin codigo ni DB modificados; PROXIMO GATE: identificar en el flujo vigente el handler que crea/abre la sesion real de firma (Signatura/contrato) y demostrar que consulta guardas servidor antes de crear o exponer enlaces. No implementar soluciones alternativas ni asumir que una comprobacion en UI basta. Esto pertenece a la tarea de seguridad existente, no agrega alcance.
 
 
+## Correccion de seguridad del endpoint real de firma — 25/11/2026
+
+- Se siguio el boton **«Firmar contrato»** en `components/identik/MyIdentikSigning.tsx` hasta `GET/POST /api/identik/my-signing`. El `POST` hace `checkTraditionalSigningReadiness(db, contractId)` **antes** de reservar y crear el documento en Identik; el `GET` repite la misma prevalidacion antes de exponer la URL personal ya registrada. Este es el endpoint vigente de firma contractual Identik en Mi VERLO, **distinto** de la primera declaracion de identidad Signatura.
+- La prevalidacion comprueba `lead_contracts.status='agreed'`, conformidad de ambas partes, `lead_matches.tenant_paid_at`, decisiones posteriores a visita y elegibilidad de la caucion. `checkPowerMarketSigningApproval` requiere caucion vigente y registro de poliza `payment_confirmed/issued` con fecha y operador asociado al **mismo contrato**; para contratos sin caucion no exige PowerMarket.
+- **HALLAZGO:** `tenant_paid_at` por si solo no garantiza un pago aprobado. Consulta read-only de Supabase QA: 132 contratos `agreed`, 132 alquileres ligados, **131** con prueba de pago aprobado y **1** contrato `ab9620ad-71f6-4654-ad2c-0739c9115861` con `tenant_paid_at` pero **sin `lead_payments` aprobado para el inquilino**. No se borro ni modifico ese dato.
+- **CORRECCION EN QA:** `lib/identik/traditional-signing-preflight.ts` exige ahora el alquiler especifico asociado al contrato+match+inquilino y, adicionalmente, un `lead_payments.status='approved'` del mismo inquilino ligado al contrato/match, o un credito ya consumido por ese alquiler. Si falta prueba, retorna `verlo_payment_not_verified` y **no crea ni expone** enlace Identik. La comprobacion corre junto al requisito existente de `tenant_paid_at` y antes del gate PowerMarket. Commits: `818d3911` en `qa/verlo-e2e` y `ccdbf1a3` en `feature/signatura-qa-integration`.
+- **EVIDENCIA:** lectura de ambos archivos del repositorio confirmo presencia de los nuevos controles y conservacion de `checkPowerMarketSigningApproval`. Query SQL de solo lectura con la misma logica de asociacion: **132** contratos, **131** con prueba y **1** bloqueado; ninguno sin alquiler. NO se ejecutaron firmas ni pagos al comprobar esta correccion.
+- **ESTADO DE CERTIFICACION:** correccion implementada en codigo QA y cotejada contra datos QA. Faltan build READY, test de rechazo/aceptacion en endpoint y E2E con firma/tercero antes de marcarlo APROBADO integralmente. No se toco `main`, Supabase ni produccion. No hacer nuevos deploys manuales si Vercel ya esta construyendo automaticamente. Alcance existente: control de firma y pagos, **no** tarea nueva.
+
+---
+
 ## Signatura — evidencia y pendientes
 
 - **Tecnica YA PROBADA (24/11):** documento demo firmado con DNI frente/dorso, selfie y firma; certificado generado. Eventos `document_signed` y `document_status_changed` recibidos en Supabase QA (`signatura_webhook_events`, 2 registros observados). `GET /documents/{id}` y HTTPS `signatures[].url` comprobados. **NO repetir desde cero** biometria, firma ni webhooks sin motivo de regresion.
