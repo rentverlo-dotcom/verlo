@@ -32,6 +32,33 @@ export async function checkTraditionalSigningReadiness(
       match.owner_post_visit_decision !== "yes")
     return { allowed: false, reason: "match_not_eligible" }
 
+  // The match timestamp alone is insufficient proof of a paid VERLO contract.
+  // An approved payment must belong to this tenant and this rental/contract.
+  // A prepaid credit may originate from another match, but must already have
+  // been consumed by this rental before we prepare any signature.
+  const { data: rentals, error: rentalError } = await db.from("rentals")
+    .select("id").eq("lead_contract_id", contract.id)
+    .eq("lead_match_id", match.id).eq("tenant_lead_id", contract.tenant_lead_id)
+    .limit(2)
+  if (rentalError || rentals?.length !== 1)
+    return { allowed: false, reason: "rental_payment_link_unavailable" }
+
+  const rentalId = rentals[0].id
+  const { data: proofs, error: proofError } = await db.from("lead_payments")
+    .select("id,lead_contract_id,lead_match_id,consumed_rental_id")
+    .eq("tenant_lead_id", contract.tenant_lead_id)
+    .eq("status", "approved")
+    .or(`lead_contract_id.eq.${contract.id},lead_match_id.eq.${match.id},consumed_rental_id.eq.${rentalId}`)
+    .limit(30)
+  if (proofError) return { allowed: false, reason: "verlo_payment_lookup_failed" }
+  const paidForThisRental = (proofs || []).some(payment =>
+    payment.consumed_rental_id === rentalId ||
+    (!payment.consumed_rental_id &&
+      (payment.lead_contract_id === contract.id || payment.lead_match_id === match.id))
+  )
+  if (!paidForThisRental)
+    return { allowed: false, reason: "verlo_payment_not_verified" }
+
   const approval = await checkPowerMarketSigningApproval(db, {
     contractId: contract.id,
     tenantLeadId: contract.tenant_lead_id,
