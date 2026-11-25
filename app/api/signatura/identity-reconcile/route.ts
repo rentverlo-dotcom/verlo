@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { requireSignaturaTenant, getSignaturaBearer } from "@/lib/signatura/tenant-auth"
 import { getSignaturaDocument } from "@/lib/signatura/client"
 
 export const runtime = "nodejs"
@@ -16,21 +16,10 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL !== QA_URL) {
     return reply({ ok: false }, 404)
   }
-  const token = request.headers.get("authorization")?.match(/^Bearer ([^\s]+)$/i)?.[1]
-  if (!token) return reply({ ok: false }, 401)
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!anon || !key) return reply({ ok: false }, 503)
-  const auth = createClient(QA_URL, anon, { auth: { persistSession: false, autoRefreshToken: false } })
-  const { data: { user }, error: authError } = await auth.auth.getUser(token)
-  if (authError || !user) return reply({ ok: false }, 401)
-
-  const db = createClient(QA_URL, key, { auth: { persistSession: false, autoRefreshToken: false } })
-  // A property owner can never acquire a tenant identity badge.
-  const { data: profile, error: profileError } = await db.from("profiles")
-    .select("role").eq("id", user.id).maybeSingle()
-  if (profileError) return reply({ ok: false }, 503)
-  if (profile?.role !== "tenant") return reply({ ok: false }, 403)
+  const token = getSignaturaBearer(request)
+  const tenant = token ? await requireSignaturaTenant(token) : null
+  if (!tenant) return reply({ ok: false }, 403)
+  const { user, db } = tenant
 
   const { data: binding, error } = await db.from("signatura_tenant_identity_bindings")
     .select("signatura_document_id,signatura_signature_id,verification_status")
