@@ -1,3 +1,34 @@
+# ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
+
+**Prioridad:** esta seccion es la fotografia mas reciente; las entradas debajo son historial y pueden contener decisiones superadas. **Alcance congelado en 44 tareas / siete grupos**, sin tareas nuevas. **NO** tocar main ni produccion antes de aprobar QA. Ninguna prueba se declara aprobada solo por tener un deploy READY.
+
+## Signatura — evidencia y pendientes
+
+- **Tecnica YA PROBADA (24/11):** documento demo firmado con DNI frente/dorso, selfie y firma; certificado generado. Eventos `document_signed` y `document_status_changed` recibidos en Supabase QA (`signatura_webhook_events`, 2 registros observados). `GET /documents/{id}` y HTTPS `signatures[].url` comprobados. **NO repetir desde cero** biometria, firma ni webhooks sin motivo de regresion.
+- **Integracion inicial en QA, NO E2E:** rama `feature/signatura-qa-integration`; commits `50c12179`, `174e33c1`, `e4761d64`, `814de6d9`, `a1ce0e25`, `316cf9c3`, `c291a411`, `248a69c`. Control de tenant basado en usuario autenticado y lead; rutas `identity-start`, `identity-reconcile`, `my-signing-url`; UI Mi VERLO, PDF provisional **solo de prueba**, webhooks. Falta probar que la primera declaracion se asocia a `auth.users.id` y se reutiliza en multiples solicitudes sin nueva validacion. Al ultimo control `signatura_tenant_identity_bindings`: **0 registros**. El PDF provisional no es texto legal comercial.
+- **Acceso bloqueado:** Supabase Auth QA tenia Site URL erronea `localhost:3000`; se cambio a `https://verlopunto0-git-feature-signatu-009bb9-verlos-projects-b9e9c595.vercel.app` y redirect `/**`. Login posteriormente recibio `429 over_email_send_rate_limit`. Commit `920efe7` informa correctamente el limite; **dos deploys READY del mismo commit** (un automatico y otro manual), no dos cambios. Cambiar de correo no resolvio bloqueo de proyecto. No insistir con OTP mientras 429, no contratar SMTP, no deshabilitar login. La espera de una hora es **estimacion, no restablecimiento confirmado**.
+- **Tenant de ensayo QA:** existia el auth user `rentverlo@gmail.com` sin lead; se creo un solo `lead_intake` exclusivo QA, `id=1a386b86-e19a-4adc-8305-520dddba135e`, `role=tenant`, `intent=tenant_search`, `source=qa_signatura_identity_test`. Verificado sin `lead_matches`. Falta sesion de navegador y recorrido end-to-end.
+
+## PowerMarket — evidencia y pendientes
+
+- **Panel desplegado:** rama `qa/verlo-e2e` commits `a59497e`, `09e5089` READY; cambios en Signatura `ca6e9ca`, `5742ea7`. Ficha privada presenta nombre, contacto y DNI desde `user_contract_data` (por `tenant_user_id`) o `tenant_verifications` (por lead), sin archivos biometricos. Las solicitudes sin documento mostraban «No informado».
+- **DB QA verificada (25/11):** **91 solicitudes**: 88 automatizadas `submitted` (`source=qa_e2e_caucion_submission`) y **3 demos `under_review`** (`source=qa_demo_powermarket`). Las 91 tenian `tenant_user_id=NULL` en ese control. No confundir 88 solicitudes de test con usuarios reales.
+- **Tres demos:** «Inquilino de prueba»: solicitud `af0ac065-89d3-4630-8f60-053f5ae13766`, alquiler ARS 800.000, expensas ARS 120.000, ingresos ARS 2.800.000, 24 meses. «Ingresos bajos»: alquiler 980.000, expensas 120.000, ingresos 1.300.000. «Monotributista y co-inquilino»: alquiler 660.000, expensas 100.000, ingresos 1.900.000. Todas en evaluacion al control.
+- **Identificacion exclusivamente demo:** para la primera solicitud se inserto en Supabase **QA** `tenant_verifications` un `document_number=QA-DNI-0001 (DATO DE PRUEBA)`, `status=pending`, asociado a lead `1a87a179-9059-441e-bd55-bd5b9d70fee3`; registro `b7ef6c10-5224-4390-a569-a2dc6555069a`. Se leyo nuevamente y se verifico que no hay frente/dorso/selfie. **No es DNI real ni validacion de identidad**; falta comprobar visualizacion en navegador del panel.
+- **Operador Maxi:** `mpagoto@pmb.com.ar` en `caucion_partner_users` con `active=true` y `partner=powermarket` (Supabase QA). Panel: `https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app/powermarket`. El propietario envio instrucciones el 25/11 para abrir tres fichas y probar precalificar, rechazar y proponer monto alternativo. **No consta aun** inicio real de sesion ni devolucion de Maxi; limite de emails Supabase QA puede afectar acceso.
+- **Segundo tramo SIN certificar:** inquilino acuerda contrato en VERLO; PowerMarket revisa, cobra caucion y presiona `Confirmar operacion` solo tras acreditarse el cobro; VERLO registra confirmacion y habilita firma **solo** si se cumplen todas las condiciones (contrato VERLO pagado, caucion aprobada/vigente cuando corresponda, identidades y firma). La UI de `Confirmar operacion` existe para poliza `payment_pending`, pero **no** se ha certificado el E2E. Las anotaciones historicas de la funcion SQL `caucion_confirm_partner_operation` y revisiones contractuales contienen decisiones contradictorias: leer funcion real actual antes de aprobar. No confirmar pagos, emitir polizas ni contactar proveedor en nombre del usuario.
+- **Simulador:** existe captacion/persistencia de solicitudes y tres demos precargadas; **simulador comercial completo NO terminado/certificado**, falta formula de PowerMarket. No afirmar que las demos salieron de un simulador operativo.
+
+## Resto del alcance congelado: estado de continuidad
+
+- **Contratos y pagos:** falta auditar/confirmar bloqueo de firma sin pago de contrato VERLO y, para caucion, sin aprobacion/pago vigente segun condiciones. No dar por aprobado hasta prueba y evidencia.
+- **Email, Push, analitica:** falta certificar contenidos y entrega reales, PostHog y Meta CAPI `Purchase` para tradicionales, temporarios, caucion y combos; ver evidencia historica y evitar duplicados.
+- **QA/regresion y migracion:** preservar datos productivos; aplicar migraciones aprobadas y no copiar DB QA; no merge a `main` ni lanzamiento sin gate final.
+- **Continuidad en nuevo hilo:** recuperar esta seccion, verificar repos/QA antes de cambiar estados, actualizar evidencia con SHA + fecha + entorno + resultado, no repetir ensayos acreditados, **no abrir tareas fuera de las 44**.
+- **Seguridad:** no guardar accesos, tokens, documentos reales ni selfies en el registro. Solo URLs publicas de entornos QA.
+
+---
+
 ## PowerMarket: acceso externo y contrato de consulta — 17/11/2026
 
 - El propietario solicitó retirar exclusivamente las acciones de aprobación o solicitud de cambios de versión contractual del panel PowerMarket. **Commit `461ac4d`** en `qa/verlo-e2e`: eliminados ambos botones y el callback cliente `reviewDecision` del dashboard `app/powermarket/page.tsx`; queda acceso privado para leer el PDF. Se modificó copy para indicar que los términos contractuales son responsabilidad de las partes del alquiler. **Ninguna plantilla ni generador de contrato real fue modificada.**
