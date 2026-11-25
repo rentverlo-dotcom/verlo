@@ -13,6 +13,14 @@
 
 ---
 
+## Auditoria estatica adicional — 25/11/2026, gate de aceptacion/firma
+
+- Se inspecciono `app/api/closing-agree/route.ts` en `feature/signatura-qa-integration`: valida que ambos actores hayan marcado «si» luego de la visita y, cuando el token pertenece al **tenant**, impide aceptar si `lead_matches.tenant_paid_at` es nulo. Posteriormente busca `lead_payments` aprobados y los consume de modo idempotente por alquiler, segun evidencia del archivo. **Aprobado solo para la accion de aceptar contrato**, NO para emitir enlace de firma.
+- Se inspecciono `app/contracts/[id]/page.tsx`: pagina de **visualizacion** de estado `ready_to_sign`/`signed`; no emite invitaciones ni implementa guardas de pago. No confundir esta pagina con un endpoint de firma.
+- Se inspecciono `lib/powermarket/signing-approval.ts`: la funcion `checkPowerMarketSigningApproval` requiere confirmacion de cobro de caucion ligada al contrato, pero la busqueda disponible en el repositorio (rama por defecto) solo muestra llamadas en rutas de **polizas y certificado**, no demuestra invocacion por un endpoint que cree enlace de firma. **Sin identificar y auditar la ruta real que inicia firma, el bloqueo de firma NO esta certificado**, ni para pago VERLO ni para caucion.
+- **Estado:** auditoria parcial sin codigo ni DB modificados; PROXIMO GATE: identificar en el flujo vigente el handler que crea/abre la sesion real de firma (Signatura/contrato) y demostrar que consulta guardas servidor antes de crear o exponer enlaces. No implementar soluciones alternativas ni asumir que una comprobacion en UI basta. Esto pertenece a la tarea de seguridad existente, no agrega alcance.
+
+
 ## Signatura — evidencia y pendientes
 
 - **Tecnica YA PROBADA (24/11):** documento demo firmado con DNI frente/dorso, selfie y firma; certificado generado. Eventos `document_signed` y `document_status_changed` recibidos en Supabase QA (`signatura_webhook_events`, 2 registros observados). `GET /documents/{id}` y HTTPS `signatures[].url` comprobados. **NO repetir desde cero** biometria, firma ni webhooks sin motivo de regresion.
