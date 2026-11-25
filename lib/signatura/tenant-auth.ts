@@ -25,8 +25,8 @@ export async function requireSignaturaTenant(token: string): Promise<{
     auth: { autoRefreshToken: false, persistSession: false },
   })
   const { data: leads, error: leadError } = await db.from("lead_intake")
-    .select("id").eq("role", "tenant")
-    .ilike("email", user.email.trim())
+    .select("id").eq("role", "tenant").eq("intent", "tenant_search")
+    .eq("email", user.email.trim().toLowerCase())
     .order("created_at", { ascending: false }).limit(1)
   if (leadError || !leads?.length) return null
 
@@ -36,5 +36,5 @@ export async function requireSignaturaTenant(token: string): Promise<{
 }
 
 export function getSignaturaBearer(request: Request): string | null {
-  return request.headers.get("authorization")?.match(/^Bearer ([^\\s]+)$/i)?.[1] || null
+  return request.headers.get("authorization")?.match(/^Bearer ([^\s]+)$/i)?.[1] || null
 }
