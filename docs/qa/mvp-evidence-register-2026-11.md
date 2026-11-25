@@ -32,6 +32,16 @@
 
 ---
 
+## E2E real de identidad inicial Signatura — 25/11/2026, 14:03 AR
+
+- **Prueba de usuario COMPLETADA en QA**: `rentverlo@gmail.com` inicio desde `/mi-verlo` con el boton `Validar identidad`, abrio la declaracion `VERLO QA - Activacion de identidad` en `connect.signatura.co`, y regreso a `/mi-verlo` de manera rapida. La pantalla muestra `Identidad verificada`. **NO repetir la validacion ya pagada solo por esta evidencia.**
+- **Persistencia comprobada en Supabase QA**: `signatura_tenant_identity_bindings` del usuario `891d6e62-456d-43e3-8976-049517e5d35d` tiene `verification_status=verified`, `verified_at=2026-11-25 17:03:18.175+00`; documento `01a213a2-d793-70d6-a19a-36764d8a40e1`, firma `01a213a2-da44-71f3-9152-e358a5ee67fe`. `signatura_webhook_events` registro evento `DS` para firma a las `17:03:12Z` y `DC/CO` del documento a las `17:03:21Z`. La conciliacion implementada en `app/api/signatura/identity-reconcile/route.ts` requiere esos datos y `signatures[].validations.BI.validated === true` antes de cambiar a verificado; el estado persistido confirma que se cumplio esa guarda en la ruta de QA. No publicar DNI, selfie ni otros datos de biometria.
+- **Contadores en cero SON CORRECTOS**: 0 matches en `lead_matches` para el lead QA `1a386b86-e19a-4adc-8305-520dddba135e`; los contadores de Mi VERLO miden matches/operaciones/alquileres, no validaciones. La tarjeta de identidad es independiente.
+- **INCIDENCIA VISUAL PENDIENTE**: el visor de Signatura mostro un sello con texto «Documento firmado electronicamente» y detalles de consulta **antes** de que el usuario pulsara el boton `Firmar` (captura del 25/11 aprox. 14:00 AR). La existencia del sello previo NO demuestra firma anticipada: la verificacion se basa en estado de proveedor + evento firmado + BI validada. Se debe **aclarar con Signatura** si es marca anticipada del visor y evitar presentar un documento como firmado antes del acto de firma. No se ha demostrado aun que el PDF descargable estuviera firmado antes del click; no cambiar ni invalidar documentos sin evidencia. No pedir repetir firma biometrica para investigarlo.
+- **Pendientes del mismo alcance congelado**: experiencia embebida dentro de VERLO (no navegar al dominio externo como experiencia final; disponibilidad de iframe/SDK pendiente de verificar con Signatura), redaccion legal definitiva de declaracion (actual PDF marcado provisional) y ensayo de reutilizacion de una misma identidad verificada para mas de una visita. No confundir estado QA aprobado con cumplimiento total para produccion.
+
+---
+
 ## Signatura — evidencia y pendientes
 
 - **Tecnica YA PROBADA (24/11):** documento demo firmado con DNI frente/dorso, selfie y firma; certificado generado. Eventos `document_signed` y `document_status_changed` recibidos en Supabase QA (`signatura_webhook_events`, 2 registros observados). `GET /documents/{id}` y HTTPS `signatures[].url` comprobados. **NO repetir desde cero** biometria, firma ni webhooks sin motivo de regresion.
