@@ -2,6 +2,17 @@
 
 **Prioridad:** esta seccion es la fotografia mas reciente; las entradas debajo son historial y pueden contener decisiones superadas. **Alcance congelado en 44 tareas / siete grupos**, sin tareas nuevas. **NO** tocar main ni produccion antes de aprobar QA. Ninguna prueba se declara aprobada solo por tener un deploy READY.
 
+## Auditoria de cierre — 25/11/2026, contratos y caucion (lectura sin mutaciones)
+
+- **Hallazgo RESUELTO en DB QA:** se consulto `pg_get_functiondef` de `public.caucion_confirm_partner_operation(uuid,uuid)`. La funcion **actual** ya NO exige un registro `caucion_contract_reviews.status='approved'`: la variable `v_review` permanece declarada pero **no es usada**. Esto corrige la anotacion historica inferior que decia que ese veto estaba aun activo. No se ejecuto ninguna migracion nueva en esta auditoria.
+- El RPC actual exige operador PowerMarket activo, poliza en `payment_pending`, caucion `prequalified` o `alternative_offered` vigente, cotizacion `accepted` vigente y contrato correspondiente al mismo `tenant_lead_id` con contenido; tras confirmar guarda `payment_confirmed_at`, `payment_confirmed_by` e inserta evento `policy_payment_confirmed`. Es idempotente para `payment_confirmed`. **Revision estatica/SQL APROBADA, E2E pendiente**.
+- `lib/powermarket/signing-approval.ts` en `qa/verlo-e2e` contiene `checkPowerMarketSigningApproval`: para caucion exige exactamente una poliza ligada al contrato en `payment_confirmed` o `issued`, con fecha y operador de confirmacion. **Aun falta verificar que el endpoint real que expone la firma invoque este control servidor**; no confundir la existencia del helper con proteccion E2E certificada.
+- `app/api/powermarket/policies/route.ts` controla cotizacion aceptada/vigente, mismo inquilino/contrato y estados de caucion para crear/avanzar poliza. `app/api/powermarket/confirm-operation/route.ts` exige bearer autenticado, operador socio activo y llama RPC, ademas intenta encolar emails para ambas partes despues de confirmacion sin revertir el cobro si falla la notificacion.
+- Supabase QA al momento de la lectura: `select count(*) from public.caucion_policies` devolvio **0**. **NO** se ejecuto `Confirmar operacion` real ni simulada en esta tanda. La prueba con Maxi continua pendiente. Sin escrituras en SQL, sin deploy funcional, sin produccion.
+- `app/api/closing-agree/route.ts` implementa consumo idempotente de `lead_payments` aprobados asociado al alquiler. **No** constituye por si solo prueba de que el proveedor de firma esta bloqueado si falta el cobro VERLO; hace falta inspeccionar y certificar el gate especifico de firma.
+
+---
+
 ## Signatura — evidencia y pendientes
 
 - **Tecnica YA PROBADA (24/11):** documento demo firmado con DNI frente/dorso, selfie y firma; certificado generado. Eventos `document_signed` y `document_status_changed` recibidos en Supabase QA (`signatura_webhook_events`, 2 registros observados). `GET /documents/{id}` y HTTPS `signatures[].url` comprobados. **NO repetir desde cero** biometria, firma ni webhooks sin motivo de regresion.
