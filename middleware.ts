@@ -20,6 +20,17 @@ export async function middleware(request: NextRequest) {
       'https://bmgrpcqrdvwculrisasi.supabase.co'
   if (production) return NextResponse.next()
 
+  // Signatura QA needs the existing Mi VERLO dashboard to load before the
+  // authenticated tenant can start identity verification. This exact GET is
+  // independently protected by Supabase Auth inside /api/mi-verlo.
+  // The original qa/verlo-e2e and production allowlists are unchanged.
+  if (request.method === 'GET' && path === '/api/mi-verlo' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
   // Initial tenant-only Signatura declaration. Explicitly authorized in QA;
   // handler checks the authenticated VERLO tenant and user confirmation.
   if (request.method === 'POST' && path === '/api/signatura/identity-start' &&
