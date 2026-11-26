@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import MySignaturaContractSigning from "@/components/signatura/MySignaturaContractSigning"
+import GuarantorPushSubscribe from "@/components/guarantors/GuarantorPushSubscribe"
 
 type Guarantee={id:string;contractId:string;fullName:string;guaranteeKind:string;status:string;acceptedAt:string|null;signedAt:string|null}
 async function token(){
@@ -45,6 +46,7 @@ export default function MyGuarantorPortal({onLogout,embedded=false,hideWhenEmpty
     <h1>Mi VERLO · Garante</h1>
     <p>Este es tu acceso privado como garante. Antes de firmar vas a poder revisar las obligaciones que asumís.</p>
     {error&&<p role="alert">{error}</p>}
+    {items.length>0&&<GuarantorPushSubscribe />}
     {items.length===0?<p>No tenés invitaciones de garantía disponibles para esta cuenta.</p>:items.map(item=><section key={item.id}
       style={{border:"1px solid #ddd",borderRadius:16,padding:18,marginBottom:16,background:"white"}}>
       <h2>Garantía de contrato</h2>
