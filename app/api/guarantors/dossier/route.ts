@@ -202,6 +202,23 @@ export async function POST(req:NextRequest) {
       eventKey:"guarantor_review:"+g.id+":"+g.document_revision+":"+decision,
       recipientEmail:g.email,recipientRole:"guarantor",url:"/mi-verlo",
     })
+    if(["approved","rejected","changes_requested"].includes(decision)){
+      const {data:tenant}=await actor.db.from("lead_intake").select("email")
+        .eq("id",contract.tenant_lead_id).maybeSingle()
+      if(tenant?.email)await enqueueVerloEmailSafely({
+        area:"tradicionales",eventType:"tenant_guarantor_review_"+decision,
+        eventKey:"tenant_guarantor_review:"+g.id+":"+g.document_revision+":"+decision,
+        recipientEmail:tenant.email,recipientRole:"tenant",url:"/mi-verlo",
+      })
+      try{
+        const {sendPushToLead}=await import("@/lib/push")
+        await sendPushToLead(contract.tenant_lead_id,{
+          title:"VERLO · Novedad sobre tu garantía",
+          body:"El propietario registró una decisión sobre la garantía. Consultá Mi VERLO.",
+          url:"/mi-verlo",
+        })
+      }catch{}
+    }
     return reply({ok:true,reviewStatus:decision,revision:g.document_revision})
   }
   return reply({ok:false,error:"Unknown operation"},400)
