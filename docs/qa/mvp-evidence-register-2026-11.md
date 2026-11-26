@@ -1,5 +1,19 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Retiro definitivo de transporte GHL, correo nativo VERLO — 26/11/2026
+
+- **Decisión de producto:** GHL no se usa más para envío de correos ni WhatsApp. VERLO usará ZeptoMail (outbox nativa) y Push. No enviar desde QA ni habilitar envío ZeptoMail en producción hasta certificar remitente, recepción y cutover.
+- Vercel **previo a esta tanda**: QA `9fbeae7` READY; Signatura `ab61948` READY. Los commits de retiro que siguen están en construcción/cola y NO se declaran certificados por el mero commit.
+- Tradicionales: `lib/lead-notifications.ts` elimina llamada `sendGhlEmail`, utiliza `enqueueVerloEmail` y borra helpers y datos de tags/tokens/resumen hechos solo para el proveedor anterior. Commits QA `a23f018`, Signatura `c7dda43`.
+- Temporarios: `app/api/temporarios/notifications/dispatch/route.ts` elimina webhook `services.leadconnectorhq.com` y encola a `verlo_email_outbox` con mismo event_key, validación de relación del destinatario y copy de fechas/acciones. Commits QA `7610bb6`, Signatura `87b6dc9`. Encolar != email entregado.
+- Se anulan rutas de red en `lib/notifications/email.ts` y `lib/notifications/whatsapp.ts`: funciones legadas retornan skipped GHL_RETIRED / WHATSAPP_DISABLED, sin petición externa. Los tests de `tests/e2e-real.spec.ts` y `tests/email-migration.spec.ts` verifican retiro y cortes. Commits QA `6637d7b`, Signatura `ac91537`.
+- Digest reciente: `app/api/cron/match-digest/route.ts` deja de consultar `ghl_digest_daily_reservations` y `reserve_ghl_digest_slot`. Mantiene lote acotado por ejecución (50) y unicidad de event_key, elimina límite GHL de 50 por día. Commits QA `10f8cb8`, Signatura `f9ecf87`. Tests QA `53e795d`, Signatura `ea4ea7b`.
+- **No se considera completado el go-live de correo:** confirmar estado de dominio en ZeptoMail, entrega real, banderas de captura/dispatch, periodicidad de dispatcher y no duplicados. El backfill histórico separado conserva nombres de tablas GHL pero no es una salida a GoHighLevel; su ejecución requiere habilitación especial independiente, NO se inició.
+- No se tocaron producción ni Supabase, no se enviaron correos reales y no se ejecutó backfill.
+
+---
+
+
 ## Baja definitiva de GHL en QA — 26/11/2026
 
 - **Decisión explícita:** VERLO no utilizará GoHighLevel ni WhatsApp. Canales previstos: ZeptoMail por cola nativa y Web Push. No habilitar servicios externos hasta certificar proveedor, remitente y entrega real.
