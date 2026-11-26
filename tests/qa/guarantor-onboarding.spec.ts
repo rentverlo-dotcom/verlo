@@ -178,6 +178,10 @@ test("tenant closing page sends invitation intent from the form, not Mi VERLO",(
  expect(endpoint).toContain("createHash(\"sha256\")")
  expect(endpoint).toContain('eventType:"guarantor_invited"')
  expect(endpoint).toContain("emailDeliveryConfirmed:false")
+ expect(endpoint).toContain('invitationEmail:queueStatus==="queued"')
+ expect(endpoint).toContain('emailDeliveryConfirmed:false')
+ expect(endpoint).not.toContain('enqueueVerloEmailSafely(')
+ expect(form).toContain('result.invitationEmail==="queued"')
  expect(migration).toContain("invited_by_lead_id")
 })
 
@@ -202,4 +206,13 @@ test("neither tenant nor owner can accept a contract with unapproved or stale gu
   expect(agree).toContain('contract.content.includes(guarantor.collateral_registration)')
   expect(agree.indexOf('guarantor.review_status !== "approved"')).toBeLessThan(
     agree.indexOf('// 6. REGISTRAR ACEPTACIÓN'))
+})
+
+test("guarantor account access is isolated in QA and gated for production",()=>{
+ const auth=source("lib/guarantors/auth.ts")
+ expect(auth).toContain('VERLO_GUARANTOR_ACCOUNTS_LIVE')
+ expect(auth).toContain('VERLO_GUARANTOR_INVITES_LIVE')
+ expect(auth).toContain('VERLO_EMAIL_CUTOVER_APPROVED')
+ expect(auth).toContain('!qa && !production')
+ expect(auth).toContain('email_confirmed_at')
 })
