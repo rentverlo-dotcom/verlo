@@ -30,12 +30,12 @@ export function safeVerloEmailUrl(value?: string): string {
     const candidate = new URL(value.trim(), "https://verlo.lat")
     // The activation URL must stay on the same trusted deployment. Preview
     // links cannot point to production; other external domains are rejected.
+    const previewHost = process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL || ""
     const trustedPreview = process.env.VERCEL_ENV === "preview" &&
       process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co" &&
       process.env.VERCEL_GIT_COMMIT_REF === "feature/signatura-qa-integration" &&
-      !!(process.env.VERCEL_BRANCH_URL || (process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL || "")) &&
-      /^([a-z0-9-]+\.)+vercel\.app$/i.test(process.env.VERCEL_URL) &&
-      candidate.origin === "https://" + (process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL) &&
+      /^([a-z0-9-]+\.)+vercel\.app$/i.test(previewHost) &&
+      candidate.origin === "https://" + previewHost &&
       candidate.pathname === "/garante/activar"
     if (candidate.protocol !== "https:" ||
       (candidate.origin !== "https://verlo.lat" && !trustedPreview) ||
