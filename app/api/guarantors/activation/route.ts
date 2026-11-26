@@ -29,7 +29,11 @@ export async function POST(req:NextRequest){
  if(error||!g||g.email.toLowerCase()!==email||!g.invitation_expires_at||
    Date.parse(g.invitation_expires_at)<Date.now()||g.status==="declined")
    return reply({ok:false,error:"Invitación no disponible o vencida"},404)
- // Only allows the client to request a Supabase email OTP for the invited
- // address; never authenticates or accepts a guarantor without that OTP.
+ // Supabase Auth will send an OTP from its configured SMTP provider.
+ // Do not let the browser trigger a default Supabase-branded email before
+ // independent confirmation that VERLO's sender + SMTP are configured.
+ if(process.env.VERLO_GUARANTOR_AUTH_MAIL_READY!=="true")
+   return reply({ok:false,error:"El correo de acceso del garante todavía no está habilitado desde VERLO"},503)
+ // Validation of the invitation does not itself authenticate the caller.
  return reply({ok:true,action:"request_account_email_link"})
 }
