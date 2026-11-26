@@ -163,7 +163,22 @@ test.describe("VERLO email migration - no external deliveries", () => {
     for (const filename of [
       "lib/lead-notifications.ts",
       "app/api/temporarios/notifications/dispatch/route.ts",
-    ]) expect(readFileSync(filename, "utf8")).toContain("enqueueVerloEmailSafely")
+    ]) expect(readFileSync(filename, "utf8")).toMatch(/enqueueVerloEmail(?:Safely)?/)
+  })
+
+  test("no GHL or WhatsApp webhook transport remains callable", () => {
+    const traditional = readFileSync("lib/lead-notifications.ts", "utf8")
+    const temporary = readFileSync("app/api/temporarios/notifications/dispatch/route.ts", "utf8")
+    expect(traditional).not.toContain("sendGhlEmail(")
+    expect(temporary).not.toContain("services.leadconnectorhq.com")
+    expect(temporary).not.toContain("fetch(endpoint")
+    expect(temporary).toContain("enqueueVerloEmail(")
+    const oldEmail = readFileSync("lib/notifications/email.ts", "utf8")
+    const oldWhatsapp = readFileSync("lib/notifications/whatsapp.ts", "utf8")
+    expect(oldEmail).not.toContain("fetch(")
+    expect(oldWhatsapp).not.toContain("fetch(")
+    expect(oldWhatsapp).toContain("WHATSAPP_DISABLED")
+    expect(oldEmail).toContain("GHL_RETIRED")
   })
 
   test("dynamic content is HTML escaped", () => {
