@@ -22,7 +22,7 @@ export async function GET(req:NextRequest) {
   const participants=await loadSignaturaContractParticipants(actor.db,id,actor.email,actor.user.id)
   if(!participants)return reply({ok:false,error:"Contract unavailable"},404)
   const {data:signing,error}=await actor.db.from("signatura_contract_signings")
-    .select("status,document_id,owner_signature_id,tenant_signature_id,guarantor_signature_id")
+    .select("status,document_id,document_sha256,owner_signature_id,tenant_signature_id,guarantor_signature_id")
     .eq("lead_contract_id",id).maybeSingle()
   if(error)return reply({ok:false,error:"Unavailable"},503)
   if(!signing) {
@@ -30,6 +30,10 @@ export async function GET(req:NextRequest) {
     return reply({ok:true,status:gate.allowed?"ready":"blocked",
       reason:gate.allowed?null:gate.reason,role:participants.role})
   }
+  // Never expose signing links after a contract version has changed.
+  if(!participants.contract.content ||
+    createHash("sha256").update(participants.contract.content,"utf8").digest("hex")!==signing.document_sha256)
+    return reply({ok:false,error:"Contract version changed; signing requires review"},409)
   if(signing.status==="completed")return reply({ok:true,status:"completed",role:participants.role})
   if(signing.status!=="pending"||!signing.document_id)
     return reply({ok:true,status:"manual_review_required",role:participants.role})
