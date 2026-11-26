@@ -64,8 +64,8 @@ test("generated contract identifies the accepted guarantor but cannot imply sign
   const route=source("app/api/closing-generate/route.ts")
   expect(route).toContain("guarantorText")
   expect(route).toContain("signer.status !== \"accepted\"")
-  expect(route).toContain("firma individual mediante validación de identidad")
-  expect(route).toContain("no constituye una fianza firmada")
+  expect(route).toContain("firma individual sobre el texto definitivo")
+  expect(route).toContain("La aceptación digital de participar no sustituye esa firma")
 })
 
 test("Mi VERLO separates guarantor from matching while preserving account access",()=>{
