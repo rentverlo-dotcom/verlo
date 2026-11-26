@@ -65,3 +65,24 @@ test("private paths and query tokens are redacted before analytics",()=>{
     ["/contracts/uuid-123?signature=my-secret","/contracts/[private]"],
   ]) expect(safeAnalyticsPath(input)).toBe(expected)
 })
+
+
+test("business revenue events come only from server-verified operations",()=>{
+ const capture=source("lib/posthog-server.ts")
+ expect(capture).toContain('process.env.VERCEL_ENV !== "production"')
+ expect(capture).toContain('payment_verified: "true"')
+ expect(capture).toContain('createHash("sha256")')
+ const traditional=source("app/api/webhooks/mercadopago/route.ts")
+ expect(traditional).toContain('event: "verlo_traditional_payment_approved"')
+ expect(traditional.indexOf("await syncApprovedMatch(approvedAt || now)"))
+  .toBeLessThan(traditional.indexOf('event: "verlo_traditional_payment_approved"'))
+ const temporary=source("app/api/temporarios/payments/webhook/route.ts")
+ expect(temporary).toContain('event:"verlo_temporary_fee_approved"')
+ expect(temporary.indexOf('if(result.error)return reply'))
+  .toBeLessThan(temporary.indexOf('event:"verlo_temporary_fee_approved"'))
+ const partner=source("app/api/powermarket/confirm-operation/route.ts")
+ expect(partner).toContain('event: "verlo_caucion_partner_payment_confirmed"')
+ expect(partner).toContain('paymentReceiver: "powermarket"')
+ // The commission is not earned or paid to VERLO just because PowerMarket confirms.
+ expect(partner).not.toContain('paymentReceiver: "verlo"')
+})
