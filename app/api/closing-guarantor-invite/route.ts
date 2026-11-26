@@ -83,7 +83,7 @@ export async function POST(req:NextRequest){
  if(existingError)return reply({ok:false,error:"No se pudo verificar la invitación"},503)
  if(existing?.length)return reply({ok:false,error:"Ya existe una invitación para este contrato"},409)
  // Resolve the trusted deployment before reserving a one-time invitation.
- const previewHost = process.env.VERCEL_URL || ""
+ const previewHost = process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL || ""
  const isTrustedPreview = process.env.VERCEL_ENV === "preview" &&
    /^([a-z0-9-]+\.)+vercel\.app$/i.test(previewHost)
  if(qa&&!isTrustedPreview)
