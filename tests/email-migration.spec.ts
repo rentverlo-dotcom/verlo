@@ -210,6 +210,51 @@ test.describe("VERLO email migration - no external deliveries", () => {
     expect(requests).toBe(0)
   })
 
+  test("provider HTTP 200 without confirmed recipient remains unaccepted", async () => {
+    const mockFetch = (async () => ({
+      ok: true, status: 200,
+      json: async () => ({ message: "OK", data: [{ code: "EM_999" }], request_id: "rejected" }),
+    } as Response)) as typeof fetch
+    const result = await sendWithZeptoMail({
+      to: "test@example.invalid", subject: "VERLO", html: "<p>Test</p>",
+      text: "Test", eventKey: "test:unconfirmed",
+    }, { enabled: true, apiKey: "test-key", fetcher: mockFetch })
+    expect(result.accepted).toBe(false)
+    expect(result.reason).toBe("unconfirmed_provider_acceptance")
+    expect(result.providerId).toBeNull()
+  })
+
+  test("ZeptoMail 429 remains retryable without claiming delivery", async () => {
+    const mockFetch = (async () => ({ ok: false, status: 429 } as Response)) as typeof fetch
+    const result = await sendWithZeptoMail({
+      to: "test@example.invalid", subject: "VERLO", html: "<p>Test</p>",
+      text: "Test", eventKey: "test:rate-limit",
+    }, { enabled: true, apiKey: "test-key", fetcher: mockFetch })
+    expect(result).toMatchObject({
+      accepted: false, providerId: null, status: 429, reason: "retryable_http",
+    })
+  })
+
+  test("ambiguous network error is not reported as delivered", async () => {
+    const mockFetch = (async () => { throw new Error("Network disconnected") }) as typeof fetch
+    const result = await sendWithZeptoMail({
+      to: "test@example.invalid", subject: "VERLO", html: "<p>Test</p>",
+      text: "Test", eventKey: "test:network-unknown",
+    }, { enabled: true, apiKey: "test-key", fetcher: mockFetch })
+    expect(result.accepted).toBe(false)
+    expect(result.reason).toBe("network_unknown_outcome")
+    expect(result.providerId).toBeNull()
+  })
+
+  test("dispatcher is dry-run by GET, requires token and manual live POST", () => {
+    const dispatch = readFileSync("app/api/admin/email-dispatch/route.ts", "utf8")
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { crons: { path: string }[] }
+    expect(dispatch).toContain('req.headers.get("authorization") === `Bearer ${secret}`')
+    expect(dispatch).toContain("export async function GET(req: NextRequest) { return handle(req, false) }")
+    expect(dispatch).toContain("export async function POST(req: NextRequest) { return handle(req, true) }")
+    expect(vercel.crons.some(c => c.path === "/api/admin/email-dispatch")).toBe(false)
+  })
+
   test("provider acceptance with mock; no actual email sent", async () => {
     let called = false
     const mockFetch = (async (url: string | URL | Request, init?: RequestInit) => {
