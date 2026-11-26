@@ -10,6 +10,7 @@ type Outcome = { allowed: boolean; reason: string }
 export async function checkTraditionalSigningReadiness(
   db: SupabaseClient,
   contractId: string,
+  signerFlow: "identik" | "signatura" = "identik",
 ): Promise<Outcome> {
   const contractResult = await db.from("lead_contracts")
     .select("id,lead_match_id,tenant_lead_id,owner_lead_id,status,content,tenant_agreed_at,owner_agreed_at")
@@ -62,9 +63,13 @@ export async function checkTraditionalSigningReadiness(
   // A contractual guarantor cannot be silently excluded from a two-signer envelope.
   // Signatura's three-party flow must be certified before releasing this contract.
   const { data: guarantors, error: guarantorError } = await db
-    .from("contract_guarantors").select("id").eq("lead_contract_id", contract.id).limit(1)
+    .from("contract_guarantors").select("id,status,auth_user_id").eq("lead_contract_id", contract.id).limit(2)
   if (guarantorError) return { allowed: false, reason: "guarantor_lookup_unavailable" }
-  if (guarantors?.length) return { allowed: false, reason: "guarantor_signature_flow_pending" }
+  if ((guarantors || []).length > 1) return { allowed: false, reason: "ambiguous_guarantor" }
+  if (guarantors?.length && signerFlow !== "signatura")
+    return { allowed: false, reason: "guarantor_signature_flow_pending" }
+  if (guarantors?.length && (guarantors[0].status !== "accepted" || !guarantors[0].auth_user_id))
+    return { allowed: false, reason: "guarantor_acceptance_pending" }
 
   const approval = await checkPowerMarketSigningApproval(db, {
     contractId: contract.id,
