@@ -191,6 +191,7 @@ test("first guarantor account activation requires matching email and non-expired
  const page=source("app/garante/activar/page.tsx")
  expect(verify).toContain("invitation_token_hash")
  expect(verify).toContain("invitation_expires_at")
+ expect(verify).toContain('VERLO_GUARANTOR_AUTH_MAIL_READY')
  expect(verify).toContain("g.email.toLowerCase()!==email")
  expect(page).toContain('shouldCreateUser:true')
  expect(page).toContain('fetch("/api/guarantors/activation"')
