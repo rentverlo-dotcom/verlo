@@ -4,7 +4,7 @@
  * Keep business details in Mi VERLO, never in email URLs or sensitive payloads.
  */
 export type VerloEmailArea = "tradicionales" | "temporarios" | "powermarket"
-export type VerloEmailRole = "tenant" | "owner"
+export type VerloEmailRole = "tenant" | "owner" | "guarantor"
 export type VerloEmailEvent = {
   area: VerloEmailArea
   role: VerloEmailRole
@@ -94,6 +94,8 @@ const traditionalCopy: Record<string, [string, string]> = {
   post_visit_waiting: ["Seguimiento de tu visita", "Revisá el próximo paso de tu alquiler."],
   double_ok_2: ["Tu alquiler avanzó", "Revisá los próximos pasos para el contrato."],
   contract_generated: ["Tu contrato está disponible", "Ingresá a Mi VERLO para revisar el contrato."],
+  guarantor_invited: ["Te invitaron a ser garante de un alquiler", "Ingresá a Mi VERLO con este correo para revisar y aceptar tu participación. No estarás obligado hasta revisar y firmar el contrato definitivo."],
+  guarantor_signature_ready: ["Tu firma como garante está pendiente", "Ingresá a Mi VERLO para revisar las obligaciones que asumís y firmar el contrato mediante validación de identidad."],
   signature_ready: ["Tu contrato está listo para firmar", "Ingresá a Mi VERLO y pulsá Firmar contrato. Vas a validar tu identidad y firmar en una sesión segura; al terminar, volvés a Mi VERLO."],
   contract_accept_waiting: ["Tu contrato necesita una acción", "Revisá el estado del contrato en Mi VERLO."],
   rental_confirmed: ["Alquiler confirmado", "Podés consultar el estado de tu alquiler en Mi VERLO."],
