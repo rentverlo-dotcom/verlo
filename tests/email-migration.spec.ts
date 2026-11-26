@@ -80,10 +80,12 @@ test.describe("VERLO email migration - no external deliveries", () => {
     expect(layout).toContain("<SupportEmailBubble />")
   })
 
-  test("legacy 50-recipient cap must not be carried over to native email queue", () => {
+  test("native digest has no legacy GHL 50-recipient daily quota", () => {
     const legacy = readFileSync("app/api/cron/match-digest/route.ts", "utf8")
     const nativeQueue = readFileSync("lib/notifications/verlo-email-outbox.ts", "utf8")
-    expect(legacy).toContain("MAX_DIGEST_PER_DAY = 50")
+    expect(legacy).not.toContain("MAX_DIGEST_PER_DAY")
+    expect(legacy).not.toContain("reserve_ghl_digest_slot")
+    expect(legacy).not.toContain("ghl_digest_daily_reservations")
     expect(nativeQueue).not.toContain("MAX_DIGEST_PER_DAY")
     expect(nativeQueue).toContain('error?.code === "23505"')
   })
