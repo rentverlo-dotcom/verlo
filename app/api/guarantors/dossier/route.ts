@@ -83,14 +83,14 @@ export async function POST(req:NextRequest) {
     const owner=String(body?.collateralOwner||"").trim().slice(0,200)
     if(g.guarantee_kind==="property" && (!address||!jurisdiction||!registration||!owner))
       return reply({ok:false,error:"Property registration, owner and jurisdiction required"},400)
-    const {error}=await actor.db.from("contract_guarantors").update({
+    const {data:updated,error}=await actor.db.from("contract_guarantors").update({
       collateral_address:address,collateral_jurisdiction:jurisdiction,
       collateral_registration:registration,collateral_owner:owner,
       review_status:"awaiting_documents",approved_revision:null,
       reviewed_at:null,reviewed_by_user_id:null,
       document_revision:g.document_revision+1,updated_at:new Date().toISOString(),
-    }).eq("id",g.id).eq("document_revision",g.document_revision)
-    if(error)return reply({ok:false,error:"Details could not be saved"},503)
+    }).eq("id",g.id).eq("document_revision",g.document_revision).select("id").maybeSingle()
+    if(error||!updated)return reply({ok:false,error:"Details changed; reload and retry"},409)
     return reply({ok:true,status:"awaiting_documents"})
   }
 
@@ -137,11 +137,17 @@ export async function POST(req:NextRequest) {
     })
     if(insertError)return reply({ok:false,error:"Unable to register file"},503)
     const nextStatus=role==="guarantor"?"submitted":"under_review"
-    const {error:updateError}=await actor.db.from("contract_guarantors").update({
+    const {data:updatedRevision,error:updateError}=await actor.db.from("contract_guarantors").update({
       document_revision:revision,approved_revision:null,review_status:nextStatus,
       reviewed_at:null,reviewed_by_user_id:null,updated_at:new Date().toISOString(),
-    }).eq("id",g.id).eq("document_revision",g.document_revision)
-    if(updateError)return reply({ok:false,error:"File registered; manual review needed"},503)
+    }).eq("id",g.id).eq("document_revision",g.document_revision).select("id").maybeSingle()
+    if(updateError||!updatedRevision){
+      // A race must not leave a previously approved dossier signable.
+      await actor.db.from("contract_guarantors").update({
+        review_status:"under_review",approved_revision:null,updated_at:new Date().toISOString(),
+      }).eq("id",g.id)
+      return reply({ok:false,error:"File saved; dossier revision needs review"},409)
+    }
     if(role==="guarantor"){
       await enqueueVerloEmailSafely({
         area:"tradicionales",eventType:"guarantor_documents_submitted",
