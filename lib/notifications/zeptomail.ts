@@ -31,7 +31,7 @@ const FROM_NAME = "VERLO"
  * "configured" is NOT a claim of an email being received by its destination.
  */
 export function getZeptoMailReadiness(env: NodeJS.ProcessEnv) {
-  const qaIsolated = env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e"
+  const qaIsolated = env.VERCEL_ENV !== "production"
   const sender = (env.VERLO_ZEPTO_FROM_EMAIL || DEFAULT_FROM_ADDRESS).trim()
   const senderValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(sender)
   const hasApiKey = Boolean(env.ZOHO_CPAAS_EMAIL_API_KEY?.trim())
@@ -62,7 +62,7 @@ export async function sendWithZeptoMail(
   const enabled = options.enabled ?? process.env.VERLO_ZEPTO_EMAIL_LIVE === "true"
   if (!enabled) return { accepted: false, providerId: null, status: null, reason: "disabled" }
   // Mock transports may be tested in QA; real delivery from the isolated QA branch is forbidden.
-  if (!options.fetcher && process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e") {
+  if (!options.fetcher && process.env.VERCEL_ENV !== "production") {
     return { accepted: false, providerId: null, status: null, reason: "qa_external_delivery_blocked" }
   }
 
