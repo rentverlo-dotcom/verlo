@@ -148,6 +148,17 @@ export async function POST(req:NextRequest) {
         eventKey:"guarantor_documents:"+g.id+":"+revision,
         recipientEmail:ctx.ownerEmail,recipientRole:"owner",url:"/mi-verlo",
       })
+      // Existing opted-in owner devices only. QA's provider guard skips delivery.
+      try {
+        const {sendPushToLead}=await import("@/lib/push")
+        await sendPushToLead(contract.owner_lead_id,{
+          title:"VERLO · Documentación de garantía disponible",
+          body:"Tu garante presentó documentos. Revisalos desde Mi VERLO.",
+          url:"/mi-verlo",
+        })
+      } catch {
+        // Push is optional: the secured private dossier and email event remain durable.
+      }
     }
     return reply({ok:true,status:nextStatus,revision})
   }
