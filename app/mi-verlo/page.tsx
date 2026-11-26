@@ -19,7 +19,7 @@ import { trackPostHog } from "@/lib/posthog-client"
 
 import PushSubscribeButton from "@/components/PushSubscribeButton"
 import MyCaucionStatus from "@/components/powermarket/MyCaucionStatus"
-import MyIdentikSigning from "@/components/identik/MyIdentikSigning"
+import MySignaturaContractSigning from "@/components/signatura/MySignaturaContractSigning"
 import MySignaturaIdentityStatus from "@/components/signatura/MySignaturaIdentityStatus"
 import MyGuarantorPortal from "@/components/guarantors/MyGuarantorPortal"
 import MyGuarantorInvite from "@/components/guarantors/MyGuarantorInvite"
@@ -2761,7 +2761,7 @@ export default function MiVerloPage() {
             </section>
 
             {data.user.role === "tenant" && <MySignaturaIdentityStatus />}
-            <MyIdentikSigning />
+            <MySignaturaContractSigning contracts={[...data.matches,...data.operations].map(item=>item.contract).filter((c):c is NonNullable<typeof c>=>Boolean(c))} />
             {data.user.role === "tenant" && <MyGuarantorInvite contracts={[...data.matches,...data.operations].map(item=>item.contract).filter((c):c is NonNullable<typeof c>=>Boolean(c))} />}
             <MyCaucionStatus />
             <OwnerCaucionStatus />
