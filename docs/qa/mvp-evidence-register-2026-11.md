@@ -1,5 +1,15 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Cierre de seguridad del correo de garante — 26/11/2026 (tanda posterior)
+
+- **Rama funcional:** `feature/signatura-qa-integration`. Cambios: `6d03194` habilita lectura de cuenta garante también para producción solo si `VERLO_GUARANTOR_ACCOUNTS_LIVE`, `VERLO_GUARANTOR_INVITES_LIVE` y `VERLO_EMAIL_CUTOVER_APPROVED` están explícitamente en true; acceso QA mantiene aislamiento y email Auth verificado. **Esto no habilita producción** ni configura los flags.
+- **Invitación honesta:** `995be53` modifica `/api/closing-guarantor-invite` para consultar el resultado real de la cola (`queued`/`duplicate` vs `pending_configuration`) y retornar siempre `emailDeliveryConfirmed:false`; la inserción de participante no equivale a email enviado. `cdb6e44` presenta al inquilino ese estado sin mentir sobre entrega. La cola QA solo admite emails sintéticos `@example.com`, dispatcher requiere producción/cutover y continúa sin agenda automática: NO hay correos reales enviados ni certificado de inbox.
+- **Activación separada:** `dc7205d` bloquea la solicitud de `supabase.auth.signInWithOtp` desde `/garante/activar` mientras `VERLO_GUARANTOR_AUTH_MAIL_READY` no esté en true. El propósito es impedir que el garante reciba correos por el remitente predeterminado de Supabase. **Antes de activar flag:** configurar/verificar Auth SMTP con remitente VERLO y validar una recepción real, sin cambiar ni afectar Zoho Mail; no asumir que ZeptoMail API habilita automáticamente el SMTP de Supabase Auth. Mantener GHL/WhatsApp fuera.
+- **Tests:** `86ea9f1` tuvo workflow offline de garante SUCCESS tras adaptar el test de gates productivos. `97acd28` y otras ejecuciones intermedias fallaron por la aserción anterior que exigía el viejo código de QA; corregida en `86ea9f1`. Nuevos tests para estado de cola/gate SMTP en `97acd28`, `f21413e`, y controles de aislamiento. **La ejecución del HEAD final y su Vercel READY requieren confirmación**, no deducir del estado de otro SHA.
+- **Sigue pendiente:** configuración real del servicio ZeptoMail/SMTP del proyecto QA, enlace recibido y creación de cuenta con email VERLO, E2E expediente privado+revisión y firma Signatura de 2/3 participantes con contrato final. No modificar `main`, Supabase producción ni activar servicios pagos antes de esa certificación. Se mantiene alcance 44 tareas.
+
+---
+
 ## Continuación cierre QA: bloqueo de acuerdo contractual por garante — 26/11/2026
 
 - **Rama Signatura** `feature/signatura-qa-integration`: se corrigió `app/api/closing-agree/route.ts` (commit `d413065`) para rechazar la aceptación del contrato de inquilino/propietario cuando exista garante no aceptado, documentación sin aprobación propietaria vigente o revisión de documentos cambiada (`approved_revision !== document_revision`). Valida además que nombre/DNI y matrícula/domicilio del inmueble de garantía estén en el texto acordado. Es un **bloqueo en la aceptación**, complementario al preflight de firma y al bloqueo del generador. **Limitado explícitamente a Preview QA Signatura**; `main` y producción intactos.
