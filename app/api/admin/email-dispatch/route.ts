@@ -36,6 +36,7 @@ async function handle(request: NextRequest, requestedLive: boolean) {
   // Fail closed: even with a key, no emails can leave unless both switches
   // are intentionally enabled after Zoho sender verification and cutover.
   const live = requestedLive
+    && process.env.VERCEL_ENV === "production"
     && process.env.VERLO_EMAIL_DISPATCH_ENABLED === "true"
     && process.env.VERLO_ZEPTO_EMAIL_LIVE === "true"
     && process.env.VERLO_EMAIL_CUTOVER_APPROVED === "true"
