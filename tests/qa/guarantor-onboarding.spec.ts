@@ -191,3 +191,15 @@ test("first guarantor account activation requires matching email and non-expired
  expect(page).toContain('fetch("/api/guarantors/activation"')
  expect(page).toContain("Mi VERLO")
 })
+
+test("neither tenant nor owner can accept a contract with unapproved or stale guarantor",()=>{
+  const agree=source("app/api/closing-agree/route.ts")
+  expect(agree).toContain('from("contract_guarantors")')
+  expect(agree).toContain('guarantor.status !== "accepted"')
+  expect(agree).toContain('guarantor.review_status !== "approved"')
+  expect(agree).toContain('guarantor.approved_revision !== guarantor.document_revision')
+  expect(agree).toContain('contract.content.includes(guarantor.full_name)')
+  expect(agree).toContain('contract.content.includes(guarantor.collateral_registration)')
+  expect(agree.indexOf('guarantor.review_status !== "approved"')).toBeLessThan(
+    agree.indexOf('// 6. REGISTRAR ACEPTACIÓN'))
+})
