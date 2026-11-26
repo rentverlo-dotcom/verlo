@@ -2222,7 +2222,7 @@ export async function POST(
     if (guarantorQaEnabled) {
       const { data: signers, error: signerError } = await supabase
         .from("contract_guarantors")
-        .select("full_name,dni,email,phone,legal_address,guarantee_kind,status,auth_user_id")
+        .select("full_name,dni,email,phone,legal_address,guarantee_kind,status,auth_user_id,review_status,approved_revision,document_revision,collateral_address,collateral_jurisdiction,collateral_registration,collateral_owner")
         .eq("lead_contract_id", contract.id).limit(2)
       if (signerError) throw new Error("Cannot verify guarantor participation")
       if ((signers || []).length > 1) return NextResponse.json({
@@ -2232,9 +2232,15 @@ export async function POST(
       if (signer) {
         if (signer.status !== "accepted" || !signer.auth_user_id)
           return NextResponse.json({ok:false,error:"El garante debe activar su cuenta y aceptar su participación antes de generar el contrato."},{status:409})
+        if (signer.review_status !== "approved" || signer.approved_revision !== signer.document_revision)
+          return NextResponse.json({ok:false,error:"El propietario debe aprobar la garantía y los documentos vigentes antes de generar el contrato."},{status:409})
+        if (signer.guarantee_kind === "property" &&
+          (!signer.collateral_address || !signer.collateral_registration ||
+           !signer.collateral_jurisdiction || !signer.collateral_owner))
+          return NextResponse.json({ok:false,error:"Faltan datos registrales de la propiedad ofrecida en garantía."},{status:409})
         if (!finalGuaranteeType || /cauci[oó]n|seguro/i.test(finalGuaranteeType))
           return NextResponse.json({ok:false,error:"La garantía seleccionada no corresponde a un garante personal."},{status:409})
-        guarantorText = `El garante propuesto es ${signer.full_name}, DNI ${signer.dni}, domicilio ${signer.legal_address || "pendiente de ratificación"}, correo ${signer.email}, celular ${signer.phone}. Tipo de respaldo declarado: ${signer.guarantee_kind}. Su responsabilidad exige aceptación expresa de las obligaciones de fianza en la versión definitiva y su firma individual mediante validación de identidad. La mera invitación o aceptación de participación en VERLO no constituye una fianza firmada.`
+        guarantorText = `Se identifica como garante participante a ${signer.full_name}, DNI ${signer.dni}, domicilio ${signer.legal_address || "a completar"}, correo ${signer.email}, teléfono ${signer.phone}. Respaldo declarado: ${signer.guarantee_kind === "property" ? "garantía propietaria" : signer.guarantee_kind === "salary" ? "ingresos laborales" : "fianza personal"}. ${signer.guarantee_kind === "property" ? `Inmueble ofrecido como respaldo: ${signer.collateral_address}; jurisdicción ${signer.collateral_jurisdiction}; matrícula ${signer.collateral_registration}; titular declarado ${signer.collateral_owner}.` : ""} La documentación presentada y los informes de revisión permanecen en el expediente privado de VERLO y no se incorporan automáticamente como anexos. La obligación del garante requiere definición expresa de su alcance y firma individual sobre el texto definitivo. La aceptación digital de participar no sustituye esa firma.`
         guarantorSummary = `GARANTE PROPUESTO:
 ${signer.full_name}
 DNI ${signer.dni}
