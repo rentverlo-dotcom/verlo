@@ -1,6 +1,7 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
+import MySignaturaContractSigning from "@/components/signatura/MySignaturaContractSigning"
 
 type Guarantee={id:string;contractId:string;fullName:string;guaranteeKind:string;status:string;acceptedAt:string|null;signedAt:string|null}
 async function token(){
@@ -54,6 +55,7 @@ export default function MyGuarantorPortal({onLogout}:{onLogout:()=>Promise<void>
       </>}
       {item.status==="accepted"&&!item.signedAt&&<p>Tu firma todavía no está habilitada. VERLO te notificará cuando el documento definitivo esté disponible.</p>}
     </section>)}
+    <MySignaturaContractSigning canPrepare={false} contracts={items.filter(item=>item.status==="accepted").map(item=>({id:item.contractId}))} />
     <button type="button" onClick={()=>void load()} disabled={busy}>Actualizar estado</button>{" "}
     <button type="button" onClick={()=>void onLogout()}>Salir</button>
   </main>
