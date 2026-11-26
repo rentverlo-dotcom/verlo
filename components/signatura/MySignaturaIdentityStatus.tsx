@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
+import { trackPostHog } from "@/lib/posthog-client"
 
 type Status = "not_started" | "pending" | "verified" | "failed"
 
@@ -25,6 +26,7 @@ export default function MySignaturaIdentityStatus() {
   const [opening, setOpening] = useState(false)
   const [openError, setOpenError] = useState<string | null>(null)
   const checking = useRef(false)
+  const verifiedAlreadyObserved = useRef(false)
 
   const checkVerification = useCallback(async () => {
     if (checking.current) return
@@ -41,6 +43,9 @@ export default function MySignaturaIdentityStatus() {
       if (!current.ok || !["not_started", "pending", "verified", "failed"].includes(current.status)) return
       if (current.status !== "pending") {
         setStatus(current.status as Status)
+        // A verified state is not a purchase or a new verification event.
+        // It can be seen many times by this returning user.
+        if (current.status === "verified") verifiedAlreadyObserved.current = true
         return
       }
       setStatus("pending")
@@ -54,6 +59,13 @@ export default function MySignaturaIdentityStatus() {
       const confirmed = await reconcile.json().catch(() => ({}))
       if (confirmed.ok && confirmed.status === "verified") {
         setStatus("verified")
+        // This is a UX observation, not an authoritative conversion count.
+        if (!verifiedAlreadyObserved.current) {
+          verifiedAlreadyObserved.current = true
+          trackPostHog("identity_verification_state_observed", {
+            area: "tradicionales", role: "tenant", provider: "signatura", state: "verified",
+          })
+        }
       }
     } catch {
       // A network failure must never mark an identity as verified.
@@ -85,6 +97,7 @@ export default function MySignaturaIdentityStatus() {
       if (!response.ok || !result?.ok) {
         throw new Error("Todavía no está disponible tu enlace de validación.")
       }
+      trackPostHog("identity_verification_resumed", {area: "tradicionales", role: "tenant", provider: "signatura"})
       openSigningSession(result.signing_url)
     } catch (error) {
       setOpenError(error instanceof Error ? error.message : "No pudimos abrir la validación.")
@@ -113,6 +126,10 @@ export default function MySignaturaIdentityStatus() {
       if (!response.ok || !result.ok) {
         throw new Error("No pudimos iniciar la declaración. Revisaremos el intento antes de repetirlo.")
       }
+      trackPostHog("identity_verification_initiated", {
+        area: "tradicionales", role: "tenant", provider: "signatura",
+        created: result.created === true,
+      })
       const nextStatus: Status = result.status === "verified" ? "verified" : "pending"
       setStatus(nextStatus)
       if (nextStatus === "verified") return
