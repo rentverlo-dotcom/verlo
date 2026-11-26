@@ -48,6 +48,11 @@ export async function POST(req:NextRequest) {
   if(!signerIds.every(id=>(events||[]).some((event:any)=>event.signature_id===id)))
     return reply({ok:true,status:"pending",reason:"signer_webhook_pending"})
 
+  // Until provider payload identity-to-DNI mapping is certified, signatures
+  // remain pending, even if every external signature reports completion.
+  if(process.env.SIGNATURA_CONTRACT_IDENTITY_BINDING_CERTIFIED!=="true")
+    return reply({ok:true,status:"pending",reason:"identity_binding_certification_pending"})
+
   let pdf:Buffer
   try{
     const document=await getSignaturaDocument(record.document_id)
