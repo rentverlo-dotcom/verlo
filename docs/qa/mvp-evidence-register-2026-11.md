@@ -1,5 +1,16 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Email y Push — revisión de cierre 26/11/2026 (solo código QA)
+
+- Las plantillas de correo VERLO de tradicionales, temporarios y caución se revisaron: el evento `signature_ready` explica validar/firma y regreso a Mi VERLO; `policy_payment_confirmed` usa lenguaje de caución, distingue al inquilino que pagó del propietario, y nunca presupone póliza emitida. Cambios en `lib/notifications/verlo-email-templates.ts`: QA `3440c8b`, Signatura `8c9c4d6`.
+- Se corrigió `app/api/cron/powermarket-push/route.ts` para eliminar el nombre del socio de los mensajes públicos de caución, preservando destinatarios, eventos y destino `/mi-verlo`. Commits QA `08bb58f`, Signatura `5a1bfb8`.
+- Se reforzó bloqueo de emisión ZeptoMail desde todos los entornos no productivos (`lib/notifications/zeptomail.ts` y `app/api/admin/email-dispatch/route.ts`) y se aisló captura QA de ambas ramas con destinatarios sintéticos `@example.com` (`lib/notifications/verlo-email-outbox.ts`). No se dispararon correos a usuarios reales ni se cambió Supabase/producción.
+- Pruebas estáticas actualizadas en `tests/email-migration.spec.ts` para copy y aislamiento, commits QA `69d0dd4`, Signatura `ab61948`. Vercel se encontraba QUEUED al momento de la revisión: **no se puede declarar READY** sin comprobación posterior.
+- **Pendiente real de lanzamiento:** el flujo tradicional `lib/lead-notifications.ts` todavía llama `sendGhlEmail` (GHL legado), mientras la cola ZeptoMail requiere cutover y envío habilitados de forma explícita; no certificar migración completa por existencia de plantillas. `app/api/temporarios/notifications/dispatch/route.ts` también conserva salida GHL. Verificar aceptación del proveedor, recepción en casilla, push real, control de duplicados y habilitar transición solo tras aprobación final. No se despacharon notificaciones reales en esta auditoría.
+
+---
+
+
 ## Avance PostHog — 26/11/2026, eventos de negocio (sin transacciones QA)
 
 - Vercel QA general commit `de895e3` **READY** y rama Signatura commit `0a40e83` **READY**. READY solo valida despliegue, no recepcion de eventos en PostHog.
