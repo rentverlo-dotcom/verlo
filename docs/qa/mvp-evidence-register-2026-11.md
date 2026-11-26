@@ -1,5 +1,15 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Hallazgo bloqueante de firma contractual — 26/11/2026 (auditoria de codigo, NO E2E)
+
+- **Integracion Signatura para declaracion de identidad:** en `feature/signatura-qa-integration`, `/api/signatura/my-signing-url` consulta unicamente el binding de `signatura_tenant_identity_bindings` para el documento de declaracion inicial del tenant. No constituye implementacion de firma contractual bilateral.
+- **Firma de contratos sigue en Identik:** `app/mi-verlo/page.tsx` de la rama Signatura importa y renderiza `MyIdentikSigning`; ese componente llama `/api/identik/my-signing` y `/api/identik/my-signed`, muestra enlace al dominio Identik y descarga del PDF de Identik. El `POST /api/identik/my-signing` sigue llamando `makeIdentikElectronicClient`. Signatura no sustituyo aun la firma de contratos tenant+owner. **BLOQUEANTE para go-live con proveedor Signatura como unico proveedor de validacion y firma**.
+- **Controles vigentes NO perder:** `checkTraditionalSigningReadiness` valida contrato acordado por ambos, match/visita, pago aprobado VERLO vinculado al alquiler y `checkPowerMarketSigningApproval` cuando hay caucion; el endpoint Identik lo invoca antes de crear documento y antes de exponer URL en GET. Cualquier sustitucion por Signatura debe preservar controles servidor, autenticacion por ambas partes, idempotencia, webhooks, PDF final persistente y acceso en Mi VERLO.
+- La ruta Identik todavia contiene una notificacion `signature_ready` por `sendEmailToLeadOnce` (Zoho SMTP), distinta de la cola ZeptoMail nativa. Revisar cutover como parte del frente Email + Push, sin enviar correos reales en QA.
+- **Clasificacion:** identidad Signatura QA previamente aprobada por caso; contrato Signatura bilateral **PENDIENTE / NO CERTIFICADO**. No confundir las dos firmas, no repetir biometria inicial ya pagada. Auditoria read-only, sin tocar prod/DB/main. Alcance congelado 44 tareas.
+
+---
+
 ## Certificacion adicional de correo y diagnostico Actions — 26/11/2026
 
 - QA `1076c4c`: nuevo set de casos negativos ZeptoMail (HTTP 200 sin aceptacion EM_104, 429, incertidumbre de red y dispatcher manual protegido) ejecutado con mocks. GitHub Actions **VERLO email migration safe QA: SUCCESS** y Vercel Preview del SHA exacto **READY**. No acredita entrega real de correos.
