@@ -63,13 +63,16 @@ export async function checkTraditionalSigningReadiness(
   // A contractual guarantor cannot be silently excluded from a two-signer envelope.
   // Signatura's three-party flow must be certified before releasing this contract.
   const { data: guarantors, error: guarantorError } = await db
-    .from("contract_guarantors").select("id,status,auth_user_id").eq("lead_contract_id", contract.id).limit(2)
+    .from("contract_guarantors").select("id,status,auth_user_id,review_status,document_revision,approved_revision").eq("lead_contract_id", contract.id).limit(2)
   if (guarantorError) return { allowed: false, reason: "guarantor_lookup_unavailable" }
   if ((guarantors || []).length > 1) return { allowed: false, reason: "ambiguous_guarantor" }
   if (guarantors?.length && signerFlow !== "signatura")
     return { allowed: false, reason: "guarantor_signature_flow_pending" }
   if (guarantors?.length && (guarantors[0].status !== "accepted" || !guarantors[0].auth_user_id))
     return { allowed: false, reason: "guarantor_acceptance_pending" }
+  if (guarantors?.length && (guarantors[0].review_status !== "approved" ||
+    guarantors[0].approved_revision !== guarantors[0].document_revision))
+    return { allowed: false, reason: "guarantor_owner_review_pending" }
 
   const approval = await checkPowerMarketSigningApproval(db, {
     contractId: contract.id,
