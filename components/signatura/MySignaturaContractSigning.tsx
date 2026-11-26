@@ -22,7 +22,7 @@ export default function MySignaturaContractSigning({contracts,canPrepare=true}:{
   const [items,setItems]=useState<Status[]>([])
   const [busy,setBusy]=useState("")
   const [error,setError]=useState("")
-  const ids=[...new Set(contracts.map(c=>c.id))].slice(0,30)
+  const ids=Array.from(new Set(contracts.map(c=>c.id))).slice(0,30)
   useEffect(()=>{
     let live=true
     if(!ids.length)return
