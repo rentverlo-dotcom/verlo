@@ -2762,6 +2762,7 @@ export default function MiVerloPage() {
 
             {data.user.role === "tenant" && <MySignaturaIdentityStatus />}
             <MySignaturaContractSigning contracts={[...data.matches,...data.operations].map(item=>item.contract).filter((c):c is NonNullable<typeof c>=>Boolean(c))} />
+            <MyGuarantorPortal onLogout={logout} embedded hideWhenEmpty />
             {data.user.role === "tenant" && <MyGuarantorInvite contracts={[...data.matches,...data.operations].map(item=>item.contract).filter((c):c is NonNullable<typeof c>=>Boolean(c))} />}
             <MyCaucionStatus />
             <OwnerCaucionStatus />
