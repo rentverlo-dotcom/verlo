@@ -31,7 +31,9 @@ export default function TenantGuarantorInviteForm({token}:{token:string}){
      })
      const result=await res.json().catch(()=>({}))
      if(!res.ok||!result.ok)throw new Error(result.error||"No se pudo registrar al garante")
-     setMessage("El garante quedó registrado y se generó la invitación. El estado de entrega se confirma por separado.")
+     setMessage(result.invitationEmail==="queued"
+       ? "El garante quedó registrado. La invitación ingresó a la cola de correo; el envío y la recepción todavía no están confirmados."
+       : "El garante quedó registrado, pero el correo no pudo ponerse en cola. El acceso debe habilitarse cuando el servicio de email esté disponible.")
      await load()
    }catch(e){setError(e instanceof Error?e.message:"No pudimos registrar los datos")}
    finally{setBusy(false)}
