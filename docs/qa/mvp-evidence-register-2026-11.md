@@ -1,5 +1,15 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Continuación cierre QA: bloqueo de acuerdo contractual por garante — 26/11/2026
+
+- **Rama Signatura** `feature/signatura-qa-integration`: se corrigió `app/api/closing-agree/route.ts` (commit `d413065`) para rechazar la aceptación del contrato de inquilino/propietario cuando exista garante no aceptado, documentación sin aprobación propietaria vigente o revisión de documentos cambiada (`approved_revision !== document_revision`). Valida además que nombre/DNI y matrícula/domicilio del inmueble de garantía estén en el texto acordado. Es un **bloqueo en la aceptación**, complementario al preflight de firma y al bloqueo del generador. **Limitado explícitamente a Preview QA Signatura**; `main` y producción intactos.
+- Prueba estática de regresión `tests/qa/guarantor-onboarding.spec.ts` añadida en `84acbd8`. Trigger de workflow incluye ahora `app/api/closing-agree/route.ts` en `83490da`. Al asentar este registro, la última ejecución de test observada era `84acbd8` **in_progress** y los Preview más recientes estaban en `QUEUED/BUILDING`; **no afirmar SUCCESS ni READY de esos commits sin nueva verificación**.
+- **Hallazgo de activación y envío**: el botón de invitación desde `/cierre/[token]` reserva registro y encola `guarantor_invited`, pero QA exige `@example.com` y el despachador de ZeptoMail exige producción y flags de corte. La activación en `/garante/activar` solicita `supabase.auth.signInWithOtp`; **su correo no está integrado aún con ZeptoMail ni certificado con remitente VERLO**. El envío real de invitación, registro de cuenta y correo de firma E2E siguen PENDIENTES. No confundir `enqueueVerloEmailSafely` con entrega ni `READY` de build con QA E2E.
+- **Gate de versión**: a la revisión en vivo, HEAD previo era `c578852` con Actions offline SUCCESS pero sin deployment exacto encontrado; después de los nuevos commits corresponde certificar el HEAD y su Preview exactos antes de fusionar. No promover a `main` por el solo estado histórico de otros builds.
+- Alcance congelado: las validaciones son parte de la tarea de garante/contratos de los **44 ítems**, no nueva funcionalidad. No hubo datos reales cargados, emails enviados ni firmas facturables en este paso.
+
+---
+
 ## Garantía propietaria: expediente privado, invitación desde formulario y revisión del propietario — 26/11/2026 (implementación QA, NO E2E)
 
 **DECISIÓN APROBADA POR EL USUARIO. Se mantiene dentro de contratos/firmas/comunicaciones del alcance congelado de 44 tareas, sin agregar ítem 45.** Rama de implementación: `feature/signatura-qa-integration`, último commit observado `c578852` (no integrado todavía en `qa/verlo-e2e` ni en `main`).
