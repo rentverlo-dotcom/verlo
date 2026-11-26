@@ -4,6 +4,7 @@ import { createCaucionContractPdf } from "@/lib/powermarket/contract-pdf"
 import { createSignaturaDocument, getSignaturaSigningUrl } from "@/lib/signatura/client"
 import { checkTraditionalSigningReadiness } from "@/lib/identik/traditional-signing-preflight"
 import { getGuarantorActor, canonicalEmail } from "@/lib/guarantors/auth"
+import { loadSignaturaContractParticipants } from "@/lib/signatura/contract-access"
 import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
 
 export const runtime="nodejs"
@@ -12,37 +13,13 @@ export const maxDuration=60
 const reply=(data:object,status=200)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}})
 const uuid=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
 
-async function loadParticipants(db:any,id:string,email:string,userId:string) {
-  const {data:contract,error}=await db.from("lead_contracts")
-    .select("id,content,status,owner_lead_id,tenant_lead_id,owner_agreed_at,tenant_agreed_at")
-    .eq("id",id).maybeSingle()
-  if(error||!contract)return null
-  const {data:leads,error:leadError}=await db.from("lead_intake")
-    .select("id,email").in("id",[contract.owner_lead_id,contract.tenant_lead_id])
-  if(leadError||leads?.length!==2)return null
-  const owner=leads.find((x:any)=>x.id===contract.owner_lead_id)
-  const tenant=leads.find((x:any)=>x.id===contract.tenant_lead_id)
-  if(!owner?.email||!tenant?.email)return null
-  const ownerEmail=canonicalEmail(owner.email)
-  const tenantEmail=canonicalEmail(tenant.email)
-  const {data:guarantors,error:guarantorError}=await db.from("contract_guarantors")
-    .select("id,email,full_name,dni,status,auth_user_id")
-    .eq("lead_contract_id",id).limit(2)
-  if(guarantorError||(guarantors||[]).length>1)return null
-  const guarantor=guarantors?.[0]||null
-  const role=email===ownerEmail?"owner":email===tenantEmail?"tenant":
-    guarantor?.auth_user_id===userId && canonicalEmail(guarantor.email)===email?"guarantor":null
-  if(!role)return null
-  return {contract,ownerEmail,tenantEmail,guarantor,role}
-}
-
 /** Read access to exactly this account's own private signing link. */
 export async function GET(req:NextRequest) {
   const actor=await getGuarantorActor(req)
   if(!actor)return reply({ok:false,error:"Unauthorized"},401)
   const id=req.nextUrl.searchParams.get("contractId")||""
   if(!uuid.test(id))return reply({ok:false,error:"Invalid contract"},400)
-  const participants=await loadParticipants(actor.db,id,actor.email,actor.user.id)
+  const participants=await loadSignaturaContractParticipants(actor.db,id,actor.email,actor.user.id)
   if(!participants)return reply({ok:false,error:"Contract unavailable"},404)
   const {data:signing,error}=await actor.db.from("signatura_contract_signings")
     .select("status,document_id,owner_signature_id,tenant_signature_id,guarantor_signature_id")
@@ -76,7 +53,7 @@ export async function POST(req:NextRequest) {
   const id=String(body?.contractId||"")
   if(!uuid.test(id)||body?.acknowledged!==true)
     return reply({ok:false,error:"Explicit approval and a valid contract are required"},400)
-  const participants=await loadParticipants(actor.db,id,actor.email,actor.user.id)
+  const participants=await loadSignaturaContractParticipants(actor.db,id,actor.email,actor.user.id)
   if(!participants)return reply({ok:false,error:"Contract unavailable"},404)
   // A guarantor cannot trigger paid document creation on someone else's operation.
   if(participants.role==="guarantor")
