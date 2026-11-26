@@ -28,7 +28,9 @@ test.describe("VERLO email migration - no external deliveries", () => {
     const owner = renderVerloEmail({
       area: "powermarket", role: "owner", type: "policy_payment_confirmed",
     })
-    expect(tenant.subject).toBe("PowerMarket confirmó tu pago")
+    expect(tenant.subject).toBe("Pago de caución confirmado")
+    expect(tenant.text).not.toContain("PowerMarket")
+    expect(owner.text).not.toContain("PowerMarket")
     expect(owner.subject).toBe("Pago de caución del inquilino confirmado")
     expect(owner.text).toContain("caución del inquilino")
     expect(owner.text).not.toContain("tu pago")
@@ -44,6 +46,25 @@ test.describe("VERLO email migration - no external deliveries", () => {
     expect(temporary).toContain("actionText")
     expect(temporary).toContain("Recipient does not belong to this temporary match")
     expect(temporary).toContain('owner ? "owner_user_id" : "tenant_user_id"')
+  })
+
+  test("public caucion push messages do not disclose the internal partner", () => {
+    const push = readFileSync("app/api/cron/powermarket-push/route.ts", "utf8")
+    expect(push).not.toContain('"PowerMarket, broker asociado a VERLO')
+    expect(push).not.toContain('"PowerMarket confirmó')
+    expect(push).not.toContain('"PowerMarket está')
+    expect(push).not.toContain('"PowerMarket aprobó')
+    expect(push).not.toContain('"PowerMarket solicitó')
+  })
+
+  test("all QA previews are prohibited from dispatching ZeptoMail even if switches are enabled", () => {
+    const transport = readFileSync("lib/notifications/zeptomail.ts", "utf8")
+    expect(transport).toContain('process.env.VERCEL_ENV !== "production"')
+    const dispatch = readFileSync("app/api/admin/email-dispatch/route.ts", "utf8")
+    expect(dispatch).toContain('&& process.env.VERCEL_ENV === "production"')
+    const outbox = readFileSync("lib/notifications/verlo-email-outbox.ts", "utf8")
+    expect(outbox).toContain('feature/signatura-qa-integration')
+    expect(outbox).toContain('endsWith("@example.com")')
   })
 
   test("support bubble opens an in-app form and submits to VERLO support", () => {
