@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
+import { enqueueVerloEmail } from "@/lib/notifications/verlo-email-outbox"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -15,7 +15,7 @@ const reply = (status: number, body: object) =>
 const dispatchAllowed = () =>
   (
     process.env.VERCEL_ENV === "preview" &&
-    process.env.VERCEL_GIT_COMMIT_REF === "feature/temporarios"
+    ["feature/temporarios", "qa/verlo-e2e", "feature/signatura-qa-integration"].includes(process.env.VERCEL_GIT_COMMIT_REF || "")
   ) ||
   (
     process.env.VERCEL_ENV === "production" &&
@@ -98,15 +98,6 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
     })
   }
 
-  // Cada evento tiene su propio workflow de GHL.
-  // Nunca se utilizan los webhooks de Tradicionales.
-  const endpoints: Record<string, string> = {
-    reservation_confirmed:
-      process.env.TEMPORARY_RESERVATION_CONFIRMED_WEBHOOK_URL || "",
-    temporary_action_required:
-      process.env.TEMPORARY_ACTION_REQUIRED_WEBHOOK_URL || "",
-  }
-
   // Validar configuracion antes de reclamar eventos de la cola.
   const requiredEvents = ["reservation_confirmed", "temporary_action_required"]
 
@@ -134,16 +125,7 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
       })
     }
 
-    if (
-      !endpoints[eventType].startsWith(
-        "https://services.leadconnectorhq.com/hooks/"
-      )
-    ) {
-      return reply(503, {
-        ok: false,
-        error: `Webhook not configured for ${eventType}`,
-      })
-    }
+
   }
 
   const { data, error } = await db.rpc(
@@ -158,7 +140,7 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
     })
   }
 
-  const results: Array<{ id: string; delivered: boolean }> = []
+  const results: Array<{ id: string; queued: boolean }> = []
 
   for (const event of data ?? []) {
     let delivered = false
@@ -169,16 +151,6 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
 
       if (!requiredEvents.includes(eventType)) {
         throw new Error("Unsupported event type")
-      }
-
-      const endpoint = endpoints[eventType]
-
-      if (
-        !endpoint.startsWith(
-          "https://services.leadconnectorhq.com/hooks/"
-        )
-      ) {
-        throw new Error("Event webhook not configured")
       }
 
       const user = await db.auth.admin.getUserById(
@@ -223,13 +195,9 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
         ? "owner_full_name"
         : "tenant_full_name"
 
-      const phoneField = owner
-        ? "owner_phone"
-        : "tenant_phone"
-
       const { data: record, error: contactError } = await db
         .from(table)
-        .select(`${nameField},${phoneField}`)
+        .select(nameField)
         .eq("id", rowId)
         .single()
 
@@ -249,8 +217,6 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
       const fields = record as Record<string, unknown>
 
       const fullName = String(fields[nameField] || "").trim()
-      const phone = String(fields[phoneField] || "").replace(/\D/g, "")
-
       const checkIn = String(event.payload?.check_in || "")
       const checkOut = String(event.payload?.check_out || "")
 
@@ -276,9 +242,9 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
         throw new Error("Action text unavailable")
       }
 
-      // Future native mail capture; no effect until cutover is approved.
-      // Event key is unique in the new outbox; legacy delivery remains unchanged.
-      await enqueueVerloEmailSafely({
+      // VERLO native email queue only. A successful insert is queued,
+      // NOT evidence of external provider delivery.
+      const queuedStatus = await enqueueVerloEmail({
         area: "temporarios",
         eventType,
         eventKey: String(event.event_key),
@@ -291,56 +257,9 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
           ? `La reserva fue confirmada. Estadía del ${formatDate(checkIn)} al ${formatDate(checkOut)}. Revisá los detalles en VERLO Temporarios.`
           : `Hay una acción pendiente en tu alquiler temporario: ${actionText}`,
       })
-
-      const destination =
-        "https://verlo.lat/temporarios/mi-verlo"
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": event.event_key,
-        },
-        body: JSON.stringify({
-          source: "verlo_temporarios",
-          product: "temporarios",
-          channel: "email",
-
-          event_type: eventType,
-          event_key: event.event_key,
-
-          user_id: event.recipient_user_id,
-          full_name: fullName,
-          first_name: fullName.split(/\s+/)[0],
-          email: user.data.user.email,
-          phone,
-
-          role: event.recipient_role,
-          verlo_temp_role: event.recipient_role,
-
-          verlo_temp_check_in: formatDate(checkIn),
-          verlo_temp_check_out: formatDate(checkOut),
-
-          verlo_temp_action_text:
-            eventType === "temporary_action_required"
-              ? actionText
-              : null,
-
-          verlo_temp_reservation_id: event.reservation_id,
-          verlo_temp_url: destination,
-          url: destination,
-        }),
-        cache: "no-store",
-        signal: AbortSignal.timeout(10000),
-      })
-
-      if (!response.ok) {
-        throw new Error(
-          `Notification provider HTTP ${response.status}`
-        )
+      if (queuedStatus !== "queued" && queuedStatus !== "duplicate") {
+        throw new Error("Native VERLO email queue not available")
       }
-
-      // HTTP 2xx confirms GHL accepted the event; not inbox delivery.
       delivered = true
     } catch (error) {
       reason =
@@ -367,15 +286,15 @@ if (!dispatchAllowed() && !(request.method === "GET" &&
 
     results.push({
       id: event.id,
-      delivered,
+      queued: delivered,
     })
   }
 
   return reply(200, {
     ok: true,
     processed: results.length,
-    accepted_by_ghl: results.filter(x => x.delivered).length,
-    failed: results.filter(x => !x.delivered).length,
+    queued_for_zeptomail: results.filter(x => x.queued).length,
+    failed: results.filter(x => !x.queued).length,
   })
 }
 
