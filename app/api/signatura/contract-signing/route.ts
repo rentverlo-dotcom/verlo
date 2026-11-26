@@ -75,6 +75,9 @@ export async function POST(req:NextRequest) {
        !contract.content.includes("DNI "+guarantor.dni))
       return reply({ok:false,error:"Guarantor not included in agreed document"},409)
   }
+  // Exact signer-to-URL mapping must be proven in QA before any billable creation.
+  if(process.env.SIGNATURA_SIGNER_BINDING_CERTIFIED!=="true")
+    return reply({ok:false,error:"Signatura signer binding not yet certified"},503)
   const hash=createHash("sha256").update(contract.content,"utf8").digest("hex")
   // Unique DB reservation precedes all external requests, preventing double charges.
   const {data:reservation,error:reserveError}=await actor.db.from("signatura_contract_signings")
@@ -96,11 +99,20 @@ export async function POST(req:NextRequest) {
       pdf,signatures,
       complete_url:"https://verlopunto0-git-feature-signatu-009bb9-verlos-projects-b9e9c595.vercel.app/mi-verlo",
     })
-    if(!uuid.test(created.id||"")||created.signatures?.length!==signatures.length ||
-       created.signatures.some(s=>!uuid.test(s.id))) {
-      return reply({ok:false,error:"Provider created an unverified document; manual reconciliation required"},503)
+    // Never infer personal signing links from an undocumented array position.
+    // Signatura must return explicit signer order; missing/duplicate orders are
+    // quarantined after provider creation, NOT automatically retried.
+    const returned=(created.signatures||[]) as Array<{id:string;order?:number}>
+    const orders=returned.map(s=>s.order)
+    if(!uuid.test(created.id||"") || returned.length!==signatures.length ||
+       returned.some(s=>!uuid.test(s.id)) ||
+       orders.some(order=>typeof order!=="number") ||
+       new Set(orders).size!==signatures.length) {
+      return reply({ok:false,error:"Signer mapping unverified; manual reconciliation required"},503)
     }
-    const ids=created.signatures.map(s=>s.id)
+    const ids=Array.from({length:signatures.length},(_,i)=>returned.find(s=>s.order===i+1)?.id||"")
+    if(ids.some(id=>!uuid.test(id)))
+      return reply({ok:false,error:"Signer order invalid; manual reconciliation required"},503)
     const {data:saved,error:saveError}=await actor.db.from("signatura_contract_signings")
       .update({document_id:created.id,owner_signature_id:ids[0],tenant_signature_id:ids[1],
         guarantor_signature_id:guarantor?ids[2]:null,status:"pending",
