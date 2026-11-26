@@ -1,5 +1,14 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Certificacion adicional de correo y diagnostico Actions — 26/11/2026
+
+- QA `1076c4c`: nuevo set de casos negativos ZeptoMail (HTTP 200 sin aceptacion EM_104, 429, incertidumbre de red y dispatcher manual protegido) ejecutado con mocks. GitHub Actions **VERLO email migration safe QA: SUCCESS** y Vercel Preview del SHA exacto **READY**. No acredita entrega real de correos.
+- Runs antiguos de aislamiento/matching `45824474488` y `45824467377`: los jobs fallaron en **preflight de coincidencia de SHA desplegado** ("Exact QA commit never reached Vercel"), ANTES de correr E2E; Vercel registra esos deployments antiguos como CANCELED. **No equivale a fallo funcional del matching ni certificacion E2E**. No debilitar el control de SHA.
+- Falla historica Email `45824350393`: 54/55 pruebas aprobadas; unica asercion antigua exigia `enqueueVerloEmailSafely` donde Temporarios usa `enqueueVerloEmail`. Test fue ajustado despues; `53e795d` y `1076c4c` tienen workflow de email SUCCESS.
+- `vercel.json`: cron para matching, temporarios, backfill historico y PowerMarket Push; **no** cron para el dispatcher ZeptoMail. Correo en vivo, creditos, remitente y recepcion real siguen PENDIENTES. Solo codigo/tests QA; main y prod intactos. Alcance 44 tareas.
+
+---
+
 ## Seguimiento ZeptoMail sin plan pago confirmado — 26/11/2026 (pendiente diferido)
 
 - El titular informa que **no tiene contratado ningun plan pago de Zoho/ZeptoMail**. No se comprobaron saldo, creditos gratuitos, cuotas efectivas, agente de envio ni habilitacion comercial: **NO asumir envio disponible** ni afirmar que esta bloqueado sin comprobar panel.
