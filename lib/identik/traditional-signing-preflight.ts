@@ -59,6 +59,13 @@ export async function checkTraditionalSigningReadiness(
   if (!paidForThisRental)
     return { allowed: false, reason: "verlo_payment_not_verified" }
 
+  // A contractual guarantor cannot be silently excluded from a two-signer envelope.
+  // Signatura's three-party flow must be certified before releasing this contract.
+  const { data: guarantors, error: guarantorError } = await db
+    .from("contract_guarantors").select("id").eq("lead_contract_id", contract.id).limit(1)
+  if (guarantorError) return { allowed: false, reason: "guarantor_lookup_unavailable" }
+  if (guarantors?.length) return { allowed: false, reason: "guarantor_signature_flow_pending" }
+
   const approval = await checkPowerMarketSigningApproval(db, {
     contractId: contract.id,
     tenantLeadId: contract.tenant_lead_id,
