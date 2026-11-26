@@ -1,5 +1,13 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Auditoria de enlace de invitacion de garante — 26/11/2026 (QA, cierre)
+
+- Se hallo un **error real de cruce de ambientes**: `/api/closing-guarantor-invite` almacenaba enlace `https://verlo.lat/garante/activar?invite=...` en QA y la plantilla nativa `safeVerloEmailUrl` solo aceptaba el dominio produccion, por lo que enlaces QA no se conservarian. Corregido en rama `feature/signatura-qa-integration` con `a5c197c` y commits anteriores relacionados: URL de invitacion usa exclusivamente el dominio de rama Preview confiable (`VERCEL_BRANCH_URL`, fallback `VERCEL_URL`); la plantilla admite ese host solo para `/garante/activar`, si rama y Supabase QA coinciden, sin aceptar dominios arbitrarios. En produccion sigue `verlo.lat`. Validacion del host ocurre **antes** de insertar invitacion para no dejar registros incompletos por host invalido.
+- Se incluyo prueba de regresion `tests/qa/guarantor-onboarding.spec.ts`: impide cruce de ambientes, enlace generico `/mi-verlo` como sustituto y reserva anterior a verificaciones. **No afirma E2E de correo**: QA permanece en `@example.com`, no envio real de invitaciones ni SMTP Auth configurado; `VERLO_GUARANTOR_AUTH_MAIL_READY` sigue protegiendo cualquier activacion autentica.
+- En lectura de Vercel, nuevos Preview de Signatura estaban `QUEUED` y no se obtuvo `READY` para HEAD exacto. Algunos workflows anteriores de pruebas offline (hasta `745d64b`) SUCCESS; al incorporar el ultimo test `a5c197c` habia nuevas ejecuciones pendientes. Confirmar workflow + deployment exactos, y despues E2E real de correo/cuenta/garante/contrato. El codigo no se fusiono a QA principal ni a `main`, sin cambios en Supabase produccion. Sigue alcance congelado 44 tareas.
+
+---
+
 ## Cierre de seguridad del correo de garante — 26/11/2026 (tanda posterior)
 
 - **Rama funcional:** `feature/signatura-qa-integration`. Cambios: `6d03194` habilita lectura de cuenta garante también para producción solo si `VERLO_GUARANTOR_ACCOUNTS_LIVE`, `VERLO_GUARANTOR_INVITES_LIVE` y `VERLO_EMAIL_CUTOVER_APPROVED` están explícitamente en true; acceso QA mantiene aislamiento y email Auth verificado. **Esto no habilita producción** ni configura los flags.
