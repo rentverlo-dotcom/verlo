@@ -1,5 +1,17 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Baja definitiva de GHL en QA — 26/11/2026
+
+- **Decisión explícita:** VERLO no utilizará GoHighLevel ni WhatsApp. Canales previstos: ZeptoMail por cola nativa y Web Push. No habilitar servicios externos hasta certificar proveedor, remitente y entrega real.
+- Verificación Vercel previa: QA `9fbeae7` READY y Signatura `ab61948` READY. La tanda de baja GHL se está reconstruyendo y NO se declara READY hasta verificar SHA nuevo.
+- Tradicionales: `lib/lead-notifications.ts` deja de invocar `sendGhlEmail`, encola en `verlo_email_outbox`; se retiran helpers innecesarios de tags, resumen, tokens y payload GHL. Commit QA `a23f018`, Signatura `c7dda43`. El evento de cola no significa correo entregado.
+- Temporarios: `app/api/temporarios/notifications/dispatch/route.ts` deja de llamar a LeadConnector y usa `enqueueVerloEmail` con mismo `event_key` y validación de destinatario. Commit QA `7610bb6`, Signatura `87b6dc9`.
+- Se neutralizan todas las llamadas de red desde los módulos obsoletos `lib/notifications/email.ts` y `lib/notifications/whatsapp.ts`: retornan `GHL_RETIRED` / `WHATSAPP_DISABLED` sin llamadas externas; no hace falta borrar referencias históricas de tests o esquema SQL para cortar transporte. Pruebas `tests/email-migration.spec.ts` exigen que estas rutas no hagan `fetch` a GHL. Commits QA `0be064e`, Signatura `9ff733c`.
+- **Pendiente para habilitar producción:** verificar ZeptoMail real (dominio/sender, aceptación y recepción), validar outbox y endpoint dispatch, aprobar banderas de cutover y agenda de ejecución. Mientras esas banderas estén apagadas, los nuevos correos no se envían. No se realizaron envíos ni cambios en producción.
+
+---
+
+
 ## Email y Push — revisión de cierre 26/11/2026 (solo código QA)
 
 - Las plantillas de correo VERLO de tradicionales, temporarios y caución se revisaron: el evento `signature_ready` explica validar/firma y regreso a Mi VERLO; `policy_payment_confirmed` usa lenguaje de caución, distingue al inquilino que pagó del propietario, y nunca presupone póliza emitida. Cambios en `lib/notifications/verlo-email-templates.ts`: QA `3440c8b`, Signatura `8c9c4d6`.
