@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
+import { enqueueVerloEmail } from "@/lib/notifications/verlo-email-outbox"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -92,11 +92,21 @@ export async function POST(req:NextRequest){
  }).select("id").single()
  if(error||!created)return reply({ok:false,error:"No se pudo guardar el garante"},409)
  const destination="https://verlo.lat/garante/activar?invite="+invitation
- // The invitation is queued only. QA never delivers externally.
- await enqueueVerloEmailSafely({
-  area:"tradicionales",eventType:"guarantor_invited",
-  eventKey:"guarantor_invited:"+created.id,
-  recipientEmail:email,recipientRole:"guarantor",url:destination,
- })
- return reply({ok:true,status:"invited",emailDeliveryConfirmed:false},201)
+ // Reserve a durable notification intent, but NEVER report mail delivery
+ // merely because the guarantor record was created. QA never dispatches externally.
+ let queueStatus:"queued"|"duplicate"|"disabled"|"invalid"|"unavailable"="unavailable"
+ try {
+   queueStatus=await enqueueVerloEmail({
+     area:"tradicionales",eventType:"guarantor_invited",
+     eventKey:"guarantor_invited:"+created.id,
+     recipientEmail:email,recipientRole:"guarantor",url:destination,
+   })
+ }catch {
+   console.error("VERLO guarantor invitation queue unavailable", {guarantorId:created.id})
+ }
+ return reply({
+   ok:true,status:"invited",guarantorId:created.id,
+   invitationEmail:queueStatus==="queued"||queueStatus==="duplicate"?"queued":"pending_configuration",
+   emailDeliveryConfirmed:false,
+ },201)
 }
