@@ -12,6 +12,7 @@ import {
   supabaseAdmin,
 } from "@/lib/supabase/admin"
 import { decideMpContractPayment } from "@/lib/payments/mercadopago-contract-state"
+import { recordVerifiedCommercialEvent } from "@/lib/posthog-server"
 
 export const runtime =
   "nodejs"
@@ -483,6 +484,14 @@ export async function POST(
 
     if (status === "approved") {
       await syncApprovedMatch(approvedAt || now)
+      // Verified and newly approved by this webhook, not a browser click.
+      await recordVerifiedCommercialEvent({
+        event: "verlo_traditional_payment_approved",
+        reference: storedPayment.id,
+        businessLine: "tradicionales",
+        amountArs: Number(storedPayment.amount),
+        paymentReceiver: "verlo",
+      })
     }
 
     return NextResponse.json({
