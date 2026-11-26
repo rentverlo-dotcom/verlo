@@ -6,6 +6,7 @@ import { checkTraditionalSigningReadiness } from "@/lib/identik/traditional-sign
 import { getGuarantorActor, canonicalEmail } from "@/lib/guarantors/auth"
 import { loadSignaturaContractParticipants } from "@/lib/signatura/contract-access"
 import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
+import { notifyGuarantorPush } from "@/lib/guarantors/send-push"
 
 export const runtime="nodejs"
 export const dynamic="force-dynamic"
@@ -129,6 +130,13 @@ export async function POST(req:NextRequest) {
         eventKey:"signatura_contract:"+id+":"+role,recipientEmail:email,
         recipientRole:role as "owner"|"tenant"|"guarantor",url:"/mi-verlo",
       })
+    }
+    if(guarantor?.auth_user_id){
+      await notifyGuarantorPush(guarantor.auth_user_id,{
+        title:"Tu contrato está listo para firmar",
+        body:"Ingresá a Mi VERLO para validar tu identidad y firmar.",
+        url:"/mi-verlo",
+      }).catch(()=>undefined)
     }
     return reply({ok:true,status:"pending",contractId:id},201)
   }catch{
