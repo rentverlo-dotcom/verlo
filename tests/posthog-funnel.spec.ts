@@ -65,3 +65,35 @@ test("private paths and query tokens are redacted before analytics",()=>{
     ["/contracts/uuid-123?signature=my-secret","/contracts/[private]"],
   ]) expect(safeAnalyticsPath(input)).toBe(expected)
 })
+
+
+test("all three VERLO business lines expose lifecycle events without calling clicks purchases",()=>{
+ const traditional=source("app/buscar/page.tsx")+source("app/matches/[token]/page.tsx")
+ expect(traditional).toContain("traditional_registration_completed")
+ expect(traditional).toContain("tenant_interest_sent")
+ const temporary=source("app/temporarios/mi-verlo/page.tsx")+source("app/temporarios/contrato/ContractScreen.tsx")
+ expect(temporary).toContain("temporary_match_decision_completed")
+ expect(temporary).toContain("temporary_contract_accepted")
+ const caucion=source("app/powermarket/page.tsx")+source("app/caucion/solicitar/page.tsx")
+ expect(caucion).toContain("powermarket_operation_confirmed")
+ expect(caucion).toContain("caucion_application_completed")
+ // Browser interactions are a funnel view, not authoritative financial events.
+ expect(source("components/VerloAnalyticsObserver.tsx")).not.toContain('trackPostHog("purchase"')
+})
+
+test("Signatura tracking does not export identity documents or equate a page visit with a verified identity",()=>{
+ const signatura=source("components/signatura/MySignaturaIdentityStatus.tsx")
+ expect(signatura).toContain("identity_verification_initiated")
+ expect(signatura).toContain("identity_verification_resumed")
+ expect(signatura).toContain("identity_verification_state_observed")
+ expect(signatura).toContain('confirmed.status === "verified"')
+ expect(signatura).not.toContain("trackPostHog(\"Purchase\"")
+ expect(signatura).not.toContain("signatura_document_id")
+})
+
+test("both QA branches exclude PostHog and Meta advertising pixels",()=>{
+ const layout=source("app/layout.tsx")
+ expect(layout).toContain("'qa/verlo-e2e', 'feature/signatura-qa-integration'")
+ expect(layout).toContain("!QA_BRANCH &&")
+ expect(layout).toContain("{!QA_BRANCH ? (<Script")
+})
