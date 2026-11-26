@@ -15,6 +15,7 @@ import {
 
 import VerloBrand from "@/components/VerloBrand"
 import TenantVerificationCard from "@/components/closing/TenantVerificationCard"
+import TenantGuarantorInviteForm from "@/components/guarantors/TenantGuarantorInviteForm"
 import {
   identifyPostHog,
   trackPostHog,
@@ -3337,6 +3338,11 @@ if (
   )}
 
             
+            {!isOwner && ["draft","generated"].includes(data.contract.status) &&
+              !data.contract.tenant_agreed && !data.contract.owner_agreed && (
+                <TenantGuarantorInviteForm token={token} />
+              )}
+
             {!isOwner && (
               <article className="verlo-card no-print review-card">
                 <span className="card-kicker">
