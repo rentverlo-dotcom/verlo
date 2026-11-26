@@ -53,7 +53,10 @@ const POSTHOG_KEY =
 const POSTHOG_HOST =
   process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim() || ''
 
-const QA_BRANCH = process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e'
+const QA_BRANCH = process.env.VERCEL_ENV === 'preview' &&
+  ['qa/verlo-e2e', 'feature/signatura-qa-integration'].includes(
+    process.env.VERCEL_GIT_COMMIT_REF || ''
+  )
 
 const POSTHOG_ENABLED =
   Boolean(
