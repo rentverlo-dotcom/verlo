@@ -1,5 +1,14 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Seguimiento ZeptoMail sin plan pago confirmado — 26/11/2026 (pendiente diferido)
+
+- El titular informa que **no tiene contratado ningun plan pago de Zoho/ZeptoMail**. No se comprobaron saldo, creditos gratuitos, cuotas efectivas, agente de envio ni habilitacion comercial: **NO asumir envio disponible** ni afirmar que esta bloqueado sin comprobar panel.
+- **Pendiente para revisar despues, dentro de Email + Push existente (no sumar tarea a las 44):** comprobar plan/creditos actuales y limites reales de ZeptoMail, estado Verified del dominio/remitente, despacho/recepcion real con un destinatario autorizado, outbox, reintentos/idempotencia, cron de dispatch y banderas del cutover en produccion. Determinar si hace falta recargar creditos antes de habilitar envios reales.
+- Decisiones vigentes: **GHL retirado** y WhatsApp deshabilitado; comunicacion transaccional por ZeptoMail + Push. No activar envios de produccion ni afectar Zoho Mail antes de la certificacion. **Diferir revision comercial, no omitir gate operativo de correo para lanzamiento.**
+- Verificacion de registro: la cabecera reciente documenta el retiro de GHL y las pruebas pendientes; apartados historicos inferiores conservan estados ya superados y deben leerse como historial, no como fotografia vigente. Ultimo HEAD QA observado antes de esta anotacion: `ad14b6b`.
+
+---
+
 ## Retiro definitivo de transporte GHL, correo nativo VERLO — 26/11/2026
 
 - **Decisión de producto:** GHL no se usa más para envío de correos ni WhatsApp. VERLO usará ZeptoMail (outbox nativa) y Push. No enviar desde QA ni habilitar envío ZeptoMail en producción hasta certificar remitente, recepción y cutover.
