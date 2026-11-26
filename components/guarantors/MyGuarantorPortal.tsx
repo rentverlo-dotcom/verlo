@@ -8,7 +8,7 @@ async function token(){
   const {data}=await supabase.auth.getSession()
   return data.session?.access_token||""
 }
-export default function MyGuarantorPortal({onLogout}:{onLogout:()=>Promise<void>}) {
+export default function MyGuarantorPortal({onLogout,embedded=false,hideWhenEmpty=false}:{onLogout:()=>Promise<void>;embedded?:boolean;hideWhenEmpty?:boolean}) {
   const [items,setItems]=useState<Guarantee[]>([])
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState("")
@@ -40,7 +40,8 @@ export default function MyGuarantorPortal({onLogout}:{onLogout:()=>Promise<void>
     }catch(e){setError(e instanceof Error?e.message:"No se pudo aceptar")}
     finally{setBusy(false)}
   }
-  return <main style={{maxWidth:820,margin:"90px auto 48px",padding:24,fontFamily:"Arial,sans-serif",color:"#050002"}}>
+  if(hideWhenEmpty&&items.length===0&&!error)return null
+  return <section style={{maxWidth:820,margin:embedded?"12px auto":"90px auto 48px",padding:24,fontFamily:"Arial,sans-serif",color:"#050002"}}>
     <h1>Mi VERLO · Garante</h1>
     <p>Este es tu acceso privado como garante. Antes de firmar vas a poder revisar las obligaciones que asumís.</p>
     {error&&<p role="alert">{error}</p>}
@@ -57,6 +58,6 @@ export default function MyGuarantorPortal({onLogout}:{onLogout:()=>Promise<void>
     </section>)}
     <MySignaturaContractSigning canPrepare={false} contracts={items.filter(item=>item.status==="accepted").map(item=>({id:item.contractId}))} />
     <button type="button" onClick={()=>void load()} disabled={busy}>Actualizar estado</button>{" "}
-    <button type="button" onClick={()=>void onLogout()}>Salir</button>
-  </main>
+    {!embedded&&<button type="button" onClick={()=>void onLogout()}>Salir</button>}
+  </section>
 }
