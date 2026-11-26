@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
+import { recordVerifiedCommercialEvent } from "@/lib/posthog-server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -114,6 +115,15 @@ export async function POST(req: NextRequest) {
       code: notificationError instanceof Error ? notificationError.name : "unknown",
     })
   }
+
+  // Partner received this money, not VERLO. Do not count it as VERLO sales revenue.
+  // The RPC has already validated and recorded the operation.
+  await recordVerifiedCommercialEvent({
+    event: "verlo_caucion_partner_payment_confirmed",
+    reference: policyId,
+    businessLine: "caucion",
+    paymentReceiver: "powermarket",
+  })
 
   return NextResponse.json({
     ok: true, operation: data, paid_to: "powermarket",
