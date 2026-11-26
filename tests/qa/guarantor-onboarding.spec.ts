@@ -77,3 +77,52 @@ test("Mi VERLO separates guarantor from matching while preserving account access
   expect(portal).toContain("no firma el contrato")
   expect(portal).not.toContain("Firmar ahora")
 })
+
+
+test("Signatura creates 2 or 3 signers only after commercial and biometric preflight",()=>{
+  const migration=source("supabase/migrations/20261126_signatura_contract_signings.sql")
+  const route=source("app/api/signatura/contract-signing/route.ts")
+  const preflight=source("lib/identik/traditional-signing-preflight.ts")
+  expect(migration).toContain("lead_contract_id uuid not null unique")
+  expect(migration).toContain("revoke all on table public.signatura_contract_signings from anon, authenticated")
+  expect(route).toContain('SIGNATURA_CONTRACT_QA_ENABLED')
+  expect(route).toContain('SIGNATURA_GUARANTOR_CLAUSE_APPROVED')
+  expect(route).toContain('checkTraditionalSigningReadiness(actor.db,id,"signatura")')
+  expect(route).toContain("Unique DB reservation precedes all external requests")
+  expect(route.indexOf('.from("signatura_contract_signings")')).toBeLessThan(route.indexOf("createSignaturaDocument({"))
+  expect(route).toContain('...(guarantor?[{validations:{BI:null},order:3}]:[])')
+  expect(route).not.toContain("sendZohoEmail(")
+  expect(route).not.toContain("invite_channel")
+  expect(preflight).toContain('signerFlow !== "signatura"')
+})
+
+test("contract completion requires all independent webhooks and biometric checks",()=>{
+  const reconcile=source("app/api/signatura/contract-reconcile/route.ts")
+  expect(reconcile).toContain('notification_action","DS"')
+  expect(reconcile).toContain("signerIds.every")
+  expect(reconcile).toContain('document.status!=="CO"')
+  expect(reconcile).toContain("validated===true")
+  expect(reconcile).toContain('downloadSignaturaEvidence(record.document_id,"document")')
+  expect(reconcile).toContain('storage.from("private-documents")')
+  expect(reconcile).toContain('upsert:false')
+})
+
+test("only authenticated contract participants can download archived PDF",()=>{
+  const access=source("lib/signatura/contract-access.ts")
+  const download=source("app/api/signatura/contract-signed/route.ts")
+  expect(access).toContain("guarantor?.auth_user_id===userId")
+  expect(access).toContain("canonicalEmail(guarantor.email)===email")
+  expect(download).toContain("loadSignaturaContractParticipants(actor.db,id,actor.email,actor.user.id)")
+  expect(download).toContain('createSignedUrl(record.archived_pdf_key,60)')
+  expect(download).toContain('record.status!=="completed"')
+})
+
+test("Mi VERLO uses Signatura for agreements and never displays old Identik signer",()=>{
+  const dashboard=source("app/mi-verlo/page.tsx")
+  const signer=source("components/signatura/MySignaturaContractSigning.tsx")
+  expect(dashboard).toContain("<MySignaturaContractSigning")
+  expect(dashboard).not.toContain("<MyIdentikSigning")
+  expect(signer).toContain("contract-reconcile")
+  expect(signer).toContain("contract-signed")
+  expect(signer).toContain("Validar identidad y firmar")
+})
