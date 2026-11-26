@@ -100,7 +100,7 @@ export async function POST(req:NextRequest) {
     const size=Number(body?.bytes||0)
     const name=safeName(String(body?.name||""))
     if(!TYPES.has(mime)||!Number.isInteger(size)||size<100||size>MAX_BYTES ||
-       !name || !(role==="guarantor"?GUARANTOR_KINDS:OWNER_KIN).has(kind))
+       !name || !(role==="guarantor"?GUARANTOR_KINDS:OWNER_KINDS).has(kind))
       return reply({ok:false,error:"Invalid document type or size; PDF/JPG/PNG, max 10 MB"},400)
     if(role==="guarantor"&&g.status!=="accepted")return reply({ok:false,error:"Accept invitation first"},409)
     if(role==="owner"&&g.review_status==="awaiting_documents")return reply({ok:false,error:"Guarantor documents pending"},409)
