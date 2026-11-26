@@ -26,9 +26,8 @@ const ACTIVE_STATUSES = [
 const PRODUCTION_DIGEST_CUTOFF =
   '2026-10-09T13:45:00.000Z'
 
-// Limites provisionales solo para el digest GHL.
+// Bounded batch size for server safety; no GHL daily quota.
 const MAX_DIGEST_PER_RUN = 50
-const MAX_DIGEST_PER_DAY = 50
 
 type Role =
   | 'tenant'
@@ -868,7 +867,7 @@ export async function GET(
               // =================================================
               // IMPORTANTE:
               // POR AHORA DEJAMOS ESTO COMO ESTABA.
-              // OWNER GHL SE ARREGLA DESPUES DEL DIAGNOSTICO.
+              // Canal WhatsApp deshabilitado; notificación nativa VERLO.
               // =================================================
 
               skipWhatsApp:
@@ -946,86 +945,35 @@ export async function GET(
 
     const entries = Array.from(recipients)
 
-    // Reservas y eventos ya generados hoy. Sin cupo no hay envio.
-    const [
-      { data: reservations, error: reservationError },
-      { data: events, error: eventsError },
-    ] = await Promise.all([
-      supabaseAdmin
-        .from('ghl_digest_daily_reservations')
-        .select('recipient_key')
-        .eq('day', today)
-        .limit(100),
-      supabaseAdmin
-        .from('lead_notification_events')
-        .select('event_key')
-        .like('event_key', `match_digest:v3:${today}:%`)
-        .limit(100),
-    ])
-
-    if (reservationError || eventsError || !reservations || !events) {
-      throw new Error('No se pudo consultar el cupo diario GHL')
+    // One logical notification per recipient/day, protected by the unique
+    // lead_notification_events.event_key inside notifyLeadOnce.
+    // No GHL reservation table, daily cap or provider-specific quota.
+    const { data: events, error: eventsError } = await supabaseAdmin
+      .from("lead_notification_events")
+      .select("event_key")
+      .like("event_key", `match_digest:v3:${today}:%`)
+      .limit(5000)
+    if (eventsError || !events) {
+      throw new Error("No se pudieron consultar las notificaciones del día")
     }
 
     const prefix = `match_digest:v3:${today}:`
-    const used = new Set([
-      ...reservations.map((row) => row.recipient_key),
-      ...events.map((row) => row.event_key.slice(prefix.length)),
-    ])
-
-    // Filtrar antes de tomar la tanda: cada cron avanza con pendientes.
+    const used = new Set(events.map(row => String(row.event_key).slice(prefix.length)))
     const pending = entries.filter(([recipient]) => {
-      const hash = createHash('sha256').update(recipient).digest('hex')
+      const hash = createHash("sha256").update(recipient).digest("hex")
       return !used.has(hash)
     })
 
-    let reservedThisRun = 0
-    let quotaBlocked = false
-
+    let processedThisRun = 0
     for (const [recipient, value] of pending) {
-      if (reservedThisRun >= MAX_DIGEST_PER_RUN) break
-
-      const recipientKey = createHash('sha256')
-        .update(recipient)
-        .digest('hex')
-
-      // Reserva atomica en Supabase: tambien controla concurrencia.
-      const { data: granted, error: reserveError } =
-        await supabaseAdmin.rpc('reserve_ghl_digest_slot', {
-          p_day: today,
-          p_recipient_key: recipientKey,
-        })
-
-      if (reserveError) {
-        throw new Error(`Reserva atomica GHL fallida: ${reserveError.message}`)
-      }
-
-      if (granted !== true) {
-        // Otra ejecucion pudo reservar esta persona, o el cupo se agoto.
-        const { count, error: countError } = await supabaseAdmin
-          .from('ghl_digest_daily_reservations')
-          .select('recipient_key', { count: 'exact', head: true })
-          .eq('day', today)
-
-        if (countError || count === null) {
-          throw new Error('No se pudo verificar el cupo GHL')
-        }
-
-        if (count >= MAX_DIGEST_PER_DAY) {
-          quotaBlocked = true
-          break
-        }
-        continue
-      }
-
-      reservedThisRun += 1
+      if (processedThisRun >= MAX_DIGEST_PER_RUN) break
+      processedThisRun += 1
       const result = await sendRecipient(recipient, value.role, value.leadId)
       if (result) sent += 1
       else failed += 1
     }
 
-    const deferred = Math.max(0, pending.length - reservedThisRun)
-    const reservedToday = reservations.length + reservedThisRun
+    const deferred = Math.max(0, pending.length - processedThisRun)
 
     // ========================================================
     // FINISH
@@ -1047,10 +995,7 @@ export async function GET(
           recipients.size,
 
         deferred,
-        quotaBlocked,
-        reservedToday,
         maxPerRun: MAX_DIGEST_PER_RUN,
-        maxPerDay: MAX_DIGEST_PER_DAY,
         sent,
 
         failed,
