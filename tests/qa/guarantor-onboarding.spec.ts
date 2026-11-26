@@ -136,7 +136,7 @@ test("Push for guarantor is opt-in and never piggybacks a tenant lead",()=>{
   expect(sql).toContain("revoke all on table public.guarantor_push_subscriptions from anon, authenticated")
   expect(api).toContain("getGuarantorActor")
   expect(api).toContain("body?.acknowledged!==true")
-  expect(api).toContain("subscription belongs")
+  expect(api).toContain("Subscription belongs")
   expect(form).toContain("Notification.requestPermission()")
   expect(form).toContain("onClick={()=>void activate()}")
   expect(push).toContain('process.env.VERCEL_ENV!=="production"')
