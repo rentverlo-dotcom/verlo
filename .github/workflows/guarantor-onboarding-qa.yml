@@ -4,6 +4,12 @@ on:
     branches: [feature/signatura-qa-integration]
     paths:
       - 'lib/guarantors/**'
+      - 'lib/signatura/contract-access.ts'
+      - 'app/api/signatura/contract-signing/**'
+      - 'app/api/signatura/contract-reconcile/**'
+      - 'app/api/signatura/contract-signed/**'
+      - 'components/signatura/MySignaturaContractSigning.tsx'
+      - 'supabase/migrations/20261126_signatura_contract_signings.sql'
       - 'app/api/guarantors/**'
       - 'components/guarantors/**'
       - 'app/mi-verlo/page.tsx'
