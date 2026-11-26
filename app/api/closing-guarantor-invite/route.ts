@@ -82,6 +82,12 @@ export async function POST(req:NextRequest){
   .select("id").eq("lead_contract_id",contract.id).limit(1)
  if(existingError)return reply({ok:false,error:"No se pudo verificar la invitación"},503)
  if(existing?.length)return reply({ok:false,error:"Ya existe una invitación para este contrato"},409)
+ // Resolve the trusted deployment before reserving a one-time invitation.
+ const previewHost = process.env.VERCEL_URL || ""
+ const isTrustedPreview = process.env.VERCEL_ENV === "preview" &&
+   /^([a-z0-9-]+\.)+vercel\.app$/i.test(previewHost)
+ if(qa&&!isTrustedPreview)
+   return reply({ok:false,error:"QA preview activation host unavailable"},503)
  const invitation=randomBytes(32).toString("hex")
  const digest=createHash("sha256").update(invitation).digest("hex")
  const {data:created,error}=await db.from("contract_guarantors").insert({
@@ -91,13 +97,6 @@ export async function POST(req:NextRequest){
   invitation_expires_at:new Date(Date.now()+7*86400000).toISOString(),
  }).select("id").single()
  if(error||!created)return reply({ok:false,error:"No se pudo guardar el garante"},409)
- // The invitation must open the SAME environment that owns its token.
- // Never take a host from an untrusted request Host / X-Forwarded-Host header.
- const previewHost = process.env.VERCEL_URL || ""
- const isTrustedPreview = process.env.VERCEL_ENV === "preview" &&
-   /^([a-z0-9-]+\\.)+vercel\\.app$/i.test(previewHost)
- if(qa&&!isTrustedPreview)
-   return reply({ok:false,error:"QA preview activation host unavailable; manual reconciliation required"},503)
  const destination = (qa ? "https://"+previewHost : "https://verlo.lat")+
    "/garante/activar?invite="+invitation
  // Reserve a durable notification intent, but NEVER report mail delivery
