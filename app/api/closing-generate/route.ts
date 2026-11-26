@@ -2212,6 +2212,38 @@ export async function POST(
             .join(" ")
         : "Las partes dejan constancia de que las condiciones de garantía serán las expresamente acordadas entre ellas y documentadas como parte de la presente relación locativa."
 
+    // Contractual guarantors are kept separate from rental leads.
+    // The historical production workflow is unchanged until this QA flow is certified.
+    const guarantorQaEnabled = process.env.VERCEL_ENV === "preview" &&
+      process.env.VERCEL_GIT_COMMIT_REF === "feature/signatura-qa-integration" &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
+    let guarantorText = ""
+    let guarantorSummary = ""
+    if (guarantorQaEnabled) {
+      const { data: signers, error: signerError } = await supabase
+        .from("contract_guarantors")
+        .select("full_name,dni,email,phone,legal_address,guarantee_kind,status,auth_user_id")
+        .eq("lead_contract_id", contract.id).limit(2)
+      if (signerError) throw new Error("Cannot verify guarantor participation")
+      if ((signers || []).length > 1) return NextResponse.json({
+        ok:false,error:"Hay más de un garante registrado. Requiere revisión."
+      },{status:409})
+      const signer = signers?.[0]
+      if (signer) {
+        if (signer.status !== "accepted" || !signer.auth_user_id)
+          return NextResponse.json({ok:false,error:"El garante debe activar su cuenta y aceptar su participación antes de generar el contrato."},{status:409})
+        if (!finalGuaranteeType || /cauci[oó]n|seguro/i.test(finalGuaranteeType))
+          return NextResponse.json({ok:false,error:"La garantía seleccionada no corresponde a un garante personal."},{status:409})
+        guarantorText = `El garante propuesto es ${signer.full_name}, DNI ${signer.dni}, domicilio ${signer.legal_address || "pendiente de ratificación"}, correo ${signer.email}, celular ${signer.phone}. Tipo de respaldo declarado: ${signer.guarantee_kind}. Su responsabilidad exige aceptación expresa de las obligaciones de fianza en la versión definitiva y su firma individual mediante validación de identidad. La mera invitación o aceptación de participación en VERLO no constituye una fianza firmada.`
+        guarantorSummary = `GARANTE PROPUESTO:
+${signer.full_name}
+DNI ${signer.dni}
+Domicilio: ${signer.legal_address || "pendiente de ratificación"}
+Email: ${signer.email}
+La obligación del garante sólo se formaliza mediante su firma sobre la versión contractual definitiva.`
+      }
+    }
+
     const petsClause =
       finalPetsPolicy
         ? sentence(
@@ -2357,6 +2389,8 @@ DÉCIMA CUARTA — GARANTÍA
 
 ${guaranteeClause}
 
+${guarantorText}
+
 Toda documentación relativa a garantías, cauciones, fiadores o instrumentos equivalentes que las partes incorporen al cierre podrá considerarse complementaria al presente contrato en los términos que expresamente acuerden.
 
 DÉCIMA QUINTA — AMOBLAMIENTO, INVENTARIO Y BIENES INCLUIDOS
@@ -2471,6 +2505,8 @@ Estado civil: ${tenantCivilStatus}
 Domicilio legal: ${tenantLegalFullAddress}
 Email: ${tenantEmail || "no informado"}
 Teléfono: ${tenantPhone || "no informado"}
+
+${guarantorSummary}
 
 PLAZO:
 Desde ${formatDateAR(
