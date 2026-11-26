@@ -35,6 +35,12 @@ export async function GET(req:NextRequest) {
   if(!participants.contract.content ||
     createHash("sha256").update(participants.contract.content,"utf8").digest("hex")!==signing.document_sha256)
     return reply({ok:false,error:"Contract version changed; signing requires review"},409)
+  // Recheck current payment, caucion, and guarantor dossier approval before
+  // returning any existing signing link. Old links must not bypass revocation.
+  if (signing.status === "pending") {
+    const currentGate = await checkTraditionalSigningReadiness(actor.db,id,"signatura")
+    if(!currentGate.allowed) return reply({ok:true,status:"blocked",reason:currentGate.reason,role:participants.role})
+  }
   if(signing.status==="completed")return reply({ok:true,status:"completed",role:participants.role})
   if(signing.status!=="pending"||!signing.document_id)
     return reply({ok:true,status:"manual_review_required",role:participants.role})
