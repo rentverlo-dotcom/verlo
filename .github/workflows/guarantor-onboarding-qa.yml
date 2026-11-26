@@ -1,0 +1,32 @@
+name: VERLO Signatura guarantor offline QA
+on:
+  push:
+    branches: [feature/signatura-qa-integration]
+    paths:
+      - 'lib/guarantors/**'
+      - 'app/api/guarantors/**'
+      - 'components/guarantors/**'
+      - 'app/mi-verlo/page.tsx'
+      - 'app/api/closing-generate/route.ts'
+      - 'lib/identik/traditional-signing-preflight.ts'
+      - 'lib/notifications/verlo-email-templates.ts'
+      - 'lib/notifications/verlo-email-outbox.ts'
+      - 'supabase/migrations/20261126_contract_guarantor_participants.sql'
+      - 'tests/qa/guarantor-onboarding.spec.ts'
+      - '.github/workflows/guarantor-onboarding-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  no-send-guarantor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --no-audit
+      - name: Test guarantor authorization, blocked signing and no provider deliveries
+        run: npx playwright test tests/qa/guarantor-onboarding.spec.ts --config=playwright.qa.config.ts
