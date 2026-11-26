@@ -3,9 +3,14 @@ import type { NextRequest } from "next/server"
 
 /** Authenticated account. Not a lead role; guarantors are bound to contracts. */
 export async function getGuarantorActor(request: NextRequest) {
-  if (process.env.VERCEL_ENV !== "preview" ||
-    process.env.VERCEL_GIT_COMMIT_REF !== "feature/signatura-qa-integration" ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://anptswspguyotnasoacq.supabase.co") return null
+  const qa = process.env.VERCEL_ENV === "preview" &&
+    process.env.VERCEL_GIT_COMMIT_REF === "feature/signatura-qa-integration" &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
+  const production = process.env.VERCEL_ENV === "production" &&
+    process.env.VERLO_GUARANTOR_ACCOUNTS_LIVE === "true" &&
+    process.env.VERLO_GUARANTOR_INVITES_LIVE === "true" &&
+    process.env.VERLO_EMAIL_CUTOVER_APPROVED === "true"
+  if (!qa && !production) return null
   const bearer = request.headers.get("authorization")?.match(/^Bearer ([^\s]+)$/i)?.[1]
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
