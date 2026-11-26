@@ -33,9 +33,9 @@ export function safeVerloEmailUrl(value?: string): string {
     const trustedPreview = process.env.VERCEL_ENV === "preview" &&
       process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co" &&
       process.env.VERCEL_GIT_COMMIT_REF === "feature/signatura-qa-integration" &&
-      !!process.env.VERCEL_URL &&
+      !!(process.env.VERCEL_BRANCH_URL || (process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL || "")) &&
       /^([a-z0-9-]+\.)+vercel\.app$/i.test(process.env.VERCEL_URL) &&
-      candidate.origin === "https://" + process.env.VERCEL_URL &&
+      candidate.origin === "https://" + (process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL) &&
       candidate.pathname === "/garante/activar"
     if (candidate.protocol !== "https:" ||
       (candidate.origin !== "https://verlo.lat" && !trustedPreview) ||
