@@ -20,6 +20,7 @@ on:
       - 'components/guarantors/**'
       - 'app/mi-verlo/page.tsx'
       - 'app/api/closing-generate/route.ts'
+      - 'app/api/closing-agree/route.ts'
       - 'lib/identik/traditional-signing-preflight.ts'
       - 'lib/notifications/verlo-email-templates.ts'
       - 'lib/notifications/verlo-email-outbox.ts'
