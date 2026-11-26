@@ -1,5 +1,16 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Avance PostHog — 26/11/2026, eventos de negocio (sin transacciones QA)
+
+- Vercel QA general commit `de895e3` **READY** y rama Signatura commit `0a40e83` **READY**. READY solo valida despliegue, no recepcion de eventos en PostHog.
+- Se inspecciono PostHog proyecto 624428: unicamente dashboard inicial `Your starter dashboard` (ID 2127052); la taxonomia del 26/11 no muestra eventos comerciales personalizados observados en los ultimos 30 dias. Sin permiso `dashboard:write` para crear tablero desde conexion actual.
+- `lib/posthog-server.ts`: emision HTTPS de eventos exclusivamente en `VERCEL_ENV=production`, seudonimizacion y UUID determinista para evitar recuento duplicado por retries. No registra PII ni usa clicks como pagos; fallos PostHog no cancelan cobros.
+- Tradicionales `app/api/webhooks/mercadopago/route.ts`: evento `verlo_traditional_payment_approved` luego de aprobacion persistida y sincronizacion de match, no en replay duplicado. Temporarios `app/api/temporarios/payments/webhook/route.ts`: `verlo_temporary_fee_approved` luego de RPC de pago, con UUID determinista por intento. PowerMarket `app/api/powermarket/confirm-operation/route.ts`: `verlo_caucion_partner_payment_confirmed` tras RPC, con `payment_receiver=powermarket` y sin imputarlo como ingreso cobrado por VERLO. Eventos de socio no representan por si solos comision efectivamente liquidada.
+- La rama Signatura incluye eventos de UX `identity_verification_initiated`, `identity_verification_resumed` y `identity_verification_state_observed`; no son ingresos. `app/layout.tsx` excluye ambas ramas preview de PostHog y pixel Meta para evitar contaminacion productiva.
+- Pruebas de cobertura agregadas a `tests/posthog-funnel.spec.ts`. **NO CERTIFICADO E2E:** envio, recepcion, deduplicacion y atribucion a usuario/campana en PostHog produccion; dashboard ejecutivo pendiente; Meta CAPI Purchase pendiente. No se realizaron nuevos pagos ni verificacion biometrica, ni se toco DB o main.
+
+---
+
 **Prioridad:** esta seccion es la fotografia mas reciente; las entradas debajo son historial y pueden contener decisiones superadas. **Alcance congelado en 44 tareas / siete grupos**, sin tareas nuevas. **NO** tocar main ni produccion antes de aprobar QA. Ninguna prueba se declara aprobada solo por tener un deploy READY.
 
 ## Auditoria de cierre — 25/11/2026, contratos y caucion (lectura sin mutaciones)
