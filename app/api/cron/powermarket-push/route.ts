@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic"
 type Item={id:string;event_id:string;recipient_lead_id:string;recipient_role:"tenant"|"owner";attempts:number}
 const copy:Record<string,[string,string]>={
  application_submitted:["Caución solicitada","Recibimos tu solicitud de caución."],
- application_under_review:["Caución en evaluación","PowerMarket, broker asociado a VERLO, gestiona la evaluación de tu solicitud."],
+ application_under_review:["Caución en evaluación","Tu solicitud de caución está siendo evaluada. Revisá el estado en Mi VERLO."],
  application_more_info_required:["Documentación pendiente","Revisá los próximos pasos de tu caución."],
  application_prequalified:["Caución precalificada","Tu solicitud avanzó. Revisá Mi VERLO."],
  application_not_eligible:["Resultado de caución","Hay una novedad sobre tu solicitud."],
@@ -17,11 +17,11 @@ const copy:Record<string,[string,string]>={
  quote_accepted:["Cotización aceptada","Tu aceptación quedó registrada."],
  quote_declined:["Cotización rechazada","La cotización fue rechazada."],
  quote_expired:["Cotización vencida","La oferta de caución venció."],
- review_pending:["Contrato en revisión","PowerMarket, broker asociado a VERLO, gestiona la revisión del contrato."],
+ review_pending:["Contrato en revisión","La documentación de tu caución está en revisión. Consultá Mi VERLO."],
  review_changes_requested:["Contrato con observaciones","El contrato necesita correcciones. Revisá Mi VERLO."],
- review_approved:["Contrato aprobado","PowerMarket aprobó la revisión contractual."],
+ review_approved:["Contrato aprobado","La revisión contractual finalizó. Consultá Mi VERLO."],
  policy_pending:["Caución en trámite","La póliza sigue en trámite."],
- policy_payment_confirmed:["Pago de caución confirmado","PowerMarket confirmó la operación. La emisión de la póliza sigue pendiente."],
+ policy_payment_confirmed:["Pago de caución confirmado","El pago de tu caución fue confirmado. La emisión de la póliza sigue pendiente."],
  policy_final_review:["Caución en revisión final","La póliza avanzó a revisión final."],
  policy_payment_pending:["Pago de caución pendiente","Revisá los pasos de tu caución en Mi VERLO."],
  policy_issued:["Póliza emitida","Tu póliza de caución está emitida."],
@@ -30,13 +30,13 @@ const copy:Record<string,[string,string]>={
 }
 // Owner notices describe the tenant's operation, never a payment made by the owner.
 const ownerCopy:Record<string,[string,string]>={
- review_pending:["Contrato en revisión","PowerMarket está revisando el contrato de tu alquiler."],
- review_changes_requested:["Contrato con observaciones","PowerMarket solicitó correcciones al contrato de tu alquiler."],
- review_approved:["Contrato aprobado","PowerMarket aprobó la revisión contractual."],
+ review_pending:["Contrato en revisión","El contrato de tu alquiler está en revisión."],
+ review_changes_requested:["Contrato con observaciones","Se solicitaron correcciones al contrato de tu alquiler."],
+ review_approved:["Contrato aprobado","La revisión contractual finalizó. Consultá Mi VERLO."],
  policy_pending:["Caución del alquiler en trámite","La caución vinculada a tu alquiler está en trámite."],
  policy_final_review:["Caución en revisión final","La caución vinculada a tu alquiler avanzó a revisión final."],
  policy_payment_pending:["Caución pendiente de pago","El pago de la caución del inquilino está pendiente."],
- policy_payment_confirmed:["Pago del inquilino confirmado","PowerMarket confirmó el pago de la caución del inquilino. La póliza sigue pendiente."],
+ policy_payment_confirmed:["Pago del inquilino confirmado","El pago de la caución del inquilino fue confirmado. La póliza sigue pendiente."],
  policy_issued:["Póliza de caución emitida","La póliza de caución del alquiler fue emitida."],
  policy_cancelled:["Caución cancelada","La caución vinculada a tu alquiler fue cancelada."],
  policy_rejected:["Caución no emitida","La caución vinculada a tu alquiler no fue emitida."]
