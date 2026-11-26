@@ -18,8 +18,11 @@ type EnqueueInput = {
  * Queuing and sending require distinct flags.
  */
 export async function enqueueVerloEmail(input: EnqueueInput): Promise<"disabled" | "queued" | "duplicate" | "invalid"> {
-  const qaOnly = process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e"
+  const qaOnly = process.env.VERCEL_ENV === "preview"
+    && ["qa/verlo-e2e", "feature/signatura-qa-integration"].includes(process.env.VERCEL_GIT_COMMIT_REF || "")
     && process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
+  // Other nonproduction environments may not capture or dispatch mail.
+  if (process.env.VERCEL_ENV !== "production" && !qaOnly) return "disabled"
   // QA can capture synthetic email intents, but never dispatch them.
   if (qaOnly && !(input.recipientEmail || "").trim().toLowerCase().endsWith("@example.com")) return "invalid"
   if (!qaOnly && (process.env.VERLO_EMAIL_QUEUE_CAPTURE_ENABLED !== "true"
