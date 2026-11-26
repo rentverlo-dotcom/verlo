@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import MySignaturaContractSigning from "@/components/signatura/MySignaturaContractSigning"
 import GuarantorPushSubscribe from "@/components/guarantors/GuarantorPushSubscribe"
+import GuarantorDossier from "@/components/guarantors/GuarantorDossier"
 
 type Guarantee={id:string;contractId:string;fullName:string;guaranteeKind:string;status:string;acceptedAt:string|null;signedAt:string|null}
 async function token(){
@@ -57,6 +58,7 @@ export default function MyGuarantorPortal({onLogout,embedded=false,hideWhenEmpty
         <button disabled={busy} onClick={()=>void accept(item.id)} style={{padding:"12px 18px",borderRadius:20,color:"white",background:"#050002",cursor:"pointer"}}>Acepto participar como garante</button>
       </>}
       {item.status==="accepted"&&!item.signedAt&&<p>Tu firma todavía no está habilitada. VERLO te notificará cuando el documento definitivo esté disponible.</p>}
+      {item.status==="accepted"&&<GuarantorDossier guarantorId={item.id} />}
     </section>)}
     <MySignaturaContractSigning canPrepare={false} contracts={items.filter(item=>item.status==="accepted").map(item=>({id:item.contractId}))} />
     <button type="button" onClick={()=>void load()} disabled={busy}>Actualizar estado</button>{" "}
