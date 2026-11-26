@@ -28,6 +28,7 @@ create table if not exists public.contract_guarantors (
     signed_at is null or (status='accepted' and signatura_document_id is not null and signatura_signature_id is not null)
   )
 );
+create unique index if not exists contract_guarantors_one_per_contract on public.contract_guarantors(lead_contract_id);
 create index if not exists contract_guarantors_auth_user_idx on public.contract_guarantors(auth_user_id);
 create index if not exists contract_guarantors_contract_idx on public.contract_guarantors(lead_contract_id);
 alter table public.contract_guarantors enable row level security;
