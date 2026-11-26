@@ -218,3 +218,14 @@ test("guarantor account access is isolated in QA and gated for production",()=>{
  expect(auth).toContain('!qa && !production')
  expect(auth).toContain('email_confirmed_at')
 })
+
+test("guarantor invitation link remains in its own QA branch, never production",()=>{
+ const route=source("app/api/closing-guarantor-invite/route.ts")
+ const templates=source("lib/notifications/verlo-email-templates.ts")
+ expect(route).toContain('process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL')
+ expect(route).toContain('"/garante/activar?invite="+invitation')
+ expect(route.indexOf("if(qa&&!isTrustedPreview)")).toBeLessThan(route.indexOf('.from("contract_guarantors").insert('))
+ expect(templates).toContain('candidate.pathname === "/garante/activar"')
+ expect(templates).toContain('candidate.origin === "https://" + previewHost')
+ expect(templates).toContain('process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL')
+})
