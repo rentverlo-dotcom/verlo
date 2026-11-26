@@ -41,6 +41,41 @@ export default function MySignaturaContractSigning({contracts,canPrepare=true}:{
     }catch(e){setError(e instanceof Error?e.message:"No se pudo preparar la firma")}
     finally{setBusy("")}
   }
+  async function reconcile(id:string){
+    setBusy(id);setError("")
+    try{
+      const {data}=await supabase.auth.getSession()
+      if(!data.session)throw new Error("Iniciá sesión en Mi VERLO")
+      const response=await fetch("/api/signatura/contract-reconcile",{
+        method:"POST",cache:"no-store",
+        headers:{"Content-Type":"application/json",Authorization:`Bearer ${data.session.access_token}`},
+        body:JSON.stringify({contractId:id}),
+      })
+      const body=await response.json().catch(()=>({}))
+      if(!response.ok)throw new Error(body.error||"No se pudo comprobar la firma")
+      const next=await requestContract(id)
+      setItems(old=>old.map(item=>item.id===id?{id,...next}:item))
+      if(body.status==="pending")setError("Todavía faltan firmas, validaciones o confirmaciones del proveedor.")
+    }catch(e){setError(e instanceof Error?e.message:"No se pudo actualizar")}
+    finally{setBusy("")}
+  }
+  async function download(id:string){
+    const popup=window.open("","_blank")
+    try{
+      const {data}=await supabase.auth.getSession()
+      if(!data.session)throw new Error("Iniciá sesión")
+      const response=await fetch("/api/signatura/contract-signed?contractId="+encodeURIComponent(id),{
+        headers:{Authorization:`Bearer ${data.session.access_token}`},cache:"no-store",
+      })
+      const body=await response.json().catch(()=>({}))
+      if(!response.ok||!body.url)throw new Error(body.error||"El contrato no está disponible")
+      if(popup)popup.location.href=body.url
+      else setError("Permití ventanas emergentes para descargar el PDF firmado")
+    }catch(e){
+      popup?.close()
+      setError(e instanceof Error?e.message:"No se pudo descargar")
+    }
+  }
   if(!items.length)return null
   return <section style={{padding:20,border:"1px solid #e8dfe1",borderRadius:16,background:"white",margin:"18px 0",color:"#050002"}}>
     <h2>Firmas de contratos · Signatura</h2>
@@ -49,6 +84,10 @@ export default function MySignaturaContractSigning({contracts,canPrepare=true}:{
       <p>Tu contrato: {item.status==="completed"?"firmado":item.status==="ready"?"listo para preparar":item.status==="pending"?"pendiente de firmas":"requiere revisión"}</p>
       {item.signingUrl&&<a href={item.signingUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"
         style={{display:"inline-block",background:"#050002",color:"white",padding:"12px 18px",borderRadius:22,textDecoration:"none"}}>Validar identidad y firmar</a>}
+      {item.status==="pending"&&<button type="button" onClick={()=>void reconcile(item.id)} disabled={busy===item.id}
+        style={{padding:"11px 18px",borderRadius:22,marginLeft:8}}>Actualizar firmas</button>}
+      {item.status==="completed"&&<button type="button" onClick={()=>void download(item.id)}
+        style={{padding:"11px 18px",borderRadius:22}}>Descargar contrato firmado</button>}
       {canPrepare&&item.status==="ready"&&<button type="button" disabled={busy===item.id} onClick={()=>void prepare(item.id)}
         style={{background:"#050002",color:"white",padding:"12px 18px",borderRadius:22,cursor:"pointer"}}>
         {busy===item.id?"Preparando…":"Preparar firma"}
