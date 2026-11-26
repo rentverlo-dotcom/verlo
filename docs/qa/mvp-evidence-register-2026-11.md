@@ -1,5 +1,16 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Estado de Vercel / GitHub Actions al cierre de la tanda de garante — 26/11/2026 (verificado)
+
+- **Vercel rama Signatura + garante** `feature/signatura-qa-integration`: HEAD `6d0b505f7cccf01383005cadee1152e9a1a97d60` **READY** en deployment `dpl_J6JrM194ozp2o7BchxBLbQn5vJzV` (`verlopunto0-862adzam7-verlos-projects-b9e9c595.vercel.app`). Incluye codigo del alta/invitacion de garante, acceso independiente de Mi VERLO, opt-in Push, templates/outbox de email, envelope Signatura de 2/3 firmantes protegido por flags, validaciones y PDF privado. **No es produccion ni acredita E2E real con proveedor.**
+- **Vercel rama QA principal** `qa/verlo-e2e`: HEAD previo a este asiento `39b71bb182188aaa447c5f9609844a12d1dfc9e1` **READY** (`dpl_AjGXH1rvGWqhMGvruTT3CKyPVcDp`), con evidencia actualizada. La implementacion nueva del garante permanece en la rama de Signatura, **todavia no integrada a qa/verlo-e2e ni main**. Este asiento actualiza solo el registro de QA; se espera despliegue READY de la nueva revision documental.
+- **Despliegues intermedios**: muchos `CANCELED` porque los commits consecutivos fueron reemplazados por otros mas recientes; no deben confundirse con el ultimo HEAD. Dos deployments anteriores `1e35167c` y `8bac18d9` tuvieron estado **ERROR** por el mismo problema de compilacion de TypeScript en `components/signatura/MySignaturaContractSigning.tsx:25` (iterar `Set<string>` sin objetivo ES2015). Arreglado con `Array.from(new Set(...))` desde commit `dd72027f`; **HEAD actual READY**.
+- **GitHub Actions**: workflow `VERLO Signatura guarantor offline QA` **SUCCESS** para `9b20d3e` y varias revisiones previas; un fallo intermedio de test en `ec4373e` fue corregido en `9b20d3e`. Las Actions de tests offline no representan transacciones proveedor, email, Push o firma verdadera. La aprobacion build del HEAD actual se constata por Vercel READY.
+- **No se habilito el cobro/firma real**: `SIGNATURA_CONTRACT_QA_ENABLED`, `SIGNATURA_SIGNER_BINDING_CERTIFIED`, `SIGNATURA_GUARANTOR_CLAUSE_APPROVED`, `SIGNATURA_CONTRACT_IDENTITY_BINDING_CERTIFIED` requieren certificacion y habilitacion controlada. Emision real de invitaciones de correo, Push en dispositivo, vinculacion DNI-enlace de cada firmante, tres firmas, webhook, PDF firmado, y revision juridica son pendientes. No se genero un documento pago en esta tanda.
+- **DB**: migraciones solo aplicadas en Supabase QA. **Main y Supabase produccion no modificados.** Alcance congelado 44 tareas, no agregar item 45.
+
+---
+
 ## Incorporacion del garante y firma contractual Signatura — 26/11/2026 (desarrollo QA en curso)
 
 - **Separacion funcional correcta:** el garante NO se crea como un `lead_intake` (la base limita esos roles a tenant/owner), sino como participante de un `lead_contracts` con cuenta Auth verificada propia. El inquilino solicita invitacion con nombre, DNI, email, celular y tipo de fianza; el garante ve su invitacion en Mi VERLO, acepta expresamente participar, y luego el contrato identifica sus datos. La aceptacion de invitacion NO sustituye la firma legal.
