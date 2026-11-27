@@ -1,5 +1,19 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Autorización de prueba paga Signatura — 27/11/2026 | PREFLIGHT GRATUITO, SIN CRÉDITOS CONSUMIDOS
+
+El titular autorizó **una única prueba real de un documento Signatura con hasta tres firmantes**, **solo** tras pasar verificaciones gratuitas, sin reintentos automáticos, y sin consumir créditos por fallas previsibles. **El documento NO se creó** en esta intervención: no se realizó llamada `POST /documents/create` ni se modificaron datos de producción.
+
+Evidencia de preflight:
+- Supabase QA `anptswspguyotnasoacq`, consulta solo lectura: `signatura_contract_signings=0`, `contract_guarantors=0`, `lead_contracts.status='agreed'=134`. Por tanto **NO existe actualmente un expediente de garante de prueba** preparado con consentimiento, documentación aprobada, pago habilitado y los tres actores para probar el camino completo. No crear al azar documentos facturables sobre los 134 contratos anteriores.
+- Se detectó URL `complete_url` de retorno Signatura contractual **hardcodeada a Preview antiguo**; corregida en `feature/signatura-qa-integration` commit `dece752`: retorno por `VERCEL_BRANCH_URL`/ `VERCEL_URL`, únicamente dominio .vercel.app validado, rama QA y proyecto Supabase QA exactos; si falla la URL, se corta ANTES de reservar/documento pago. El `POST` de firma contractual se restringe a QA explícita, fuera de producción. Añadida prueba anti-regresión en commit `f6f9dc0` sin invocación externa.
+- Seguridad de gasto: `SIGNATURA_CONTRACT_QA_ENABLED` y `SIGNATURA_SIGNER_BINDING_CERTIFIED` deben ser true para crear documentos; la firma del garante requiere además `SIGNATURA_GUARANTOR_CLAUSE_APPROVED`; la conciliación final requiere `SIGNATURA_CONTRACT_IDENTITY_BINDING_CERTIFIED`. **NO activar flags sin demostrar mapeo inequívoco de firmantes y validez de cláusula**. La llamada real debería hacer una sola reserva única por contrato y nunca reintentar automáticamente un resultado incierto.
+- Estado del último HEAD al redactar: workflow `f6f9dc0` QUEUED, Vercel Preview `f6f9dc0` QUEUED; el previo `dece752` BUILDING / Action IN_PROGRESS. **No decir READY ni test aprobado antes de observar resultado exacto**.
+- Próximo gate: disponer de **un contrato de prueba completo** desde formulario, tenant y owner QA autenticados, garante independiente autenticado con documentación aprobada, pago QA confirmado/autorizado; certificar el contrato PDF y mapeo de IDs de Signatura contra documentación del proveedor sin generar otro documento. Verificar saldo y costo aplicable por operación. **Solo entonces** ejecutar una vez el documento de tres firmantes autorizado, monitorear los tres enlaces, webhook y PDF final.
+- No fusionar a main/prod, no habilitar correo externo/Push ni realizar gasto sin la previa preparación de usuario y controles. Se mantienen 44 tareas congeladas, sin añadir ítems.
+
+---
+
 ## Auditoria de enlace de invitacion de garante — 26/11/2026 (QA, cierre)
 
 - Se hallo un **error real de cruce de ambientes**: `/api/closing-guarantor-invite` almacenaba enlace `https://verlo.lat/garante/activar?invite=...` en QA y la plantilla nativa `safeVerloEmailUrl` solo aceptaba el dominio produccion, por lo que enlaces QA no se conservarian. Corregido en rama `feature/signatura-qa-integration` con `a5c197c` y commits anteriores relacionados: URL de invitacion usa exclusivamente el dominio de rama Preview confiable (`VERCEL_BRANCH_URL`, fallback `VERCEL_URL`); la plantilla admite ese host solo para `/garante/activar`, si rama y Supabase QA coinciden, sin aceptar dominios arbitrarios. En produccion sigue `verlo.lat`. Validacion del host ocurre **antes** de insertar invitacion para no dejar registros incompletos por host invalido.
