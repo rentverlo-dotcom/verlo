@@ -4,7 +4,7 @@
  * Keep business details in Mi VERLO, never in email URLs or sensitive payloads.
  */
 export type VerloEmailArea = "tradicionales" | "temporarios" | "powermarket"
-export type VerloEmailRole = "tenant" | "owner"
+export type VerloEmailRole = "tenant" | "owner" | "guarantor"
 export type VerloEmailEvent = {
   area: VerloEmailArea
   role: VerloEmailRole
@@ -28,7 +28,17 @@ export function safeVerloEmailUrl(value?: string): string {
   if (!value || !value.trim()) return PORTAL
   try {
     const candidate = new URL(value.trim(), "https://verlo.lat")
-    if (candidate.protocol !== "https:" || candidate.origin !== "https://verlo.lat" ||
+    // The activation URL must stay on the same trusted deployment. Preview
+    // links cannot point to production; other external domains are rejected.
+    const previewHost = process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL || ""
+    const trustedPreview = process.env.VERCEL_ENV === "preview" &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co" &&
+      process.env.VERCEL_GIT_COMMIT_REF === "feature/signatura-qa-integration" &&
+      /^([a-z0-9-]+\.)+vercel\.app$/i.test(previewHost) &&
+      candidate.origin === "https://" + previewHost &&
+      candidate.pathname === "/garante/activar"
+    if (candidate.protocol !== "https:" ||
+      (candidate.origin !== "https://verlo.lat" && !trustedPreview) ||
       candidate.username || candidate.password) return PORTAL
     return candidate.toString()
   } catch { return PORTAL }
@@ -94,6 +104,16 @@ const traditionalCopy: Record<string, [string, string]> = {
   post_visit_waiting: ["Seguimiento de tu visita", "Revisá el próximo paso de tu alquiler."],
   double_ok_2: ["Tu alquiler avanzó", "Revisá los próximos pasos para el contrato."],
   contract_generated: ["Tu contrato está disponible", "Ingresá a Mi VERLO para revisar el contrato."],
+  guarantor_invited: ["Te invitaron a ser garante de un alquiler", "Ingresá a Mi VERLO con este correo para revisar y aceptar tu participación. No estarás obligado hasta revisar y firmar el contrato definitivo."],
+  guarantor_documents_submitted: ["Un garante presentó documentación", "La documentación de una garantía está disponible para tu revisión privada en Mi VERLO."],
+  guarantor_review_under_review: ["Tu garantía está en revisión", "El propietario está revisando la documentación que presentaste. Consultá Mi VERLO."],
+  guarantor_review_changes_requested: ["Se solicitaron correcciones a tu garantía", "El propietario solicitó documentación o correcciones. Ingresá a Mi VERLO para ver sus observaciones."],
+  guarantor_review_rejected: ["Tu garantía fue rechazada", "El propietario no aceptó esta garantía. Revisá el estado de tu expediente en Mi VERLO."],
+  tenant_guarantor_review_approved: ["Tu garantía fue aprobada", "El propietario aprobó la garantía presentada. Revisá el estado de tu contrato en Mi VERLO."],
+  tenant_guarantor_review_rejected: ["La garantía presentada fue rechazada", "El propietario no aceptó la garantía. Ingresá a Mi VERLO para revisar los próximos pasos."],
+  tenant_guarantor_review_changes_requested: ["Falta documentación de tu garantía", "Se solicitaron correcciones para la garantía presentada. Revisá Mi VERLO."],
+  guarantor_review_approved: ["Tu garantía fue aceptada", "El propietario aceptó la documentación de tu garantía. El contrato todavía requiere las aprobaciones y firmas correspondientes."],
+  guarantor_signature_ready: ["Tu firma como garante está pendiente", "Ingresá a Mi VERLO para revisar las obligaciones que asumís y firmar el contrato mediante validación de identidad."],
   signature_ready: ["Tu contrato está listo para firmar", "Ingresá a Mi VERLO y pulsá Firmar contrato. Vas a validar tu identidad y firmar en una sesión segura; al terminar, volvés a Mi VERLO."],
   contract_accept_waiting: ["Tu contrato necesita una acción", "Revisá el estado del contrato en Mi VERLO."],
   rental_confirmed: ["Alquiler confirmado", "Podés consultar el estado de tu alquiler en Mi VERLO."],

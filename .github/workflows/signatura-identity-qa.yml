@@ -1,0 +1,27 @@
+name: VERLO Signatura isolated identity QA
+on:
+  push:
+    branches:
+      - feature/signatura-qa-integration
+    paths:
+      - 'lib/signatura/**'
+      - 'tests/qa/signatura-*.spec.ts'
+      - '.github/workflows/signatura-identity-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identity-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Check reusable identity and webhook security without external calls
+        run: npx playwright test tests/qa/signatura-adapter.spec.ts tests/qa/signatura-reusable-identity.spec.ts --reporter=line

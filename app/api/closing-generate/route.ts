@@ -2212,6 +2212,44 @@ export async function POST(
             .join(" ")
         : "Las partes dejan constancia de que las condiciones de garantía serán las expresamente acordadas entre ellas y documentadas como parte de la presente relación locativa."
 
+    // Contractual guarantors are kept separate from rental leads.
+    // The historical production workflow is unchanged until this QA flow is certified.
+    const guarantorQaEnabled = process.env.VERCEL_ENV === "preview" &&
+      process.env.VERCEL_GIT_COMMIT_REF === "feature/signatura-qa-integration" &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
+    let guarantorText = ""
+    let guarantorSummary = ""
+    if (guarantorQaEnabled) {
+      const { data: signers, error: signerError } = await supabase
+        .from("contract_guarantors")
+        .select("full_name,dni,email,phone,legal_address,guarantee_kind,status,auth_user_id,review_status,approved_revision,document_revision,collateral_address,collateral_jurisdiction,collateral_registration,collateral_owner")
+        .eq("lead_contract_id", contract.id).limit(2)
+      if (signerError) throw new Error("Cannot verify guarantor participation")
+      if ((signers || []).length > 1) return NextResponse.json({
+        ok:false,error:"Hay más de un garante registrado. Requiere revisión."
+      },{status:409})
+      const signer = signers?.[0]
+      if (signer) {
+        if (signer.status !== "accepted" || !signer.auth_user_id)
+          return NextResponse.json({ok:false,error:"El garante debe activar su cuenta y aceptar su participación antes de generar el contrato."},{status:409})
+        if (signer.review_status !== "approved" || signer.approved_revision !== signer.document_revision)
+          return NextResponse.json({ok:false,error:"El propietario debe aprobar la garantía y los documentos vigentes antes de generar el contrato."},{status:409})
+        if (signer.guarantee_kind === "property" &&
+          (!signer.collateral_address || !signer.collateral_registration ||
+           !signer.collateral_jurisdiction || !signer.collateral_owner))
+          return NextResponse.json({ok:false,error:"Faltan datos registrales de la propiedad ofrecida en garantía."},{status:409})
+        if (!finalGuaranteeType || /cauci[oó]n|seguro/i.test(finalGuaranteeType))
+          return NextResponse.json({ok:false,error:"La garantía seleccionada no corresponde a un garante personal."},{status:409})
+        guarantorText = `Se identifica como garante participante a ${signer.full_name}, DNI ${signer.dni}, domicilio ${signer.legal_address || "a completar"}, correo ${signer.email}, teléfono ${signer.phone}. Respaldo declarado: ${signer.guarantee_kind === "property" ? "garantía propietaria" : signer.guarantee_kind === "salary" ? "ingresos laborales" : "fianza personal"}. ${signer.guarantee_kind === "property" ? `Inmueble ofrecido como respaldo: ${signer.collateral_address}; jurisdicción ${signer.collateral_jurisdiction}; matrícula ${signer.collateral_registration}; titular declarado ${signer.collateral_owner}.` : ""} La documentación presentada y los informes de revisión permanecen en el expediente privado de VERLO y no se incorporan automáticamente como anexos. La obligación del garante requiere definición expresa de su alcance y firma individual sobre el texto definitivo. La aceptación digital de participar no sustituye esa firma.`
+        guarantorSummary = `GARANTE PROPUESTO:
+${signer.full_name}
+DNI ${signer.dni}
+Domicilio: ${signer.legal_address || "pendiente de ratificación"}
+Email: ${signer.email}
+La obligación del garante sólo se formaliza mediante su firma sobre la versión contractual definitiva.`
+      }
+    }
+
     const petsClause =
       finalPetsPolicy
         ? sentence(
@@ -2357,6 +2395,8 @@ DÉCIMA CUARTA — GARANTÍA
 
 ${guaranteeClause}
 
+${guarantorText}
+
 Toda documentación relativa a garantías, cauciones, fiadores o instrumentos equivalentes que las partes incorporen al cierre podrá considerarse complementaria al presente contrato en los términos que expresamente acuerden.
 
 DÉCIMA QUINTA — AMOBLAMIENTO, INVENTARIO Y BIENES INCLUIDOS
@@ -2471,6 +2511,8 @@ Estado civil: ${tenantCivilStatus}
 Domicilio legal: ${tenantLegalFullAddress}
 Email: ${tenantEmail || "no informado"}
 Teléfono: ${tenantPhone || "no informado"}
+
+${guarantorSummary}
 
 PLAZO:
 Desde ${formatDateAR(

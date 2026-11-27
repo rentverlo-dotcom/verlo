@@ -77,7 +77,7 @@ async function handle(request: NextRequest, requestedLive: boolean) {
     try {
       const supported = VERLO_EMAIL_EVENT_TYPES[item.area] as readonly string[] | undefined
       if (!supported?.includes(item.event_type) ||
-        !["tenant", "owner"].includes(item.recipient_role)) {
+        !["tenant", "owner", "guarantor"].includes(item.recipient_role)) {
         state = "cancelled"
         reason = "Unsupported area/role/event type"
       } else {

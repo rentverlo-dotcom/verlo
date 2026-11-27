@@ -13,6 +13,10 @@
 - No interpretar READY como E2E. Última lectura QA disponible: 0 `signatura_contract_signings`, 0 `contract_guarantors`.
 - Conservación de datos de producción obligatoria: pagos históricos temporarios de ARS 29.900; nueva tarifa ARS 49.999. No copiar base QA sobre producción.
 
+## Recuperación antes del pase — parte del hito 6
+
+Revisión del 27/11: `main` sigue en `4451d719d17e201a1fe6508c81788ba572312770`. Se generó y verificó una copia del código versionado (337/337 archivos); eso no equivale a un respaldo de base de datos ni documentos. El informe de recuperación se conserva de forma privada. **La recuperación integral todavía no está certificada: no ejecutar el pase productivo hasta comprobar respaldo y retorno.** No se agregan funcionalidades ni hitos al alcance existente.
+
 ## Los SIETE hitos pendientes de lanzamiento
 
 - [ ] **1. Integrar rama Signatura + garantes en QA principal.** Revisar diffs y seleccionar cambios funcionales de `feature/signatura-qa-integration` sobre `qa/verlo-e2e`; confirmar que no faltan rutas y que compila en SHA consolidado. No arrastrar herramientas de diagnóstico a producción.

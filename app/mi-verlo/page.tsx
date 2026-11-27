@@ -19,7 +19,11 @@ import { trackPostHog } from "@/lib/posthog-client"
 
 import PushSubscribeButton from "@/components/PushSubscribeButton"
 import MyCaucionStatus from "@/components/powermarket/MyCaucionStatus"
-import MyIdentikSigning from "@/components/identik/MyIdentikSigning"
+import MySignaturaContractSigning from "@/components/signatura/MySignaturaContractSigning"
+import MySignaturaIdentityStatus from "@/components/signatura/MySignaturaIdentityStatus"
+import MyGuarantorPortal from "@/components/guarantors/MyGuarantorPortal"
+import MyGuarantorInvite from "@/components/guarantors/MyGuarantorInvite"
+import OwnerGuarantorReview from "@/components/guarantors/OwnerGuarantorReview"
 import OwnerCaucionStatus from "@/components/powermarket/OwnerCaucionStatus"
 
 type Role =
@@ -2304,6 +2308,7 @@ function MatchCard({
 }
 
 export default function MiVerloPage() {
+  const [guarantorMode,setGuarantorMode] = useState(false)
   const router =
     useRouter()
 
@@ -2401,6 +2406,18 @@ export default function MiVerloPage() {
             !response.ok ||
             !result?.ok
           ) {
+            // Guarantors are not rental leads and have no lead_intake profile.
+            // A verified account may nevertheless be an invited guarantor.
+            const guarantorResponse = await fetch("/api/guarantors/mine", {
+              headers: { Authorization: `Bearer ${session.access_token}` }, cache: "no-store",
+            })
+            if (guarantorResponse.ok) {
+              const guarantorResult = await guarantorResponse.json().catch(() => ({}))
+              if (guarantorResult.ok && guarantorResult.guarantees?.length > 0) {
+                setGuarantorMode(true)
+                return
+              }
+            }
             throw new Error(
               result?.error ||
                 "No pudimos cargar Mi Verlo."
@@ -2481,6 +2498,8 @@ export default function MiVerloPage() {
       </>
     )
   }
+
+  if (guarantorMode) return <MyGuarantorPortal onLogout={logout} />
 
   if (
     error ||
@@ -2742,7 +2761,11 @@ export default function MiVerloPage() {
               </div>
             </section>
 
-            <MyIdentikSigning />
+            {data.user.role === "tenant" && <MySignaturaIdentityStatus />}
+            <MySignaturaContractSigning contracts={[...data.matches,...data.operations].map(item=>item.contract).filter((c):c is NonNullable<typeof c>=>Boolean(c))} />
+            <MyGuarantorPortal onLogout={logout} embedded hideWhenEmpty />
+            {data.user.role === "owner" && <OwnerGuarantorReview />}
+            {data.user.role === "tenant" && <MyGuarantorInvite contracts={[...data.matches,...data.operations].map(item=>item.contract).filter((c):c is NonNullable<typeof c>=>Boolean(c))} />}
             <MyCaucionStatus />
             <OwnerCaucionStatus />
             <section className="mv-section">
