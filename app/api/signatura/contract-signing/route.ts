@@ -13,6 +13,18 @@ export const dynamic="force-dynamic"
 export const maxDuration=60
 const reply=(data:object,status=200)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}})
 const uuid=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
+const isContractQa = () => process.env.VERCEL_ENV==="preview" &&
+  process.env.VERCEL_GIT_COMMIT_REF==="feature/signatura-qa-integration" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL==="https://anptswspguyotnasoacq.supabase.co"
+function signaturaReturnUrl():string {
+  if(!isContractQa()) throw new Error("Contract test is isolated to Signatura QA")
+  // Prefer the stable branch URL. Never trust a user-supplied Host header.
+  const host=process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL || ""
+  if(!/^([a-z0-9-]+\.)+vercel\.app$/i.test(host))
+    throw new Error("Trusted QA return host unavailable")
+  return "https://"+host+"/mi-verlo"
+}
+
 
 /** Read access to exactly this account's own private signing link. */
 export async function GET(req:NextRequest) {
@@ -56,6 +68,8 @@ export async function GET(req:NextRequest) {
 
 /** Explicit user action; no retries or provider-created emails/WhatsApp. */
 export async function POST(req:NextRequest) {
+  if(!isContractQa())
+    return reply({ok:false,error:"Contract test is available only in isolated QA"},404)
   if(process.env.SIGNATURA_CONTRACT_QA_ENABLED!=="true")
     return reply({ok:false,error:"Contract signing is not yet enabled in QA"},503)
   const actor=await getGuarantorActor(req)
@@ -83,6 +97,9 @@ export async function POST(req:NextRequest) {
       return reply({ok:false,error:"Guarantor not included in agreed document"},409)
   }
   // Exact signer-to-URL mapping must be proven in QA before any billable creation.
+  let completeUrl:string
+  try {completeUrl=signaturaReturnUrl()}
+  catch {return reply({ok:false,error:"QA return URL not certified"},503)}
   if(process.env.SIGNATURA_SIGNER_BINDING_CERTIFIED!=="true")
     return reply({ok:false,error:"Signatura signer binding not yet certified"},503)
   const hash=createHash("sha256").update(contract.content,"utf8").digest("hex")
@@ -104,7 +121,7 @@ export async function POST(req:NextRequest) {
     const created=await createSignaturaDocument({
       title:"VERLO QA - Contrato sin validez comercial",
       pdf,signatures,
-      complete_url:"https://verlopunto0-git-feature-signatu-009bb9-verlos-projects-b9e9c595.vercel.app/mi-verlo",
+      complete_url:completeUrl,
     })
     // Never infer personal signing links from an undocumented array position.
     // Signatura must return explicit signer order; missing/duplicate orders are
