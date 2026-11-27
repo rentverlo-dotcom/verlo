@@ -1,5 +1,13 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## Checklist de verificaciones QA pendientes antes de producción — 27/11/2026
+
+- Checklist operativo congelado guardado en [`docs/qa/preproduction-pending-checklist-2026-11-27.md`](preproduction-pending-checklist-2026-11-27.md), commit `85c3b87`: **34 verificaciones pendientes en siete frentes**, basadas en el alcance MVP existente. **No confundir 34 verificaciones agrupadas con 34 tareas restantes del listado original de 44**, que no está desglosado de forma íntegra y auditable en los documentos maestros revisados.
+- Orden prioritario: seguridad y compatibilidad, flujo real Tradicionales/Mi VERLO, ZeptoMail + Auth SMTP + Push, expediente de garante + Signatura con una sola operación paga condicionada a preflight gratuito, Temporarios + MP, PowerMarket y métricas/empaquetado para main.
+- Signatura: el titular confirma créditos acreditados; esto no sustituye la prueba del proveedor. QA `f6f9dc0` READY/Actions SUCCESS pero E2E contractual de 3 partes pendiente. No crear nuevos documentos Signatura ni habilitar variables pagas hasta completar preflight, y no tocar `main` o Supabase producción.
+
+---
+
 ## CERTIFICACION SHA EXACTO SIGNATURA — 27/11/2026 | READY / SIN GASTO
 
 - **Verificado ahora:** rama `feature/signatura-qa-integration`, HEAD `f6f9dc0018e6bb30b7744bd977fdd118c7a80769`. **Vercel Preview READY para el mismo SHA exacto**; workflow GitHub Actions `VERLO Signatura guarantor offline QA` **SUCCESS** para el mismo SHA. Quedan superados los gates de despliegue y pruebas offline focalizadas, **no** el E2E con Signatura.
