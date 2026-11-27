@@ -1,73 +1,35 @@
-# VERLO — checklist pendiente de QA antes del pase a producción
+# VERLO — CIERRE DEFINITIVO QA → MAIN → PRODUCCIÓN → META ADS
 
 **Fecha:** 27/11/2026  
-**Fuente:** `docs/qa/mvp-closure-2026-11.md`, `docs/qa/release-readiness-2026-11-12.md`, `docs/qa/mvp-evidence-register-2026-11.md` y verificación puntual del SHA `f6f9dc0`.
+**Prioridad:** salir cuanto antes, sin nuevas funcionalidades.  
+**Alcance congelado:** 44 tareas originales. Este documento agrupa lo verdaderamente bloqueante en **7 hitos de cierre**; NO son siete ítems nuevos ni equivale a calcular X/44. **Este checklist REEMPLAZA la anterior enumeración de 34 verificaciones**.
 
-**Regla:** pertenece al alcance congelado de **44 tareas**, pero esta fuente NO enumera ni permite auditar individualmente qué n/44 están completas. Estas son **34 comprobaciones pendientes**, no nuevas funciones ni “34 de las 44”. Las casillas permanecen vacías hasta reunir evidencia del escenario exacto.
+## Avances comprobados; NO repetir salvo fallo concreto
 
-**Ya verificado (no repetir pruebas pagas):** Signatura QA `f6f9dc0` Preview READY y Actions offline SUCCESS; biometría inicial real previa; ramas y DB QA aisladas. Créditos disponibles según confirmación del titular; creación de documentos contractuales Signatura en QA y garantes registrados = 0 al último control. No consume créditos la preparación.
+- `feature/signatura-qa-integration` HEAD `f6f9dc0018e6bb30b7744bd977fdd118c7a80769`: Vercel Preview **READY**, workflow GitHub Actions focalizado **SUCCESS** para el mismo SHA.
+- Signatura: biometría inicial validada anteriormente en QA. Titular confirma créditos acreditados. **No crear otra declaración de identidad para volver a probar lo ya probado**.
+- Garante y firma 2/3 actores desarrollados en rama Signatura, con gates; **falta E2E real**, no marcar como lanzado.
+- `qa/verlo-e2e` y `main` continúan separadas; **no fusionar QA masivamente**.
+- No interpretar READY como E2E. Última lectura QA disponible: 0 `signatura_contract_signings`, 0 `contract_guarantors`.
+- Conservación de datos de producción obligatoria: pagos históricos temporarios de ARS 29.900; nueva tarifa ARS 49.999. No copiar base QA sobre producción.
 
-## 1. Seguridad e infraestructura
+## Los SIETE hitos pendientes de lanzamiento
 
-- [ ] Auditar Auth, RLS y permisos de archivos entre owner, tenant y garante
-- [ ] Corregir versión Next.js 14.0.0 vulnerable; alinear Node 20/24 y package-lock; recompilar
-- [ ] Certificar variables/flags, URL, buckets, secretos y aislamiento QA vs prod
-- [ ] Regresión completa de seguridad y CI en SHA final
+- [ ] **1. Integrar rama Signatura + garantes en QA principal.** Revisar diffs y seleccionar cambios funcionales de `feature/signatura-qa-integration` sobre `qa/verlo-e2e`; confirmar que no faltan rutas y que compila en SHA consolidado. No arrastrar herramientas de diagnóstico a producción.
+- [ ] **2. CERTIFICAR Signatura real y contrato.** Completar un solo expediente de prueba legítimo con owner/tenant/garante y pago/garantía aprobados; verificar identidad ↔ enlace de cada persona, cláusula de fianza legalmente apta, firma, webhooks y PDF final privado. Una única creación paga autorizada después de preflight gratuito; **no reintentos automáticos**, no repetir biometría previamente validada.
+- [ ] **3. COMUNICACIONES funcionando.** Configurar y probar una entrega real autorizada ZeptoMail, remitente VERLO y acceso Auth del garante; verificar que el correo y Push operativos lleguen a Mi VERLO, con deduplicación. Deshabilitados GHL/WhatsApp. No hacer campaña masiva de prueba.
+- [ ] **4. POWERMARKET / CAUCIÓN.** Obtener la prueba operativa con socio (precalificación/aceptación, confirmación de operación/pago, registro contable para VERLO); asegurar que sin pago/aprobación no se habilita firma. Bloqueo externo si socio no responde; no fabricar aprobación.
+- [ ] **5. ÚNICA REGRESIÓN COMERCIAL FINAL.** Un recorrido válido por Tradicionales + Mi VERLO + MP, otro por Temporarios + reserva/contrato/tarifa ARS 49.999, y escenarios negativos críticos (pago rechazado, duplicación, acceso ajeno). Recuperar evidencia ya aprobada y no repetir más pruebas pagas por rutina. Arreglar solo defectos demostrables.
+- [ ] **6. MIGRACIÓN SELECTIVA A MAIN Y PRODUCCIÓN.** Preparar PR/corte sin `/api/qa/*` ni mocks; corregir solo vulnerabilidad/Node-lockfile incompatible que impida un release seguro; backup; presentar SQL/migraciones productivas al titular para revisar, preservar datos existentes y monto histórico de temporarios, rollback. Aprobar merge a `main`, build de producción y flags tras certificar QA. No ejecutar cambios productivos silenciosos.
+- [ ] **7. GO-LIVE + META ADS.** Smoke supervisado de `verlo.lat` (publicación, búsqueda, Mi VERLO, pagos, firma, comunicaciones), verificar eventos básicos PostHog y Meta Lead/Purchase para medir dinero real; habilitar campañas cuando el destino anunciado efectivamente funcione. Monitorear las primeras captaciones y compras; arreglar solo bloqueos reales.
 
-## 2. Tradicionales y Mi VERLO
+## Qué NO agregamos antes del lanzamiento
 
-- [ ] E2E visual del wizard owner, búsqueda tenant, ubicación y multimedia privada
-- [ ] E2E matching mismo barrio/adyacente, casos incompatibles y duplicados
-- [ ] E2E owner+tenant desde interés/visita a contrato y estados Mi VERLO
-- [ ] Permisos por rol, URLs permanentes y acceso ajeno denegado
+- No nuevos paneles/dashboard, no nuevas integraciones, no nuevos journeys, no mejoras cosméticas, no refactorizaciones preventivas.
+- No convertir SEO avanzado, tests extra hipotéticos, cambios de copy optativos o reportes exhaustivos en bloqueantes.
+- No prometer porcentaje ni X/44; falta la enumeración canónica original por ítem, y el conteo de **7 hitos** representa el **camino restante**, no 7 tareas históricas.
+- Cuando falte PowerMarket, reportar exclusivamente ese **bloqueo externo**; continuar los otros hitos. **Meta Ads no debe prometer un servicio cobrado o firmado que aún no funciona en producción.**
 
-## 3. Email y Push
+## Regla de finalización
 
-- [ ] Verificar dominio, remitente, cuenta y capacidad real de ZeptoMail
-- [ ] Prueba aislada y autorizada: correo VERLO entregado y enlace correcto
-- [ ] Certificar SMTP Supabase Auth remitente VERLO y acceso real del garante
-- [ ] Probar dispatcher/crons, cola, duplicación/reintentos y errores de transporte
-- [ ] Push opt-in en dispositivo de prueba; GHL/WhatsApp deshabilitados
-
-## 4. Contratos, garantía y Signatura
-
-- [ ] Preparar contrato QA legítimo de owner/tenant/garante y pago validado
-- [ ] Invitación/activación segura desde formulario tenant y Mi VERLO del garante
-- [ ] Subida privada escritura; owner revisa, descarga, adjunta informes y decide
-- [ ] Rechazo/cambio documentación bloquea acuerdo y firma
-- [ ] Validar legalmente cláusula de fianza y datos del inmueble en PDF
-- [ ] Certificar mapeo inequívoco identidad/DNI/URL de cada firmante sin consumir crédito
-- [ ] Ejecutar una sola prueba paga autorizada tras aprobar preflight
-- [ ] Verificar biometrías, webhooks DS, reconciliación y PDF final descargable por 3
-- [ ] MP tradicional: aprobado, rechazado y callback duplicado; firma bloqueada sin cobro
-
-## 5. Temporarios
-
-- [ ] E2E propietario/inquilino: propiedad, fechas, no solape, aceptación, reserva, contrato
-- [ ] Tarifa ARS 49.999 y MP Sandbox: webhook, estado y emails
-- [ ] Diseñar migración aditiva que preserve pagos históricos ARS 29.900 y estados
-
-## 6. PowerMarket caución
-
-- [ ] Prueba externa solicitada a PowerMarket: precalificación/propuesta/rechazo
-- [ ] Confirmación de operación, pago, emisión y registro de comisión VERLO
-- [ ] Bloqueo firma, bonificación 50 % contrato y notificación por email/push
-
-## 7. Medición y preparación de release
-
-- [ ] PostHog eventos/funnels Tradicionales Temporarios Caución errores
-- [ ] Meta CAPI Purchase real/deduplicado; no confundir con test
-- [ ] Regresión móvil, rutas críticas, SEO mínimo
-- [ ] Auditar diff QA vs main y excluir rutas /api/qa, mocks y herramientas solo QA
-- [ ] Backup + migraciones compatibles y reversibles sin borrar historial de producción
-- [ ] Certificar SHA liberable y plan de smoke posterior a promoción de producción
-
-## Puerta de salida (GO / NO GO)
-
-- [ ] Todos los E2E bloqueantes acreditados con test, observación de usuario y datos persistidos de QA.
-- [ ] Única prueba pagada Signatura autorizada, solo tras preflight gratuito y certificación de costo/mapeo. No reintentos automáticos ni uso de documentos históricos.
-- [ ] PowerMarket, ZeptoMail, MP y firma final real certificados; si alguno falla: NO GO.
-- [ ] Paquete de commits de negocio revisado y separado de QA; migraciones de producción presentadas al titular para revisión.
-- [ ] Backup y rollback preparados; smoke supervisado posterior a despliegue y autorización final de release.
-
-**Advertencia:** la preparación de producción no equivale a autorización de merge o escritura en Supabase producción. Prohibido copiar datos de QA sobre producción o borrar pagos históricos. No reactivar Identik/Namirial ni GHL: flujo elegido Signatura + ZeptoMail + Push.
+**GO** al completar los siete hitos, con un único SHA liberable, operaciones reales sin fallos críticos, retorno de Signatura correcto, cobros vinculados y datos productivos preservados. **NO GO** mientras no funcione la oferta que se va a publicitar. Las pruebas de QA que ya tienen evidencia aprobada no se repiten. Ninguna modificación de `main`, Supabase producción o Vercel Production fue autorizada por este documento.
