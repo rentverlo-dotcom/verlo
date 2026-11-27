@@ -1,5 +1,14 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## CERTIFICACION SHA EXACTO SIGNATURA — 27/11/2026 | READY / SIN GASTO
+
+- **Verificado ahora:** rama `feature/signatura-qa-integration`, HEAD `f6f9dc0018e6bb30b7744bd977fdd118c7a80769`. **Vercel Preview READY para el mismo SHA exacto**; workflow GitHub Actions `VERLO Signatura guarantor offline QA` **SUCCESS** para el mismo SHA. Quedan superados los gates de despliegue y pruebas offline focalizadas, **no** el E2E con Signatura.
+- **Supabase QA solo lectura:** 0 filas en `signatura_contract_signings`, 0 en `contract_guarantors`, 134 contratos en estado `agreed`. No se creo documento de firma contractual, garante ficticio, autenticacion ficticia ni evento de cobro en esta verificacion. Ningun credito consumido por el flujo.
+- **Proximo gate antes de la UNICA prueba paga autorizada:** completar un expediente QA genuino con propietario/inquilino/garante de prueba autorizados; autenticar cuentas propias, asociar documento/garantia, informes y aprobacion, verificar datos del contrato + pago, demostrar el mapeo de cada participante a su URL Signatura sin crear documentos extra. Aun no hay expediente de garante que cumpla esos requisitos. No usar arbitrariamente un contrato `agreed` historico ni marcarlo como firmado. Sin mails externos configurados, la activacion del garante sigue pendiente.
+- Los flags `SIGNATURA_CONTRACT_QA_ENABLED`, `SIGNATURA_SIGNER_BINDING_CERTIFIED`, `SIGNATURA_GUARANTOR_CLAUSE_APPROVED` y `SIGNATURA_CONTRACT_IDENTITY_BINDING_CERTIFIED` siguen como gates a certificar antes de consumo; no activarlos basados solamente en build verde. Sin cambios a main, Supabase produccion ni Vercel Production.
+
+---
+
 ## Autorización de prueba paga Signatura — 27/11/2026 | PREFLIGHT GRATUITO, SIN CRÉDITOS CONSUMIDOS
 
 El titular autorizó **una única prueba real de un documento Signatura con hasta tres firmantes**, **solo** tras pasar verificaciones gratuitas, sin reintentos automáticos, y sin consumir créditos por fallas previsibles. **El documento NO se creó** en esta intervención: no se realizó llamada `POST /documents/create` ni se modificaron datos de producción.
