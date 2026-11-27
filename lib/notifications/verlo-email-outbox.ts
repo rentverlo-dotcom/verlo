@@ -32,7 +32,7 @@ export async function enqueueVerloEmail(input: EnqueueInput): Promise<"disabled"
   const email = (input.recipientEmail || "").trim().toLowerCase()
   if (!supported?.includes(input.eventType)
     || !input.eventKey.trim()
-    || !["owner", "tenant"].includes(input.recipientRole)
+    || !["owner", "tenant", "guarantor"].includes(input.recipientRole)
     || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return "invalid"
 
   const { error } = await supabaseAdmin.from("verlo_email_outbox").insert({

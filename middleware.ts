@@ -20,6 +20,90 @@ export async function middleware(request: NextRequest) {
       'https://bmgrpcqrdvwculrisasi.supabase.co'
   if (production) return NextResponse.next()
 
+  // Signatura QA needs the existing Mi VERLO dashboard to load before the
+  // authenticated tenant can start identity verification. This exact GET is
+  // independently protected by Supabase Auth inside /api/mi-verlo.
+  // The original qa/verlo-e2e and production allowlists are unchanged.
+  if (request.method === 'GET' && path === '/api/mi-verlo' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
+  // Mi VERLO loads these existing read-only panels alongside the Signatura
+  // identity card. Permit only exact GET paths on this isolated QA branch.
+  // Each handler independently authenticates with Supabase and enforces
+  // ownership; none of their write methods or production routes are opened.
+  if (request.method === 'GET' &&
+      [
+        '/api/identik/my-signing',
+        '/api/identik/my-signed',
+        '/api/powermarket/my-status',
+        '/api/powermarket/my-quote',
+        '/api/powermarket/owner-status',
+      ].includes(path) &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
+  // Initial tenant-only Signatura declaration. Explicitly authorized in QA;
+  // handler checks the authenticated VERLO tenant and user confirmation.
+  if (request.method === 'POST' && path === '/api/signatura/identity-start' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
+  // The authenticated tenant may request only their own pending signing URL.
+  // The route enforces Supabase Auth, tenant role and document ownership.
+  if (request.method === 'GET' && path === '/api/signatura/my-signing-url' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
+  // QA read-only response shape diagnostic. Returns only non-sensitive field
+  // names from one existing completed demo, never document contents or URLs.
+  if (request.method === 'GET' && path === '/api/qa/signatura-response-shape' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
+  // Isolated reconciliation probe: Supabase Auth required inside route;
+  // cannot mark anyone verified until biometrics approval is certified.
+  if (request.method === 'POST' && path === '/api/signatura/identity-reconcile' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
+  // Authenticated Signatura tenant identity status. Handler verifies Supabase Auth
+  // and returns no private document or biometric identifiers.
+  if (request.method === 'GET' && path === '/api/signatura/identity-status' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL) {
+    return NextResponse.next()
+  }
+
+  // Isolated Signatura QA webhook. Its handler verifies the HMAC and persists
+  // only minimal event metadata. All existing QA and production rules remain.
+  if (request.method === 'POST' && path === '/api/webhooks/signatura' &&
+      process.env.VERCEL_ENV === 'preview' &&
+      process.env.VERCEL_GIT_COMMIT_REF === 'feature/signatura-qa-integration' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === QA_URL &&
+      process.env.SIGNATURA_WEBHOOK_QA_ENABLED === 'true') {
+    return NextResponse.next()
+  }
+
   if (verified && request.method === 'GET' && path === '/buscar') {
     return NextResponse.redirect(new URL('/permanentes', request.url), 307)
   }

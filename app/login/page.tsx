@@ -672,8 +672,14 @@ export default function LoginPage() {
                * El alta real ocurre desde el
                * formulario + /success.
                */
+              // Only the pre-registered Signatura E2E tester may
+              // complete first-time Supabase Auth signup in isolated QA.
+              // Production and all other addresses keep signup disabled.
               shouldCreateUser:
-                false,
+                window.location.hostname ===
+                  "verlopunto0-git-feature-signatu-009bb9-verlos-projects-b9e9c595.vercel.app" &&
+                email.trim().toLowerCase() ===
+                  "juanmanueloddone74@gmail.com",
 
               emailRedirectTo:
                 redirectTo,
@@ -702,8 +708,14 @@ export default function LoginPage() {
         error
       )
 
+      const authError = error as { status?: number; code?: string; message?: string } | null
+      const limited = authError?.status === 429 ||
+        authError?.code === "over_email_send_rate_limit" ||
+        authError?.code === "over_request_rate_limit"
       setError(
-        "No pudimos enviarte el acceso. Revisá que estés usando el mismo email con el que te registraste en Verlo."
+        limited
+          ? "Supabase alcanzó el límite de correos de prueba. No es un problema con tu cuenta. Evitá pedir más enlaces hasta que se restablezca el cupo."
+          : "No pudimos enviar el acceso. Revisá tu email o intentá nuevamente más tarde."
       )
     } finally {
       setLoading(

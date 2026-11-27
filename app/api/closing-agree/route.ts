@@ -482,6 +482,53 @@ export async function POST(
       )
     }
 
+    // Isolated Signatura QA: a guarantor's invitation is NOT owner approval.
+    // Do not allow tenant/owner acceptance of a stale or unreviewed contract.
+    if (
+      process.env.VERCEL_ENV === "preview" &&
+      process.env.VERCEL_GIT_COMMIT_REF === "feature/signatura-qa-integration" &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
+    ) {
+      const { data: guarantors, error: guarantorError } = await supabase
+        .from("contract_guarantors")
+        .select("full_name,dni,guarantee_kind,status,auth_user_id,review_status,document_revision,approved_revision,collateral_address,collateral_registration")
+        .eq("lead_contract_id", contract.id)
+        .limit(2)
+      if (guarantorError || (guarantors || []).length > 1) {
+        return NextResponse.json(
+          { ok: false, error: "No pudimos verificar la garantía del contrato." },
+          { status: 503 }
+        )
+      }
+      const guarantor = guarantors?.[0]
+      if (guarantor) {
+        if (
+          guarantor.status !== "accepted" ||
+          !guarantor.auth_user_id ||
+          guarantor.review_status !== "approved" ||
+          guarantor.approved_revision !== guarantor.document_revision
+        ) {
+          return NextResponse.json(
+            { ok: false, error: "La garantía debe estar aprobada por el propietario antes de aceptar el contrato." },
+            { status: 409 }
+          )
+        }
+        if (
+          !contract.content.includes(guarantor.full_name) ||
+          !contract.content.includes("DNI " + guarantor.dni) ||
+          (guarantor.guarantee_kind === "property" &&
+            (!guarantor.collateral_address || !guarantor.collateral_registration ||
+              !contract.content.includes(guarantor.collateral_address) ||
+              !contract.content.includes(guarantor.collateral_registration)))
+        ) {
+          return NextResponse.json(
+            { ok: false, error: "El contrato no refleja la garantía aprobada; regeneralo antes de aceptar." },
+            { status: 409 }
+          )
+        }
+      }
+    }
+
     // =========================================================
     // 6. REGISTRAR ACEPTACIÓN
     // =========================================================
