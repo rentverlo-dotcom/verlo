@@ -1,5 +1,23 @@
 # ACTUALIZACION MAESTRA — 25/11/2026 | Cierre MVP VERLO, hilo 4
 
+## DECISIÓN DE CIERRE — 27/11/2026 | SIETE HITOS HASTA META ADS, SIN NUEVO DESARROLLO
+
+El titular ordenó priorizar el paso de QA a producción y el encendido de campañas Meta Ads cuanto antes. El checklist operativo **reemplaza** las 34 verificaciones detalladas por **siete hitos bloqueantes y acotados**, sin agregar funciones: `docs/qa/preproduction-pending-checklist-2026-11-27.md` (commit `04341ed`).
+
+1. Integrar rama funcional Signatura + garante a QA principal de manera selectiva.
+2. Certificar Signatura contractual con única prueba paga controlada (preflight gratuito antes, no repetir biometría probada).
+3. Certificar correo VERLO (ZeptoMail y Auth) y Push esencial.
+4. Confirmar E2E operativo con PowerMarket y bloqueo de firma cuando falta pago/aprobación.
+5. Ejecutar UNA regresión comercial final de Tradicionales/Mi VERLO/MP y Temporarios/MP, sin rehacer pruebas ya aprobadas.
+6. Preparar y ejecutar, **solo tras revisión y autorización**, migración selectiva a `main` y producción, con backup, migraciones compatibles con pagos existentes de ARS 29.900 y rollback.
+7. Smoke `verlo.lat`, medir captación/conversión con PostHog y Meta Lead/Purchase, prender Meta Ads y monitorear operaciones.
+
+**No equivale a decir 7/44 pendientes:** el registro histórico reconoce 44 tareas congeladas pero no aporta inventario individual fiable. Esta es una lista ejecutiva de siete entregables de salida. No se vuelve a convertir cada prueba en un proyecto o tarea nueva. Mejoras cosméticas, SEO avanzado, tableros adicionales y refactorizaciones preventivas quedan fuera. Únicamente arreglar defectos comprobados que impidan operar con seguridad, cobro y firma.
+
+**Evidencia al fijar alcance:** `feature/signatura-qa-integration` `f6f9dc0` READY y Actions offline SUCCESS, sin firma contractual E2E; `qa/verlo-e2e` HEAD `107341e` antes de documento, `main` `4451d71` sin migrar. No se hizo merge a `main`, no se tocaron datos de producción ni se consumieron créditos Signatura en esta tarea.
+
+---
+
 ## Checklist de verificaciones QA pendientes antes de producción — 27/11/2026
 
 - Checklist operativo congelado guardado en [`docs/qa/preproduction-pending-checklist-2026-11-27.md`](preproduction-pending-checklist-2026-11-27.md), commit `85c3b87`: **34 verificaciones pendientes en siete frentes**, basadas en el alcance MVP existente. **No confundir 34 verificaciones agrupadas con 34 tareas restantes del listado original de 44**, que no está desglosado de forma íntegra y auditable en los documentos maestros revisados.
