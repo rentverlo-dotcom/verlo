@@ -34,7 +34,7 @@ export default function MyCaucionStatus(){
  }
  if(loading||(!items.length&&!error))return null
  return <section style={{background:"#fff",border:"1px solid rgba(5,0,2,.10)",borderRadius:22,padding:22,margin:"20px 0",color:"#050002"}}>
- <h2 style={{fontSize:24,margin:"0 0 12px"}}>Mi caución</h2>\n <p style={{fontSize:13,lineHeight:1.6,margin:"0 0 12px"}}>VERLO consulta tu solicitud con la compañía aseguradora. La respuesta suele llegar en unas 3 horas desde el envío. Te avisaremos cuando haya novedades.</p>
+ <h2 style={{fontSize:24,margin:"0 0 12px"}}>Mi caución</h2>\n <p style={{fontSize:13,lineHeight:1.6,margin:"0 0 12px"}}>PowerMarket, broker de seguros asociado a VERLO, gestiona el seguimiento de tu solicitud con la compañía aseguradora. Te avisaremos cuando haya novedades. El pago de la caución se realiza por fuera de VERLO, con la entidad correspondiente.</p>
  {error?<p>{error}</p>:items.map(item=><div key={item.id} style={{padding:"12px 0",borderTop:"1px solid #eee6e8"}}>
  <strong>{labels[item.status]||item.status}</strong>
  <p style={{margin:"6px 0"}}>Importe solicitado: {money(Number(item.requested_rent_ars)+Number(item.estimated_expenses_ars))} mensuales (alquiler + expensas).</p>

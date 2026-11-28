@@ -14,7 +14,7 @@ export async function POST(request:Request){
   const auth=await authorizeTemporaryWrite(request,"owner")
   if("status" in auth)return reply(auth.status,{ok:false,error:auth.error})
   const config=getTemporaryStorageConfig(process.env)
-  if(!config||process.env.VERCEL_GIT_COMMIT_REF!=="feature/temporarios")
+  if(!config)
     return reply(503,{ok:false,error:"Almacenamiento temporal no habilitado"})
   let input:{propertyId?:unknown;mimeType?:unknown;bytes?:unknown}
   try{input=await request.json()}catch{return reply(400,{ok:false,error:"Solicitud inválida"})}

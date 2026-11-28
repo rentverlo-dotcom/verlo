@@ -1,6 +1,7 @@
 import {createHmac,timingSafeEqual} from "node:crypto"
 import {NextRequest,NextResponse} from "next/server"
 import {createClient} from "@supabase/supabase-js"
+import {recordVerifiedCommercialEvent} from "@/lib/posthog-server"
 export const runtime="nodejs"
 export const dynamic="force-dynamic"
 const reply=(status:number,data:object)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}})
@@ -19,7 +20,11 @@ function validSignature(request:NextRequest,id:string,secret:string){
  return received.length===expected.length&&timingSafeEqual(expected,received)
 }
 export async function POST(request:NextRequest){
- const isPreview=process.env.VERCEL_ENV==="preview"&&process.env.VERCEL_GIT_COMMIT_REF==="feature/temporarios"
+ const isPreview=process.env.VERCEL_ENV==="preview"&&(
+  process.env.VERCEL_GIT_COMMIT_REF==="feature/temporarios" ||
+  (process.env.VERCEL_GIT_COMMIT_REF==="qa/verlo-e2e" &&
+   process.env.NEXT_PUBLIC_SUPABASE_URL==="https://anptswspguyotnasoacq.supabase.co")
+ )
  const isProduction=process.env.VERCEL_ENV==="production"&&process.env.TEMPORARY_PUBLIC_ENABLED==="true"&&process.env.TEMPORARY_DB_WRITES_ENABLED==="true"
  if(!isPreview&&!isProduction)return reply(404,{ok:false})
  const secret=process.env.TEMPORARY_MP_WEBHOOK_SECRET
@@ -54,5 +59,9 @@ export async function POST(request:NextRequest){
   p_attempt_id:attemptId,p_mp_payment_id:id,p_amount:49999,p_currency:"ARS",p_mp_status:status
  })
  if(result.error)return reply(503,{ok:false,error:"No se pudo registrar la verificación"})
+ if(status==="approved")await recordVerifiedCommercialEvent({
+  event:"verlo_temporary_fee_approved",reference:attemptId,businessLine:"temporarios",
+  amountArs:Number(attempt.data.amount_ars),paymentReceiver:"verlo"
+ })
  return reply(200,{ok:true,status,verified:true})
 }

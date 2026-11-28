@@ -18,81 +18,12 @@ const OWNER_PHOTO_1 = `verlo-owner-${RUN_ID}-1.png`
 const OWNER_PHOTO_2 = `verlo-owner-${RUN_ID}-2.png`
 const OWNER_PHOTO_3 = `verlo-owner-${RUN_ID}-3.png`
 
-test(
-  "GHL WhatsApp es best-effort y un fallo nunca lanza excepción",
-  async () => {
-    const previousPrimary =
-      process.env
-        .GHL_WHATSAPP_WEBHOOK_URL
-
-    const previousFallback =
-      process.env
-        .GHL_WEBHOOK_URL
-
-    process.env
-      .GHL_WHATSAPP_WEBHOOK_URL =
-      "http://127.0.0.1:1/ghl-unavailable"
-
-    delete process.env
-      .GHL_WEBHOOK_URL
-
-    try {
-      const result =
-        await sendWhatsApp({
-          to:
-            "5491112345678",
-          role:
-            "tenant",
-          template:
-            "e2e_ghl_failure",
-          eventKey:
-            `e2e_ghl_failure:${Date.now()}`,
-          eventType:
-            "e2e_ghl_failure",
-          leadId:
-            "e2e-lead",
-          title:
-            "Verlo",
-          body:
-            "Prueba best effort",
-          url:
-            "/mi-verlo",
-        })
-
-      expect(
-        result.success
-      ).toBe(false)
-
-      expect(
-        result.provider
-      ).toBe("ghl")
-    } finally {
-      if (
-        previousPrimary ===
-        undefined
-      ) {
-        delete process.env
-          .GHL_WHATSAPP_WEBHOOK_URL
-      } else {
-        process.env
-          .GHL_WHATSAPP_WEBHOOK_URL =
-          previousPrimary
-      }
-
-      if (
-        previousFallback ===
-        undefined
-      ) {
-        delete process.env
-          .GHL_WEBHOOK_URL
-      } else {
-        process.env
-          .GHL_WEBHOOK_URL =
-          previousFallback
-      }
-    }
-  }
-)
+test("WhatsApp/GHL está permanentemente deshabilitado y no hace llamadas externas", async () => {
+  const result = await sendWhatsApp({template:"disabled",to:"5491112345678"})
+  expect(result).toMatchObject({
+    provider:"disabled",success:false,skipped:true,error:"WHATSAPP_DISABLED",
+  })
+})
 
 test(
   "Owner media selector acumula y evita duplicados en /propietarios",

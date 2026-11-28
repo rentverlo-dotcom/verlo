@@ -27,9 +27,11 @@ export async function POST(request: Request) {
     const detail = error.message || ""
     if (detail.includes("not_authorized")) return respond(403, { ok: false, error: "No podés confirmar por esta parte" })
     if (detail.includes("dates_unavailable")) return respond(409, { ok: false, error: "Las fechas ya están reservadas" })
+    if (detail.includes("deposit_not_confirmed")) return respond(409, { ok: false, error: "Falta confirmar la recepción del depósito" })
+    if (detail.includes("reservation_changed")) return respond(409, { ok: false, error: "Las fechas o las condiciones cambiaron; revisá la reserva" })
     if (detail.includes("payment_required") || detail.includes("terms_required") ||
         detail.includes("match_not_accepted") || detail.includes("reservation_not_found") ||
-        detail.includes("invalid_dates")) return respond(409, { ok: false, error: "Esta reserva todavía no puede confirmarse" })
+        detail.includes("property_not_found") || detail.includes("invalid_dates")) return respond(409, { ok: false, error: "Esta reserva todavía no puede confirmarse" })
     return respond(503, { ok: false, error: "No pudimos confirmar la reserva" })
   }
   return respond(200, { ok: true, reservation: data })

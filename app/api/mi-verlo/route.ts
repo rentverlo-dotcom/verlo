@@ -1520,9 +1520,19 @@ export async function GET(
               counterpartId
             )
 
-          return !isAutomatedTestEmail(
-            counterpart?.email
-          )
+          // In isolated QA only, synthetic authenticated users must be
+          // able to see their synthetic matches for end-to-end validation.
+          // Never enable this exception for real accounts or production.
+          const qaSyntheticViewer =
+            process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e" &&
+            process.env.NEXT_PUBLIC_SUPABASE_URL ===
+              "https://anptswspguyotnasoacq.supabase.co" &&
+            identityEmail.endsWith("@example.com")
+          const qaSyntheticCounterpart =
+            isAutomatedTestEmail(counterpart?.email)
+
+          return (qaSyntheticViewer && qaSyntheticCounterpart) ||
+            !isAutomatedTestEmail(counterpart?.email)
         }
       )
 

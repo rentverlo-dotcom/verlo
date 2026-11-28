@@ -11,6 +11,8 @@ import {
 import {
   supabaseAdmin,
 } from "@/lib/supabase/admin"
+import { decideMpContractPayment } from "@/lib/payments/mercadopago-contract-state"
+import { recordVerifiedCommercialEvent } from "@/lib/posthog-server"
 
 export const runtime =
   "nodejs"
@@ -323,7 +325,9 @@ export async function POST(
           amount,
           currency,
           status,
-          approved_at
+          approved_at,
+          provider,
+          provider_payment_id
         `)
         .eq(
           "id",
@@ -347,70 +351,54 @@ export async function POST(
       )
     }
 
-    const paymentAmount =
-      Number(
-        payment
-          .transaction_amount
-      )
+    // Repair a partially processed approved notification on replay too.
+    // Idempotent: an already paid match keeps its original paid timestamp.
+    const syncApprovedMatch = async (approvedAt: string) => {
+      const result = await supabaseAdmin.from("lead_matches")
+        .update({ tenant_paid_at: approvedAt })
+        .eq("id", storedPayment.lead_match_id)
+        .eq("tenant_lead_id", storedPayment.tenant_lead_id)
+        .is("tenant_paid_at", null)
+      if (result.error) throw result.error
+    }
 
-    const storedAmount =
-      Number(
-        storedPayment
-          .amount
-      )
+    const decision = decideMpContractPayment({
+      storedProvider: storedPayment.provider,
+      storedStatus: storedPayment.status,
+      storedProviderPaymentId: storedPayment.provider_payment_id,
+      storedAmount: Number(storedPayment.amount),
+      storedCurrency: storedPayment.currency,
+      notificationId: paymentId,
+      paymentId: payment.id,
+      paymentAmount: Number(payment.transaction_amount),
+      paymentCurrency: clean(payment.currency_id),
+      paymentStatus: clean(payment.status),
+    })
 
-    const currency =
-      clean(
-        payment
-          .currency_id
-      )
-
-    if (
-      !Number.isFinite(
-        paymentAmount
-      ) ||
-      paymentAmount !==
-        storedAmount ||
-      currency !==
-        storedPayment
-          .currency
-    ) {
-      await supabaseAdmin
-        .from(
-          "lead_payments"
-        )
-        .update({
-          status:
-            "amount_mismatch",
-
-          provider_payment_id:
-            clean(
-              payment.id
-            ) ||
-            null,
-
-          raw_payload:
-            payment,
-
-          updated_at:
-            new Date()
-              .toISOString(),
-        })
-        .eq(
-          "id",
-          storedPayment.id
-        )
-
+    if (decision === "reject_reference") {
       return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Payment amount or currency mismatch",
-        },
-        {
-          status: 409,
-        }
+        { ok: false, error: "Payment reference mismatch" },
+        { status: 409 }
       )
+    }
+    if (decision === "duplicate") {
+      await syncApprovedMatch(storedPayment.approved_at || new Date().toISOString())
+      return NextResponse.json({
+        ok: true, status: "approved", payment_id: storedPayment.id,
+        already_processed: true,
+      })
+    }
+    if (decision === "reject_amount") {
+      // Mismatched amount or currency must never unlock the contract.
+      return NextResponse.json(
+        { ok: false, error: "Payment amount or currency mismatch" },
+        { status: 409 }
+      )
+    }
+    if (decision === "ignore_status") {
+      return NextResponse.json({
+        ok: true, ignored: true, reason: "unsupported_payment_status",
+      })
     }
 
     const status =
@@ -439,6 +427,7 @@ export async function POST(
             .approved_at
 
     const {
+      data: updatedRows,
       error:
         paymentUpdateError,
     } =
@@ -468,6 +457,8 @@ export async function POST(
           "id",
           storedPayment.id
         )
+        .neq("status", "approved")
+        .select("id")
 
     if (
       paymentUpdateError
@@ -475,39 +466,32 @@ export async function POST(
       throw paymentUpdateError
     }
 
-    if (
-      status ===
-      "approved"
-    ) {
-      const {
-        error:
-          matchUpdateError,
-      } =
-        await supabaseAdmin
-          .from(
-            "lead_matches"
-          )
-          .update({
-            tenant_paid_at:
-              approvedAt ||
-              now,
-          })
-          .eq(
-            "id",
-            storedPayment
-              .lead_match_id
-          )
-          .eq(
-            "tenant_lead_id",
-            storedPayment
-              .tenant_lead_id
-          )
-
-      if (
-        matchUpdateError
-      ) {
-        throw matchUpdateError
+    // The update is conditional: another webhook may have approved this
+    // payment after our initial read. Never downgrade that approved state.
+    if (!updatedRows?.length) {
+      const latest = await supabaseAdmin.from("lead_payments")
+        .select("status").eq("id", storedPayment.id).maybeSingle()
+      if (latest.error) throw latest.error
+      if (latest.data?.status === "approved") {
+        await syncApprovedMatch(storedPayment.approved_at || now)
+        return NextResponse.json({
+          ok: true, status: "approved", payment_id: storedPayment.id,
+          already_processed: true,
+        })
       }
+      return NextResponse.json({ ok: false, error: "Concurrent payment update" }, { status: 409 })
+    }
+
+    if (status === "approved") {
+      await syncApprovedMatch(approvedAt || now)
+      // Verified and newly approved by this webhook, not a browser click.
+      await recordVerifiedCommercialEvent({
+        event: "verlo_traditional_payment_approved",
+        reference: storedPayment.id,
+        businessLine: "tradicionales",
+        amountArs: Number(storedPayment.amount),
+        paymentReceiver: "verlo",
+      })
     }
 
     return NextResponse.json({

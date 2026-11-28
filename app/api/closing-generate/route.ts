@@ -11,6 +11,7 @@ import {
   notifyLeadOnce,
 } from "@/lib/lead-notifications"
 import { autoPublishPowerMarketReview } from "@/lib/powermarket/auto-publish-review"
+import { traditionalContractPurpose, traditionalContractTitle, traditionalContractDestination } from "@/lib/contracts/traditional-purpose"
 
 export const runtime =
   "nodejs"
@@ -2236,12 +2237,23 @@ export async function POST(
     // 16. GENERAR CONTRATO
     // =========================================================
 
+    // Use the original classification supplied by the owner lead, not the
+    // listing fallback that normalizes PH and local to apartment.
+    let purpose: ReturnType<typeof traditionalContractPurpose>
+    try {
+      purpose = traditionalContractPurpose(owner.property_type)
+    } catch {
+      return NextResponse.json({ ok: false, error: "El tipo de propiedad no permite generar este contrato." }, { status: 409 })
+    }
+    const contractTitle = traditionalContractTitle(purpose)
+    const destination = traditionalContractDestination(purpose)
+
     const content = `
-CONTRATO DE LOCACIÓN DE VIVIENDA
+${contractTitle}
 
 PRELIMINAR — LUGAR, FECHA Y PARTES
 
-En ${signingLocation}, a los ${today.day} días del mes de ${currentMonthName} de ${today.year}, entre ${owner.full_name}, ${ownerDocumentText}, de estado civil ${ownerCivilStatus}, con domicilio legal en ${ownerLegalFullAddress}, teléfono ${ownerPhone || "no informado"} y domicilio electrónico ${ownerEmail || "no informado"}, ${ownerCharacter}, en adelante “EL LOCADOR”, por una parte; y ${tenant.full_name}, ${tenantDocumentText}, de estado civil ${tenantCivilStatus}, con domicilio legal en ${tenantLegalFullAddress}, teléfono ${tenantPhone || "no informado"} y domicilio electrónico ${tenantEmail || "no informado"}, en adelante “EL LOCATARIO”, por la otra; ambas partes manifiestan contar con capacidad suficiente para contratar y acuerdan celebrar el presente CONTRATO DE LOCACIÓN DE VIVIENDA, sujeto a las siguientes cláusulas y condiciones.
+En ${signingLocation}, a los ${today.day} días del mes de ${currentMonthName} de ${today.year}, entre ${owner.full_name}, ${ownerDocumentText}, de estado civil ${ownerCivilStatus}, con domicilio legal en ${ownerLegalFullAddress}, teléfono ${ownerPhone || "no informado"} y domicilio electrónico ${ownerEmail || "no informado"}, ${ownerCharacter}, en adelante “EL LOCADOR”, por una parte; y ${tenant.full_name}, ${tenantDocumentText}, de estado civil ${tenantCivilStatus}, con domicilio legal en ${tenantLegalFullAddress}, teléfono ${tenantPhone || "no informado"} y domicilio electrónico ${tenantEmail || "no informado"}, en adelante “EL LOCATARIO”, por la otra; ambas partes manifiestan contar con capacidad suficiente para contratar y acuerdan celebrar el presente ${contractTitle}, sujeto a las siguientes cláusulas y condiciones.
 
 PRIMERA — OBJETO
 
@@ -2255,9 +2267,9 @@ EL LOCATARIO declara haber tenido oportunidad de conocer y revisar el inmueble y
 
 SEGUNDA — DESTINO
 
-EL LOCATARIO destinará el inmueble exclusivamente a vivienda propia y de las personas que integren su grupo conviviente o familiar, salvo autorización expresa y escrita de EL LOCADOR para un destino distinto permitido por la normativa aplicable.
+${destination.use}
 
-Queda prohibido destinar el inmueble a actividades ilícitas o incompatibles con su carácter habitacional y con las normas de convivencia, reglamentos y disposiciones aplicables.
+${destination.restrictions}
 
 TERCERA — PLAZO
 
@@ -2339,7 +2351,7 @@ DÉCIMA TERCERA — CESIÓN, SUBLOCACIÓN Y OCUPACIÓN POR TERCEROS
 
 EL LOCATARIO no podrá ceder su posición contractual ni sublocar total o parcialmente el inmueble sin consentimiento de EL LOCADOR cuando dicho consentimiento resulte exigible conforme lo pactado y la legislación aplicable.
 
-La ocupación del inmueble deberá respetar el destino habitacional convenido y las normas de convivencia correspondientes.
+${destination.occupation}
 
 DÉCIMA CUARTA — GARANTÍA
 

@@ -29,9 +29,14 @@ export async function authorizeTemporaryWrite(
     process.env.VERCEL_ENV === "production" &&
     process.env.TEMPORARY_PUBLIC_ENABLED === "true"
 
+  // Isolated E2E: two real Supabase Auth accounts in QA DB, exclusively
+  // synthetic example.com emails. This does not enable customer writes.
+  const isQa = process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e" &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
+
   if (
-    (!isPreview && !isProduction) ||
-    process.env.TEMPORARY_DB_WRITES_ENABLED !== "true"
+    (!isPreview && !isProduction && !isQa) ||
+    (!isQa && process.env.TEMPORARY_DB_WRITES_ENABLED !== "true")
   ) {
     return {
       ok: false,
@@ -81,6 +86,10 @@ export async function authorizeTemporaryWrite(
       status: 401,
       error: "Verified login required",
     }
+  }
+
+  if (isQa && !data.user.email.toLowerCase().endsWith("@example.com")) {
+    return { ok: false, status: 403, error: "QA users only" }
   }
 
   return {

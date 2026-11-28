@@ -1548,6 +1548,16 @@ function haversineKm(
     return null
   }
 
+  // (0, 0) is a missing-coordinate sentinel in historical CABA
+  // georef records, NOT a valid point near Argentina. Reject invalid
+  // coordinates rather than matching unrelated locations at 0 km.
+  const valid = (loc: NeighborhoodLocation) =>
+    loc.latitude !== null && loc.longitude !== null &&
+    Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude) &&
+    Math.abs(loc.latitude) <= 90 && Math.abs(loc.longitude) <= 180 &&
+    !(loc.latitude === 0 && loc.longitude === 0)
+  if (!valid(a) || !valid(b)) return null
+
   const toRad = (
     value: number
   ) =>
@@ -1850,16 +1860,17 @@ function getNeighborhoodCompatibility({
     const tenantLocation
     of tenantLocations
   ) {
+    // Adjacency configuration uses historic neighborhood names (e.g.
+    // "flores" / "caballito"), whereas new intake stores canonical Georef
+    // keys (e.g. "ar:02:caba:flores"). Preserve both representations.
+    const compatibilitySlug = (loc: NeighborhoodLocation) =>
+      loc.neighborhood_slug.startsWith("ar:") && loc.locality_name
+        ? normalizeText(loc.locality_name)
+        : loc.neighborhood_slug
     const relationship =
       compatibilityMap
-        .get(
-          tenantLocation
-            .neighborhood_slug
-        )
-        ?.get(
-          ownerLocation
-            .neighborhood_slug
-        )
+        .get(compatibilitySlug(tenantLocation))
+        ?.get(compatibilitySlug(ownerLocation))
 
     if (
       relationship
@@ -2216,11 +2227,7 @@ async function createLeadMatches({
   lead:
     MatchableLead
 }) {
-  if (
-    isAutomatedTestEmail(
-      lead.email
-    )
-  ) {
+  if (isAutomatedTestEmail(lead.email) && process.env.VERCEL_GIT_COMMIT_REF !== 'qa/verlo-e2e') {
     return {
       ok: true,
       created: 0,
@@ -2343,9 +2350,7 @@ async function createLeadMatches({
       ).filter(
         (ownerLead) => {
           return (
-            !isAutomatedTestEmail(
-              ownerLead.email
-            ) &&
+            (process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' ? isAutomatedTestEmail(ownerLead.email) : !isAutomatedTestEmail(ownerLead.email)) &&
             ownerLead
               .lead_quality !==
               "duplicate" &&
@@ -2361,18 +2366,23 @@ async function createLeadMatches({
         supabaseAdmin,
 
         leadIds:
-          [
-            lead.id,
-            ...ownerLeads.map(
-              (
-                ownerLead
-              ) =>
-                ownerLead.id
-            ),
-          ],
+          ownerLeads.map(
+            (ownerLead) =>
+              ownerLead.id
+          ),
 
         context:
           "owner_property",
+      })
+
+    // The new lead is a TENANT. It must be loaded from tenant_search;
+    // querying owner_property loses Georef metadata and coordinates,
+    // which silently prevents cross-neighborhood matches.
+    const tenantNeighborhoodMap =
+      await getLeadNeighborhoodLocations({
+        supabaseAdmin,
+        leadIds: [lead.id],
+        context: "tenant_search",
       })
 
     const matches:
@@ -2393,7 +2403,7 @@ async function createLeadMatches({
               )
 
             const tenantLocations =
-              ownerNeighborhoodMap
+              tenantNeighborhoodMap
                 .get(
                   lead.id
                 ) ||
@@ -2759,9 +2769,7 @@ async function createLeadMatches({
           tenantLead
         ) => {
           return (
-            !isAutomatedTestEmail(
-              tenantLead.email
-            ) &&
+            (process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' ? isAutomatedTestEmail(tenantLead.email) : !isAutomatedTestEmail(tenantLead.email)) &&
             tenantLead
               .lead_quality !==
               "duplicate" &&
@@ -4005,7 +4013,9 @@ const leadPayload = {
 
 // The transactional RPC is opt-in until its database migration is verified.
 // Never fall back to separate inserts if an enabled RPC fails.
-const useAtomicIntake = process.env.ATOMIC_LEAD_INTAKE_ENABLED === "true"
+const useAtomicIntake = process.env.ATOMIC_LEAD_INTAKE_ENABLED === 'true' ||
+  (process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' &&
+   process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://anptswspguyotnasoacq.supabase.co')
 let leadRecord: { id: string } | null = null
 if (useAtomicIntake) {
   const neighborhoodRows = buildLeadNeighborhoodRows({
@@ -4195,9 +4205,8 @@ if (
     }
 
 const isolatedQaIntake =
-  process.env.VERCEL_ENV === "preview" &&
-  process.env.ATOMIC_LEAD_INTAKE_ENABLED === "true" &&
-  isAutomatedTestEmail(email)
+  (process.env.VERCEL_GIT_COMMIT_REF === 'qa/verlo-e2e' && process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://anptswspguyotnasoacq.supabase.co' && isAutomatedTestEmail(email)) ||
+  (process.env.VERCEL_ENV === 'preview' && process.env.ATOMIC_LEAD_INTAKE_ENABLED === 'true' && isAutomatedTestEmail(email))
 
 const pushEvents = {
   intake:

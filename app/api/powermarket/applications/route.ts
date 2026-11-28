@@ -72,11 +72,13 @@ type TenantLead = {
   full_name: string | null
   email: string | null
   phone: string | null
+  source: string | null
 }
 
 type ApplicationRow = {
   id: string
   tenant_lead_id: string
+  tenant_user_id: string | null
   status: string
   requested_rent_ars: number
   estimated_expenses_ars: number
@@ -110,6 +112,7 @@ export async function GET(request: NextRequest) {
         [
           "id",
           "tenant_lead_id",
+          "tenant_user_id",
           "status",
           "requested_rent_ars",
           "estimated_expenses_ars",
@@ -147,7 +150,7 @@ export async function GET(request: NextRequest) {
       const { data: leadData, error: leadError } =
         await ctx.db
           .from("lead_intake")
-          .select("id,full_name,email,phone")
+          .select("id,full_name,email,phone,source")
           .in("id", leadIds)
 
       if (leadError) throw leadError
@@ -159,11 +162,58 @@ export async function GET(request: NextRequest) {
       leads.map((lead) => [lead.id, lead])
     )
 
-    const results = applications.map((application) => ({
-      ...application,
-      tenant:
-        leadsById.get(application.tenant_lead_id) || null,
-    }))
+    // Partner-only identity summary: retrieve DNI only from the specific
+    // tenant's own contract data, or latest explicitly submitted verification.
+    // No documents, selfies, biometrics or private storage URLs are returned.
+    const userIds = Array.from(new Set(applications.map(row => row.tenant_user_id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0)))
+    const byUser = new Map<string, { first_name: string | null; last_name: string | null; dni: string | null }>()
+    if (userIds.length) {
+      const { data: identities, error: identitiesError } = await ctx.db
+        .from("user_contract_data").select("user_id,first_name,last_name,dni").in("user_id", userIds)
+      if (identitiesError) throw identitiesError
+      for (const identity of identities || []) byUser.set(identity.user_id, identity)
+    }
+    const byLead = new Map<string, string>()
+    if (leadIds.length) {
+      const { data: verifications, error: verificationError } = await ctx.db
+        .from("tenant_verifications").select("lead_id,document_number,created_at")
+        .in("lead_id", leadIds).order("created_at", { ascending: false }).limit(1000)
+      if (verificationError) throw verificationError
+      for (const verification of verifications || []) {
+        if (!byLead.has(verification.lead_id) && typeof verification.document_number === "string"
+            && verification.document_number.trim()) {
+          byLead.set(verification.lead_id, verification.document_number.trim())
+        }
+      }
+    }
+
+    // QA presentation: keep the explicitly labelled PowerMarket demo and
+    // legitimate non-QA leads, but hide automated synthetic E2E submissions.
+    // Do not delete or mutate test data; production is deliberately unchanged.
+    const qaPresentation =
+      process.env.VERCEL_ENV === "preview" &&
+      process.env.VERCEL_GIT_COMMIT_REF === "qa/verlo-e2e" &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL === "https://anptswspguyotnasoacq.supabase.co"
+
+    const results = applications
+      .filter((application) => {
+        if (!qaPresentation) return true
+        const source = leadsById.get(application.tenant_lead_id)?.source || ""
+        return source === "qa_demo_powermarket" || !source.startsWith("qa_")
+      })
+      .map((application) => ({
+        ...application,
+        tenant: {
+          ...(leadsById.get(application.tenant_lead_id) || {
+            id: application.tenant_lead_id, full_name: null, email: null, phone: null, source: null,
+          }),
+          first_name: application.tenant_user_id ? byUser.get(application.tenant_user_id)?.first_name || null : null,
+          last_name: application.tenant_user_id ? byUser.get(application.tenant_user_id)?.last_name || null : null,
+          dni: (application.tenant_user_id ? byUser.get(application.tenant_user_id)?.dni : null)
+            || byLead.get(application.tenant_lead_id) || null,
+        },
+      }))
 
     return NextResponse.json(
       {

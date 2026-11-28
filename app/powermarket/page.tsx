@@ -8,7 +8,7 @@ type Application = {
  id:string;tenant_lead_id:string;status:string;requested_rent_ars:number;estimated_expenses_ars:number;monthly_income_ars:number;
  duration_months:number;employment_type:string;has_co_tenant:boolean;co_tenant_income_ars:number|null;
  approved_max_total_ars:number|null;approved_max_rent_ars:number|null;decision_expires_at:string|null;created_at:string;
- tenant?:{full_name:string|null;email:string|null;phone:string|null}|null
+ tenant?:{full_name:string|null;first_name?:string|null;last_name?:string|null;dni?:string|null;email:string|null;phone:string|null}|null
 }
 type PolicyRow={id:string;status:string;quote_id:string;lead_contract_id:string;insurer_name:string|null;policy_number:string|null;issued_at:string|null}
 type QuoteRow={id:string;status:string;premium_ars:number|null;coverage_total_ars:number|null;valid_until:string|null}
@@ -21,13 +21,13 @@ const labels:Record<string,string>={submitted:"Nueva",under_review:"En evaluaci�
 const actions=[["under_review","En evaluación"],["more_info_required","Pedir documentación"],["prequalified","Precalificar"],["alternative_offered","Ofrecer otro monto"],["not_eligible","Rechazar"]]
 export default function PowerMarketDashboard(){
  const [items,setItems]=useState<Application[]>([]),[selected,setSelected]=useState<string|null>(null)
- const [error,setError]=useState(""),[loading,setLoading]=useState(true),[email,setEmail]=useState(""),[password,setPassword]=useState("")
+ const [error,setError]=useState(""),[loading,setLoading]=useState(true),[email,setEmail]=useState("")
  const [logged,setLogged]=useState(false),[busy,setBusy]=useState(false),[filter,setFilter]=useState("all"),[search,setSearch]=useState("")
+ const [notice,setNotice]=useState("")
  const [amount,setAmount]=useState(""),[note,setNote]=useState(""),[docs,setDocs]=useState<DocumentRow[]|null>(null)
  const [reviews,setReviews]=useState<ContractReview[]|null>(null)
  const [quotes,setQuotes]=useState<QuoteRow[]|null>(null)
  const [policies,setPolicies]=useState<PolicyRow[]|null>(null)
- const [openedReviewIds,setOpenedReviewIds]=useState<string[]>([])
  const current=items.find(item=>item.id===selected)||null
  const visible=useMemo(()=>items.filter(item=>(filter==="all"||item.status===filter)&&(!search||[item.tenant?.full_name,item.tenant?.email,item.tenant?.phone,item.id].some(v=>String(v||"").toLowerCase().includes(search.toLowerCase())))),[items,filter,search])
  const counts={new:items.filter(i=>i.status==="submitted").length,review:items.filter(i=>["under_review","more_info_required"].includes(i.status)).length,approved:items.filter(i=>["prequalified","alternative_offered"].includes(i.status)).length}
@@ -35,15 +35,65 @@ export default function PowerMarketDashboard(){
  async function refresh(){
   const access=await token()
   if(!access){setLogged(false);setLoading(false);return}
+  // QA: a verified email can self-activate only if it is explicitly allowlisted.
+  // The server keeps the operator-first rule and checks Supabase Auth identity.
+  if(process.env.NEXT_PUBLIC_SUPABASE_URL==="https://anptswspguyotnasoacq.supabase.co"){
+    const grant=await fetch("/api/qa/powermarket/access",{
+      method:"POST",headers:{Authorization:`Bearer ${access}`},cache:"no-store"
+    })
+    const verdict=await grant.json().catch(()=>({}))
+    if(!grant.ok){setError(verdict.error||"Acceso QA no autorizado");setItems([]);setLogged(false);setLoading(false);return}
+  }
   const res=await fetch("/api/powermarket/applications",{headers:{Authorization:`Bearer ${access}`},cache:"no-store"})
   const json=await res.json().catch(()=>({}))
   if(!res.ok){setError(json.error||"Acceso denegado");setItems([]);setLogged(false)}
   else{setError("");setItems(json.applications||[]);setLogged(true)}
   setLoading(false)
  }
- useEffect(()=>{void refresh()},[])
- function select(item:Application){trackPostHog("powermarket_application_opened",{area:"powermarket",role:"partner",status:item.status});setSelected(item.id);setDocs(null);setReviews(null);setQuotes(null);setPolicies(null);setOpenedReviewIds([]);setNote("");setAmount(String(item.approved_max_total_ars??""))}
- async function login(e:React.FormEvent){e.preventDefault();setError("");setBusy(true);const {error:err}=await supabase.auth.signInWithPassword({email,password});setBusy(false);if(err){setError("Credenciales incorrectas");return}setPassword("");setLoading(true);await refresh()}
+ useEffect(()=>{
+  // A VERLO-branded email opens this first-party page with a one-use hash.
+  // Never transmit or log the hash in analytics, referrers or API requests.
+  void (async()=>{
+    const hash=new URLSearchParams(window.location.hash.slice(1))
+    const tokenHash=hash.get("token_hash")
+    const linkType=hash.get("type")
+    if(tokenHash){
+      window.history.replaceState(null,"",window.location.pathname)
+      if(!["signup","magiclink"].includes(linkType||"")||!/^[a-f0-9]+$/i.test(tokenHash)){
+        setError("Enlace de VERLO inválido");setLoading(false);return
+      }
+      const {error:verifyError}=await supabase.auth.verifyOtp({
+        token_hash:tokenHash,type:linkType as "signup"|"magiclink",
+      })
+      if(verifyError){
+        setError("El enlace venció o ya se utilizó. Solicitá uno nuevo desde VERLO.")
+        setLoading(false);return
+      }
+      setNotice("Tu correo fue verificado. Accediendo al panel...")
+    }
+    await refresh()
+  })()
+ },[])
+ function select(item:Application){trackPostHog("powermarket_application_opened",{area:"powermarket",role:"partner",status:item.status});setSelected(item.id);setDocs(null);setReviews(null);setQuotes(null);setPolicies(null);setNote("");setAmount(String(item.approved_max_total_ars??""))}
+ async function requestVerloAccess(){
+  setError("");setNotice("")
+  const address=email.trim().toLowerCase()
+  if(!["rentverlo@gmail.com","mpagoto@pmb.com.ar"].includes(address)){
+    setError("Este acceso está reservado a usuarios autorizados de VERLO y PowerMarket.");return
+  }
+  setBusy(true)
+  try{
+    const response=await fetch("/api/qa/powermarket/invite",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email:address}),
+    })
+    const body=await response.json().catch(()=>({}))
+    if(!response.ok){setError(body.error||"No pudimos enviar el acceso");return}
+    setNotice("Te enviamos un enlace de acceso desde VERLO. Abrí ese correo para entrar al panel.")
+  }catch{setError("No pudimos comunicarnos con VERLO")}
+  finally{setBusy(false)}
+ }
+
  async function decide(status:string){
   if(!current||busy)return
   setBusy(true);setError("")
@@ -68,20 +118,8 @@ export default function PowerMarketDashboard(){
   const res=await fetch("/api/powermarket/contract-reviews/pdf",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({review_id:review.id})})
   const json=await res.json().catch(()=>({}))
   if(!res.ok||!json.url){win?.close();setError(json.error||"No se pudo abrir el PDF");return}
-  if(win){win.location.href=json.url;setOpenedReviewIds(prev=>prev.includes(review.id)?prev:[...prev,review.id])}
+  if(win){win.location.href=json.url}
   else setError("Permití ventanas emergentes para visualizar el PDF")
- }
- async function reviewDecision(review:ContractReview,decision:"approved"|"changes_requested"){
-  if(busy||!review.current||review.status!=="pending"||!openedReviewIds.includes(review.id))return
-  const detail=decision==="changes_requested"?window.prompt("Explicá qué debe corregirse en el contrato:",""):window.confirm("¿Aprobar esta versión exacta del contrato?")
-  if(detail===null||detail===false||(decision==="changes_requested"&&!String(detail).trim()))return
-  setBusy(true);setError("")
-  const access=await token()
-  const res=await fetch("/api/powermarket/contract-reviews",{method:"PATCH",headers:{"Content-Type":"application/json",Authorization:`Bearer ${access}`},body:JSON.stringify({id:review.id,expected_status:review.status,decision,note:typeof detail==="string"?detail:""})})
-  const json=await res.json().catch(()=>({}))
-  if(!res.ok)setError(json.error||"No se pudo registrar la revisión")
-  trackPostHog(res.ok?"powermarket_contract_review_completed":"powermarket_contract_review_failed",{area:"powermarket",role:"partner",decision})
-  await loadReviews();setBusy(false)
  }
  async function loadQuotes(){
   if(!current)return
@@ -181,13 +219,14 @@ export default function PowerMarketDashboard(){
    {logged&&<button style={button} onClick={async()=>{await supabase.auth.signOut();setLogged(false);setItems([]);setSelected(null)}}>Cerrar sesión</button>}
   </div>
   {error&&<p role="alert" style={{background:"#fff",border:"1px solid #c37986",borderRadius:10,padding:12,color:"#892b40"}}>{error}</p>}
+  {notice&&<p role="status" style={{background:"#fff",borderRadius:10,padding:12}}>{notice}</p>}
   {loading?<p style={{marginTop:28}}>Cargando…</p>:!logged?
-   <form onSubmit={login} style={{background:"#fff",maxWidth:420,padding:28,borderRadius:20,marginTop:32,display:"grid",gap:15}}>
+   <form onSubmit={e=>{e.preventDefault();void requestVerloAccess()}} style={{background:"#fff",maxWidth:420,padding:28,borderRadius:20,marginTop:32,display:"grid",gap:15}}>
     <h1 style={{fontSize:24,lineHeight:1.2,margin:0}}>Acceso privado</h1>
     <label>Email<input type="email" style={{...control,display:"block",marginTop:6}} required value={email} onChange={e=>setEmail(e.target.value)}/></label>
-    <label>Contraseña<input type="password" style={{...control,display:"block",marginTop:6}} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
-    <button style={button} disabled={busy}>Ingresar</button>
-    <small>Acceso exclusivo para operadores autorizados por VERLO.</small>
+    <button type="button" style={button} disabled={busy} onClick={()=>void requestVerloAccess()}>Enviar acceso desde VERLO</button>
+
+    <small>Recibirás un enlace personal desde VERLO. No se necesita contraseña.</small>
    </form>:
    <div style={{paddingTop:28}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:8,marginBottom:18}}>
@@ -215,7 +254,7 @@ export default function PowerMarketDashboard(){
     {current&&<section style={{background:"#fff",marginTop:18,padding:"22px",borderRadius:18,border:"1px solid #e7dde0"}}>
      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}><h2 style={{fontSize:21,margin:0}}>Ficha · {current.tenant?.full_name||"Interesado"}</h2><button style={button} onClick={()=>setSelected(null)}>Cerrar ficha</button></div>
      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:18,marginTop:20}}>
-      <div><strong>Contacto</strong><p>Email: {current.tenant?.email||"No informado"}<br/>Teléfono: {current.tenant?.phone||"No informado"}</p><p>Estado: {labels[current.status]||current.status}</p></div>
+      <div><strong>Identificación del solicitante</strong><p>Nombre y apellido: {([current.tenant?.first_name,current.tenant?.last_name].filter(Boolean).join(" ") || current.tenant?.full_name || "No informado")}<br/>DNI: {current.tenant?.dni || "No informado"}</p><p style={{fontSize:12,color:"#66565b"}}>DNI declarado o registrado; no implica validación biométrica.</p><strong>Contacto</strong><p>Email: {current.tenant?.email||"No informado"}<br/>Teléfono: {current.tenant?.phone||"No informado"}</p><p>Estado: {labels[current.status]||current.status}</p></div>
       <div><strong>Solicitud</strong><p>Alquiler: {money(current.requested_rent_ars)}<br/>Expensas: {money(current.estimated_expenses_ars)}<br/>Plazo: {current.duration_months} meses</p></div>
       <div><strong>Ingresos</strong><p>Declarados: {money(current.monthly_income_ars)}<br/>Tipo: {current.employment_type}<br/>Co-inquilino: {current.has_co_tenant?money(current.co_tenant_income_ars):"No"}</p></div>
      </div>
@@ -252,19 +291,15 @@ export default function PowerMarketDashboard(){
      </div>
      <div style={{borderTop:"1px solid #eee6e8",paddingTop:17,marginTop:8}}>
       <div style={{margin:"18px 0",padding:16,border:"1px solid #e7dde0",borderRadius:14}}>
-       <strong>Revisión de contrato para caución</strong>
-       <p style={{color:"#66565b",fontSize:12}}>Solo aplica a operaciones que solicitan caución mediante VERLO. La aprobación corresponde a una versión exacta del PDF.</p>
-       <button style={button} disabled={busy} onClick={()=>void loadReviews()}>Consultar contratos pendientes</button>
-       {reviews!==null&&(reviews.length===0?<p>Todavía no hay contratos vinculados a esta solicitud.</p>:reviews.map(r=><div key={r.id} style={{borderTop:"1px solid #e7dde0",marginTop:14,paddingTop:12}}>
+       <strong>Contrato de alquiler asociado</strong>
+       <p style={{color:"#66565b",fontSize:12}}>Etapa 2: cuando las partes generen su contrato, PowerMarket lo puede consultar aquí. Para habilitar la firma, PowerMarket debe confirmar el cobro de la caución desde «Confirmar operación»; no aprueba ni modifica cláusulas.</p>
+       <button style={button} disabled={busy} onClick={()=>void loadReviews()}>Consultar contratos</button>
+       {reviews!==null&&(reviews.length===0?<p>Etapa 1: todavía no hay contrato. PowerMarket puede precalificar la caución. Cuando propietario e inquilino generen el contrato en VERLO, aparecerá aquí automáticamente para consulta.</p>:reviews.map(r=><div key={r.id} style={{borderTop:"1px solid #e7dde0",marginTop:14,paddingTop:12}}>
          <strong>Contrato · versión {r.version}</strong>
-         <p>Estado: {r.status} · SHA-256: {r.pdf_sha256.slice(0,16)}…</p>
+         <p style={{fontSize:12,color:"#66565b"}}>Versión disponible para consulta</p>
          {r.partner_note&&<p>Observación: {r.partner_note}</p>}
          <button style={{...button,marginBottom:10}} disabled={busy} onClick={()=>void openReviewPdf(r)}>Abrir PDF privado</button>
-         {!r.current&&<p style={{fontWeight:750}}>Contrato modificado o versión reemplazada. No se puede aprobar.</p>}
-         {r.status==="pending"&&r.current?<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <button style={button} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"approved")}>Aprobar esta versión</button>
-          <button style={{...button,background:"#fff",color:"#050002",border:"1px solid #ddd5d7"}} disabled={busy||!openedReviewIds.includes(r.id)} onClick={()=>void reviewDecision(r,"changes_requested")}>Solicitar correcciones</button>
-         </div>:null}
+         {!r.current&&<p style={{fontWeight:750}}>Esta versión fue reemplazada. Consultá la vigente desde VERLO.</p>}
        </div>))}
       </div><button style={button} onClick={()=>void documents()}>Consultar comprobantes</button>
       {docs&&<div style={{marginTop:12}}>{docs.length===0?"No hay comprobantes cargados.":docs.map(doc=><div key={doc.id} style={{marginBottom:9}}><button style={{...button,background:"#f2ebec",color:"#050002"}} onClick={()=>void openDoc(doc.id)}>Abrir {doc.original_filename||doc.kind}</button></div>)}</div>}

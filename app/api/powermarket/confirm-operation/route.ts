@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { enqueueVerloEmailSafely } from "@/lib/notifications/verlo-email-outbox"
+import { recordVerifiedCommercialEvent } from "@/lib/posthog-server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -9,7 +11,7 @@ const uuid = (value: string) =>
 
 /** PowerMarket manually confirms it received the caucion payment.
  * This never charges the tenant, emits a policy, or pays commissions.
- * The atomic DB RPC validates the accepted quote and approved contract.
+ * The atomic DB RPC validates the accepted quote and linked rental contract.
  */
 export async function POST(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -68,6 +70,60 @@ export async function POST(req: NextRequest) {
     console.error("PowerMarket confirm operation failed", { code: error.code })
     return NextResponse.json({ error: "No se pudo confirmar la operación" }, { status: 503 })
   }
+
+  // Payment registration is the source of truth; notification delivery is
+  // noncritical and may be retried through the unique outbox event keys.
+  // This never sends external mail directly. QA only captures @example.com
+  // intents; production capture/dispatch remain separately gated by cutover.
+  try {
+    const { data: policy } = await db.from("caucion_policies")
+      .select("id,application_id,lead_contract_id,payment_confirmed_at")
+      .eq("id", policyId).eq("status", "payment_confirmed").maybeSingle()
+    if (policy?.payment_confirmed_at && policy.lead_contract_id) {
+      const { data: application } = await db.from("caucion_applications")
+        .select("tenant_lead_id").eq("id", policy.application_id).maybeSingle()
+      const { data: contract } = await db.from("lead_contracts")
+        .select("tenant_lead_id,owner_lead_id")
+        .eq("id", policy.lead_contract_id).maybeSingle()
+      if (application?.tenant_lead_id && contract &&
+          contract.tenant_lead_id === application.tenant_lead_id &&
+          contract.owner_lead_id) {
+        const participants = [
+          { leadId: application.tenant_lead_id, role: "tenant" as const },
+          { leadId: contract.owner_lead_id, role: "owner" as const },
+        ]
+        const { data: leads } = await db.from("lead_intake")
+          .select("id,email").in("id", participants.map(p => p.leadId))
+        const emailByLead = new Map((leads || []).map(p => [p.id, p.email]))
+        await Promise.all(participants.map(async p => {
+          const email = emailByLead.get(p.leadId)
+          if (!email) return
+          await enqueueVerloEmailSafely({
+            area: "powermarket",
+            eventType: "policy_payment_confirmed",
+            eventKey: "powermarket:policy_payment_confirmed:" + policy.id + ":" + p.role,
+            recipientEmail: email,
+            recipientRole: p.role,
+            url: "/mi-verlo",
+          })
+        }))
+      }
+    }
+  } catch (notificationError) {
+    // Never revert/duplicate a recorded payment because a notification failed.
+    console.error("Powermarket payment email capture failed", {
+      code: notificationError instanceof Error ? notificationError.name : "unknown",
+    })
+  }
+
+  // Partner received this money, not VERLO. Do not count it as VERLO sales revenue.
+  // The RPC has already validated and recorded the operation.
+  await recordVerifiedCommercialEvent({
+    event: "verlo_caucion_partner_payment_confirmed",
+    reference: policyId,
+    businessLine: "caucion",
+    paymentReceiver: "powermarket",
+  })
 
   return NextResponse.json({
     ok: true, operation: data, paid_to: "powermarket",

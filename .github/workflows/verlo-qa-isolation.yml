@@ -1,0 +1,447 @@
+# Manual QA certification trigger after stabilizing the shared preview SHA; no test logic changed.
+name: VERLO QA - isolation and traditional matching
+
+on:
+  push:
+    branches:
+      - qa/verlo-e2e
+    paths:
+      - '.github/workflows/verlo-qa-isolation.yml'
+      - 'tests/qa/**'
+      - 'playwright.qa.config.ts'
+      - 'middleware.ts'
+      - 'app/api/qa/**'
+      - 'app/api/lead-intake/route.ts'
+      - 'lib/qa/**'
+      - 'lib/meta/capi.ts'
+      - 'lib/notifications/**'
+      - 'lib/identik/**'
+      - 'app/api/webhooks/identik-electronic/route.ts'
+      - 'app/api/identik/my-signing/route.ts'
+      - 'app/api/identik/my-signed/route.ts'
+      - 'lib/identik/archive-artifacts.ts'
+      - 'components/identik/**'
+      - 'app/mi-verlo/page.tsx'
+      - 'lib/admin/**'
+      - 'app/admin/**'
+      - 'app/api/admin/dashboard/route.ts'
+      - 'app/control/page.tsx'
+      - 'app/investor/page.tsx'
+      - 'lib/push.ts'
+      - 'lib/email.ts'
+      - 'lib/contracts/traditional-purpose.ts'
+      - 'app/api/closing-generate/route.ts'
+      - 'lib/temporarios/contract-pdf.ts'
+      - 'lib/powermarket/contract-pdf.ts'
+      - 'tests/powermarket-pdf.spec.ts'
+      - 'tests/mercadopago-contract-webhook.spec.ts'
+      - 'tests/identik-release-guard.spec.ts'
+      - 'tests/identik-signing-links.spec.ts'
+      - 'tests/caucion-contract-discount.spec.ts'
+      - 'lib/payments/caucion-contract-discount.ts'
+      - 'lib/payments/mercadopago-contract-state.ts'
+      - 'app/api/webhooks/mercadopago/route.ts'
+      - 'app/layout.tsx'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  # Never cancel a diagnostic run simply because another commit or rerun starts.
+  # Each run still verifies the exact Vercel SHA before touching QA data.
+  group: verlo-qa-isolation-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  qa-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Checkout QA branch
+        uses: actions/checkout@v4
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Chromium with bounded network retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then
+              echo "Chromium and OS dependencies installed"
+              exit 0
+            fi
+            echo "::warning::Playwright dependencies unavailable (attempt $attempt of 3)"
+            getent hosts security.ubuntu.com || true
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Playwright installation failed after three attempts; no application tests executed"
+              exit 1
+            fi
+            sleep $((attempt * 15))
+          done
+      - name: Wait for exact QA commit deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 40); do
+            if curl -fsS --max-time 15 "$QA_BASE_URL/api/qa/status" | node -e "
+              let buf = '';
+              process.stdin.on('data', x => buf += x);
+              process.stdin.on('end', () => {
+                try {
+                  const status = JSON.parse(buf);
+                  if (!(status.ok && status.branch && status.database &&
+                    status.commit === process.env.GITHUB_SHA)) process.exit(1);
+                } catch { process.exit(1); }
+              });
+            "; then
+              echo "Verified QA branch, QA database, exact deployed SHA"
+              exit 0
+            fi
+            sleep 12
+          done
+          echo "QA deployment not ready for this exact commit"
+          exit 1
+      - name: Verify public Identik QA webhook is reachable and authenticated
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 25 -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/webhook-probe" | node -e "
+            let s='';
+            process.stdin.on('data', chunk => s += chunk);
+            process.stdin.on('end', () => {
+              let x; try { x=JSON.parse(s) } catch { process.exit(1) }
+              if (!(x.ok && x.qaOnly && x.externalNetworkRoundTrip &&
+                    x.webhookStatus === 200 && x.unknownDocumentIgnored &&
+                    x.noProviderDocumentsCreated)) {
+                console.error('Identik QA webhook not ready:', x.webhookStatus || x.error);
+                process.exit(1);
+              }
+              console.log('Identik QA webhook real HTTP 200, authenticated and isolated');
+            });
+          "
+
+      - name: Exercise synthetic match interest and contract double OK
+        shell: bash
+        run: |
+          set -euo pipefail
+          bodyfile="$(mktemp)"
+          trap 'rm -f "$bodyfile"' EXIT
+          for attempt in 1 2 3; do
+            token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+            status="$(curl -sS --max-time 120 -o "$bodyfile" -w '%{http_code}' -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/contracts/lifecycle")"
+            if [ "$status" = 200 ]; then break; fi
+            if [ "$status" != 403 ]; then
+              echo "::error::Contract lifecycle returned HTTP $status"
+              jq -c '{ok,qaOnly,error}' "$bodyfile" || true
+              exit 1
+            fi
+            echo "::warning::Contract lifecycle OIDC rejected before test execution (403), attempt $attempt"
+            if [ "$attempt" = 3 ]; then
+              echo "::error::Three fresh OIDC tokens rejected; no contract assertions ran"
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
+          node -e "
+            let input = '';
+            process.stdin.on('data', data => input += data);
+            process.stdin.on('end', () => {
+              let out;
+              try { out = JSON.parse(input); } catch { process.exit(1); }
+              if (!(out.ok && out.qaOnly && out.realApiHandlers &&
+                  out.noExternalDelivery && out.identityVerificationSimulated &&
+                  out.twoInterests && out.firstDoubleOk && out.draftPersisted &&
+                  out.contractTokenRoles === 2 && out.secondDoubleOk &&
+                  out.repeatIdempotent && out.bothLegalPartiesSaved &&
+                  out.ownDataProtected && out.legalUpdateIdempotent &&
+                  out.prematureAgreementDenied && out.invalidRentalPriceDenied &&
+                  out.completeContractContentGenerated && out.unpaidAgreementDenied &&
+                  out.qaPaymentSimulated && out.bothPartyAgreementsRecorded &&
+                  out.agreedLegalDataImmutable && out.agreementReplayIdempotent &&
+                  out.contractPdfPreflight && out.signingPreflightOnPersistedContract && typeof out.contractExamplePdfBase64 === 'string')) {
+                console.error('Synthetic contracts lifecycle failed:', out.error || 'assertions');
+                process.exit(1);
+              }
+              const fs = require('node:fs');
+              const pdf = Buffer.from(out.contractExamplePdfBase64, 'base64');
+              if (!pdf.subarray(0, 8).toString('ascii').startsWith('%PDF-1.4')) process.exit(1);
+              fs.mkdirSync('qa-evidence', { recursive: true });
+              fs.writeFileSync('qa-evidence/VERLO-contrato-QA-ejemplo.pdf', pdf);
+              console.log('QA example contract PDF saved as Playwright evidence');
+              console.log('Real contract handlers QA: first and second double OK, draft and idempotency verified');
+            });
+          " < "$bodyfile"
+      - name: Exercise real QA caucion submissions and concurrent idempotency
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 120 -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/powermarket/submission" | node -e "
+            let input = '';
+            process.stdin.on('data', part => input += part);
+            process.stdin.on('end', () => {
+              let data;
+              try { data = JSON.parse(input); } catch { process.exit(1); }
+              const flags = ['ok','qaOnly','actualHandlers','consentDenied','invalidTokenDenied',
+                'concurrentSameApplication','replayIdempotent','exactlyOneStoredApplication',
+                'matchingEconomicFields','exactlyOneAuditAndOnePushEvent','noExternalPartner'];
+              if (!flags.every(flag => data[flag] === true)) {
+                console.error('PowerMarket QA application submission failed:', data.error || data);
+                process.exit(1);
+              }
+              console.log('PowerMarket QA: real submission, concurrency and durable data verified');
+            });
+          "
+
+      - name: Exercise two real QA Auth users through Temporarios APIs, reservation and contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 120 -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/temporarios/lifecycle" | node -e "
+            let input = '';
+            process.stdin.on('data', chunk => input += chunk);
+            process.stdin.on('end', () => {
+              let result;
+              try { result = JSON.parse(input); } catch { process.exit(1); }
+              const required = ['ok','qaOnly','realTemporaryApiHandlers',
+                'twoAuthenticatedRoles','matchIdempotent','ownerTenantIsolation',
+                'doubleAcceptance','reservationTermsAccepted','unpaidConfirmationDenied',
+                'feeSimulated','verifiedFeeRpcSimulated','bilateralReservationConfirmed','notificationRecipientsVerified','notificationDeduplicated','contractAgreedByBoth',
+                'temporaryContractPdf','noRealPayment','noExternalNotifications'];
+              if (!required.every(key => result[key] === true)) {
+                console.error('Temporary QA lifecycle failed:', result.error || 'invalid assertion');
+                process.exit(1);
+              }
+              console.log('Temporary QA lifecycle PASS: real API handlers, two accounts, booking, agreed contract and PDF');
+            });
+          "
+      - name: Verify existing contractual PDF generator without external services
+        run: npx playwright test tests/powermarket-pdf.spec.ts --reporter=line
+      - name: Verify real QA Auth with two synthetic customer roles
+        shell: bash
+        run: |
+          set -euo pipefail
+          # GitHub supplies a short-lived, workflow-bound OIDC token. The server
+          # verifies signature, repository, workflow, ref and deployed SHA.
+          # Identity failure returns 403 before any synthetic users are created.
+          # Retry only that status with a fresh GitHub OIDC JWT, never a business failure.
+          bodyfile="$(mktemp)"
+          trap 'rm -f "$bodyfile"' EXIT
+          for attempt in 1 2 3; do
+            token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+            status="$(curl -sS --max-time 120 -o "$bodyfile" -w '%{http_code}' -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/mi-verlo/isolation")"
+            if [ "$status" = 200 ]; then break; fi
+            if [ "$status" != 403 ]; then
+              echo "::error::Mi VERLO QA isolation returned HTTP $status"
+              jq -c '{ok,error}' "$bodyfile" || true
+              exit 1
+            fi
+            echo "::warning::Mi VERLO QA OIDC rejected before fixture creation (403), attempt $attempt"
+            if [ "$attempt" = 3 ]; then
+              echo "::error::Three fresh OIDC tokens rejected; test was not executed"
+              exit 1
+            fi
+            sleep $((attempt * 3))
+          done
+          node -e "
+            let input = '';
+            process.stdin.on('data', chunk => input += chunk);
+            process.stdin.on('end', () => {
+              let result;
+              try { result = JSON.parse(input); } catch { process.exit(1); }
+              if (!(result.ok && result.qaOnly && result.realSupabaseAuth &&
+                    result.twoTemporaryUsers && result.ownerOnlyOwnData &&
+                    result.tenantOnlyOwnData && result.sharedMatchVisible)) {
+                console.error('Mi VERLO QA identity isolation failed:', result.error || 'assertions');
+                process.exit(1);
+              }
+              console.log('Mi VERLO real Auth: separate owner / tenant + shared match verified');
+            });
+          " < "$bodyfile"
+      - name: Verify Identik release and signing security gates without provider calls
+        run: npx playwright test tests/identik-release-guard.spec.ts --reporter=line
+      - name: Verify private Identik personal signing link safeguards
+        run: npx playwright test tests/identik-signing-links.spec.ts --reporter=line
+      - name: Verify Mercado Pago contract webhook states without sending payments
+        run: npx playwright test tests/mercadopago-contract-webhook.spec.ts --reporter=line
+      - name: Verify contract fee and PowerMarket 50 percent discount without network or charges
+        run: npx playwright test tests/caucion-contract-discount.spec.ts --reporter=line
+      - name: Verify PostHog funnel instrumentation and privacy without delivery
+        run: npx playwright test tests/posthog-funnel.spec.ts --reporter=line
+      - name: Run isolated QA Playwright suite
+        run: npx playwright test --config=playwright.qa.config.ts
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-e2e-playwright-evidence
+          path: |
+            qa-evidence/*.pdf
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  # Read-only Identik validation has no Chromium/apt dependency.
+  identik-sandbox-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Verify identical deployed QA commit and database
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 45); do
+            if curl -fsS --max-time 15 "$QA_BASE_URL/api/qa/status" | jq -e --arg sha "$GITHUB_SHA" '.ok == true and .branch == true and .database == true and .commit == $sha' >/dev/null; then
+              echo "QA deploy SHA and QA database confirmed"
+              exit 0
+            fi
+            sleep 12
+          done
+          echo "::error::Exact QA commit never reached Vercel"
+          exit 1
+      - name: Verify existing Identik signing links can be retrieved without sending invitations
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          bodyfile="$(mktemp)"
+          trap 'rm -f "$bodyfile"' EXIT
+          http_status="$(curl -sS --max-time 45 -o "$bodyfile" -w '%{http_code}' -H "Authorization: Bearer $token" "$QA_BASE_URL/api/qa/identik/signing-url-check")"
+          # Only publish a fixed allowlist of non-sensitive diagnostic fields.
+          # Never print personal signing URLs, email addresses or provider payloads.
+          jq -c '{ok,qaOnly,readOnly,error,noPendingSandboxDocument,providerRead,recipientsMatched,validSigningUrls,personalSigningUrlPresent}' "$bodyfile" || true
+          if [ "$http_status" != 200 ] || ! jq -e '
+            .ok == true and .qaOnly == true and .readOnly == true and
+            .providerRead == true and .personalSigningUrlPresent == true and
+            .validSigningUrls >= 1
+          ' "$bodyfile" >/dev/null; then
+            echo "::error::Identik read-only personal signing URL gate failed (HTTP $http_status). No invitation was sent."
+            exit 1
+          fi
+          echo "Identik personal signing URL available: provider read-only verified; no invitation sent"
+      - name: Check authorized synthetic contract without provider effects
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          # A transient external GitHub JWKS fetch may deny OIDC. Retry with
+          # fresh short-lived tokens, NEVER bypass or relax identity validation.
+          for attempt in 1 2 3; do
+            token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+            bodyfile="$(mktemp)"
+            status="$(curl -sS --max-time 40 -o "$bodyfile" -w '%{http_code}' -H "Authorization: Bearer $token" "$QA_BASE_URL/api/qa/identik/create-signing")"
+            if [ "$status" = 200 ] && jq -e '.ok == true and .qaOnly == true and .sandboxOnly == true and .readOnly == true and .contractEligible == true and ((.unreserved == true and .existingDocument == false) or (.unreserved == false and .existingDocument == true))' "$bodyfile" >/dev/null; then
+              rm -f "$bodyfile"
+              echo "Authenticated preflight OK on attempt $attempt"
+              exit 0
+            fi
+            jq -c '{ok,error,qaOnly,readOnly,contractEligible,existingDocument}' "$bodyfile" || true
+            rm -f "$bodyfile"
+            echo "::warning::Preflight attempt $attempt returned HTTP $status"
+            if [ "$status" != 403 ] || [ "$attempt" = 3 ]; then exit 1; fi
+            sleep $((attempt * 3))
+          done
+
+  # A one-time controlled provider-read reconciliation, not a forged webhook.
+  # Execution authorized against existing, already signed Sandbox document 33 only.
+  identik-sandbox-reconcile:
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): reconcile completed Identik document 33' }}"
+    needs: [qa-e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Reconcile only Identik Sandbox document 33 from provider status
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          response="$(curl -sS --max-time 55 -w '\n%{http_code}' -H "Authorization: Bearer $token" -H "x-qa-intent: reconcile-signed-document-33" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/reconcile-completed")"
+          code="$(printf '%s\n' "$response" | tail -n 1)"
+          body="$(printf '%s\n' "$response" | sed '$d')"
+          echo "$body" | jq -c '{ok,qaOnly,providerVerified,providerStatus,localCompleted,alreadyReconciled,reconciliation,error}'
+          test "$code" = 200
+          echo "$body" | jq -e '.ok == true and .qaOnly == true and .providerVerified == true and .providerStatus == "COMPLETED" and .localCompleted == true' >/dev/null
+
+  # Provider reads only: tests the general pending-document reconciler.
+  # Explicit QA-only execution: all due pending documents, no external delivery.
+  identik-reconcile-pending:
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): verify all pending Identik documents reconciliation' }}"
+    needs: [qa-e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Process bounded pending documents from Identik Sandbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 55 -H "Authorization: Bearer $token" -H "x-qa-intent: reconcile-pending-documents" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/reconcile-pending" | jq -e '.ok == true and .qaOnly == true and .providerReadsOnly == true and .noExternalDelivery == true and .failed == 0 and (.selected >= 0) and (.checked >= 0)'
+
+  # Never send invitations on a normal push or merely because tests passed.
+  # One QA-only send authorized after independent E2E and read-only preflight.
+  # A uniquely named, deliberately authored QA-only commit gates this job.
+  # Authorized second synthetic PDF only; prior Identik document 32 is retained.
+  identik-sandbox-send:
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): execute corrected Identik Sandbox geometry two signer invitation' }}"
+    needs: [qa-e2e, identik-sandbox-preflight]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Block second provider document when a reservation already exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 40 -H "Authorization: Bearer $token" "$QA_BASE_URL/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .sandboxOnly == true and .unreserved == true and .existingDocument == false'
+      - name: Send exactly one document to two controlled Sandbox inboxes
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          curl -fsS --max-time 65 -H "Authorization: Bearer $token" -H "x-qa-identik-intent: send-two-sandbox-invitations" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/create-signing" | jq -e '.ok == true and .qaOnly == true and .providerDocumentCreated == true and .invitationsRequested == true and .twoSigners == true'
+
+  # Explicit one-time archive: reads only completed Sandbox documents from
+  # Identik, then stores signed artifacts in QA private storage. No invites.
+  identik-archive-completed:
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'test(qa): archive completed Identik signed documents' }}"
+    needs: [qa-e2e, identik-sandbox-preflight]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      QA_BASE_URL: https://verlopunto0-git-qa-verlo-e2e-verlos-projects-b9e9c595.vercel.app
+    steps:
+      - name: Archive completed QA documents in private storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(curl -fsS --max-time 15 -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=verlo-qa-mi-verlo" | jq -er '.value')"
+          bodyfile="$(mktemp)"
+          status="$(curl -sS --max-time 55 -o "$bodyfile" -w '%{http_code}' -H "Authorization: Bearer $token" -H "x-qa-intent: archive-signed-documents" -H "Content-Type: application/json" --data '{}' "$QA_BASE_URL/api/qa/identik/archive-completed")"
+          # Print only safe booleans/counters and predefined error categories.
+          jq -c '{ok,qaOnly,error,selected,completed,failed,failureCodes,hasMore}' "$bodyfile" || true
+          if [ "$status" != 200 ]; then
+            echo "::error::QA archive failed with HTTP $status"
+            rm -f "$bodyfile"
+            exit 1
+          fi
+          jq -e '.ok == true and .qaOnly == true and .noExternalDelivery == true and .failed == 0 and .selected >= 0 and .completed >= 0' "$bodyfile" >/dev/null
+          rm -f "$bodyfile"

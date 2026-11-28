@@ -31,6 +31,50 @@ type Data = {
   leads: any[]
   matches: any[]
   notifications: any[]
+  business?: {
+    environment: "qa" | "production" | "other"
+    mode: Mode
+    metrics: Record<string, { value: number | null; source: string; note?: string }>
+    unavailable: string[]
+    notes: string[]
+  }
+  powermarket_settlement?: {
+    month: string
+    confirmed_month_count: number | null
+    confirmed_total_count: number | null
+    recent: Array<{
+      policy_id: string
+      application_id: string
+      contract_id: string | null
+      tenant_name: string
+      confirmation_at: string
+      status: string
+    }>
+    truncated: boolean
+    unavailable: string | null
+    note: string
+  }
+  meta?: {
+    connected: boolean
+    spend_30d_ars: number | null
+    impressions_30d: number | null
+    clicks_30d: number | null
+    source: string
+    period: string
+    error?: string
+  }
+  zeptomail?: {
+    qa_isolated: boolean
+    sender: string
+    reply_to: string
+    sender_valid: boolean
+    api_key_configured: boolean
+    queue_capture_approved: boolean
+    dispatch_approved: boolean
+    can_dispatch: boolean
+    provider_delivery_verified: boolean
+    note: string
+  }
 }
 
 function dt(v?: string | null) {
@@ -160,6 +204,121 @@ export default function AdminVerloPage() {
                 <Metric n={data.summary.notifications} label="Eventos" />
               </section>
 
+              <section className="panel" aria-label="Tablero de gestión comercial">
+                <h2>Negocio · visión CEO</h2>
+                <p className="muted" style={{lineHeight:1.7}}>
+                  Fuente: Supabase ({data.business?.environment==="qa"?"QA / pruebas":data.business?.environment==="production"?"Producción":"entorno no identificado"}).
+                  {data.business?.environment==="qa"?" Son registros de pruebas, no ventas reales.":""}
+                  Los indicadores operativos no equivalen a ingresos bancarios conciliados.
+                </p>
+                <div className="cards">
+                  <Metric n={data.meta?.connected ? data.meta.spend_30d_ars ?? null : null} label="Gasto Meta · últimos 30 días (moneda de la cuenta)" />
+                  <Metric n={data.meta?.connected ? data.meta.clicks_30d ?? null : null} label="Clics Meta · 30 días" />
+                  <Metric n={data.meta?.connected ? data.meta.impressions_30d ?? null : null} label="Impresiones Meta · 30 días" />
+                  <Metric n={data.business?.metrics.temporary_payments_approved?.value ?? null} label="Pagos temporarios aprobados (registros)" />
+                  <Metric n={data.business?.metrics.traditional_payment_records_approved?.value ?? null} label="Pagos tradicionales aprobados (registros)" />
+                  <Metric n={data.business?.metrics.caucion_applications?.value ?? null} label="Solicitudes de caución" />
+                  <Metric n={data.business?.metrics.caucion_policies?.value ?? null} label="Pólizas de caución registradas" />
+                  <Metric n={data.business?.metrics.identik_documents_archived?.value ?? null} label="Contratos con PDF archivado" />
+                </div>
+                <p className="muted" style={{marginTop:16}}>
+                  {data.meta?.connected ? "Meta Ads conectado (consulta directa al proveedor)." :
+                    "Meta Ads: sin conexión verificada o sin datos en el período."}
+                  {data.business?.unavailable?.length ? " · Indicadores sin datos: "+data.business.unavailable.length : ""}
+                </p>
+              </section>
+
+              <section className="panel" aria-label="Liquidación mensual de cauciones PowerMarket">
+                <h2>PowerMarket · control de ventas y liquidación</h2>
+                <p className="muted" style={{lineHeight:1.7}}>
+                  Mes contable: {data.powermarket_settlement?.month || "—"} (Buenos Aires).
+                  Se contabiliza una venta únicamente cuando PowerMarket confirma el cobro.
+                  {data.business?.environment==="qa" ? " Entorno QA: valores de prueba, no ventas reales." : ""}
+                </p>
+                <div className="cards">
+                  <Metric n={data.powermarket_settlement?.confirmed_month_count ?? null}
+                    label="Cauciones cobradas confirmadas · mes" />
+                  <Metric n={data.powermarket_settlement?.confirmed_total_count ?? null}
+                    label="Cauciones cobradas confirmadas · total" />
+                </div>
+                {data.powermarket_settlement?.unavailable && (
+                  <p role="alert" className="muted">
+                    No se puede calcular la liquidación: {data.powermarket_settlement.unavailable}
+                  </p>
+                )}
+                <p className="muted" style={{marginTop:14,lineHeight:1.7}}>
+                  Esta es la base para conciliar las ventas con PowerMarket. El importe de tu comisión
+                  y su condición de pagada se registrarán únicamente cuando haya una liquidación real;
+                  no se presume ni se inventa un porcentaje.
+                </p>
+                <div className="table"><table>
+                  <thead><tr><th>Solicitante</th><th>Fecha de cobro confirmada</th><th>Estado</th><th>Solicitud</th><th>Operación</th></tr></thead>
+                  <tbody>
+                    {(data.powermarket_settlement?.recent || []).map(row => (
+                      <tr key={row.policy_id}>
+                        <td>{row.tenant_name}</td>
+                        <td>{dt(row.confirmation_at)}</td>
+                        <td>{row.status==="issued"?"Póliza emitida":"Cobro confirmado"}</td>
+                        <td>{row.application_id}</td>
+                        <td>{row.policy_id}</td>
+                      </tr>
+                    ))}
+                    {!data.powermarket_settlement?.recent?.length && (
+                      <tr><td colSpan={5} className="muted">No hay cauciones con cobro confirmado en el filtro seleccionado.</td></tr>
+                    )}
+                  </tbody>
+                </table></div>
+                {data.powermarket_settlement?.truncated && <p className="muted">Se muestran las últimas 100 operaciones confirmadas.</p>}
+              </section>
+
+              <section className="panel" aria-label="Funil de temporarios">
+                <h2>Temporarios · operación completa</h2>
+                <div className="cards">
+                  <Metric n={data.business?.metrics.temporary_listings_published?.value ?? null} label="Alojamientos publicados" />
+                  <Metric n={data.business?.metrics.temporary_demands?.value ?? null} label="Búsquedas registradas" />
+                  <Metric n={data.business?.metrics.temporary_matches?.value ?? null} label="Coincidencias" />
+                  <Metric n={data.business?.metrics.temporary_matches_accepted?.value ?? null} label="Coincidencias aceptadas" />
+                  <Metric n={data.business?.metrics.temporary_reservations?.value ?? null} label="Reservas iniciadas" />
+                  <Metric n={data.business?.metrics.temporary_payments_approved?.value ?? null} label="Pagos VERLO aprobados" />
+                  <Metric n={data.business?.metrics.temporary_reservations_confirmed?.value ?? null} label="Reservas confirmadas" />
+                  <Metric n={data.business?.metrics.temporary_contracts?.value ?? null} label="Contratos temporarios" />
+                </div>
+              </section>
+
+              <section className="panel" aria-label="Estado de preparación de correo ZeptoMail">
+                <h2>ZeptoMail · preparado para operar</h2>
+                <p className="muted" style={{lineHeight:1.7}}>
+                  Remitente: {data.zeptomail?.sender || "Sin información"} ·
+                  Respuestas: {data.zeptomail?.reply_to || "Sin información"}
+                </p>
+                <div className="cards">
+                  <Metric n={data.zeptomail?.sender_valid ? 1 : 0} label="Remitente con formato válido" />
+                  <Metric n={data.zeptomail?.api_key_configured ? 1 : 0} label="Credencial configurada (sí=1)" />
+                  <Metric n={data.zeptomail?.queue_capture_approved ? 1 : 0} label="Captura habilitada (sí=1)" />
+                  <Metric n={data.zeptomail?.can_dispatch ? 1 : 0} label="Envío habilitado (sí=1)" />
+                </div>
+                <p className="muted" style={{marginTop:16,lineHeight:1.7}}>
+                  {data.zeptomail?.qa_isolated
+                    ? "QA aislado: envíos reales bloqueados."
+                    : "El estado de configuración no certifica que un destinatario haya recibido el correo."}
+                  {" "}{data.zeptomail?.note || "Todavía no se verificó el proveedor."}
+                </p>
+              </section>
+
+              <section className="panel" aria-label="Salud de comunicaciones">
+                <h2>Comunicaciones y operación</h2>
+                <div className="cards">
+                  <Metric n={data.business?.metrics.email_outbox_pending?.value ?? null} label="Emails pendientes" />
+                  <Metric n={data.business?.metrics.email_outbox_sent?.value ?? null} label="Emails aceptados para envío" />
+                  <Metric n={data.business?.metrics.email_outbox_failed?.value ?? null} label="Emails fallidos" />
+                  <Metric n={data.business?.metrics.identik_documents_completed?.value ?? null} label="Documentos Identik completados" />
+                </div>
+                <p className="muted" style={{marginTop:16}}>
+                  “Aceptado para envío” no garantiza recepción. “Pago aprobado” no significa dinero conciliado.
+                  Los datos personales y archivos contractuales no se incluyen en este resumen.
+                </p>
+              </section>
+
               <section className="panel">
                 <h2>Funnel MVP</h2>
                 <div className="funnel">
@@ -224,8 +383,8 @@ export default function AdminVerloPage() {
   )
 }
 
-function Metric({n,label}:{n:number,label:string}) {
-  return <div className="metric"><strong>{n}</strong><span>{label}</span></div>
+function Metric({n,label}:{n:number|null,label:string}) {
+  return <div className="metric"><strong>{n===null?"Sin datos":Number.isFinite(n)?new Intl.NumberFormat("es-AR",{maximumFractionDigits:2}).format(n):"Sin datos"}</strong><span>{label}</span></div>
 }
 
 function F({label,n,max}:{label:string,n:number,max:number}) {
